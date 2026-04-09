@@ -1,0 +1,24 @@
+[Unit]
+Description=Uroboros backend (FastAPI)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=uroboros
+Group=uroboros
+WorkingDirectory=/opt/uroboros/backend
+EnvironmentFile=/opt/uroboros/backend/.env
+ExecStart=/opt/uroboros/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=3
+
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/uroboros
+
+[Install]
+WantedBy=multi-user.target

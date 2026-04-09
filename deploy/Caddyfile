@@ -1,0 +1,18 @@
+# Uroboros — served behind Cloudflare Tunnel (TLS terminated at Cloudflare)
+# Tunnel should point at http://127.0.0.1:80
+
+http://__DOMAIN__, http://localhost {
+	encode gzip
+
+	# API
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:__BACKEND_PORT__
+	}
+
+	# Static SvelteKit build (adapter-static output)
+	handle {
+		root * __APP_DIR__/frontend/build
+		try_files {path} /index.html
+		file_server
+	}
+}
