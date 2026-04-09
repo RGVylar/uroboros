@@ -61,7 +61,7 @@ msg "Container IP: $CT_IP"
 
 # ---------- run installer ----------
 msg "Running installer inside container…"
-pct exec "$CT_ID" -- bash -c "set -euo pipefail; cd /tmp; git clone https://github.com/RGVylar/uroboros.git; cd uroboros; DOMAIN='$DOMAIN' BACKEND_PORT='$BACKEND_PORT' bash deploy/install.sh"
+pct exec "$CT_ID" -- bash -c "set -euo pipefail; cd /tmp; git clone --branch master https://github.com/RGVylar/uroboros.git; cd uroboros; DOMAIN='$DOMAIN' BACKEND_PORT='$BACKEND_PORT' bash deploy/install.sh"
 
 echo ""
 cat <<EOF

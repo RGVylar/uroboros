@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 # Uroboros LXC installer (Debian 12)
 # Usage (inside the LXC, as root):
-#   For public repo:
-#     bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
-#
-#   For private repo (pass a GitHub Personal Access Token with 'repo' scope):
-#     GITHUB_TOKEN=ghp_... bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/install.sh)"
 #
 # Idempotent-ish: re-running will update code and restart services.
 
@@ -27,7 +23,7 @@ if [[ -n "$GITHUB_TOKEN" ]]; then
 else
     REPO_URL="${REPO_URL:-https://github.com/RGVylar/uroboros.git}"
 fi
-REPO_BRANCH="${REPO_BRANCH:-main}"
+REPO_BRANCH="${REPO_BRANCH:-master}"
 APP_DIR="${APP_DIR:-/opt/uroboros}"
 APP_USER="${APP_USER:-uroboros}"
 

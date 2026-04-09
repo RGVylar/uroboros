@@ -22,13 +22,15 @@ uroboros/
 └── README.md
 ```
 
-## Install on a fresh LXC
+## Install on Proxmox
+
+On the Proxmox host:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/create-lxc.sh)
 ```
 
-See [`deploy/README.md`](deploy/README.md) for details.
+This creates and configures a new LXC automatically. See [`deploy/README.md`](deploy/README.md) for details and manual install options.
 
 ## Local backend dev
 
