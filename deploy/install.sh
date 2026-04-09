@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Uroboros LXC installer (Debian 12)
 # Usage (inside the LXC, as root):
-#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
+#   For public repo:
+#     bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
+#
+#   For private repo (pass a GitHub Personal Access Token with 'repo' scope):
+#     GITHUB_TOKEN=ghp_... bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
 #
 # Idempotent-ish: re-running will update code and restart services.
 
@@ -17,7 +21,12 @@ die()  { echo -e "${RED}[x]${NC} $*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || die "Run as root inside the LXC."
 
 # ---------- config ----------
-REPO_URL="${REPO_URL:-https://github.com/RGVylar/uroboros.git}"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+if [[ -n "$GITHUB_TOKEN" ]]; then
+    REPO_URL="${REPO_URL:-https://${GITHUB_TOKEN}@github.com/RGVylar/uroboros.git}"
+else
+    REPO_URL="${REPO_URL:-https://github.com/RGVylar/uroboros.git}"
+fi
 REPO_BRANCH="${REPO_BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/uroboros}"
 APP_USER="${APP_USER:-uroboros}"
@@ -76,7 +85,11 @@ if [[ -d "$APP_DIR/.git" ]]; then
     git -C "$APP_DIR" reset --hard "origin/$REPO_BRANCH"
 else
     msg "Cloning $REPO_URL → $APP_DIR…"
-    git clone --quiet --branch "$REPO_BRANCH" "$REPO_URL" "$APP_DIR"
+    # hide token in output if present
+    DISPLAY_URL="$REPO_URL"
+    [[ -n "$GITHUB_TOKEN" ]] && DISPLAY_URL="${DISPLAY_URL//${GITHUB_TOKEN}/@github_token@}"
+    msg "  → $DISPLAY_URL"
+    git clone --quiet --branch "$REPO_BRANCH" "$REPO_URL" "$APP_DIR" || die "Clone failed (check GITHUB_TOKEN if private repo)"
 fi
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 ok "Code in place"

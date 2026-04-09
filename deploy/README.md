@@ -2,23 +2,54 @@
 
 One-shot installer for a fresh Debian 12 LXC on Proxmox.
 
-## Quick install
+## Quick install on Proxmox
 
-Inside the LXC, as root:
+On the **Proxmox host** (not inside an LXC):
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
+```
+
+This will:
+1. Create a new Debian 12 LXC container
+2. Start it
+3. Run the full installer inside
+
+Customize via env vars:
+
+```bash
+CT_ID=201 CT_NAME=uroboros-prod DOMAIN=comida.mugrelore.com \
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
+```
+
+**Or manually**: If you already have an LXC running, SSH into it and:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
 ```
 
-Override defaults via env vars:
+## Scripts
+
+### `create-lxc.sh` — Proxmox integration
+
+Run on the **Proxmox host** to create a fresh LXC container and configure it:
 
 ```bash
-DOMAIN=comida.mugrelore.com \
-REPO_BRANCH=main \
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
+bash create-lxc.sh
 ```
 
-## What it does
+Env vars:
+- `CT_ID=200` — container ID
+- `CT_NAME=uroboros` — hostname
+- `CT_STORAGE=local-lvm` — storage pool
+- `CT_MEMORY=2048` — RAM in MB
+- `CT_CORES=2` — CPU cores
+- `CT_DISK=20` — disk size in GB
+- `DOMAIN=comida.mugrelore.com` — your domain
+
+### `install.sh` — LXC installer
+
+Run **inside** the LXC (or on any Debian 12 machine).
 
 1. Installs Python, PostgreSQL, Caddy, Node.js LTS, git.
 2. Creates the `uroboros` system user and clones the repo to `/opt/uroboros`.
