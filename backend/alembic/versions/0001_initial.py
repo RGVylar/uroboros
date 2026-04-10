@@ -33,11 +33,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_users_email", "users", ["email"])
 
-    product_source = sa.Enum(
-        "openfoodfacts", "manual", "edited", name="product_source"
-    )
-    product_source.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "products",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -156,4 +151,3 @@ def downgrade() -> None:
     op.drop_table("products")
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
-    sa.Enum(name="product_source").drop(op.get_bind(), checkfirst=True)
