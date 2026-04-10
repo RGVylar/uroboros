@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Uroboros LXC installer (Debian 12)
 # Usage (inside the LXC, as root):
-#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/install.sh)"
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
 #
 # Idempotent-ish: re-running will update code and restart services.
 

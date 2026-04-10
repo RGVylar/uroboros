@@ -27,7 +27,7 @@ uroboros/
 On the Proxmox host:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/create-lxc.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
 ```
 
 This creates and configures a new LXC automatically. See [`deploy/README.md`](deploy/README.md) for details and manual install options.

@@ -7,7 +7,7 @@ One-shot installer for a fresh Debian 12 LXC on Proxmox.
 On the **Proxmox host** (not inside an LXC):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/create-lxc.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
 ```
 
 This will:
@@ -19,13 +19,13 @@ Customize via env vars:
 
 ```bash
 CT_ID=201 CT_NAME=uroboros-prod DOMAIN=comida.mugrelore.com \
-bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/create-lxc.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
 ```
 
 **Or manually**: If you already have an LXC running, SSH into it and:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/master/deploy/install.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/install.sh)"
 ```
 
 ## Scripts
