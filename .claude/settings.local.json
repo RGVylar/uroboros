@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//h/Repositories/**)",
+      "Read(//mnt/h/Repositories/**)"
+    ]
+  }
+}

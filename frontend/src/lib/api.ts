@@ -1,6 +1,11 @@
+import { Capacitor } from '@capacitor/core';
 import { auth } from '$lib/stores/auth.svelte';
 
-const BASE = '/api';
+// In native app, API calls go to the remote server.
+// In web, they go through Caddy's reverse proxy at /api.
+const BASE = Capacitor.isNativePlatform()
+	? (import.meta.env.VITE_API_URL || 'https://comida.mugrelore.com/api')
+	: '/api';
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };

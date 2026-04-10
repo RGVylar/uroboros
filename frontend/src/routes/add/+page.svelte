@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Product, User, DiaryEntry } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	let isNative = Capacitor.isNativePlatform();
 
 	let query = $state('');
 	let barcode = $state('');
@@ -54,6 +57,31 @@
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
 			searching = false;
+		}
+	}
+
+	async function scanBarcode() {
+		try {
+			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+			const { supported } = await BarcodeScanner.isSupported();
+			if (!supported) {
+				error = 'Barcode scanner not supported on this device';
+				return;
+			}
+
+			const granted = await BarcodeScanner.requestPermissions();
+			if (granted.camera !== 'granted') {
+				error = 'Camera permission denied';
+				return;
+			}
+
+			const { barcodes } = await BarcodeScanner.scan();
+			if (barcodes.length > 0) {
+				barcode = barcodes[0].rawValue;
+				await searchByBarcode();
+			}
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Scanner error';
 		}
 	}
 
@@ -193,6 +221,11 @@
 			<input id="barcode" bind:value={barcode} placeholder="8410032002347" style="flex:1;" />
 			<button onclick={searchByBarcode} disabled={searching}>Buscar</button>
 		</div>
+		{#if isNative}
+			<button onclick={scanBarcode} style="width:100%; margin-top:0.5rem;">
+				Escanear con cámara
+			</button>
+		{/if}
 	</div>
 
 	<button class="btn-secondary" onclick={() => showManual = true} style="width:100%; margin-bottom:1rem;">
