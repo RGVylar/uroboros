@@ -10,15 +10,12 @@
 		{ href: '/add', label: 'Añadir', icon: '➕' },
 		{ href: '/history', label: 'Historial', icon: '📅' },
 		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
-		{ href: '/goals', label: 'Metas', icon: '🎯' }
+		{ href: '/goals', label: 'Metas', icon: '🎯' },
+		{ href: '/settings', label: 'Ajustes', icon: '⚙️' }
 	];
 </script>
 
-{#if auth.isLoggedIn}
-	<div style="position:fixed; top:0.5rem; right:1rem; z-index:101;">
-		<a href="/settings" style="font-size:1.2rem; color:var(--text-muted);">⚙️</a>
-	</div>
-{/if}
+<!-- Moved settings into bottom nav to avoid overlapping top controls -->
 
 <div class="container page">
 	{@render children()}
