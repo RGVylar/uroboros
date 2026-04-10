@@ -301,7 +301,8 @@
 				{#each recommendations as rec (rec.product.id)}
 					<button
 						onclick={() => { selected = rec.product; grams = rec.suggested_grams; }}
-						style="text-align:left; border:1px solid var(--border); border-radius:8px; padding:0.6rem; background:var(--bg-secondary); cursor:pointer; transition:border-color 0.2s;">
+						class="btn-secondary"
+						style="text-align:left; padding:0.6rem; transition:border-color 0.2s;">
 						<div style="display:flex; justify-content:space-between; align-items:start;">
 							<div style="flex:1;">
 								<div style="font-weight:600; font-size:0.9rem;">{rec.product.name}</div>
