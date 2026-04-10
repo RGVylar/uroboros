@@ -56,4 +56,7 @@ pct exec 200 -- bash -c "
 "
 pct stop 200 && pct destroy 200
 bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
+
+release:
+pct exec 200 -- bash -c "git config --global --add safe.directory /opt/uroboros && cd /opt/uroboros && git pull && cd frontend && npm ci && npm run build && systemctl restart caddy"
 ```
