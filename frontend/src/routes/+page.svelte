@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { DaySummary, Goals, WaterDay } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct } from '$lib/types';
 	import { MEAL_LABELS } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -11,15 +11,17 @@
 	let summary: DaySummary | null = $state(null);
 	let goals: Goals | null = $state(null);
 	let water: WaterDay | null = $state(null);
+	let frequent: FrequentProduct[] = $state([]);
 	let loading = $state(true);
 
 	async function load() {
 		loading = true;
 		try {
-			[summary, goals, water] = await Promise.all([
+			[summary, goals, water, frequent] = await Promise.all([
 				api.get<DaySummary>(`/diary/day?day=${today}`),
 				api.get<Goals>('/goals').catch(() => null),
 				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => null),
+				api.get<FrequentProduct[]>('/products/frequent?limit=5').catch(() => []),
 			]);
 		} catch {
 			// handled
@@ -169,6 +171,33 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Frequently used products (if any) -->
+		{#if frequent.length > 0 && summary.entries.length === 0}
+			<div style="margin-bottom:1rem;">
+				<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">
+					Usados frecuentemente
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.4rem;">
+					{#each frequent as freq (freq.product.id)}
+						<a href="/add" style="text-decoration:none;">
+							<div style="border:1px solid var(--border); border-radius:8px; padding:0.6rem; background:var(--surface); cursor:pointer; transition:border-color 0.2s;">
+								<div style="display:flex; justify-content:space-between; align-items:start;">
+									<div style="flex:1;">
+										<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
+										{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
+										<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} veces</div>
+									</div>
+									<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
+										<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
+									</div>
+								</div>
+							</div>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<!-- Diary entries grouped by meal -->
 		{#if summary.entries.length === 0}

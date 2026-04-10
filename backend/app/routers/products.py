@@ -8,9 +8,9 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import Product, User
 from app.models.product import ProductSource
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, RecommendedProduct
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, RecommendedProduct, FrequentProduct
 from app.services.openfoodfacts import OFFNotFound, fetch_by_barcode, search_by_name
-from app.services.recommendations import get_recommendations
+from app.services.recommendations import get_recommendations, get_frequently_used_products, FrequentlyUsedProduct
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -176,4 +176,21 @@ def get_product_recommendations(
             "reason": rec.reason,
         }
         for rec in recommendations
+    ]
+
+
+@router.get("/frequent", response_model=list[FrequentProduct])
+def get_frequent_products(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get user's most frequently logged products for quick access"""
+    frequent = get_frequently_used_products(db, user, limit)
+    return [
+        {
+            "product": ProductOut.model_validate(f.product),
+            "count": f.count,
+        }
+        for f in frequent
     ]

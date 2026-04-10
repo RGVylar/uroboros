@@ -6,6 +6,13 @@ from sqlalchemy.orm import Session
 from app.models import DiaryEntry, Product, User, UserGoals
 
 
+class FrequentlyUsedProduct:
+    """Product with usage count"""
+    def __init__(self, product: Product, count: int):
+        self.product = product
+        self.count = count
+
+
 class ProductRecommendation:
     """Recommendation with suggested portion size"""
     def __init__(self, product: Product, suggested_grams: int, reason: str):
@@ -100,3 +107,36 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
             break
 
     return recommendations
+
+
+def get_frequently_used_products(db: Session, user: User, limit: int = 10) -> list[FrequentlyUsedProduct]:
+    """Get user's most frequently logged products (all time)"""
+
+    # Get all entries for the user, ordered by recency
+    entries = list(
+        db.scalars(
+            select(DiaryEntry)
+            .where(DiaryEntry.user_id == user.id)
+            .order_by(DiaryEntry.consumed_at.desc())
+        )
+    )
+
+    # Count frequency of each product
+    product_frequency: dict[int, int] = {}
+    for entry in entries:
+        product_frequency[entry.product_id] = product_frequency.get(entry.product_id, 0) + 1
+
+    # Get top products with their details
+    frequently_used = []
+    for product_id in sorted(
+        product_frequency.keys(),
+        key=lambda pid: product_frequency[pid],
+        reverse=True
+    )[:limit]:
+        product = db.get(Product, product_id)
+        if product:
+            frequently_used.append(
+                FrequentlyUsedProduct(product, product_frequency[product_id])
+            )
+
+    return frequently_used

@@ -44,3 +44,8 @@ class RecommendedProduct(BaseModel):
     suggested_grams: int
     estimated_calories: float
     reason: str
+
+
+class FrequentProduct(BaseModel):
+    product: ProductOut
+    count: int

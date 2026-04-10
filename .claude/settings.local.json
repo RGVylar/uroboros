@@ -5,7 +5,9 @@
       "Read(//mnt/h/Repositories/**)",
       "mcp__Claude_Preview__preview_start",
       "Bash(npm install:*)",
-      "Bash(python -m py_compile \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\services\\\\recommendations.py\" \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\routers\\\\products.py\")"
+      "Bash(python -m py_compile \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\services\\\\recommendations.py\" \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\routers\\\\products.py\")",
+      "Bash(npm run:*)",
+      "Bash(python -m py_compile backend/app/routers/products.py backend/app/services/recommendations.py)"
     ]
   }
 }

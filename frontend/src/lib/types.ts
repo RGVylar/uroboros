@@ -112,3 +112,8 @@ export interface RecommendedProduct {
 	estimated_calories: number;
 	reason: string;
 }
+
+export interface FrequentProduct {
+	product: Product;
+	count: number;
+}
