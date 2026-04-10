@@ -23,7 +23,7 @@ if [[ -n "$GITHUB_TOKEN" ]]; then
 else
     REPO_URL="${REPO_URL:-https://github.com/RGVylar/uroboros.git}"
 fi
-REPO_BRANCH="${REPO_BRANCH:-master}"
+REPO_BRANCH="${REPO_BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/uroboros}"
 APP_USER="${APP_USER:-uroboros}"
 
