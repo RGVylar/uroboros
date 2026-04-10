@@ -1,0 +1,218 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { api } from '$lib/api';
+	import { auth } from '$lib/stores/auth.svelte';
+	import type { Product, User, DiaryEntry } from '$lib/types';
+
+	if (!auth.isLoggedIn) goto('/login');
+
+	let query = $state('');
+	let barcode = $state('');
+	let results: Product[] = $state([]);
+	let searching = $state(false);
+	let selected: Product | null = $state(null);
+	let grams = $state(100);
+	let alsoFor: number | null = $state(null);
+	let users: User[] = $state([]);
+	let saving = $state(false);
+	let error = $state('');
+	let showManual = $state(false);
+
+	// manual product fields
+	let manualName = $state('');
+	let manualBrand = $state('');
+	let manualCal = $state(0);
+	let manualProt = $state(0);
+	let manualCarbs = $state(0);
+	let manualFat = $state(0);
+
+	$effect(() => {
+		api.get<User[]>('/users').then(u => users = u).catch(() => {});
+	});
+
+	async function searchByName() {
+		if (!query.trim()) return;
+		searching = true;
+		error = '';
+		try {
+			results = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}`);
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			searching = false;
+		}
+	}
+
+	async function searchByBarcode() {
+		if (!barcode.trim()) return;
+		searching = true;
+		error = '';
+		try {
+			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
+			selected = p;
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			searching = false;
+		}
+	}
+
+	async function createManual() {
+		error = '';
+		try {
+			const p = await api.post<Product>('/products', {
+				name: manualName,
+				brand: manualBrand || null,
+				calories_per_100g: manualCal,
+				protein_per_100g: manualProt,
+				carbs_per_100g: manualCarbs,
+				fat_per_100g: manualFat
+			});
+			selected = p;
+			showManual = false;
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Error';
+		}
+	}
+
+	async function logEntry() {
+		if (!selected) return;
+		saving = true;
+		error = '';
+		try {
+			await api.post<DiaryEntry[]>('/diary', {
+				product_id: selected.id,
+				grams,
+				consumed_at: new Date().toISOString(),
+				also_for_user_id: alsoFor
+			});
+			goto('/');
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			saving = false;
+		}
+	}
+
+	function preview(per100: number) {
+		return Math.round(per100 * grams / 100);
+	}
+</script>
+
+{#if selected}
+	<h1>Registrar comida</h1>
+	<div class="card" style="margin-bottom:1rem;">
+		<div style="font-weight:700;">{selected.name}</div>
+		{#if selected.brand}<div style="color:var(--text-muted); font-size:0.85rem;">{selected.brand}</div>{/if}
+		<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+			Por 100g: {selected.calories_per_100g} kcal · P{selected.protein_per_100g} · C{selected.carbs_per_100g} · G{selected.fat_per_100g}
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="grams">Gramos</label>
+		<input id="grams" type="number" bind:value={grams} min="1" step="1" />
+	</div>
+
+	<div class="card" style="margin-bottom:1rem;">
+		<div class="macro-grid">
+			<div>
+				<div class="label">Kcal</div>
+				<div class="value" style="color:var(--cal);">{preview(selected.calories_per_100g)}</div>
+			</div>
+			<div>
+				<div class="label">Prot</div>
+				<div class="value" style="color:var(--prot);">{preview(selected.protein_per_100g)}g</div>
+			</div>
+			<div>
+				<div class="label">Carb</div>
+				<div class="value" style="color:var(--carb);">{preview(selected.carbs_per_100g)}g</div>
+			</div>
+			<div>
+				<div class="label">Grasa</div>
+				<div class="value" style="color:var(--fat);">{preview(selected.fat_per_100g)}g</div>
+			</div>
+		</div>
+	</div>
+
+	{#if users.length > 1}
+		<div class="form-group">
+			<label>
+				<input type="checkbox" checked={alsoFor !== null}
+					onchange={(e) => {
+						const target = e.target as HTMLInputElement;
+						alsoFor = target.checked
+							? (users.find(u => u.id !== auth.user?.id)?.id ?? null)
+							: null;
+					}} />
+				Añadir también a {users.find(u => u.id !== auth.user?.id)?.name ?? 'otro usuario'}
+			</label>
+		</div>
+	{/if}
+
+	{#if error}<p class="error">{error}</p>{/if}
+
+	<div style="display:flex; gap:0.5rem;">
+		<button class="btn-secondary" onclick={() => selected = null} style="flex:1;">Atrás</button>
+		<button onclick={logEntry} disabled={saving} style="flex:2;">
+			{saving ? 'Guardando...' : 'Registrar'}
+		</button>
+	</div>
+
+{:else if showManual}
+	<h1>Producto manual</h1>
+	<div class="form-group"><label for="m-name">Nombre</label><input id="m-name" bind:value={manualName} required /></div>
+	<div class="form-group"><label for="m-brand">Marca (opcional)</label><input id="m-brand" bind:value={manualBrand} /></div>
+	<div class="form-group"><label for="m-cal">Kcal / 100g</label><input id="m-cal" type="number" bind:value={manualCal} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="m-prot">Proteína / 100g</label><input id="m-prot" type="number" bind:value={manualProt} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="m-carbs">Carbos / 100g</label><input id="m-carbs" type="number" bind:value={manualCarbs} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="m-fat">Grasa / 100g</label><input id="m-fat" type="number" bind:value={manualFat} min="0" step="0.1" /></div>
+
+	{#if error}<p class="error">{error}</p>{/if}
+
+	<div style="display:flex; gap:0.5rem;">
+		<button class="btn-secondary" onclick={() => showManual = false} style="flex:1;">Atrás</button>
+		<button onclick={createManual} style="flex:2;">Crear producto</button>
+	</div>
+
+{:else}
+	<h1>Añadir comida</h1>
+
+	<div class="form-group">
+		<label for="search">Buscar por nombre</label>
+		<div style="display:flex; gap:0.5rem;">
+			<input id="search" bind:value={query} placeholder="Avena, pollo..."
+				onkeydown={(e) => { if (e.key === 'Enter') searchByName(); }} style="flex:1;" />
+			<button onclick={searchByName} disabled={searching}>Buscar</button>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="barcode">Código de barras</label>
+		<div style="display:flex; gap:0.5rem;">
+			<input id="barcode" bind:value={barcode} placeholder="8410032002347" style="flex:1;" />
+			<button onclick={searchByBarcode} disabled={searching}>Buscar</button>
+		</div>
+	</div>
+
+	<button class="btn-secondary" onclick={() => showManual = true} style="width:100%; margin-bottom:1rem;">
+		+ Crear producto manual
+	</button>
+
+	{#if error}<p class="error">{error}</p>{/if}
+
+	{#if searching}
+		<p style="text-align:center; color:var(--text-muted);">Buscando...</p>
+	{/if}
+
+	{#each results as product (product.id)}
+		<button class="card btn-secondary" style="width:100%; text-align:left; margin-bottom:0.5rem; display:block;"
+			onclick={() => selected = product}>
+			<div style="font-weight:600;">{product.name}</div>
+			{#if product.brand}<div style="color:var(--text-muted); font-size:0.8rem;">{product.brand}</div>{/if}
+			<div style="font-size:0.8rem; color:var(--text-muted);">
+				{product.calories_per_100g} kcal · P{product.protein_per_100g} · C{product.carbs_per_100g} · G{product.fat_per_100g}
+			</div>
+		</button>
+	{/each}
+{/if}
