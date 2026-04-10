@@ -25,6 +25,17 @@ export interface Product {
 	created_at: string;
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export const MEAL_LABELS: Record<MealType, string> = {
+	breakfast: 'Desayuno',
+	lunch: 'Almuerzo',
+	dinner: 'Cena',
+	snack: 'Snack',
+};
+
+export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
 export interface DiaryEntry {
 	id: number;
 	user_id: number;
@@ -34,9 +45,17 @@ export interface DiaryEntry {
 	protein: number;
 	carbs: number;
 	fat: number;
+	meal_type: MealType;
 	consumed_at: string;
 	created_at: string;
 	product: Product | null;
+}
+
+export interface MealSection {
+	meal_type: MealType;
+	label: string;
+	totals: DayTotals;
+	entries: DiaryEntry[];
 }
 
 export interface DayTotals {
@@ -49,6 +68,7 @@ export interface DayTotals {
 export interface DaySummary {
 	date: string;
 	totals: DayTotals;
+	meals: MealSection[];
 	entries: DiaryEntry[];
 }
 

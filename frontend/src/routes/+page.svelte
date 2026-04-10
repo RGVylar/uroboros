@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { DaySummary, Goals, WaterDay } from '$lib/types';
+	import { MEAL_LABELS } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -169,11 +170,39 @@
 			</div>
 		</div>
 
-		<!-- Diary entries -->
+		<!-- Diary entries grouped by meal -->
 		{#if summary.entries.length === 0}
 			<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">
 				Sin registros hoy.<br /><a href="/add">Añadir comida</a>
 			</p>
+		{:else if summary.meals && summary.meals.length > 0}
+			{#each summary.meals as meal (meal.meal_type)}
+				<div style="margin-bottom:1rem;">
+					<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding:0 0.25rem;">
+						<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
+						<span style="font-size:0.8rem; color:var(--cal);">{Math.round(meal.totals.calories)} kcal</span>
+					</div>
+					{#each meal.entries as entry (entry.id)}
+						<div class="card" style="margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+							<div style="flex:1; min-width:0;">
+								<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+									{entry.product?.name ?? `Producto #${entry.product_id}`}
+								</div>
+								<div style="font-size:0.78rem; color:var(--text-muted);">
+									{entry.grams}g · {fmtTime(entry.consumed_at)}
+								</div>
+							</div>
+							<div style="text-align:right; margin-right:0.5rem;">
+								<div style="font-size:0.85rem; color:var(--cal);">{Math.round(entry.calories)} kcal</div>
+								<div style="font-size:0.72rem; color:var(--text-muted);">
+									P{Math.round(entry.protein)} C{Math.round(entry.carbs)} G{Math.round(entry.fat)}
+								</div>
+							</div>
+							<button class="btn-danger" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick={() => deleteEntry(entry.id)}>✕</button>
+						</div>
+					{/each}
+				</div>
+			{/each}
 		{:else}
 			{#each summary.entries as entry (entry.id)}
 				<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
@@ -183,7 +212,6 @@
 						</div>
 						<div style="font-size:0.8rem; color:var(--text-muted);">
 							{entry.grams}g · {fmtTime(entry.consumed_at)}
-							{#if entry.product?.brand} · {entry.product.brand}{/if}
 						</div>
 					</div>
 					<div style="text-align:right; margin-right:0.5rem;">

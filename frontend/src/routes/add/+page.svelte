@@ -3,7 +3,8 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Product, User, DiaryEntry } from '$lib/types';
+	import type { Product, User, DiaryEntry, MealType } from '$lib/types';
+	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -61,6 +62,15 @@
 	let selected: Product | null = $state(null);
 	let grams = $state(100);
 	let alsoFor: number | null = $state(null);
+	let mealType: MealType = $state(guessMealType());
+
+	function guessMealType(): MealType {
+		const h = new Date().getHours();
+		if (h >= 6 && h < 11) return 'breakfast';
+		if (h >= 11 && h < 16) return 'lunch';
+		if (h >= 16 && h < 22) return 'dinner';
+		return 'snack';
+	}
 	let users: User[] = $state([]);
 	let saving = $state(false);
 	let error = $state('');
@@ -156,6 +166,7 @@
 			await api.post<DiaryEntry[]>('/diary', {
 				product_id: selected.id,
 				grams,
+				meal_type: mealType,
 				consumed_at: new Date().toISOString(),
 				also_for_user_id: alsoFor
 			});
@@ -179,6 +190,20 @@
 		{#if selected.brand}<div style="color:var(--text-muted); font-size:0.85rem;">{selected.brand}</div>{/if}
 		<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
 			Por 100g: {selected.calories_per_100g} kcal · P{selected.protein_per_100g} · C{selected.carbs_per_100g} · G{selected.fat_per_100g}
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label>Comida</label>
+		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
+			{#each MEAL_ORDER as mt}
+				<button
+					onclick={() => mealType = mt}
+					class:btn-secondary={mealType !== mt}
+					style="font-size:0.75rem; padding:0.4rem 0.2rem;">
+					{MEAL_LABELS[mt]}
+				</button>
+			{/each}
 		</div>
 	</div>
 

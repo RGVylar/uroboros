@@ -1,9 +1,17 @@
+import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class MealType(str, enum.Enum):
+    breakfast = "breakfast"
+    lunch = "lunch"
+    dinner = "dinner"
+    snack = "snack"
 
 
 class DiaryEntry(Base):
@@ -17,6 +25,9 @@ class DiaryEntry(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
 
     grams: Mapped[float] = mapped_column(Float, nullable=False)
+    meal_type: Mapped[MealType] = mapped_column(
+        Enum(MealType, name="meal_type"), nullable=False, server_default="snack"
+    )
 
     # snapshot of macros at the moment of logging (already scaled to `grams`)
     calories: Mapped[float] = mapped_column(Float, nullable=False)

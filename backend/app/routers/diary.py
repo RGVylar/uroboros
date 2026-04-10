@@ -7,12 +7,23 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import DiaryEntry, Product, User
-from app.schemas.diary import DayTotals, DaySummary, DiaryEntryCreate, DiaryEntryOut
+from app.models.diary import MealType
+from app.schemas.diary import (
+    MEAL_LABELS,
+    MEAL_ORDER,
+    DayTotals,
+    DaySummary,
+    DiaryEntryCreate,
+    DiaryEntryOut,
+    MealSection,
+)
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
 
-def _build_entry(user_id: int, product: Product, grams: float, consumed_at: datetime) -> DiaryEntry:
+def _build_entry(
+    user_id: int, product: Product, grams: float, consumed_at: datetime, meal_type: MealType
+) -> DiaryEntry:
     factor = grams / 100.0
     return DiaryEntry(
         user_id=user_id,
@@ -23,6 +34,7 @@ def _build_entry(user_id: int, product: Product, grams: float, consumed_at: date
         carbs=product.carbs_per_100g * factor,
         fat=product.fat_per_100g * factor,
         consumed_at=consumed_at,
+        meal_type=meal_type,
     )
 
 
@@ -36,13 +48,14 @@ def create_entry(
     if not product:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
 
-    created = [_build_entry(user.id, product, payload.grams, payload.consumed_at)]
+    meal_type = MealType(payload.meal_type)
+    created = [_build_entry(user.id, product, payload.grams, payload.consumed_at, meal_type)]
 
     if payload.also_for_user_id and payload.also_for_user_id != user.id:
         other = db.get(User, payload.also_for_user_id)
         if not other:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
-        created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at))
+        created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
 
     db.add_all(created)
     db.commit()
@@ -70,16 +83,37 @@ def day_summary(
             .order_by(DiaryEntry.consumed_at)
         )
     )
+
     totals = DayTotals(
         calories=sum(e.calories for e in entries),
         protein=sum(e.protein for e in entries),
         carbs=sum(e.carbs for e in entries),
         fat=sum(e.fat for e in entries),
     )
+
+    # Group by meal type in order
+    entry_outs = [DiaryEntryOut.model_validate(e) for e in entries]
+    meals = []
+    for mt in MEAL_ORDER:
+        meal_entries = [e for e in entry_outs if e.meal_type == mt]
+        if meal_entries:
+            meals.append(MealSection(
+                meal_type=mt,
+                label=MEAL_LABELS[mt],
+                totals=DayTotals(
+                    calories=sum(e.calories for e in meal_entries),
+                    protein=sum(e.protein for e in meal_entries),
+                    carbs=sum(e.carbs for e in meal_entries),
+                    fat=sum(e.fat for e in meal_entries),
+                ),
+                entries=meal_entries,
+            ))
+
     return DaySummary(
         date=day.isoformat(),
         totals=totals,
-        entries=[DiaryEntryOut.model_validate(e) for e in entries],
+        meals=meals,
+        entries=entry_outs,
     )
 
 
