@@ -40,15 +40,17 @@ def _f(x: object) -> float:
         return 0.0
 
 
+HEADERS = {
+    "User-Agent": "Uroboros/0.2 (self-hosted macro tracker; https://github.com/RGVylar/uroboros)"
+}
+
+
 async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
     """Search Open Food Facts by product name."""
-    url = f"{settings.off_base_url}/cgi/search.pl"
+    url = f"{settings.off_base_url}/api/v2/search"
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, params={
-            "search_terms": query,
-            "search_simple": 1,
-            "action": "process",
-            "json": 1,
+        r = await client.get(url, headers=HEADERS, params={
+            "q": query,
             "page_size": limit,
             "fields": "code,product_name,brands,nutriments",
         })
@@ -77,7 +79,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
 async def fetch_by_barcode(barcode: str) -> OFFProduct:
     url = f"{settings.off_base_url}/api/v2/product/{barcode}.json"
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, params={"fields": "code,product_name,brands,nutriments"})
+        r = await client.get(url, headers=HEADERS, params={"fields": "code,product_name,brands,nutriments"})
     if r.status_code != 200:
         raise OFFNotFound(barcode)
     data = r.json()
