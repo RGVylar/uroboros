@@ -12,3 +12,4 @@ class UserGoals(Base):
     protein: Mapped[float] = mapped_column(Float, nullable=False)
     carbs: Mapped[float] = mapped_column(Float, nullable=False)
     fat: Mapped[float] = mapped_column(Float, nullable=False)
+    water_ml: Mapped[float] = mapped_column(Float, nullable=False, server_default="2000")

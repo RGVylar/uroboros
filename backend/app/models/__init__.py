@@ -4,6 +4,7 @@ from app.models.diary import DiaryEntry
 from app.models.recipe import Recipe, RecipeIngredient
 from app.models.weight import WeightLog
 from app.models.goals import UserGoals
+from app.models.water import WaterLog
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "RecipeIngredient",
     "WeightLog",
     "UserGoals",
+    "WaterLog",
 ]

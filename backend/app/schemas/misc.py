@@ -8,6 +8,7 @@ class GoalsIn(BaseModel):
     protein: float = Field(ge=0)
     carbs: float = Field(ge=0)
     fat: float = Field(ge=0)
+    water_ml: float = Field(ge=0, default=2000)
 
 
 class GoalsOut(GoalsIn):
@@ -15,6 +16,16 @@ class GoalsOut(GoalsIn):
 
     class Config:
         from_attributes = True
+
+
+class WaterLogIn(BaseModel):
+    ml: float = Field(gt=0)
+    logged_date: str  # YYYY-MM-DD
+
+
+class WaterDayOut(BaseModel):
+    total_ml: float
+    goal_ml: float
 
 
 class WeightIn(BaseModel):

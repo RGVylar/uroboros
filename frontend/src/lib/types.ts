@@ -58,6 +58,12 @@ export interface Goals {
 	protein: number;
 	carbs: number;
 	fat: number;
+	water_ml: number;
+}
+
+export interface WaterDay {
+	total_ml: number;
+	goal_ml: number;
 }
 
 export interface WeightLog {

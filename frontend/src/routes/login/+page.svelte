@@ -22,7 +22,7 @@
 				res = await api.post<TokenResponse>('/auth/login', { email, password });
 			}
 			auth.login(res.access_token, res.user);
-			goto('/');
+			goto(mode === 'register' ? '/goals?new=1' : '/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {

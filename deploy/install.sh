@@ -73,8 +73,8 @@ fi
 # Node.js (for SvelteKit build) — LTS via nodesource
 if ! command -v node >/dev/null 2>&1; then
     msg "Installing Node.js LTS…"
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
-    apt-get install -y -qq nodejs
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - || die "Failed to add NodeSource repo"
+    apt-get install -y -qq nodejs || die "Failed to install Node.js"
     ok "Node $(node -v) installed"
 fi
 

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//h/Repositories/**)",
-      "Read(//mnt/h/Repositories/**)"
+      "Read(//mnt/h/Repositories/**)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }
