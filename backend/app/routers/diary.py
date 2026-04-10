@@ -1,6 +1,9 @@
+import csv
+import io
 from datetime import date, datetime, time, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -114,6 +117,56 @@ def day_summary(
         totals=totals,
         meals=meals,
         entries=entry_outs,
+    )
+
+
+@router.get("/export.csv")
+def export_csv(
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """Export diary entries as CSV. Defaults to all history."""
+    stmt = select(DiaryEntry).where(DiaryEntry.user_id == user.id)
+    if date_from:
+        stmt = stmt.where(DiaryEntry.consumed_at >= datetime.combine(date_from, time.min, tzinfo=timezone.utc))
+    if date_to:
+        stmt = stmt.where(DiaryEntry.consumed_at <= datetime.combine(date_to, time.max, tzinfo=timezone.utc))
+    stmt = stmt.order_by(DiaryEntry.consumed_at)
+    entries = list(db.scalars(stmt))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "time", "meal_type", "product", "grams", "calories", "protein_g", "carbs_g", "fat_g"])
+
+    for e in entries:
+        product = db.get(Product, e.product_id)
+        dt = e.consumed_at
+        writer.writerow([
+            dt.strftime("%Y-%m-%d"),
+            dt.strftime("%H:%M"),
+            e.meal_type.value if e.meal_type else "",
+            product.name if product else f"#{e.product_id}",
+            round(e.grams, 1),
+            round(e.calories, 1),
+            round(e.protein, 1),
+            round(e.carbs, 1),
+            round(e.fat, 1),
+        ])
+
+    output.seek(0)
+    filename = f"uroboros_{user.id}"
+    if date_from:
+        filename += f"_{date_from}"
+    if date_to:
+        filename += f"_{date_to}"
+    filename += ".csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

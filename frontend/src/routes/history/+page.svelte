@@ -1,8 +1,31 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api';
 	import type { DaySummary } from '$lib/types';
+
+	function exportCSV(month?: boolean) {
+		const token = auth.token;
+		let url = '/api/diary/export.csv';
+		if (month) {
+			const from = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-01`;
+			const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
+			const to = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+			url += `?date_from=${from}&date_to=${to}`;
+		}
+		// Use fetch to pass auth header, then trigger download
+		fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+			.then(r => r.blob())
+			.then(blob => {
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = month
+					? `uroboros_${viewYear}-${String(viewMonth + 1).padStart(2, '0')}.csv`
+					: 'uroboros_historial.csv';
+				a.click();
+				URL.revokeObjectURL(a.href);
+			});
+	}
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -136,7 +159,17 @@
 	);
 </script>
 
-<h1>Historial</h1>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+	<h1 style="margin:0;">Historial</h1>
+	<div style="display:flex; gap:0.4rem;">
+		<button class="btn-secondary" onclick={() => exportCSV(true)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">
+			CSV mes
+		</button>
+		<button class="btn-secondary" onclick={() => exportCSV(false)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">
+			CSV todo
+		</button>
+	</div>
+</div>
 
 <!-- Month navigation -->
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
