@@ -24,7 +24,7 @@ CT_STORAGE="${CT_STORAGE:-local-lvm}"
 CT_MEMORY="${CT_MEMORY:-2048}"
 CT_CORES="${CT_CORES:-2}"
 CT_DISK="${CT_DISK:-20}"
-CT_NET="${CT_NET:-name=eth0,bridge=vmbr0,type=veth}"
+CT_NET="${CT_NET:-name=eth0,bridge=vmbr0,ip=dhcp,type=veth}"
 
 DOMAIN="${DOMAIN:-comida.mugrelore.com}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
