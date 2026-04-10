@@ -40,6 +40,38 @@ def _f(x: object) -> float:
         return 0.0
 
 
+async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
+    """Search Open Food Facts by product name."""
+    url = f"{settings.off_base_url}/api/v2/cgi/search.pl"
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(url, params={
+            "q": query,
+            "pageSize": limit,
+            "action": "process",
+            "fields": "code,product_name,brands,nutriments",
+        })
+    if r.status_code != 200:
+        return []
+    data = r.json()
+    products = []
+    for p in data.get("products", [])[:limit]:
+        try:
+            n = p.get("nutriments", {}) or {}
+            name = p.get("product_name") or "Unknown"
+            products.append(OFFProduct(
+                barcode=p.get("code") or "",
+                name=name.strip() or "Unknown",
+                brand=p.get("brands") or None,
+                kcal=_f(n.get("energy-kcal_100g") or n.get("energy-kcal")),
+                protein=_f(n.get("proteins_100g")),
+                carbs=_f(n.get("carbohydrates_100g")),
+                fat=_f(n.get("fat_100g")),
+            ))
+        except (KeyError, TypeError):
+            continue
+    return products
+
+
 async def fetch_by_barcode(barcode: str) -> OFFProduct:
     url = f"{settings.off_base_url}/api/v2/product/{barcode}.json"
     async with httpx.AsyncClient(timeout=10) as client:
