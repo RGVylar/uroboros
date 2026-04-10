@@ -45,7 +45,8 @@ apt-get install -y -qq \
     python3 python3-venv python3-pip \
     postgresql postgresql-contrib \
     build-essential libpq-dev \
-    debian-keyring debian-archive-keyring apt-transport-https
+    debian-keyring debian-archive-keyring apt-transport-https \
+    sudo
 ok "Base packages installed"
 
 # Caddy
