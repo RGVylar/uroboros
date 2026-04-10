@@ -7,7 +7,11 @@
       "Bash(npm install:*)",
       "Bash(python -m py_compile \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\services\\\\recommendations.py\" \"H:\\\\Repositories\\\\uroboros\\\\backend\\\\app\\\\routers\\\\products.py\")",
       "Bash(npm run:*)",
-      "Bash(python -m py_compile backend/app/routers/products.py backend/app/services/recommendations.py)"
+      "Bash(python -m py_compile backend/app/routers/products.py backend/app/services/recommendations.py)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"from app.main import app; from app.routers.auth import router; print\\('Import OK'\\)\")",
+      "Bash(curl -s http://127.0.0.1:8000/health)",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"demo@demo.com\",\"password\":\"demo1234\"}')"
     ]
   }
 }

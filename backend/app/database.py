@@ -10,9 +10,22 @@ class Base(DeclarativeBase):
 
 def _get_engine():
     if settings.demo_mode:
-        # SQLite in-memory for demo/preview
+        # Import models first so they're registered with Base
+        from app.models import Product, User
+        from app.models.product import ProductSource
+        from app.security import hash_password
+        import tempfile
+        import os
+
+        # SQLite on disk for demo/preview (survives multiple connections)
+        temp_dir = tempfile.gettempdir()
+        db_path = os.path.join(temp_dir, "uroboros_demo.db")
+        # Remove old db if it exists (fresh demo each session)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
         engine = create_engine(
-            "sqlite:///:memory:",
+            f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False},
             echo=False,
         )
@@ -27,15 +40,12 @@ def _get_engine():
         Base.metadata.create_all(engine)
 
         # Seed demo data
-        from app.models import Product, User
-        from app.models.product import ProductSource
-        from app.security import hash_password
 
         db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
 
         # Create demo users
-        user1 = User(email="demo@demo.com", hashed_password=hash_password("demo123"), name="Demo User")
-        user2 = User(email="demo2@demo.com", hashed_password=hash_password("demo123"), name="Demo 2")
+        user1 = User(email="demo@demo.com", password_hash=hash_password("demo1234"), name="Demo User")
+        user2 = User(email="demo2@demo.com", password_hash=hash_password("demo1234"), name="Demo 2")
         db.add_all([user1, user2])
         db.commit()
         db.refresh(user1)
