@@ -9,6 +9,51 @@
 
 	let isNative = Capacitor.isNativePlatform();
 
+	// Web barcode scanner state
+	let scanning = $state(false);
+	let videoEl: HTMLVideoElement | undefined = $state();
+	let scanError = $state('');
+	let stream: MediaStream | null = null;
+	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
+
+	async function startWebScan() {
+		scanError = '';
+		scanning = true;
+		try {
+			const { BrowserMultiFormatReader } = await import('@zxing/browser');
+			zxingReader = new BrowserMultiFormatReader();
+			stream = await navigator.mediaDevices.getUserMedia({
+				video: { facingMode: 'environment' }
+			});
+			if (videoEl) {
+				videoEl.srcObject = stream;
+				videoEl.play();
+				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+					if (result) {
+						barcode = result.getText();
+						stopWebScan();
+						searchByBarcode();
+					}
+				});
+			}
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanning = false;
+		}
+	}
+
+	function stopWebScan() {
+		scanning = false;
+		if (stream) {
+			stream.getTracks().forEach(t => t.stop());
+			stream = null;
+		}
+		if (zxingReader) {
+			zxingReader.reset();
+			zxingReader = null;
+		}
+	}
+
 	let query = $state('');
 	let barcode = $state('');
 	let results: Product[] = $state([]);
@@ -225,6 +270,23 @@
 			<button onclick={scanBarcode} style="width:100%; margin-top:0.5rem;">
 				Escanear con cámara
 			</button>
+		{:else}
+			<button onclick={startWebScan} style="width:100%; margin-top:0.5rem;" disabled={scanning}>
+				{scanning ? 'Escaneando...' : 'Escanear con cámara'}
+			</button>
+		{/if}
+
+		{#if scanError}<p class="error">{scanError}</p>{/if}
+
+		{#if scanning}
+			<div style="margin-top:0.75rem; position:relative;">
+				<!-- svelte-ignore a11y_media_has_caption -->
+				<video bind:this={videoEl} style="width:100%; border-radius:8px; background:#000;" playsinline></video>
+				<button class="btn-danger" onclick={stopWebScan}
+					style="position:absolute; top:0.5rem; right:0.5rem; padding:0.3rem 0.6rem; font-size:0.8rem;">
+					✕
+				</button>
+			</div>
 		{/if}
 	</div>
 

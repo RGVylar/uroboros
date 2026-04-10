@@ -3,7 +3,8 @@
     "allow": [
       "Read(//h/Repositories/**)",
       "Read(//mnt/h/Repositories/**)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm install:*)"
     ]
   }
 }
