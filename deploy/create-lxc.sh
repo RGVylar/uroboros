@@ -41,7 +41,7 @@ TEMPLATE=$(pveam list local | grep "debian-12-standard" | tail -1 | awk '{print 
 [[ -z "$TEMPLATE" ]] && die "No debian-12 template found. Download one via Proxmox UI or: pveam download local debian-12"
 
 msg "Using template: $TEMPLATE"
-pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
+pct create "$CT_ID" "$TEMPLATE" \
     --hostname "$CT_NAME" \
     --storage "$CT_STORAGE" \
     --memory "$CT_MEMORY" \
