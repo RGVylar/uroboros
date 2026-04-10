@@ -1,11 +1,11 @@
-# Uroboros — served behind Cloudflare Tunnel (TLS terminated at Cloudflare)
-# Tunnel should point at http://127.0.0.1:80
+# Uroboros — reverse proxy + static frontend
+# Listens on all IPs on port 80 (ideal for local network or behind Cloudflare Tunnel)
 
-http://__DOMAIN__, http://localhost {
+:80 {
 	encode gzip
 
-	# API
-	handle_path /api/* {
+	# API — note: use 'handle', not 'handle_path', to preserve /api prefix
+	handle /api/* {
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__
 	}
 
