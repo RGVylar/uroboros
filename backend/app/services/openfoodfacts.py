@@ -47,10 +47,13 @@ HEADERS = {
 
 async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
     """Search Open Food Facts by product name."""
-    url = f"{settings.off_base_url}/api/v2/search"
+    url = "https://es.openfoodfacts.org/cgi/search.pl"
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(url, headers=HEADERS, params={
-            "q": query,
+            "search_terms": query,
+            "search_simple": 1,
+            "action": "process",
+            "json": 1,
             "page_size": limit,
             "fields": "code,product_name,brands,nutriments",
         })
