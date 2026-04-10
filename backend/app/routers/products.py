@@ -9,24 +9,73 @@ from app.deps import get_current_user
 from app.models import Product, User
 from app.models.product import ProductSource
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
-from app.services.openfoodfacts import OFFNotFound, fetch_by_barcode
+from app.services.openfoodfacts import OFFNotFound, fetch_by_barcode, search_by_name
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
 @router.get("", response_model=list[ProductOut])
-def search_products(
+async def search_products(
     q: str = Query(min_length=1),
     limit: int = Query(20, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[Product]:
+    # First, search locally
     stmt = (
         select(Product)
         .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
         .limit(limit)
     )
-    return list(db.scalars(stmt))
+    local = list(db.scalars(stmt))
+
+    # If we have results, return them
+    if local:
+        return local
+
+    # Otherwise, search Open Food Facts
+    try:
+        off_results = await search_by_name(q, limit=limit)
+    except Exception:
+        return []
+
+    # Persist OFF results to DB and return
+    products = []
+    for off in off_results:
+        # Check if already exists by barcode
+        if off.barcode:
+            existing = db.scalar(select(Product).where(Product.barcode == off.barcode))
+            if existing:
+                products.append(existing)
+                continue
+
+        product = Product(
+            barcode=off.barcode or None,
+            name=off.name,
+            brand=off.brand,
+            calories_per_100g=off.kcal,
+            protein_per_100g=off.protein,
+            carbs_per_100g=off.carbs,
+            fat_per_100g=off.fat,
+            source="openfoodfacts",
+        )
+        db.add(product)
+
+    if products or off_results:
+        db.commit()
+        for p in products:
+            db.refresh(p)
+
+    return products or [Product(
+        barcode=off.barcode or None,
+        name=off.name,
+        brand=off.brand,
+        calories_per_100g=off.kcal,
+        protein_per_100g=off.protein,
+        carbs_per_100g=off.carbs,
+        fat_per_100g=off.fat,
+        source="openfoodfacts",
+    ) for off in off_results]
 
 
 @router.get("/{product_id}", response_model=ProductOut)
