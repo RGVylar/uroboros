@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -30,3 +30,5 @@ class DiaryEntry(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    product: Mapped["Product"] = relationship(lazy="joined")  # noqa: F821

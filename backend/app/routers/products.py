@@ -29,6 +29,18 @@ def search_products(
     return list(db.scalars(stmt))
 
 
+@router.get("/{product_id}", response_model=ProductOut)
+def get_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> Product:
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+    return product
+
+
 @router.get("/barcode/{barcode}", response_model=ProductOut)
 async def get_or_fetch_by_barcode(
     barcode: str,

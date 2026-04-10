@@ -49,6 +49,15 @@ apt-get install -y -qq \
     sudo
 ok "Base packages installed"
 
+# Fix locale warnings
+if ! locale -a 2>/dev/null | grep -q "en_US.utf8"; then
+    msg "Generating locale en_US.UTF-8…"
+    sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen 2>/dev/null || true
+    locale-gen en_US.UTF-8 >/dev/null 2>&1 || true
+fi
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
 # Caddy
 if ! command -v caddy >/dev/null 2>&1; then
     msg "Installing Caddy…"

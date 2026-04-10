@@ -206,13 +206,16 @@
 	{/if}
 
 	{#each results as product (product.id)}
-		<button class="card btn-secondary" style="width:100%; text-align:left; margin-bottom:0.5rem; display:block;"
-			onclick={() => selected = product}>
-			<div style="font-weight:600;">{product.name}</div>
-			{#if product.brand}<div style="color:var(--text-muted); font-size:0.8rem;">{product.brand}</div>{/if}
-			<div style="font-size:0.8rem; color:var(--text-muted);">
-				{product.calories_per_100g} kcal · P{product.protein_per_100g} · C{product.carbs_per_100g} · G{product.fat_per_100g}
-			</div>
-		</button>
+		<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+			<button class="btn-secondary" style="flex:1; text-align:left; border:none;"
+				onclick={() => selected = product}>
+				<div style="font-weight:600;">{product.name}</div>
+				{#if product.brand}<div style="color:var(--text-muted); font-size:0.8rem;">{product.brand}</div>{/if}
+				<div style="font-size:0.8rem; color:var(--text-muted);">
+					{product.calories_per_100g} kcal · P{product.protein_per_100g} · C{product.carbs_per_100g} · G{product.fat_per_100g}
+				</div>
+			</button>
+			<a href="/add/product/{product.id}" style="padding:0.5rem; font-size:0.8rem;">Editar</a>
+		</div>
 	{/each}
 {/if}

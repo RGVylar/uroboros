@@ -36,6 +36,7 @@ export interface DiaryEntry {
 	fat: number;
 	consumed_at: string;
 	created_at: string;
+	product: Product | null;
 }
 
 export interface DayTotals {

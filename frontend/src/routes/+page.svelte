@@ -106,10 +106,13 @@
 		{:else}
 			{#each summary.entries as entry (entry.id)}
 				<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-					<div>
-						<div style="font-weight:600; font-size:0.9rem;">Producto #{entry.product_id}</div>
+					<div style="flex:1; min-width:0;">
+						<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+							{entry.product?.name ?? `Producto #${entry.product_id}`}
+						</div>
 						<div style="font-size:0.8rem; color:var(--text-muted);">
 							{entry.grams}g · {fmtTime(entry.consumed_at)}
+							{#if entry.product?.brand} · {entry.product.brand}{/if}
 						</div>
 					</div>
 					<div style="text-align:right;">
