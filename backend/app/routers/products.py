@@ -28,21 +28,18 @@ async def search_products(
         .limit(limit)
     )
     local = list(db.scalars(stmt))
-
-    # If we have results, return them
     if local:
         return local
 
-    # Otherwise, search Open Food Facts
+    # Otherwise, search Open Food Facts and cache results
     try:
         off_results = await search_by_name(q, limit=limit)
     except Exception:
         return []
 
-    # Persist OFF results to DB and return
-    products = []
+    products: list[Product] = []
     for off in off_results:
-        # Check if already exists by barcode
+        # Reuse existing product if barcode matches
         if off.barcode:
             existing = db.scalar(select(Product).where(Product.barcode == off.barcode))
             if existing:
@@ -57,25 +54,16 @@ async def search_products(
             protein_per_100g=off.protein,
             carbs_per_100g=off.carbs,
             fat_per_100g=off.fat,
-            source="openfoodfacts",
+            source=ProductSource.openfoodfacts,
         )
         db.add(product)
+        products.append(product)
 
-    if products or off_results:
-        db.commit()
-        for p in products:
-            db.refresh(p)
+    db.commit()
+    for p in products:
+        db.refresh(p)
 
-    return products or [Product(
-        barcode=off.barcode or None,
-        name=off.name,
-        brand=off.brand,
-        calories_per_100g=off.kcal,
-        protein_per_100g=off.protein,
-        carbs_per_100g=off.carbs,
-        fat_per_100g=off.fat,
-        source="openfoodfacts",
-    ) for off in off_results]
+    return products
 
 
 @router.get("/{product_id}", response_model=ProductOut)
