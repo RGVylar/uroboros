@@ -23,6 +23,10 @@
 	</div>
 </div>
 
+<a href="/weight" style="display:block; text-align:center; padding:0.75rem; border:1px solid var(--border); border-radius:8px; margin-bottom:1rem; color:var(--text);">
+	⚖️ Registro de peso
+</a>
+
 <button class="btn-danger" onclick={logout} style="width:100%;">Cerrar sesión</button>
 
 <div style="text-align:center; margin-top:2rem; color:var(--text-muted); font-size:0.75rem;">
