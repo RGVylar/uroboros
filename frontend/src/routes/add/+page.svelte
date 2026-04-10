@@ -79,6 +79,7 @@
 	let saving = $state(false);
 	let error = $state('');
 	let showManual = $state(false);
+	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
 
 	// manual product fields
 	let manualName = $state('');
@@ -251,16 +252,28 @@
 
 	{#if users.length > 1}
 		<div class="form-group">
-			<label>
-				<input type="checkbox" checked={alsoFor !== null}
-					onchange={(e) => {
-						const target = e.target as HTMLInputElement;
-						alsoFor = target.checked
-							? (users.find(u => u.id !== auth.user?.id)?.id ?? null)
-							: null;
-					}} />
-				Añadir también a {users.find(u => u.id !== auth.user?.id)?.name ?? 'otro usuario'}
-			</label>
+			<button
+				type="button"
+				class:enabled={alsoFor !== null}
+				class="share-card"
+				onclick={() => {
+					alsoFor = alsoFor === null ? partner?.id ?? null : null;
+				}}
+				aria-pressed={alsoFor !== null}
+			>
+				<div class="share-copy">
+					<div class="share-title-row">
+						<span class="share-badge">2x</span>
+						<span class="share-title">Añadir también para {partner?.name ?? 'otro usuario'}</span>
+					</div>
+					<p class="share-description">
+						Registra esta misma comida en las dos cuentas con una sola acción.
+					</p>
+				</div>
+				<span class="share-switch" aria-hidden="true">
+					<span class="share-switch-thumb"></span>
+				</span>
+			</button>
 		</div>
 	{/if}
 
