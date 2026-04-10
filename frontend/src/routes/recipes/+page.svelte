@@ -61,10 +61,18 @@
 
 	async function logRecipe(recipe: Recipe) {
 		try {
+			const now = new Date();
+			const hour = now.getHours();
+			let mealType = 'snack';
+			if (hour >= 6 && hour < 11) mealType = 'breakfast';
+			else if (hour >= 11 && hour < 16) mealType = 'lunch';
+			else if (hour >= 16 && hour < 22) mealType = 'dinner';
+
 			for (const ing of recipe.ingredients) {
 				await api.post<DiaryEntry[]>('/diary', {
 					product_id: ing.product_id,
 					grams: ing.grams,
+					meal_type: mealType,
 					consumed_at: new Date().toISOString()
 				});
 			}
@@ -157,16 +165,23 @@
 {/if}
 
 {#each recipes as recipe (recipe.id)}
+	{@const macros = totalMacros(recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams })))}
 	<div class="card" style="margin-bottom:0.5rem;">
-		<div style="display:flex; justify-content:space-between; align-items:center;">
-			<div style="font-weight:700;">{recipe.name}</div>
-			<div style="display:flex; gap:0.25rem;">
-				<button style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick={() => logRecipe(recipe)}>Registrar</button>
-				<button class="btn-danger" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick={() => deleteRecipe(recipe.id)}>X</button>
+		<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:0.5rem;">
+			<div style="flex:1;">
+				<div style="font-weight:700; font-size:0.95rem;">{recipe.name}</div>
+				<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">
+					{recipe.ingredients.length} ingrediente{recipe.ingredients.length !== 1 ? 's' : ''}
+				</div>
+			</div>
+			<div style="text-align:right;">
+				<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{macros.cal} kcal</div>
+				<div style="font-size:0.75rem; color:var(--text-muted);">P{macros.p}g · C{macros.c}g · G{macros.f}g</div>
 			</div>
 		</div>
-		<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
-			{recipe.ingredients.length} ingredientes
+		<div style="display:flex; gap:0.4rem;">
+			<button onclick={() => logRecipe(recipe)} style="flex:1; font-size:0.85rem;">Registrar</button>
+			<button class="btn-danger" style="flex:0.5; font-size:0.75rem; padding:0.4rem;" onclick={() => deleteRecipe(recipe.id)}>X</button>
 		</div>
 	</div>
 {/each}
