@@ -42,3 +42,16 @@ cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+## Useful commands
+```
+pct exec 200 -- journalctl -u uroboros-backend -f &
+pct exec 200 -- bash -c "cd /opt/uroboros && git pull && cd frontend && npm ci && npm run build && systemctl restart caddy"
+pct exec 200 -- bash -c "
+  cd /opt/uroboros && git pull
+  source backend/.venv/bin/activate
+  cd backend && alembic upgrade head
+  cd ../frontend && npm ci && npm run build
+  systemctl restart uroboros-backend caddy
+"
+```
