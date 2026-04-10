@@ -105,3 +105,10 @@ export interface Recipe {
 	owner_id: number;
 	ingredients: RecipeIngredient[];
 }
+
+export interface RecommendedProduct {
+	product: Product;
+	suggested_grams: number;
+	estimated_calories: number;
+	reason: string;
+}

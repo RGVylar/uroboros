@@ -3,12 +3,16 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Product, User, DiaryEntry, MealType } from '$lib/types';
+	import type { Product, User, DiaryEntry, MealType, RecommendedProduct } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	let isNative = Capacitor.isNativePlatform();
+
+	// Recommendations state
+	let recommendations: RecommendedProduct[] = $state([]);
+	let loadingRecs = $state(false);
 
 	// Web barcode scanner state
 	let scanning = $state(false);
@@ -84,8 +88,20 @@
 	let manualCarbs = $state(0);
 	let manualFat = $state(0);
 
+	async function loadRecommendations() {
+		loadingRecs = true;
+		try {
+			recommendations = await api.get<RecommendedProduct[]>('/products/recommendations');
+		} catch (e: unknown) {
+			recommendations = [];
+		} finally {
+			loadingRecs = false;
+		}
+	}
+
 	$effect(() => {
 		api.get<User[]>('/users').then(u => users = u).catch(() => {});
+		loadRecommendations();
 	});
 
 	async function searchByName() {
@@ -275,6 +291,33 @@
 
 {:else}
 	<h1>Añadir comida</h1>
+
+	{#if !loadingRecs && recommendations.length > 0}
+		<div style="margin-bottom:1.5rem;">
+			<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">
+				Sugerencias
+			</div>
+			<div style="display:flex; flex-direction:column; gap:0.4rem;">
+				{#each recommendations as rec (rec.product.id)}
+					<button
+						onclick={() => { selected = rec.product; grams = rec.suggested_grams; }}
+						style="text-align:left; border:1px solid var(--border); border-radius:8px; padding:0.6rem; background:var(--bg-secondary); cursor:pointer; transition:border-color 0.2s;">
+						<div style="display:flex; justify-content:space-between; align-items:start;">
+							<div style="flex:1;">
+								<div style="font-weight:600; font-size:0.9rem;">{rec.product.name}</div>
+								{#if rec.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{rec.product.brand}</div>{/if}
+								<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">{rec.reason}</div>
+							</div>
+							<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
+								<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{Math.round(rec.estimated_calories)} kcal</div>
+								<div style="font-size:0.75rem; color:var(--text-muted);">{rec.suggested_grams}g</div>
+							</div>
+						</div>
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
 	<div class="form-group">
 		<label for="search">Buscar por nombre</label>

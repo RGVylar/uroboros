@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
@@ -8,8 +8,9 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import Product, User
 from app.models.product import ProductSource
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, RecommendedProduct
 from app.services.openfoodfacts import OFFNotFound, fetch_by_barcode, search_by_name
+from app.services.recommendations import get_recommendations
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -155,3 +156,24 @@ def update_product(
     db.commit()
     db.refresh(product)
     return product
+
+
+@router.get("/recommendations", response_model=list[RecommendedProduct])
+def get_product_recommendations(
+    day: date | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[dict]:
+    if day is None:
+        day = datetime.now(timezone.utc).date()
+
+    recommendations = get_recommendations(db, user, day)
+    return [
+        {
+            "product": ProductOut.model_validate(rec.product),
+            "suggested_grams": rec.suggested_grams,
+            "estimated_calories": rec.estimated_calories,
+            "reason": rec.reason,
+        }
+        for rec in recommendations
+    ]

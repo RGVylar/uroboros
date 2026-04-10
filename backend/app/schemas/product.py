@@ -37,3 +37,10 @@ class ProductOut(ProductBase):
 
     class Config:
         from_attributes = True
+
+
+class RecommendedProduct(BaseModel):
+    product: ProductOut
+    suggested_grams: int
+    estimated_calories: float
+    reason: str
