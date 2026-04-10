@@ -121,7 +121,7 @@ ok "Python deps installed"
 # ---------- backend .env ----------
 msg "Writing backend .env…"
 cat > "$APP_DIR/backend/.env" <<EOF
-DATABASE_URL=postgresql+psycopg://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
+DATABASE_URL=postgresql+psycopg2://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
 JWT_SECRET=$JWT_SECRET
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=10080
@@ -132,6 +132,7 @@ chmod 600 "$APP_DIR/backend/.env"
 
 # ---------- migrations ----------
 msg "Running Alembic migrations…"
+sleep 2  # Wait for PostgreSQL to fully start
 sudo -u "$APP_USER" bash -c "cd $APP_DIR/backend && .venv/bin/alembic upgrade head"
 ok "Migrations applied"
 
