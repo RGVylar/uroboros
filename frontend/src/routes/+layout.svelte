@@ -8,8 +8,8 @@
 	const nav = [
 		{ href: '/', label: 'Diario', icon: '📋' },
 		{ href: '/add', label: 'Añadir', icon: '➕' },
+		{ href: '/history', label: 'Historial', icon: '📅' },
 		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
-		{ href: '/weight', label: 'Peso', icon: '⚖️' },
 		{ href: '/goals', label: 'Metas', icon: '🎯' }
 	];
 </script>
@@ -32,8 +32,5 @@
 				{item.label}
 			</a>
 		{/each}
-		<div style="font-size:0.65rem; color:var(--text-muted); line-height:1.2; text-align:center; padding:0.3rem 0.5rem;">
-			v0.2.0
-		</div>
 	</nav>
 {/if}

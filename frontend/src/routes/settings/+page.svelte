@@ -24,3 +24,7 @@
 </div>
 
 <button class="btn-danger" onclick={logout} style="width:100%;">Cerrar sesión</button>
+
+<div style="text-align:center; margin-top:2rem; color:var(--text-muted); font-size:0.75rem;">
+	v0.2.0
+</div>
