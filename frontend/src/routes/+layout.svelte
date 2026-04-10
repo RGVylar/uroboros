@@ -32,5 +32,8 @@
 				{item.label}
 			</a>
 		{/each}
+		<div style="font-size:0.65rem; color:var(--text-muted); line-height:1.2; text-align:center; padding:0.3rem 0.5rem;">
+			v0.2.0
+		</div>
 	</nav>
 {/if}
