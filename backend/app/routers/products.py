@@ -163,7 +163,7 @@ def get_product_recommendations(
     day: date | None = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[dict]:
+):
     if day is None:
         day = datetime.now(timezone.utc).date()
 
