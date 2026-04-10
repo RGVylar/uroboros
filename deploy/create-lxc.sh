@@ -36,7 +36,12 @@ fi
 
 # ---------- create LXC ----------
 msg "Creating LXC container…"
-pct create "$CT_ID" debian-12-standard_12.2-1_amd64.tar.zst \
+# Find the latest debian-12 template
+TEMPLATE=$(pveam list local | grep "debian-12-standard" | tail -1 | awk '{print $1}')
+[[ -z "$TEMPLATE" ]] && die "No debian-12 template found. Download one via Proxmox UI or: pveam download local debian-12"
+
+msg "Using template: $TEMPLATE"
+pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --hostname "$CT_NAME" \
     --storage "$CT_STORAGE" \
     --memory "$CT_MEMORY" \
@@ -46,7 +51,7 @@ pct create "$CT_ID" debian-12-standard_12.2-1_amd64.tar.zst \
     --nameserver 1.1.1.1 \
     --searchdomain "" \
     --unprivileged 1 \
-    >/dev/null 2>&1 || die "Failed to create container"
+    || die "Failed to create container"
 ok "Container $CT_ID ($CT_NAME) created"
 
 # ---------- start LXC ----------
