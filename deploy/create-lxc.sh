@@ -36,22 +36,22 @@ fi
 
 # ---------- create LXC ----------
 msg "Creating LXC container…"
-# Find the latest debian-12 template
-TEMPLATE=$(pveam list local | grep "debian-12-standard" | tail -1 | awk '{print $1}' | xargs basename)
-[[ -z "$TEMPLATE" ]] && die "No debian-12 template found. Download one via Proxmox UI or: pveam download local debian-12"
+TEMPLATE_FILE="debian-12-standard_12.12-1_amd64.tar.zst"
 
-msg "Using template: $TEMPLATE"
-pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
-    --hostname "$CT_NAME" \
-    --storage "$CT_STORAGE" \
-    --memory "$CT_MEMORY" \
-    --cores "$CT_CORES" \
-    --rootfs "volume=$CT_STORAGE:${CT_DISK}" \
-    --net0 "$CT_NET" \
-    --nameserver 1.1.1.1 \
-    --searchdomain "" \
-    --unprivileged 1 \
-    || die "Failed to create container"
+# Try different template paths
+for TEMPLATE in "local:vztmpl/$TEMPLATE_FILE" "$TEMPLATE_FILE"; do
+    pct create "$CT_ID" "$TEMPLATE" \
+        --hostname "$CT_NAME" \
+        --storage "$CT_STORAGE" \
+        --memory "$CT_MEMORY" \
+        --cores "$CT_CORES" \
+        --rootfs "${CT_STORAGE}:${CT_DISK}" \
+        --net0 "$CT_NET" \
+        --nameserver 1.1.1.1 \
+        --unprivileged 1 \
+        2>&1 && break || continue
+done
+[[ $? -eq 0 ]] || die "Failed to create container. Is debian-12 template downloaded?"
 ok "Container $CT_ID ($CT_NAME) created"
 
 # ---------- start LXC ----------
