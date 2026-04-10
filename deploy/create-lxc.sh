@@ -62,9 +62,14 @@ ok "Container started"
 
 # ---------- wait for network + get IP ----------
 msg "Waiting for network…"
-sleep 5
-CT_IP=$(pct exec "$CT_ID" -- hostname -I 2>/dev/null | awk '{print $1}')
-msg "Container IP: ${CT_IP:-pending}"
+CT_IP=""
+for i in $(seq 1 30); do
+    CT_IP=$(pct exec "$CT_ID" -- hostname -I 2>/dev/null | awk '{print $1}')
+    [[ -n "$CT_IP" ]] && break
+    sleep 2
+done
+[[ -n "$CT_IP" ]] || die "Container never got an IP. Check DHCP on bridge vmbr0."
+ok "Container IP: $CT_IP"
 
 # ---------- run installer ----------
 msg "Running installer inside container…"
