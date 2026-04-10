@@ -60,13 +60,23 @@ pct start "$CT_ID"
 sleep 3  # Give it a moment to boot
 ok "Container started"
 
-# ---------- get IP ----------
-CT_IP=$(pct exec "$CT_ID" -- hostname -I | awk '{print $1}')
-msg "Container IP: $CT_IP"
+# ---------- wait for network + get IP ----------
+msg "Waiting for network…"
+sleep 5
+CT_IP=$(pct exec "$CT_ID" -- hostname -I 2>/dev/null | awk '{print $1}')
+msg "Container IP: ${CT_IP:-pending}"
 
 # ---------- run installer ----------
 msg "Running installer inside container…"
-pct exec "$CT_ID" -- bash -c "set -euo pipefail; cd /tmp; git clone --branch master https://github.com/RGVylar/uroboros.git; cd uroboros; DOMAIN='$DOMAIN' BACKEND_PORT='$BACKEND_PORT' bash deploy/install.sh"
+pct exec "$CT_ID" -- bash -c "
+    set -euo pipefail
+    apt-get update -qq
+    apt-get install -y -qq git curl ca-certificates
+    cd /tmp
+    git clone --branch main https://github.com/RGVylar/uroboros.git
+    cd uroboros
+    DOMAIN='$DOMAIN' BACKEND_PORT='$BACKEND_PORT' bash deploy/install.sh
+"
 
 echo ""
 cat <<EOF
