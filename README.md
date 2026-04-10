@@ -54,4 +54,6 @@ pct exec 200 -- bash -c "
   cd ../frontend && npm ci && npm run build
   systemctl restart uroboros-backend caddy
 "
+pct stop 200 && pct destroy 200
+bash <(curl -fsSL https://raw.githubusercontent.com/RGVylar/uroboros/main/deploy/create-lxc.sh)
 ```
