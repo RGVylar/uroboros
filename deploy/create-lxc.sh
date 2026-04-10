@@ -68,15 +68,26 @@ msg "Container IP: ${CT_IP:-pending}"
 
 # ---------- run installer ----------
 msg "Running installer inside container…"
-pct exec "$CT_ID" -- bash -c "
-    set -euo pipefail
-    apt-get update -qq
-    apt-get install -y -qq git curl ca-certificates
-    cd /tmp
-    git clone --branch main https://github.com/RGVylar/uroboros.git
-    cd uroboros
-    DOMAIN='$DOMAIN' BACKEND_PORT='$BACKEND_PORT' bash deploy/install.sh
-"
+
+# Write bootstrap script into the container via pct push
+BOOTSTRAP=$(mktemp)
+cat > "$BOOTSTRAP" <<EOF
+#!/bin/bash
+set -euo pipefail
+export DOMAIN='$DOMAIN'
+export BACKEND_PORT='$BACKEND_PORT'
+apt-get update -qq
+apt-get install -y -qq git curl ca-certificates
+cd /tmp
+rm -rf uroboros
+git clone --branch main https://github.com/RGVylar/uroboros.git
+cd uroboros
+bash deploy/install.sh
+EOF
+
+pct push "$CT_ID" "$BOOTSTRAP" /tmp/bootstrap.sh
+rm -f "$BOOTSTRAP"
+pct exec "$CT_ID" -- bash /tmp/bootstrap.sh
 
 echo ""
 cat <<EOF
