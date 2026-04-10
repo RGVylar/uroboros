@@ -43,7 +43,11 @@ def upgrade() -> None:
         sa.Column("protein_per_100g", sa.Float(), nullable=False),
         sa.Column("carbs_per_100g", sa.Float(), nullable=False),
         sa.Column("fat_per_100g", sa.Float(), nullable=False),
-        sa.Column("source", product_source, nullable=False),
+        sa.Column(
+            "source",
+            sa.Enum("openfoodfacts", "manual", "edited", name="product_source"),
+            nullable=False,
+        ),
         sa.Column("edited_by", sa.Integer(), sa.ForeignKey("users.id"), nullable=True),
         sa.Column("edited_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
