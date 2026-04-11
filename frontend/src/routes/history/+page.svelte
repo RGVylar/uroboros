@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api';
-	import type { DaySummary } from '$lib/types';
+	import type { DaySummary, Goals } from '$lib/types';
 
 	function exportCSV(month?: boolean) {
 		const token = auth.token;
@@ -40,6 +40,8 @@
 	// Cache of daily calorie totals for the current month
 	let monthData: Record<string, number> = $state({});
 	let loadingMonth = $state(false);
+	let creatineDates: Set<string> = $state(new Set());
+	let trackCreatine = $state(false);
 
 	const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 	const DAY_NAMES = ['L','M','X','J','V','S','D'];
@@ -64,19 +66,25 @@
 		loadingMonth = true;
 		monthData = {};
 		const days = getDaysInMonth(viewYear, viewMonth);
-		// Batch fetch all days in the month
-		const promises = Array.from({ length: days }, (_, i) => {
+		const diaryPromises = Array.from({ length: days }, (_, i) => {
 			const date = formatDay(viewYear, viewMonth, i + 1);
 			return api.get<DaySummary>(`/diary/day?day=${date}`)
 				.then(s => ({ date, calories: s.totals.calories }))
 				.catch(() => ({ date, calories: 0 }));
 		});
-		const results = await Promise.all(promises);
+		const creatinePromise = trackCreatine
+			? api.get<string[]>(`/creatine/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
+			: Promise.resolve([]);
+		const [results, creatineDatesArr] = await Promise.all([
+			Promise.all(diaryPromises),
+			creatinePromise,
+		]);
 		const newData: Record<string, number> = {};
 		for (const r of results) {
 			if (r.calories > 0) newData[r.date] = r.calories;
 		}
 		monthData = newData;
+		creatineDates = new Set(creatineDatesArr);
 		loadingMonth = false;
 	}
 
@@ -137,8 +145,15 @@
 		return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 	}
 
+	// Load goals once to check creatine tracking
+	$effect(() => {
+		api.get<Goals>('/goals')
+			.then(g => { trackCreatine = g.track_creatine ?? false; })
+			.catch(() => {});
+	});
+
 	// Load on mount and month change
-	$effect(() => { viewMonth; viewYear; loadMonthData(); });
+	$effect(() => { viewMonth; viewYear; trackCreatine; loadMonthData(); });
 
 	// Calendar grid
 	let calendarDays = $derived.by(() => {
@@ -209,6 +224,7 @@
 					{@const hasData = cell.date && monthData[cell.date] > 0}
 					{@const isSelected = cell.date === selectedDay}
 					{@const isTodayCell = cell.date ? isToday(cell.date) : false}
+					{@const tookCreatine = trackCreatine && cell.date ? creatineDates.has(cell.date) : false}
 					<button
 						onclick={() => cell.date && selectDay(cell.date)}
 						style="
@@ -226,10 +242,14 @@
 							font-weight: {isTodayCell ? '700' : '400'};
 							color: {isTodayCell ? 'var(--primary)' : 'var(--text)'};
 							transition: border-color 0.15s;
+							position:relative;
 						">
 						<span>{cell.day}</span>
 						{#if hasData && cell.date}
 							<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
+						{/if}
+						{#if tookCreatine}
+							<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;">💊</span>
 						{/if}
 					</button>
 				{/if}
@@ -239,7 +259,7 @@
 </div>
 
 <!-- Legend -->
-<div style="display:flex; gap:0.75rem; align-items:center; margin:0.75rem 0; font-size:0.72rem; color:var(--text-muted);">
+<div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin:0.75rem 0; font-size:0.72rem; color:var(--text-muted);">
 	<span>Intensidad:</span>
 	{#each ['<1200','1200-1800','1800-2400','>2400'] as label, i}
 		<span style="display:flex; align-items:center; gap:3px;">
@@ -247,6 +267,9 @@
 			{label}
 		</span>
 	{/each}
+	{#if trackCreatine}
+		<span style="display:flex; align-items:center; gap:3px;">💊 Creatina tomada</span>
+	{/if}
 </div>
 
 <!-- Day detail -->

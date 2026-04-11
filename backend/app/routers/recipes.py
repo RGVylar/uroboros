@@ -17,7 +17,7 @@ def list_recipes(
 ) -> list[Recipe]:
     stmt = (
         select(Recipe)
-        .options(selectinload(Recipe.ingredients))
+        .options(selectinload(Recipe.ingredients).joinedload(RecipeIngredient.product))
         .where(Recipe.owner_id == user.id)
         .order_by(Recipe.name)
     )

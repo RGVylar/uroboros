@@ -32,3 +32,4 @@ class RecipeIngredient(Base):
     grams: Mapped[float] = mapped_column(Float, nullable=False)
 
     recipe: Mapped[Recipe] = relationship(back_populates="ingredients")
+    product: Mapped["Product"] = relationship(lazy="joined")

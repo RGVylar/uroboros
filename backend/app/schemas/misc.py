@@ -54,8 +54,11 @@ class RecipeIngredientIn(BaseModel):
     grams: float = Field(gt=0)
 
 
-class RecipeIngredientOut(RecipeIngredientIn):
+class RecipeIngredientOut(BaseModel):
     id: int
+    product_id: int
+    grams: float
+    product: "ProductOutMinimal"
 
     class Config:
         from_attributes = True
@@ -74,3 +77,19 @@ class RecipeOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProductOutMinimal(BaseModel):
+    id: int
+    name: str
+    brand: str | None
+    calories_per_100g: float
+    protein_per_100g: float
+    carbs_per_100g: float
+    fat_per_100g: float
+
+    class Config:
+        from_attributes = True
+
+
+RecipeIngredientOut.model_rebuild()

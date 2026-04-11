@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -20,6 +20,24 @@ def _today_status(db: Session, user: User, log_date: date) -> CreatineTodayOut:
         )
     ).scalars().first()
     return CreatineTodayOut(taken=entry is not None, logged_date=str(log_date))
+
+
+@router.get("/month", response_model=list[str])
+def get_creatine_month(
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[str]:
+    """Returns list of YYYY-MM-DD strings where creatine was taken in the given month."""
+    rows = db.execute(
+        select(CreatineLog.logged_date).where(
+            CreatineLog.user_id == user.id,
+            extract("year", CreatineLog.logged_date) == year,
+            extract("month", CreatineLog.logged_date) == month,
+        )
+    ).scalars().all()
+    return [str(d) for d in rows]
 
 
 @router.get("/today", response_model=CreatineTodayOut)

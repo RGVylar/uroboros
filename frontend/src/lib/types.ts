@@ -103,6 +103,7 @@ export interface RecipeIngredient {
 	id: number;
 	product_id: number;
 	grams: number;
+	product: Pick<Product, 'id' | 'name' | 'brand' | 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g'>;
 }
 
 export interface Recipe {
