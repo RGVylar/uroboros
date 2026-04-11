@@ -43,6 +43,7 @@ a { color: var(--primary); text-decoration: none; }
 	border: 1px solid var(--border);
 	border-radius: 16px;
 	padding: 1rem;
+	box-shadow: 0 0 16px rgba(79, 255, 170, 0.15);
 }
 
 input, select {

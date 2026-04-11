@@ -274,7 +274,7 @@
 
 			{#if editError}<p class="error">{editError}</p>{/if}
 
-			<button onclick={saveEdit} disabled={editSaving} style="width:100%; margin-top:0.5rem;">
+			<button onclick={saveEdit} disabled={editSaving} style="width:100%; margin-top:0.5rem; color:var(--text);">
 				{editSaving ? 'Guardando...' : 'Guardar cambios'}
 			</button>
 		</div>
@@ -288,7 +288,7 @@
 				style="width:100%; display:flex; justify-content:space-between; align-items:start; background:none; border:none; cursor:pointer; padding:0; margin-bottom:0.5rem; text-align:left;"
 			>
 				<div style="flex:1;">
-					<div style="font-weight:700; font-size:0.95rem;">{recipe.name}</div>
+					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{recipe.name}</div>
 					<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">
 						{recipe.ingredients.length} ingrediente{recipe.ingredients.length !== 1 ? 's' : ''}
 						{#each recipe.ingredients.slice(0, 3) as ing}
@@ -303,7 +303,7 @@
 				</div>
 			</button>
 			<div style="display:flex; gap:0.4rem;">
-				<button onclick={() => logRecipe(recipe)} style="flex:1; font-size:0.85rem;">Registrar</button>
+				<button onclick={() => logRecipe(recipe)} style="flex:1; font-size:0.85rem; color: black;">Registrar</button>
 				<button class="btn-danger" style="flex:0; padding:0.4rem 0.65rem; font-size:0.8rem;" onclick={() => deleteRecipe(recipe.id)}>✕</button>
 			</div>
 		</div>

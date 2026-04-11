@@ -101,7 +101,7 @@
 			<div style="display:flex; align-items:center; gap:0.6rem;">
 				<span style="font-size:1.2rem;">🧮</span>
 				<div style="text-align:left;">
-					<div style="font-weight:700; font-size:0.95rem;">Calculadora TDEE / BMR</div>
+					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">Calculadora TDEE / BMR</div>
 					<div style="font-size:0.75rem; color:var(--text-muted);">Calcula tus calorías según tu metabolismo</div>
 				</div>
 			</div>
@@ -141,7 +141,7 @@
 					</select>
 				</div>
 
-				<button onclick={calcTdee} style="width:100%; margin-bottom:0.75rem;">Calcular</button>
+				<button onclick={calcTdee} style="width:100%; margin-bottom:0.75rem; color: black;">Calcular</button>
 
 				{#if tdeeResult}
 					<div style="background:var(--bg); border-radius:10px; padding:0.85rem; margin-bottom:0.75rem;">
