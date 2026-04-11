@@ -17,12 +17,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create the enum type
-    friendship_status = sa.Enum(
-        "pending", "accepted", "rejected",
-        name="friendship_status",
-    )
-    friendship_status.create(op.get_bind(), checkfirst=True)
+    # Create enum only if it doesn't exist yet
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE friendship_status AS ENUM ('pending', 'accepted', 'rejected');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
 
     op.create_table(
         "friendships",
