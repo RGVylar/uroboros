@@ -255,6 +255,18 @@
 					</div>
 				</div>
 
+				<!-- Ejercicio del día (solo si hay calorías quemadas) -->
+				{#if summary.calories_burned > 0}
+					<div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+						<span style="font-size:0.75rem; color:var(--primary);">
+							💪 Ejercicio: -{Math.round(summary.calories_burned)} kcal
+						</span>
+						<span style="font-size:0.75rem; color:var(--text-muted);">
+							Neto: <strong style="color:var(--text);">{Math.round(summary.net_calories)}</strong> kcal
+						</span>
+					</div>
+				{/if}
+
 			{:else}
 				<!-- No goals -->
 				<div style="display:flex; justify-content:space-between; align-items:center;">

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import DiaryEntry, Product, User
+from app.models import DiaryEntry, Product, User, ExerciseSession
 from app.models.diary import MealType
 from app.schemas.diary import (
     MEAL_LABELS,
@@ -113,11 +113,23 @@ def day_summary(
                 entries=meal_entries,
             ))
 
+    # Consultar sesión de ejercicio del día
+    exercise_session = db.scalar(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == user.id,
+            ExerciseSession.session_date == day,
+        )
+    )
+    calories_burned = exercise_session.total_calories if exercise_session else 0.0
+
     return DaySummary(
         date=day.isoformat(),
         totals=totals,
         meals=meals,
         entries=entry_outs,
+        calories_burned=calories_burned,
+        net_calories=totals.calories - calories_burned,
+        has_exercise=exercise_session is not None,
     )
 
 

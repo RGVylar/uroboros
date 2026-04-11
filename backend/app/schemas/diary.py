@@ -68,3 +68,6 @@ class DaySummary(BaseModel):
     totals: DayTotals
     meals: list[MealSection]
     entries: list[DiaryEntryOut]
+    calories_burned: float = 0     # Calorías quemadas por ejercicio ese día
+    net_calories: float = 0        # totals.calories - calories_burned
+    has_exercise: bool = False     # True si hay sesión de ejercicio ese día

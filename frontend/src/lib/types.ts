@@ -70,6 +70,9 @@ export interface DaySummary {
 	totals: DayTotals;
 	meals: MealSection[];
 	entries: DiaryEntry[];
+	calories_burned: number;
+	net_calories: number;
+	has_exercise: boolean;
 }
 
 export interface Goals {
@@ -140,4 +143,34 @@ export interface Friendship {
 	status: FriendshipStatus;
 	can_add_food: boolean;
 	created_at: string;
+}
+
+export interface Exercise {
+	id: number;
+	user_id: number;
+	name: string;
+	kcal_per_unit: number;
+	unit: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ExerciseSessionEntry {
+	id: number;
+	session_id: number;
+	exercise_id: number;
+	quantity: number;
+	calories: number;
+	created_at: string;
+	exercise?: Exercise;
+}
+
+export interface ExerciseSession {
+	id: number;
+	user_id: number;
+	session_date: string;
+	total_calories: number;
+	entries: ExerciseSessionEntry[];
+	created_at: string;
+	updated_at: string;
 }

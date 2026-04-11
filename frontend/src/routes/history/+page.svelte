@@ -40,6 +40,7 @@
 	let monthData: Record<string, number> = $state({});
 	let loadingMonth = $state(false);
 	let creatineDates: Set<string> = $state(new Set());
+	let exerciseDates: Set<string> = $state(new Set());
 	let trackCreatine = $state(false);
 
 	// Goals (for reference line)
@@ -108,8 +109,8 @@
 		const diaryPromises = Array.from({ length: days }, (_, i) => {
 			const date = formatDay(viewYear, viewMonth, i + 1);
 			return api.get<DaySummary>(`/diary/day?day=${date}`)
-				.then(s => ({ date, calories: s.totals.calories }))
-				.catch(() => ({ date, calories: 0 }));
+				.then(s => ({ date, calories: s.totals.calories, has_exercise: s.has_exercise }))
+				.catch(() => ({ date, calories: 0, has_exercise: false }));
 		});
 		const creatinePromise = trackCreatine
 			? api.get<string[]>(`/creatine/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
@@ -119,11 +120,14 @@
 			creatinePromise,
 		]);
 		const newData: Record<string, number> = {};
+		const newExerciseDates = new Set<string>();
 		for (const r of results) {
 			if (r.calories > 0) newData[r.date] = r.calories;
+			if (r.has_exercise) newExerciseDates.add(r.date);
 		}
 		monthData = newData;
 		creatineDates = new Set(creatineDatesArr);
+		exerciseDates = newExerciseDates;
 		loadingMonth = false;
 	}
 
@@ -402,6 +406,7 @@
 					{@const isSelected = cell.date === selectedDay}
 					{@const isTodayCell = cell.date ? isToday(cell.date) : false}
 					{@const tookCreatine = trackCreatine && cell.date ? creatineDates.has(cell.date) : false}
+					{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
 					<button
 						onclick={() => cell.date && selectDay(cell.date)}
 						style="
@@ -419,6 +424,9 @@
 						{/if}
 						{#if tookCreatine}
 							<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;">💊</span>
+						{/if}
+						{#if didExercise}
+							<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;">💪</span>
 						{/if}
 					</button>
 				{/if}
@@ -439,6 +447,7 @@
 	{#if trackCreatine}
 		<span style="display:flex; align-items:center; gap:3px;">💊 Creatina tomada</span>
 	{/if}
+	<span style="display:flex; align-items:center; gap:3px;">💪 Ejercicio</span>
 </div>
 
 <!-- Day detail -->

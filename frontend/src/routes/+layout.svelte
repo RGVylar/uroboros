@@ -19,6 +19,7 @@
 		{ href: '/', label: 'Diario', icon: '📋' },
 		{ href: '/history', label: 'Historial', icon: '📅' },
 		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
+		{ href: '/exercises', label: 'Ejercicios', icon: '💪' },
 		{ href: '/settings', label: 'Ajustes', icon: '⚙️' }
 	];
 </script>
