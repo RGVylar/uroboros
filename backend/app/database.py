@@ -9,10 +9,21 @@ class Base(DeclarativeBase):
 
 
 def _get_engine():
+    # Import ALL models first so they're registered with Base (critical for create_all)
+    from app.models import (
+        DiaryEntry,
+        Friendship,
+        Product,
+        Recipe,
+        RecipeIngredient,
+        User,
+        UserGoals,
+        WaterLog,
+        WeightLog,
+    )
+    from app.models.product import ProductSource
+
     if settings.demo_mode:
-        # Import models first so they're registered with Base
-        from app.models import Product, User
-        from app.models.product import ProductSource
         from app.security import hash_password
         import tempfile
         import os
