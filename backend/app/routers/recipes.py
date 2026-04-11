@@ -44,6 +44,35 @@ def create_recipe(
     return recipe
 
 
+@router.put("/{recipe_id}", response_model=RecipeOut)
+def update_recipe(
+    recipe_id: int,
+    payload: RecipeIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Recipe:
+    recipe = db.get(Recipe, recipe_id)
+    if not recipe or recipe.owner_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    recipe.name = payload.name
+    # Replace all ingredients
+    for ing in list(recipe.ingredients):
+        db.delete(ing)
+    recipe.ingredients = [
+        RecipeIngredient(product_id=i.product_id, grams=i.grams)
+        for i in payload.ingredients
+    ]
+    db.commit()
+    db.refresh(recipe)
+    # Reload with products
+    stmt = (
+        select(Recipe)
+        .options(selectinload(Recipe.ingredients).joinedload(RecipeIngredient.product))
+        .where(Recipe.id == recipe_id)
+    )
+    return db.scalars(stmt).first()
+
+
 @router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_recipe(
     recipe_id: int,
