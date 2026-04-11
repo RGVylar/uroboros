@@ -117,3 +117,20 @@ export interface FrequentProduct {
 	product: Product;
 	count: number;
 }
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface UserMinimal {
+	id: number;
+	name: string;
+	email: string;
+}
+
+export interface Friendship {
+	id: number;
+	requester: UserMinimal;
+	receiver: UserMinimal;
+	status: FriendshipStatus;
+	can_add_food: boolean;
+	created_at: string;
+}

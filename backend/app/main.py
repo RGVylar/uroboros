@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, diary, goals, products, recipes, users, water, weight
+from app.routers import auth, diary, friends, goals, products, recipes, users, water, weight
 
 app = FastAPI(title="Uroboros", version="0.1.0")
 
@@ -28,3 +28,4 @@ app.include_router(goals.router, prefix=api_prefix)
 app.include_router(weight.router, prefix=api_prefix)
 app.include_router(water.router, prefix=api_prefix)
 app.include_router(recipes.router, prefix=api_prefix)
+app.include_router(friends.router, prefix=api_prefix)

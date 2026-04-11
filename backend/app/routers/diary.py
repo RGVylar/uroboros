@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -18,6 +18,7 @@ from app.schemas.diary import (
     DaySummary,
     DiaryEntryCreate,
     DiaryEntryOut,
+    DiaryEntryUpdate,
     MealSection,
 )
 
@@ -170,14 +171,127 @@ def export_csv(
     )
 
 
+@router.get("/streak")
+def get_streak(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Count consecutive days with at least one diary entry, going back from today."""
+    streak = 0
+    day = datetime.now(timezone.utc).date()
+    while True:
+        start = datetime.combine(day, time.min, tzinfo=timezone.utc)
+        end = datetime.combine(day, time.max, tzinfo=timezone.utc)
+        has_entry = db.scalar(
+            select(DiaryEntry.id)
+            .where(DiaryEntry.user_id == user.id,
+                   DiaryEntry.consumed_at >= start,
+                   DiaryEntry.consumed_at <= end)
+            .limit(1)
+        )
+        if not has_entry:
+            break
+        streak += 1
+        day -= timedelta(days=1)
+    return {"streak": streak}
+
+
+@router.post("/copy-from-yesterday", status_code=status.HTTP_201_CREATED)
+def copy_from_yesterday(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Copy all diary entries from yesterday into today, preserving meal types."""
+    today = datetime.now(timezone.utc).date()
+    yesterday = today - timedelta(days=1)
+
+    y_start = datetime.combine(yesterday, time.min, tzinfo=timezone.utc)
+    y_end = datetime.combine(yesterday, time.max, tzinfo=timezone.utc)
+    yesterday_entries = list(db.scalars(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user.id,
+            DiaryEntry.consumed_at >= y_start,
+            DiaryEntry.consumed_at <= y_end,
+        )
+    ))
+
+    if not yesterday_entries:
+        return {"copied": 0}
+
+    now = datetime.now(timezone.utc)
+    new_entries = [
+        DiaryEntry(
+            user_id=e.user_id,
+            product_id=e.product_id,
+            grams=e.grams,
+            calories=e.calories,
+            protein=e.protein,
+            carbs=e.carbs,
+            fat=e.fat,
+            meal_type=e.meal_type,
+            consumed_at=now,
+        )
+        for e in yesterday_entries
+    ]
+    db.add_all(new_entries)
+    db.commit()
+    return {"copied": len(new_entries)}
+
+
+@router.patch("/{entry_id}", response_model=DiaryEntryOut)
+def update_entry(
+    entry_id: int,
+    payload: DiaryEntryUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DiaryEntry:
+    entry = db.get(DiaryEntry, entry_id)
+    if not entry or entry.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
+    product = db.get(Product, entry.product_id)
+    if not product:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+    factor = payload.grams / 100.0
+    entry.grams = payload.grams
+    entry.calories = product.calories_per_100g * factor
+    entry.protein = product.protein_per_100g * factor
+    entry.carbs = product.carbs_per_100g * factor
+    entry.fat = product.fat_per_100g * factor
+    if payload.meal_type is not None:
+        entry.meal_type = MealType(payload.meal_type)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_entry(
     entry_id: int,
+    also_for_user_id: int | None = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
     entry = db.get(DiaryEntry, entry_id)
     if not entry or entry.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
+
+    if also_for_user_id and also_for_user_id != user.id:
+        # Find the partner's entry with same product logged on same day
+        entry_date = entry.consumed_at.date()
+        p_start = datetime.combine(entry_date, time.min, tzinfo=timezone.utc)
+        p_end = datetime.combine(entry_date, time.max, tzinfo=timezone.utc)
+        partner_entry = db.scalar(
+            select(DiaryEntry)
+            .where(
+                DiaryEntry.user_id == also_for_user_id,
+                DiaryEntry.product_id == entry.product_id,
+                DiaryEntry.consumed_at >= p_start,
+                DiaryEntry.consumed_at <= p_end,
+            )
+            .limit(1)
+        )
+        if partner_entry:
+            db.delete(partner_entry)
+
     db.delete(entry)
     db.commit()

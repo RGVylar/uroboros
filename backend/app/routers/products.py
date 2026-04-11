@@ -15,6 +15,77 @@ from app.services.recommendations import get_recommendations, get_frequently_use
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+@router.get("/recommendations", response_model=list[RecommendedProduct])
+def get_product_recommendations(
+    day: date | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if day is None:
+        day = datetime.now(timezone.utc).date()
+
+    recommendations = get_recommendations(db, user, day)
+    return [
+        {
+            "product": ProductOut.model_validate(rec.product),
+            "suggested_grams": rec.suggested_grams,
+            "estimated_calories": rec.estimated_calories,
+            "reason": rec.reason,
+        }
+        for rec in recommendations
+    ]
+
+
+@router.get("/frequent", response_model=list[FrequentProduct])
+def get_frequent_products(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get user's most frequently logged products for quick access"""
+    frequent = get_frequently_used_products(db, user, limit)
+    return [
+        {
+            "product": ProductOut.model_validate(f.product),
+            "count": f.count,
+        }
+        for f in frequent
+    ]
+
+
+@router.get("/barcode/{barcode}", response_model=ProductOut)
+async def get_or_fetch_by_barcode(
+    barcode: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> Product:
+    """Cache-aside: return local product if known, otherwise fetch from
+    Open Food Facts and persist."""
+    existing = db.scalar(select(Product).where(Product.barcode == barcode))
+    if existing:
+        return existing
+
+    try:
+        off = await fetch_by_barcode(barcode)
+    except OFFNotFound:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+
+    product = Product(
+        barcode=off.barcode,
+        name=off.name,
+        brand=off.brand,
+        calories_per_100g=off.kcal,
+        protein_per_100g=off.protein,
+        carbs_per_100g=off.carbs,
+        fat_per_100g=off.fat,
+        source=ProductSource.openfoodfacts,
+    )
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+    return product
+
+
 @router.get("", response_model=list[ProductOut])
 async def search_products(
     q: str = Query(min_length=1),
@@ -79,39 +150,6 @@ def get_product(
     return product
 
 
-@router.get("/barcode/{barcode}", response_model=ProductOut)
-async def get_or_fetch_by_barcode(
-    barcode: str,
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
-) -> Product:
-    """Cache-aside: return local product if known, otherwise fetch from
-    Open Food Facts and persist."""
-    existing = db.scalar(select(Product).where(Product.barcode == barcode))
-    if existing:
-        return existing
-
-    try:
-        off = await fetch_by_barcode(barcode)
-    except OFFNotFound:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
-
-    product = Product(
-        barcode=off.barcode,
-        name=off.name,
-        brand=off.brand,
-        calories_per_100g=off.kcal,
-        protein_per_100g=off.protein,
-        carbs_per_100g=off.carbs,
-        fat_per_100g=off.fat,
-        source=ProductSource.openfoodfacts,
-    )
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    return product
-
-
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(
     payload: ProductCreate,
@@ -156,41 +194,3 @@ def update_product(
     db.commit()
     db.refresh(product)
     return product
-
-
-@router.get("/recommendations", response_model=list[RecommendedProduct])
-def get_product_recommendations(
-    day: date | None = Query(None),
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    if day is None:
-        day = datetime.now(timezone.utc).date()
-
-    recommendations = get_recommendations(db, user, day)
-    return [
-        {
-            "product": ProductOut.model_validate(rec.product),
-            "suggested_grams": rec.suggested_grams,
-            "estimated_calories": rec.estimated_calories,
-            "reason": rec.reason,
-        }
-        for rec in recommendations
-    ]
-
-
-@router.get("/frequent", response_model=list[FrequentProduct])
-def get_frequent_products(
-    limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """Get user's most frequently logged products for quick access"""
-    frequent = get_frequently_used_products(db, user, limit)
-    return [
-        {
-            "product": ProductOut.model_validate(f.product),
-            "count": f.count,
-        }
-        for f in frequent
-    ]

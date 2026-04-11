@@ -26,6 +26,11 @@ class DiaryEntryCreate(BaseModel):
     also_for_user_id: int | None = None
 
 
+class DiaryEntryUpdate(BaseModel):
+    grams: float = Field(gt=0)
+    meal_type: MealTypeLiteral | None = None
+
+
 class DiaryEntryOut(BaseModel):
     id: int
     user_id: int
