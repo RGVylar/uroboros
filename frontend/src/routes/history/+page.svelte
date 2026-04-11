@@ -13,7 +13,6 @@
 			const to = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 			url += `?date_from=${from}&date_to=${to}`;
 		}
-		// Use fetch to pass auth header, then trigger download
 		fetch(url, { headers: { Authorization: `Bearer ${token}` } })
 			.then(r => r.blob())
 			.then(blob => {
@@ -32,16 +31,34 @@
 	// Calendar state
 	const now = new Date();
 	let viewYear = $state(now.getFullYear());
-	let viewMonth = $state(now.getMonth()); // 0-indexed
+	let viewMonth = $state(now.getMonth());
 	let selectedDay: string | null = $state(null);
 	let selectedSummary: DaySummary | null = $state(null);
 	let loadingDay = $state(false);
 
-	// Cache of daily calorie totals for the current month
+	// Calendar data
 	let monthData: Record<string, number> = $state({});
 	let loadingMonth = $state(false);
 	let creatineDates: Set<string> = $state(new Set());
 	let trackCreatine = $state(false);
+
+	// Goals (for reference line)
+	let goals: Goals | null = $state(null);
+
+	// Trend chart state
+	type TrendEntry = { date: string; calories: number; protein: number; carbs: number; fat: number };
+	type TrendMacro = 'calories' | 'protein' | 'carbs' | 'fat';
+	let trendDays: 7 | 30 = $state(7);
+	let trendMacro: TrendMacro = $state('calories');
+	let trendData: TrendEntry[] = $state([]);
+	let loadingTrend = $state(false);
+
+	const MACRO_CONFIG: Record<TrendMacro, { label: string; color: string; unit: string }> = {
+		calories: { label: 'Calorías', color: 'var(--cal)',  unit: 'kcal' },
+		protein:  { label: 'Proteína', color: 'var(--prot)', unit: 'g' },
+		carbs:    { label: 'Carbos',   color: 'var(--carb)', unit: 'g' },
+		fat:      { label: 'Grasa',    color: 'var(--fat)',  unit: 'g' },
+	};
 
 	const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 	const DAY_NAMES = ['L','M','X','J','V','S','D'];
@@ -49,17 +66,39 @@
 	function getDaysInMonth(year: number, month: number) {
 		return new Date(year, month + 1, 0).getDate();
 	}
-
 	function getFirstDayOfWeek(year: number, month: number) {
-		// Monday=0, Sunday=6
 		let d = new Date(year, month, 1).getDay();
 		return (d + 6) % 7;
 	}
-
 	function formatDay(year: number, month: number, day: number): string {
 		const m = String(month + 1).padStart(2, '0');
 		const d = String(day).padStart(2, '0');
 		return `${year}-${m}-${d}`;
+	}
+
+	async function loadTrendData() {
+		loadingTrend = true;
+		const today = new Date();
+		const dates: string[] = [];
+		for (let i = trendDays - 1; i >= 0; i--) {
+			const d = new Date(today);
+			d.setDate(d.getDate() - i);
+			dates.push(d.toISOString().slice(0, 10));
+		}
+		trendData = await Promise.all(
+			dates.map(date =>
+				api.get<DaySummary>(`/diary/day?day=${date}`)
+					.then(s => ({
+						date,
+						calories: s.totals.calories,
+						protein:  s.totals.protein,
+						carbs:    s.totals.carbs,
+						fat:      s.totals.fat,
+					}))
+					.catch(() => ({ date, calories: 0, protein: 0, carbs: 0, fat: 0 }))
+			)
+		);
+		loadingTrend = false;
 	}
 
 	async function loadMonthData() {
@@ -89,11 +128,7 @@
 	}
 
 	async function selectDay(date: string) {
-		if (selectedDay === date) {
-			selectedDay = null;
-			selectedSummary = null;
-			return;
-		}
+		if (selectedDay === date) { selectedDay = null; selectedSummary = null; return; }
 		selectedDay = date;
 		loadingDay = true;
 		try {
@@ -108,31 +143,24 @@
 	function prevMonth() {
 		if (viewMonth === 0) { viewMonth = 11; viewYear--; }
 		else viewMonth--;
-		selectedDay = null;
-		selectedSummary = null;
+		selectedDay = null; selectedSummary = null;
 		loadMonthData();
 	}
-
 	function nextMonth() {
 		const today = new Date();
 		if (viewYear === today.getFullYear() && viewMonth === today.getMonth()) return;
 		if (viewMonth === 11) { viewMonth = 0; viewYear++; }
 		else viewMonth++;
-		selectedDay = null;
-		selectedSummary = null;
+		selectedDay = null; selectedSummary = null;
 		loadMonthData();
 	}
 
-	function isToday(date: string) {
-		return date === new Date().toISOString().slice(0, 10);
-	}
-
+	function isToday(date: string) { return date === now.toISOString().slice(0, 10); }
 	function isFuture(year: number, month: number, day: number) {
 		const d = new Date(year, month, day);
-		const t = new Date(); t.setHours(0,0,0,0);
+		const t = new Date(); t.setHours(0, 0, 0, 0);
 		return d > t;
 	}
-
 	function calColor(kcal: number): string {
 		if (kcal <= 0) return 'transparent';
 		if (kcal < 1200) return 'rgba(79,255,153,0.25)';
@@ -140,50 +168,208 @@
 		if (kcal < 2400) return 'rgba(79,255,153,0.65)';
 		return 'rgba(79,255,153,0.85)';
 	}
-
 	function fmtTime(iso: string) {
 		return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 	}
 
-	// Load goals once to check creatine tracking
+	// SVG chart helpers
+	const CHART_W = 300;
+	const CHART_BAR_H = 80;   // coordinate units for bar area
+	const CHART_LABEL_H = 18; // coordinate units for bottom labels
+	const CHART_TOTAL_H = CHART_BAR_H + CHART_LABEL_H;
+
+	function chartSlotW(n: number) { return CHART_W / n; }
+	function chartBarW(n: number) { return n <= 7 ? chartSlotW(n) * 0.65 : chartSlotW(n) * 0.7; }
+
+	function barH(val: number, maxVal: number): number {
+		if (maxVal === 0) return 0;
+		return (val / maxVal) * CHART_BAR_H * 0.9;
+	}
+
+	function chartGoalVal(): number | null {
+		if (trendMacro === 'calories' && goals?.kcal) return goals.kcal;
+		if (trendMacro === 'protein' && goals?.protein) return goals.protein;
+		if (trendMacro === 'carbs' && goals?.carbs) return goals.carbs;
+		if (trendMacro === 'fat' && goals?.fat) return goals.fat;
+		return null;
+	}
+
+	let trendValues = $derived(trendData.map(d => d[trendMacro]));
+	let trendMax = $derived.by(() => {
+		const dataMax = Math.max(...trendValues, 1);
+		const goalVal = chartGoalVal();
+		return goalVal ? Math.max(dataMax, goalVal * 1.05) : dataMax;
+	});
+	let trendNonZero = $derived(trendValues.filter(v => v > 0));
+	let trendAvg = $derived(trendNonZero.length ? Math.round(trendNonZero.reduce((a, b) => a + b, 0) / trendNonZero.length) : 0);
+	let trendPeak = $derived(Math.round(Math.max(...trendValues, 0)));
+
+	function showDateLabel(i: number, n: number): string {
+		const date = trendData[i]?.date;
+		if (!date) return '';
+		const day = parseInt(date.slice(8));
+		if (n <= 7) return String(day);                   // show every day
+		if (i === 0 || i === n - 1 || day % 7 === 0) return String(day); // show periodically
+		return '';
+	}
+
+	// Effects
 	$effect(() => {
 		api.get<Goals>('/goals')
-			.then(g => { trackCreatine = g.track_creatine ?? false; })
+			.then(g => { goals = g; trackCreatine = g.track_creatine ?? false; })
 			.catch(() => {});
 	});
-
-	// Load on mount and month change
 	$effect(() => { viewMonth; viewYear; trackCreatine; loadMonthData(); });
+	$effect(() => { trendDays; loadTrendData(); });
 
-	// Calendar grid
 	let calendarDays = $derived.by(() => {
 		const days = getDaysInMonth(viewYear, viewMonth);
 		const firstDow = getFirstDayOfWeek(viewYear, viewMonth);
 		const cells: Array<{ day: number | null; date: string | null }> = [];
 		for (let i = 0; i < firstDow; i++) cells.push({ day: null, date: null });
-		for (let d = 1; d <= days; d++) {
-			cells.push({ day: d, date: formatDay(viewYear, viewMonth, d) });
-		}
-		// Pad to full weeks
+		for (let d = 1; d <= days; d++) cells.push({ day: d, date: formatDay(viewYear, viewMonth, d) });
 		while (cells.length % 7 !== 0) cells.push({ day: null, date: null });
 		return cells;
 	});
-
-	let isCurrentMonth = $derived(
-		viewYear === now.getFullYear() && viewMonth === now.getMonth()
-	);
+	let isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
 </script>
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
 	<h1 style="margin:0;">Historial</h1>
 	<div style="display:flex; gap:0.4rem;">
-		<button class="btn-secondary" onclick={() => exportCSV(true)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">
-			CSV mes
-		</button>
-		<button class="btn-secondary" onclick={() => exportCSV(false)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">
-			CSV todo
-		</button>
+		<button class="btn-secondary" onclick={() => exportCSV(true)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">CSV mes</button>
+		<button class="btn-secondary" onclick={() => exportCSV(false)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">CSV todo</button>
 	</div>
+</div>
+
+<!-- ── Trend Chart ── -->
+<div class="card" style="margin-bottom:1rem;">
+	<!-- Header row: macro tabs + day toggle -->
+	<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; gap:0.5rem;">
+		<!-- Macro tabs -->
+		<div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
+			{#each Object.entries(MACRO_CONFIG) as [key, cfg]}
+				<button
+					onclick={() => trendMacro = key as TrendMacro}
+					style="
+						font-size:0.72rem; padding:0.2rem 0.55rem; border-radius:20px;
+						border:1px solid {trendMacro === key ? cfg.color : 'var(--border)'};
+						background:{trendMacro === key ? cfg.color + '22' : 'transparent'};
+						color:{trendMacro === key ? cfg.color : 'var(--text-muted)'};
+						font-weight:{trendMacro === key ? '700' : '400'};
+						cursor:pointer; transition:all 0.15s;
+					"
+				>{cfg.label}</button>
+			{/each}
+		</div>
+		<!-- Day range toggle -->
+		<div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; flex-shrink:0;">
+			<button
+				onclick={() => trendDays = 7}
+				style="font-size:0.75rem; padding:0.25rem 0.6rem; border:none; cursor:pointer;
+					background:{trendDays === 7 ? 'var(--surface2)' : 'transparent'};
+					color:{trendDays === 7 ? 'var(--text)' : 'var(--text-muted)'};
+					font-weight:{trendDays === 7 ? '700' : '400'};"
+			>7d</button>
+			<button
+				onclick={() => trendDays = 30}
+				style="font-size:0.75rem; padding:0.25rem 0.6rem; border:none; cursor:pointer;
+					background:{trendDays === 30 ? 'var(--surface2)' : 'transparent'};
+					color:{trendDays === 30 ? 'var(--text)' : 'var(--text-muted)'};
+					font-weight:{trendDays === 30 ? '700' : '400'};"
+			>30d</button>
+		</div>
+	</div>
+
+	{#if loadingTrend}
+		<div style="height:98px; display:flex; align-items:center; justify-content:center;">
+			<span style="font-size:0.8rem; color:var(--text-muted);">Cargando...</span>
+		</div>
+	{:else if trendData.length > 0}
+		{@const n = trendData.length}
+		{@const slotW = chartSlotW(n)}
+		{@const bW = chartBarW(n)}
+		{@const goalVal = chartGoalVal()}
+		{@const goalY = goalVal ? CHART_BAR_H - barH(goalVal, trendMax) : null}
+		{@const cfg = MACRO_CONFIG[trendMacro]}
+
+		<!-- Stats row: avg, max -->
+		<div style="display:flex; gap:1.25rem; margin-bottom:0.6rem;">
+			<div>
+				<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Media</div>
+				<div style="font-size:1rem; font-weight:800; color:{cfg.color};">{trendAvg}<span style="font-size:0.65rem; font-weight:400; margin-left:1px;">{cfg.unit}</span></div>
+			</div>
+			<div>
+				<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Máx</div>
+				<div style="font-size:1rem; font-weight:800; color:var(--text);">{trendPeak}<span style="font-size:0.65rem; font-weight:400; margin-left:1px;">{cfg.unit}</span></div>
+			</div>
+			{#if goalVal}
+				<div>
+					<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Objetivo</div>
+					<div style="font-size:1rem; font-weight:800; color:var(--text-muted);">{Math.round(goalVal)}<span style="font-size:0.65rem; font-weight:400; margin-left:1px;">{cfg.unit}</span></div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- SVG bar chart -->
+		<svg
+			viewBox="0 0 {CHART_W} {CHART_TOTAL_H}"
+			style="width:100%; height:98px; overflow:visible; display:block;"
+			preserveAspectRatio="none"
+		>
+			<!-- Goal reference line -->
+			{#if goalY !== null}
+				<line
+					x1="0" y1={goalY}
+					x2={CHART_W} y2={goalY}
+					stroke="var(--danger)" stroke-width="0.8"
+					stroke-dasharray="4,3" opacity="0.7"
+				/>
+			{/if}
+
+			{#each trendData as d, i}
+				{@const val = d[trendMacro]}
+				{@const bh = barH(val, trendMax)}
+				{@const x = i * slotW + (slotW - bW) / 2}
+				{@const y = CHART_BAR_H - bh}
+				{@const isLabelDay = showDateLabel(i, n)}
+				{@const isTodayBar = isToday(d.date)}
+
+				<!-- Bar -->
+				<rect
+					x={x} y={y}
+					width={bW} height={bh}
+					fill={val > 0 ? cfg.color : 'var(--surface2)'}
+					opacity={isTodayBar ? 1 : 0.7}
+					rx="2"
+				/>
+
+				<!-- Today highlight -->
+				{#if isTodayBar && bh > 0}
+					<rect
+						x={x} y={y}
+						width={bW} height={bh}
+						fill="none"
+						stroke={cfg.color}
+						stroke-width="1"
+						rx="2"
+					/>
+				{/if}
+
+				<!-- Date label -->
+				{#if isLabelDay}
+					<text
+						x={x + bW / 2}
+						y={CHART_BAR_H + CHART_LABEL_H - 4}
+						text-anchor="middle"
+						font-size="7"
+						fill={isTodayBar ? cfg.color : 'var(--text-muted)'}
+						font-weight={isTodayBar ? '700' : '400'}
+					>{isLabelDay}</text>
+				{/if}
+			{/each}
+		</svg>
+	{/if}
 </div>
 
 <!-- Month navigation -->
@@ -210,16 +396,7 @@
 				{#if cell.day === null}
 					<div></div>
 				{:else if isFuture(viewYear, viewMonth, cell.day)}
-					<div style="
-						aspect-ratio:1;
-						display:flex;
-						flex-direction:column;
-						align-items:center;
-						justify-content:center;
-						border-radius:6px;
-						opacity:0.2;
-						font-size:0.8rem;
-					">{cell.day}</div>
+					<div style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; opacity:0.2; font-size:0.8rem;">{cell.day}</div>
 				{:else}
 					{@const hasData = cell.date && monthData[cell.date] > 0}
 					{@const isSelected = cell.date === selectedDay}
@@ -228,21 +405,13 @@
 					<button
 						onclick={() => cell.date && selectDay(cell.date)}
 						style="
-							aspect-ratio:1;
-							display:flex;
-							flex-direction:column;
-							align-items:center;
-							justify-content:center;
-							border-radius:6px;
+							aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+							border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative;
 							border: {isSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'};
 							background: {isSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'};
-							cursor:pointer;
-							padding:0;
-							font-size:0.8rem;
 							font-weight: {isTodayCell ? '700' : '400'};
 							color: {isTodayCell ? 'var(--primary)' : 'var(--text)'};
 							transition: border-color 0.15s;
-							position:relative;
 						">
 						<span>{cell.day}</span>
 						{#if hasData && cell.date}
@@ -279,11 +448,9 @@
 			<h2 style="margin:0;">{new Date(selectedDay + 'T12:00').toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' })}</h2>
 			<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.8rem;">Ver diario →</a>
 		</div>
-
 		{#if loadingDay}
 			<p style="color:var(--text-muted); font-size:0.85rem;">Cargando...</p>
 		{:else if selectedSummary && selectedSummary.entries.length > 0}
-			<!-- Totals -->
 			<div class="card" style="margin-bottom:0.75rem;">
 				<div class="macro-grid">
 					<div>
@@ -304,8 +471,6 @@
 					</div>
 				</div>
 			</div>
-
-			<!-- Entries by meal -->
 			{#each selectedSummary.meals as meal (meal.meal_type)}
 				<div style="margin-bottom:0.75rem;">
 					<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; padding:0 0.25rem;">
