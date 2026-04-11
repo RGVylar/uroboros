@@ -11,6 +11,7 @@ class Base(DeclarativeBase):
 def _get_engine():
     # Import ALL models first so they're registered with Base (critical for create_all)
     from app.models import (
+        CreatineLog,
         DiaryEntry,
         Friendship,
         Product,

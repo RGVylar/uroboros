@@ -79,6 +79,12 @@ export interface Goals {
 	carbs: number;
 	fat: number;
 	water_ml: number;
+	track_creatine: boolean;
+}
+
+export interface CreatineToday {
+	taken: boolean;
+	logged_date: string;
 }
 
 export interface WaterDay {

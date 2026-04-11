@@ -9,6 +9,7 @@ class GoalsIn(BaseModel):
     carbs: float = Field(ge=0)
     fat: float = Field(ge=0)
     water_ml: float = Field(ge=0, default=2000)
+    track_creatine: bool = False
 
 
 class GoalsOut(GoalsIn):
@@ -16,6 +17,11 @@ class GoalsOut(GoalsIn):
 
     class Config:
         from_attributes = True
+
+
+class CreatineTodayOut(BaseModel):
+    taken: bool
+    logged_date: str  # YYYY-MM-DD
 
 
 class WaterLogIn(BaseModel):

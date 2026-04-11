@@ -6,6 +6,7 @@ from app.models.weight import WeightLog
 from app.models.goals import UserGoals
 from app.models.water import WaterLog
 from app.models.friendship import Friendship, FriendshipStatus
+from app.models.creatine import CreatineLog
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "WaterLog",
     "Friendship",
     "FriendshipStatus",
+    "CreatineLog",
 ]

@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -16,6 +16,8 @@
 	let users: User[] = $state([]);
 	let loading = $state(true);
 	let copyingYesterday = $state(false);
+	let creatine: CreatineToday | null = $state(null);
+	let togglingCreatine = $state(false);
 
 	// Edit state
 	let editingEntry: DiaryEntry | null = $state(null);
@@ -47,6 +49,12 @@
 			frequent = f;
 			streak = st.streak;
 			users = u;
+			// Load creatine status only if tracking enabled and viewing today
+			if (g?.track_creatine && isTodayVal) {
+				creatine = await api.get<CreatineToday>('/creatine/today').catch(() => null);
+			} else {
+				creatine = null;
+			}
 		} catch {
 			// handled
 		} finally {
@@ -131,6 +139,22 @@
 			// ignore
 		} finally {
 			copyingYesterday = false;
+		}
+	}
+
+	async function toggleCreatine() {
+		if (togglingCreatine) return;
+		togglingCreatine = true;
+		try {
+			if (creatine?.taken) {
+				creatine = await api.del<CreatineToday>('/creatine/today');
+			} else {
+				creatine = await api.post<CreatineToday>('/creatine/log', {});
+			}
+		} catch {
+			// ignore
+		} finally {
+			togglingCreatine = false;
 		}
 	}
 
@@ -268,6 +292,37 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Creatine check (only today + tracking enabled) -->
+		{#if isToday && goals?.track_creatine && creatine !== null}
+			<div class="card" style="margin-bottom:1rem;">
+				<div style="display:flex; align-items:center; justify-content:space-between;">
+					<div style="display:flex; align-items:center; gap:0.6rem;">
+						<span style="font-size:1.3rem;">💊</span>
+						<div>
+							<div style="font-weight:700; font-size:0.9rem;">Creatina</div>
+							<div style="font-size:0.75rem; color:var(--text-muted);">
+								{creatine.taken ? '✅ Tomada hoy' : 'Sin registrar hoy'}
+							</div>
+						</div>
+					</div>
+					<button
+						onclick={toggleCreatine}
+						disabled={togglingCreatine}
+						style="
+							padding:0.45rem 1rem; border-radius:20px; font-size:0.8rem; font-weight:700;
+							border:none; cursor:pointer; transition:background 0.2s, opacity 0.2s;
+							background:{creatine.taken ? 'var(--surface)' : 'var(--primary)'};
+							color:{creatine.taken ? 'var(--text-muted)' : '#000'};
+							border:1px solid {creatine.taken ? 'var(--border-bright)' : 'transparent'};
+							opacity:{togglingCreatine ? '0.6' : '1'};
+						"
+					>
+						{creatine.taken ? 'Deshacer' : 'Marcar tomada'}
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Diary entries -->
 		{#if summary.entries.length === 0}
