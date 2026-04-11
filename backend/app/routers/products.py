@@ -90,6 +90,7 @@ async def get_or_fetch_by_barcode(
 async def search_products(
     q: str = Query(min_length=1),
     limit: int = Query(20, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[Product]:
@@ -97,6 +98,7 @@ async def search_products(
     stmt = (
         select(Product)
         .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
+        .offset(offset)
         .limit(limit)
     )
     local = list(db.scalars(stmt))

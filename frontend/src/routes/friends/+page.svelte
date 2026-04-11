@@ -13,6 +13,7 @@
 	let addError = $state('');
 	let addLoading = $state(false);
 	let addSuccess = $state('');
+	let confirmDeleteId: number | null = $state(null);
 
 	async function load() {
 		loading = true;
@@ -65,8 +66,13 @@
 	}
 
 	async function removeFriend(id: number) {
-		if (!confirm('¿Eliminar este amigo?')) return;
-		await api.del(`/friends/${id}`);
+		confirmDeleteId = id;
+	}
+
+	async function confirmRemove() {
+		if (!confirmDeleteId) return;
+		await api.del(`/friends/${confirmDeleteId}`);
+		confirmDeleteId = null;
 		load();
 	}
 
@@ -202,4 +208,27 @@
 			</div>
 		{/each}
 	{/if}
+{/if}
+
+<!-- Delete confirmation modal -->
+{#if confirmDeleteId !== null}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div onclick={() => confirmDeleteId = null} style="
+		position:fixed; inset:0; background:rgba(0,0,0,0.6);
+		display:flex; align-items:center; justify-content:center;
+		z-index:100; padding:1.5rem;
+	">
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div onclick={(e) => e.stopPropagation()} class="card" style="width:100%; max-width:320px; text-align:center;">
+			<div style="font-size:1.5rem; margin-bottom:0.5rem;">👥</div>
+			<div style="font-weight:700; font-size:1rem; margin-bottom:0.4rem;">¿Eliminar amigo?</div>
+			<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1.25rem;">
+				Se eliminará la amistad y los permisos asociados.
+			</div>
+			<div style="display:flex; gap:0.5rem;">
+				<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">Cancelar</button>
+				<button class="btn-danger" onclick={confirmRemove} style="flex:1; font-weight:700;">Eliminar</button>
+			</div>
+		</div>
+	</div>
 {/if}

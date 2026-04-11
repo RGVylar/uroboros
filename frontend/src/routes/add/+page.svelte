@@ -63,6 +63,32 @@
 	let barcode = $state('');
 	let results: Product[] = $state([]);
 	let searching = $state(false);
+	let searchOffset = $state(0);
+	let hasMore = $state(false);
+	const PAGE_SIZE = 20;
+
+	const DRINK_KEYWORDS = ['leche', 'zumo', 'jugo', 'agua', 'bebida', 'refresco', 'batido',
+		'smoothie', 'néctar', 'nectar', 'cerveza', 'vino', 'caldo', 'té', 'te ', 'café', 'cafe',
+		'yogur', 'kéfir', 'kefir', 'infusión', 'infusion', 'horchata', 'limonada', 'naranjada'];
+
+	function isDrink(product: Product): boolean {
+		const text = `${product.name} ${product.brand ?? ''}`.toLowerCase();
+		return DRINK_KEYWORDS.some(k => text.includes(k));
+	}
+
+	function getLastGrams(productId: number): number {
+		const stored = localStorage.getItem(`last_grams_${productId}`);
+		return stored ? parseInt(stored) : 100;
+	}
+
+	function saveLastGrams(productId: number, g: number) {
+		localStorage.setItem(`last_grams_${productId}`, String(g));
+	}
+
+	function selectProduct(product: Product) {
+		selected = product;
+		grams = getLastGrams(product.id);
+	}
 	let selected: Product | null = $state(null);
 	let grams = $state(100);
 	let alsoFor: number | null = $state(null);
@@ -109,10 +135,29 @@
 		if (!query.trim()) return;
 		searching = true;
 		error = '';
+		searchOffset = 0;
 		try {
-			results = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}`);
+			const res = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}&limit=${PAGE_SIZE}&offset=0`);
+			results = res;
+			hasMore = res.length === PAGE_SIZE;
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			searching = false;
+		}
+	}
+
+	async function loadMore() {
+		if (!query.trim() || searching) return;
+		searching = true;
+		try {
+			const nextOffset = searchOffset + PAGE_SIZE;
+			const res = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}&limit=${PAGE_SIZE}&offset=${nextOffset}`);
+			results = [...results, ...res];
+			searchOffset = nextOffset;
+			hasMore = res.length === PAGE_SIZE;
+		} catch {
+			// ignore
 		} finally {
 			searching = false;
 		}
@@ -124,7 +169,7 @@
 		error = '';
 		try {
 			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
-			selected = p;
+			selectProduct(p);
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -187,6 +232,7 @@
 				consumed_at: new Date().toISOString(),
 				also_for_user_id: alsoFor
 			});
+			saveLastGrams(selected.id, grams);
 			goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
@@ -198,6 +244,8 @@
 	function preview(per100: number) {
 		return Math.round(per100 * grams / 100);
 	}
+
+	let unit = $derived(selected && isDrink(selected) ? 'ml' : 'g');
 </script>
 
 {#if selected}
@@ -206,12 +254,12 @@
 		<div style="font-weight:700;">{selected.name}</div>
 		{#if selected.brand}<div style="color:var(--text-muted); font-size:0.85rem;">{selected.brand}</div>{/if}
 		<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
-			Por 100g: {selected.calories_per_100g} kcal · P{selected.protein_per_100g} · C{selected.carbs_per_100g} · G{selected.fat_per_100g}
+			Por 100{unit}: {selected.calories_per_100g} kcal · P{selected.protein_per_100g} · C{selected.carbs_per_100g} · G{selected.fat_per_100g}
 		</div>
 	</div>
 
 	<div class="form-group">
-		<label>Comida</label>
+		<label>Tipo de comida</label>
 		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
 			{#each MEAL_ORDER as mt}
 				<button
@@ -225,7 +273,7 @@
 	</div>
 
 	<div class="form-group">
-		<label for="grams">Gramos</label>
+		<label for="grams">Cantidad ({unit})</label>
 		<input id="grams" type="number" bind:value={grams} min="1" step="1" />
 	</div>
 
@@ -313,7 +361,7 @@
 			<div style="display:flex; flex-direction:column; gap:0.4rem;">
 				{#each recommendations as rec (rec.product.id)}
 					<button
-						onclick={() => { selected = rec.product; grams = rec.suggested_grams; }}
+						onclick={() => selectProduct(rec.product)}
 						class="btn-secondary"
 						style="text-align:left; padding:0.6rem; transition:border-color 0.2s;">
 						<div style="display:flex; justify-content:space-between; align-items:start;">
@@ -385,7 +433,7 @@
 	{#each results as product (product.id)}
 		<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
 			<button class="btn-secondary" style="flex:1; text-align:left; border:none;"
-				onclick={() => selected = product}>
+				onclick={() => selectProduct(product)}>
 				<div style="font-weight:600;">{product.name}</div>
 				{#if product.brand}<div style="color:var(--text-muted); font-size:0.8rem;">{product.brand}</div>{/if}
 				<div style="font-size:0.8rem; color:var(--text-muted);">
@@ -395,4 +443,10 @@
 			<a href="/add/product/{product.id}" style="padding:0.5rem; font-size:0.8rem;">Editar</a>
 		</div>
 	{/each}
+
+	{#if hasMore}
+		<button class="btn-secondary" onclick={loadMore} disabled={searching} style="width:100%; margin-top:0.25rem; font-size:0.85rem;">
+			{searching ? 'Cargando...' : 'Mostrar más resultados'}
+		</button>
+	{/if}
 {/if}

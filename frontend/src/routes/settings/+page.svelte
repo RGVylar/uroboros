@@ -55,7 +55,7 @@
 	<!-- Metas -->
 	<button onclick={() => goto('/goals')} style="
 		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface);
+		width:100%; text-align:left; background:var(--surface); color:var(--text);
 		border:1px solid var(--border); border-radius:14px;
 		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
 	">
@@ -70,7 +70,7 @@
 	<!-- Peso -->
 	<button onclick={() => goto('/weight')} style="
 		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface);
+		width:100%; text-align:left; background:var(--surface); color:var(--text);
 		border:1px solid var(--border); border-radius:14px;
 		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
 	">
@@ -85,7 +85,7 @@
 	<!-- Amigos -->
 	<button onclick={() => goto('/friends')} style="
 		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface);
+		width:100%; text-align:left; background:var(--surface); color:var(--text);
 		border:1px solid var(--border); border-radius:14px;
 		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
 	">
