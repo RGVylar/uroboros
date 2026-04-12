@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import DiaryEntry, Product, User, ExerciseSession
+from app.models.cheat_day import CheatDayLog
 from app.models.diary import MealType
 from app.schemas.diary import (
     MEAL_LABELS,
@@ -188,7 +189,7 @@ def get_streak(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Count consecutive days with at least one diary entry, going back from today."""
+    """Count consecutive days with at least one diary entry (or a used cheat day), going back from today."""
     streak = 0
     day = datetime.now(timezone.utc).date()
     while True:
@@ -202,7 +203,14 @@ def get_streak(
             .limit(1)
         )
         if not has_entry:
-            break
+            # Check if this day was saved by a cheat day
+            is_cheat_day = db.scalar(
+                select(CheatDayLog.id)
+                .where(CheatDayLog.user_id == user.id,
+                       CheatDayLog.used_date == day)
+            )
+            if not is_cheat_day:
+                break
         streak += 1
         day -= timedelta(days=1)
     return {"streak": streak}

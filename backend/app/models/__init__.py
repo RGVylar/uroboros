@@ -7,6 +7,7 @@ from app.models.goals import UserGoals
 from app.models.water import WaterLog
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.creatine import CreatineLog
+from app.models.cheat_day import CheatDayLog
 from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "Friendship",
     "FriendshipStatus",
     "CreatineLog",
+    "CheatDayLog",
     "Exercise",
     "ExerciseSession",
     "ExerciseSessionEntry",

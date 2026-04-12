@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -18,6 +18,8 @@
 	let copyingYesterday = $state(false);
 	let creatine: CreatineToday | null = $state(null);
 	let togglingCreatine = $state(false);
+	let cheatDay: CheatDayToday | null = $state(null);
+	let togglingCheatDay = $state(false);
 
 	// Edit state
 	let editingEntry: DiaryEntry | null = $state(null);
@@ -54,6 +56,12 @@
 				creatine = await api.get<CreatineToday>('/creatine/today').catch(() => null);
 			} else {
 				creatine = null;
+			}
+			// Load cheat day status only if enabled and viewing today
+			if (g?.cheat_days_enabled && isTodayVal) {
+				cheatDay = await api.get<CheatDayToday>('/cheat-days/today').catch(() => null);
+			} else {
+				cheatDay = null;
 			}
 		} catch {
 			// handled
@@ -155,6 +163,25 @@
 			// ignore
 		} finally {
 			togglingCreatine = false;
+		}
+	}
+
+	async function toggleCheatDay() {
+		if (togglingCheatDay) return;
+		togglingCheatDay = true;
+		try {
+			if (cheatDay?.active) {
+				cheatDay = await api.del<CheatDayToday>('/cheat-days/today');
+			} else {
+				cheatDay = await api.post<CheatDayToday>('/cheat-days/use', {});
+				// Reload streak so the 🔥 updates immediately
+				const st = await api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 }));
+				streak = st.streak;
+			}
+		} catch {
+			// ignore
+		} finally {
+			togglingCheatDay = false;
 		}
 	}
 
@@ -336,6 +363,37 @@
 						"
 					>
 						{creatine.taken ? 'Deshacer' : 'Marcar tomada'}
+					</button>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Cheat day (only today + enabled) -->
+		{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
+			<div class="card" style="margin-bottom:1rem; {cheatDay.active ? 'border-color: #ff6b35;' : ''}">
+				<div style="display:flex; align-items:center; justify-content:space-between;">
+					<div style="display:flex; align-items:center; gap:0.6rem;">
+						<span style="font-size:1.3rem;">🍕</span>
+						<div>
+							<div style="font-weight:700; font-size:0.9rem;">Cheat day</div>
+							<div style="font-size:0.75rem; color:var(--text-muted);">
+								{cheatDay.active ? '✅ Racha protegida hoy' : 'Úsalo si no vas a registrar hoy'}
+							</div>
+						</div>
+					</div>
+					<button
+						onclick={toggleCheatDay}
+						disabled={togglingCheatDay}
+						style="
+							padding:0.45rem 1rem; border-radius:20px; font-size:0.8rem; font-weight:700;
+							border:none; cursor:pointer; transition:background 0.2s, opacity 0.2s;
+							background:{cheatDay.active ? 'var(--surface)' : '#ff6b35'};
+							color:{cheatDay.active ? 'var(--text-muted)' : '#fff'};
+							border:1px solid {cheatDay.active ? 'var(--border-bright)' : 'transparent'};
+							opacity:{togglingCheatDay ? '0.6' : '1'};
+						"
+					>
+						{cheatDay.active ? 'Cancelar' : 'Activar'}
 					</button>
 				</div>
 			</div>

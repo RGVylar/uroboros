@@ -83,6 +83,12 @@ export interface Goals {
 	fat: number;
 	water_ml: number;
 	track_creatine: boolean;
+	cheat_days_enabled: boolean;
+}
+
+export interface CheatDayToday {
+	active: boolean;
+	used_date: string;
 }
 
 export interface CreatineToday {

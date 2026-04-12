@@ -23,6 +23,7 @@ def _get_engine():
         WeightLog,
     )
     from app.models.exercise import Exercise
+    from app.models.cheat_day import CheatDayLog
     from app.models.product import ProductSource
 
     if settings.demo_mode:
