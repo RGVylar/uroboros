@@ -25,7 +25,8 @@
 	let tdeeAge = $state(25);
 	let tdeeSex: 'male' | 'female' = $state('male');
 	let tdeeActivity = $state('moderate');
-	let tdeeResult: { tdee: number; bmr: number } | null = $state(null);
+	let tdeeObjective = $state('maintain');
+	let tdeeResult: { tdee: number; bmr: number; target: number } | null = $state(null);
 
 	const activityFactors: Record<string, { label: string; factor: number }> = {
 		sedentary:    { label: 'Sedentario (sin ejercicio)',        factor: 1.2 },
@@ -35,22 +36,29 @@
 		very_active:  { label: 'Muy activo (doble turno / físico)', factor: 1.9 },
 	};
 
+	const objectives: Record<string, { label: string; emoji: string; kcalDelta: number; pPct: number; cPct: number; fPct: number; hint: string }> = {
+		lose:     { label: 'Perder peso',     emoji: '🔥', kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hint: 'Déficit de 400 kcal · más proteína para preservar músculo' },
+		maintain: { label: 'Mantener',        emoji: '⚖️', kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hint: 'Mantenimiento · distribución equilibrada' },
+		gain:     { label: 'Ganar músculo',   emoji: '💪', kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hint: 'Superávit de 300 kcal · más carbohidratos para el entrenamiento' },
+	};
+
 	function calcTdee() {
 		// Mifflin-St Jeor
 		const bmr = tdeeSex === 'male'
 			? 10 * tdeeWeight + 6.25 * tdeeHeight - 5 * tdeeAge + 5
 			: 10 * tdeeWeight + 6.25 * tdeeHeight - 5 * tdeeAge - 161;
 		const tdee = Math.round(bmr * activityFactors[tdeeActivity].factor);
-		tdeeResult = { tdee, bmr: Math.round(bmr) };
+		const target = tdee + objectives[tdeeObjective].kcalDelta;
+		tdeeResult = { tdee, bmr: Math.round(bmr), target };
 	}
 
 	function applyTdee() {
 		if (!tdeeResult) return;
-		kcal = tdeeResult.tdee;
-		// Distribute macros: 30% protein, 40% carbs, 30% fat (sensible defaults)
-		protein = Math.round((tdeeResult.tdee * 0.30) / 4);
-		carbs    = Math.round((tdeeResult.tdee * 0.40) / 4);
-		fat      = Math.round((tdeeResult.tdee * 0.30) / 9);
+		const obj = objectives[tdeeObjective];
+		kcal    = tdeeResult.target;
+		protein = Math.round((tdeeResult.target * obj.pPct) / 4);
+		carbs   = Math.round((tdeeResult.target * obj.cPct) / 4);
+		fat     = Math.round((tdeeResult.target * obj.fPct) / 9);
 		showTdee = false;
 	}
 
@@ -141,25 +149,48 @@
 					</select>
 				</div>
 
+				<div class="form-group" style="margin-bottom:0.75rem;">
+					<label>Objetivo</label>
+					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
+						{#each Object.entries(objectives) as [key, obj]}
+							<button
+								onclick={() => { tdeeObjective = key; tdeeResult = null; }}
+								style="padding:0.5rem 0.25rem; border-radius:8px; border:1px solid {tdeeObjective === key ? 'var(--primary)' : 'var(--border)'}; background:{tdeeObjective === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); cursor:pointer; font-size:0.78rem; text-align:center; line-height:1.3;">
+								<div style="font-size:1rem;">{obj.emoji}</div>
+								{obj.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
 				<button onclick={calcTdee} style="width:100%; margin-bottom:0.75rem; color: black;">Calcular</button>
 
 				{#if tdeeResult}
-					<div style="background:var(--bg); border-radius:10px; padding:0.85rem; margin-bottom:0.75rem;">
-						<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; text-align:center;">
+					{@const obj = objectives[tdeeObjective]}
+					<div style="background:var(--bg); border-radius:10px; padding:0.85rem; margin-bottom:0.6rem;">
+						<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem; text-align:center;">
 							<div>
-								<div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">BMR</div>
-								<div style="font-size:1.4rem; font-weight:800; color:var(--text);">{tdeeResult.bmr}</div>
-								<div style="font-size:0.7rem; color:var(--text-muted);">kcal base</div>
+								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">BMR</div>
+								<div style="font-size:1.2rem; font-weight:800; color:var(--text);">{tdeeResult.bmr}</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">metabolismo base</div>
 							</div>
 							<div>
-								<div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">TDEE</div>
-								<div style="font-size:1.4rem; font-weight:800; color:var(--primary);">{tdeeResult.tdee}</div>
-								<div style="font-size:0.7rem; color:var(--text-muted);">kcal/día</div>
+								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">TDEE</div>
+								<div style="font-size:1.2rem; font-weight:800; color:var(--text);">{tdeeResult.tdee}</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">con actividad</div>
+							</div>
+							<div>
+								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">OBJETIVO</div>
+								<div style="font-size:1.2rem; font-weight:800; color:var(--primary);">{tdeeResult.target}</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">kcal/día</div>
 							</div>
 						</div>
 					</div>
+					<p style="font-size:0.75rem; color:var(--text-muted); margin:0 0 0.6rem; text-align:center;">
+						{obj.hint}
+					</p>
 					<button onclick={applyTdee} class="btn-secondary" style="width:100%; font-size:0.85rem;">
-						Aplicar al objetivo (distribuye macros 30/40/30)
+						Aplicar objetivo · P{Math.round(obj.pPct*100)}% C{Math.round(obj.cPct*100)}% G{Math.round(obj.fPct*100)}%
 					</button>
 				{/if}
 			</div>

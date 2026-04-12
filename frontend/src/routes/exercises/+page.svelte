@@ -166,12 +166,12 @@
 			</div>
 			<div class="form-group" style="margin-bottom:0;">
 				<label for="ex-unit">Unidad</label>
-				<input id="ex-unit" bind:value={newUnit} list="unit-list" placeholder="repeticiones" />
-				<datalist id="unit-list">
+				<select id="ex-unit" bind:value={newUnit}
+					style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
 					{#each UNIT_SUGGESTIONS as u}
 						<option value={u}>{u}</option>
 					{/each}
-				</datalist>
+				</select>
 			</div>
 		</div>
 
@@ -204,7 +204,11 @@
 					<input bind:value={editName} placeholder="Nombre" />
 					<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
 				</div>
-				<input bind:value={editUnit} list="unit-list" placeholder="Unidad" style="width:100%; margin-bottom:0.5rem;" />
+				<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
+					{#each UNIT_SUGGESTIONS as u}
+						<option value={u}>{u}</option>
+					{/each}
+				</select>
 				<div style="display:flex; gap:0.5rem;">
 					<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
 					<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
