@@ -94,7 +94,7 @@ async def search_products(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[Product]:
-    # First, search locally
+    # Always search local DB
     stmt = (
         select(Product)
         .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
@@ -102,25 +102,28 @@ async def search_products(
         .limit(limit)
     )
     local = list(db.scalars(stmt))
-    if local:
-        return local
+    local_barcodes = {p.barcode for p in local if p.barcode}
+    local_ids = {p.id for p in local}
 
-    # Otherwise, search Open Food Facts and cache results
+    # Always also search OFF (in parallel via await)
     try:
         off_results = await search_by_name(q, limit=limit)
     except Exception:
-        return []
+        off_results = []
 
-    products: list[Product] = []
+    # Merge: skip anything already in local results by barcode
+    new_off: list[Product] = []
+    existing_off: list[Product] = []
     for off in off_results:
-        # Reuse existing product if barcode matches
+        if off.barcode and off.barcode in local_barcodes:
+            continue  # already represented in local
         if off.barcode:
             existing = db.scalar(select(Product).where(Product.barcode == off.barcode))
             if existing:
-                products.append(existing)
+                if existing.id not in local_ids:
+                    existing_off.append(existing)
                 continue
-
-        product = Product(
+        p = Product(
             barcode=off.barcode or None,
             name=off.name,
             brand=off.brand,
@@ -130,14 +133,16 @@ async def search_products(
             fat_per_100g=off.fat,
             source=ProductSource.openfoodfacts,
         )
-        db.add(product)
-        products.append(product)
+        db.add(p)
+        new_off.append(p)
 
-    db.commit()
-    for p in products:
-        db.refresh(p)
+    if new_off:
+        db.commit()
+        for p in new_off:
+            db.refresh(p)
 
-    return products
+    # Local first, then extra OFF results
+    return local + existing_off + new_off
 
 
 @router.get("/{product_id}", response_model=ProductOut)

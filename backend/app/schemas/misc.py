@@ -67,16 +67,22 @@ class RecipeIngredientOut(BaseModel):
 class RecipeIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     ingredients: list[RecipeIngredientIn]
+    is_shared: bool = False
 
 
 class RecipeOut(BaseModel):
     id: int
     name: str
     owner_id: int
+    is_shared: bool
     ingredients: list[RecipeIngredientOut]
 
     class Config:
         from_attributes = True
+
+
+class SharedRecipeOut(RecipeOut):
+    owner_name: str
 
 
 class ProductOutMinimal(BaseModel):

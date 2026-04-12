@@ -113,7 +113,12 @@ export interface Recipe {
 	id: number;
 	name: string;
 	owner_id: number;
+	is_shared: boolean;
 	ingredients: RecipeIngredient[];
+}
+
+export interface SharedRecipe extends Recipe {
+	owner_name: string;
 }
 
 export interface RecommendedProduct {
