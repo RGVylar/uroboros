@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -70,3 +70,21 @@ def cancel_cheat_day(
         db.delete(entry)
         db.commit()
     return CheatDayOut(active=False, used_date=str(today))
+
+
+@router.get("/month", response_model=list[str])
+def get_cheat_days_month(
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[str]:
+    """Returns list of YYYY-MM-DD strings where cheat day was used in the given month."""
+    rows = db.execute(
+        select(CheatDayLog.used_date).where(
+            CheatDayLog.user_id == user.id,
+            extract("year", CheatDayLog.used_date) == year,
+            extract("month", CheatDayLog.used_date) == month,
+        )
+    ).scalars().all()
+    return [str(d) for d in rows]
