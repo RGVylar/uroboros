@@ -1,4 +1,8 @@
 from logging.config import fileConfig
+import os
+
+# Set migration flag before importing app modules
+os.environ["ALEMBIC_MIGRATION"] = "true"
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -8,7 +12,15 @@ from app.database import Base
 from app import models  # noqa: F401  (register models on Base.metadata)
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+
+# Use SQLite for demo mode migrations, PostgreSQL otherwise
+if settings.demo_mode or os.getenv("DEMO_MODE", "").lower() == "true":
+    import tempfile
+    temp_dir = tempfile.gettempdir()
+    db_path = os.path.join(temp_dir, "uroboros_demo.db")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+else:
+    config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

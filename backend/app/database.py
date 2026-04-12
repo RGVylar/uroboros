@@ -34,7 +34,11 @@ def _get_engine():
         db_path = os.path.join(temp_dir, "uroboros_demo.db")
         # Remove old db if it exists (fresh demo each session)
         if os.path.exists(db_path):
-            os.remove(db_path)
+            try:
+                os.remove(db_path)
+            except PermissionError:
+                # File might be in use by another process, skip deletion
+                pass
 
         engine = create_engine(
             f"sqlite:///{db_path}",
@@ -48,73 +52,89 @@ def _get_engine():
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
 
-        # Create all tables
-        Base.metadata.create_all(engine)
+        # Create all tables and seed data (skip if running migrations)
+        import os
+        if os.getenv("ALEMBIC_MIGRATION") != "true":
+            Base.metadata.create_all(engine)
 
-        # Seed demo data
+            # Seed demo data
+            db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
 
-        db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+            # Create demo users (skip if they already exist)
+            from sqlalchemy import select
+            existing_user1 = db.scalar(select(User).where(User.email == "demo@demo.com"))
+            existing_user2 = db.scalar(select(User).where(User.email == "demo2@demo.com"))
 
-        # Create demo users
-        user1 = User(email="demo@demo.com", password_hash=hash_password("demo1234"), name="Demo User")
-        user2 = User(email="demo2@demo.com", password_hash=hash_password("demo1234"), name="Demo 2")
-        db.add_all([user1, user2])
-        db.commit()
-        db.refresh(user1)
-        db.refresh(user2)
+            if not existing_user1:
+                user1 = User(email="demo@demo.com", password_hash=hash_password("demo1234"), name="Demo User")
+                db.add(user1)
+            else:
+                user1 = existing_user1
 
-        # Create demo products
-        demo_products = [
-            Product(
-                name="Pollo a la plancha",
-                brand="Casero",
-                calories_per_100g=165,
-                protein_per_100g=31,
-                carbs_per_100g=0,
-                fat_per_100g=3.6,
-                source=ProductSource.manual,
-            ),
-            Product(
-                name="Arroz blanco cocido",
-                brand=None,
-                calories_per_100g=130,
-                protein_per_100g=2.7,
-                carbs_per_100g=28,
-                fat_per_100g=0.3,
-                source=ProductSource.manual,
-            ),
-            Product(
-                name="Huevo",
-                brand=None,
-                calories_per_100g=155,
-                protein_per_100g=13,
-                carbs_per_100g=1.1,
-                fat_per_100g=11,
-                source=ProductSource.manual,
-            ),
-            Product(
-                name="Manzana roja",
-                brand=None,
-                calories_per_100g=52,
-                protein_per_100g=0.3,
-                carbs_per_100g=14,
-                fat_per_100g=0.2,
-                source=ProductSource.manual,
-            ),
-            Product(
-                name="Pechuga de pollo",
-                brand=None,
-                calories_per_100g=165,
-                protein_per_100g=31,
-                carbs_per_100g=0,
-                fat_per_100g=3.6,
-                source=ProductSource.manual,
-            ),
-        ]
-        db.add_all(demo_products)
-        db.commit()
+            if not existing_user2:
+                user2 = User(email="demo2@demo.com", password_hash=hash_password("demo1234"), name="Demo 2")
+                db.add(user2)
+            else:
+                user2 = existing_user2
 
-        db.close()
+            db.commit()
+            if not existing_user1:
+                db.refresh(user1)
+            if not existing_user2:
+                db.refresh(user2)
+
+            # Create demo products
+            demo_products = [
+                Product(
+                    name="Pollo a la plancha",
+                    brand="Casero",
+                    calories_per_100g=165,
+                    protein_per_100g=31,
+                    carbs_per_100g=0,
+                    fat_per_100g=3.6,
+                    source=ProductSource.manual,
+                ),
+                Product(
+                    name="Arroz blanco cocido",
+                    brand=None,
+                    calories_per_100g=130,
+                    protein_per_100g=2.7,
+                    carbs_per_100g=28,
+                    fat_per_100g=0.3,
+                    source=ProductSource.manual,
+                ),
+                Product(
+                    name="Huevo",
+                    brand=None,
+                    calories_per_100g=155,
+                    protein_per_100g=13,
+                    carbs_per_100g=1.1,
+                    fat_per_100g=11,
+                    source=ProductSource.manual,
+                ),
+                Product(
+                    name="Manzana roja",
+                    brand=None,
+                    calories_per_100g=52,
+                    protein_per_100g=0.3,
+                    carbs_per_100g=14,
+                    fat_per_100g=0.2,
+                    source=ProductSource.manual,
+                ),
+                Product(
+                    name="Pechuga de pollo",
+                    brand=None,
+                    calories_per_100g=165,
+                    protein_per_100g=31,
+                    carbs_per_100g=0,
+                    fat_per_100g=3.6,
+                    source=ProductSource.manual,
+                ),
+            ]
+            db.add_all(demo_products)
+            db.commit()
+
+            db.close()
         return engine
     else:
         # Production: PostgreSQL
