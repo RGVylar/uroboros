@@ -203,7 +203,7 @@
 				{@const netPct = pct(net, goals.kcal)}
 
 				<!-- 3-column hero numbers -->
-				<div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+				<div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:flex-start; margin-bottom:1rem;">
 					<div style="text-align:center;">
 						<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;">Consumidas</div>
 						<div style="font-size:1.6rem; font-weight:800; color:var(--cal); line-height:1;">{consumed}</div>
