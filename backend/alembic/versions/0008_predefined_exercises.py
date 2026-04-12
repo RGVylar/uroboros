@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add predefined exercises
 
 Revision ID: 0008
@@ -8,6 +9,7 @@ Create Date: 2026-04-12
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 
 revision: str = "0008"
 down_revision: Union[str, None] = "0007"
@@ -63,13 +65,15 @@ def upgrade() -> None:
         "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS is_predefined BOOLEAN NOT NULL DEFAULT FALSE"
     )
 
-    # Seed predefined exercises (user_id = NULL, is_predefined = TRUE)
+    # Seed predefined exercises using bound parameters (avoids encoding issues)
+    conn = op.get_bind()
     for name, kcal, unit in PREDEFINED:
-        safe_name = name.replace("'", "''")
-        safe_unit = unit.replace("'", "''")
-        op.execute(
-            f"INSERT INTO exercises (name, kcal_per_unit, unit, is_predefined, created_at, updated_at) "
-            f"VALUES ('{safe_name}', {kcal}, '{safe_unit}', TRUE, NOW(), NOW())"
+        conn.execute(
+            sa.text(
+                "INSERT INTO exercises (name, kcal_per_unit, unit, is_predefined, created_at, updated_at) "
+                "VALUES (:name, :kcal, :unit, TRUE, NOW(), NOW())"
+            ),
+            {"name": name, "kcal": kcal, "unit": unit},
         )
 
 
