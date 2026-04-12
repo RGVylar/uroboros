@@ -8,6 +8,15 @@ class Base(DeclarativeBase):
     pass
 
 
+def _sqlite_add_column_if_missing(conn, table: str, column: str, col_def: str) -> None:
+    """Add a column to a SQLite table if it doesn't already exist."""
+    from sqlalchemy import text
+    rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+    existing = {row[1] for row in rows}
+    if column not in existing:
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}"))
+
+
 def _get_engine():
     # Import ALL models first so they're registered with Base (critical for create_all)
     from app.models import (
@@ -58,6 +67,12 @@ def _get_engine():
         import os
         if os.getenv("ALEMBIC_MIGRATION") != "true":
             Base.metadata.create_all(engine)
+
+            # Add any missing columns to existing SQLite tables (schema drift fix)
+            with engine.connect() as conn:
+                _sqlite_add_column_if_missing(conn, "user_goals", "cheat_days_enabled", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "exercises", "is_predefined", "BOOLEAN NOT NULL DEFAULT 0")
+                conn.commit()
 
             # Seed demo data
             db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
@@ -136,46 +151,49 @@ def _get_engine():
             db.add_all(demo_products)
             db.commit()
 
-            # Seed predefined exercises
-            predefined_exercises = [
-                # Cardio (por minuto)
-                Exercise(user_id=None, name="Correr (ritmo moderado)", kcal_per_unit=10.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Correr (ritmo rápido)", kcal_per_unit=14.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Ciclismo (moderado)", kcal_per_unit=8.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Ciclismo (intenso)", kcal_per_unit=12.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Natación", kcal_per_unit=9.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Saltar la comba", kcal_per_unit=12.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Caminata", kcal_per_unit=4.5, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Elíptica", kcal_per_unit=9.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Remo (máquina)", kcal_per_unit=10.0, unit="minutos", is_predefined=True),
-                # Fuerza (por repetición)
-                Exercise(user_id=None, name="Sentadilla", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Sentadilla con peso", kcal_per_unit=0.8, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Flexiones", kcal_per_unit=0.4, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Dominadas", kcal_per_unit=0.7, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Press banca", kcal_per_unit=0.6, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Peso muerto", kcal_per_unit=0.9, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Zancadas", kcal_per_unit=0.4, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Remo con barra", kcal_per_unit=0.6, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Press militar", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Curl de bíceps", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Extensión de tríceps", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
-                # HIIT / funcional
-                Exercise(user_id=None, name="Burpees", kcal_per_unit=0.8, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Mountain climbers", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Jumping jacks", kcal_per_unit=0.2, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Box jumps", kcal_per_unit=0.7, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Kettlebell swing", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
-                # Core
-                Exercise(user_id=None, name="Abdominales", kcal_per_unit=0.25, unit="repeticiones", is_predefined=True),
-                Exercise(user_id=None, name="Plancha", kcal_per_unit=3.5, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="Russian twist", kcal_per_unit=0.2, unit="repeticiones", is_predefined=True),
-                # Otros
-                Exercise(user_id=None, name="Yoga / Stretching", kcal_per_unit=3.0, unit="minutos", is_predefined=True),
-                Exercise(user_id=None, name="HIIT general", kcal_per_unit=13.0, unit="minutos", is_predefined=True),
-            ]
-            db.add_all(predefined_exercises)
-            db.commit()
+            # Seed predefined exercises (only if none exist yet)
+            from sqlalchemy import select as sa_select, func
+            existing_count = db.scalar(sa_select(func.count()).select_from(Exercise).where(Exercise.is_predefined == True))
+            if not existing_count:
+                predefined_exercises = [
+                    # Cardio (por minuto)
+                    Exercise(user_id=None, name="Correr (ritmo moderado)", kcal_per_unit=10.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Correr (ritmo rápido)", kcal_per_unit=14.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Ciclismo (moderado)", kcal_per_unit=8.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Ciclismo (intenso)", kcal_per_unit=12.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Natación", kcal_per_unit=9.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Saltar la comba", kcal_per_unit=12.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Caminata", kcal_per_unit=4.5, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Elíptica", kcal_per_unit=9.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Remo (máquina)", kcal_per_unit=10.0, unit="minutos", is_predefined=True),
+                    # Fuerza (por repetición)
+                    Exercise(user_id=None, name="Sentadilla", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Sentadilla con peso", kcal_per_unit=0.8, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Flexiones", kcal_per_unit=0.4, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Dominadas", kcal_per_unit=0.7, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Press banca", kcal_per_unit=0.6, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Peso muerto", kcal_per_unit=0.9, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Zancadas", kcal_per_unit=0.4, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Remo con barra", kcal_per_unit=0.6, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Press militar", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Curl de bíceps", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Extensión de tríceps", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
+                    # HIIT / funcional
+                    Exercise(user_id=None, name="Burpees", kcal_per_unit=0.8, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Mountain climbers", kcal_per_unit=0.3, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Jumping jacks", kcal_per_unit=0.2, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Box jumps", kcal_per_unit=0.7, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Kettlebell swing", kcal_per_unit=0.5, unit="repeticiones", is_predefined=True),
+                    # Core
+                    Exercise(user_id=None, name="Abdominales", kcal_per_unit=0.25, unit="repeticiones", is_predefined=True),
+                    Exercise(user_id=None, name="Plancha", kcal_per_unit=3.5, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="Russian twist", kcal_per_unit=0.2, unit="repeticiones", is_predefined=True),
+                    # Otros
+                    Exercise(user_id=None, name="Yoga / Stretching", kcal_per_unit=3.0, unit="minutos", is_predefined=True),
+                    Exercise(user_id=None, name="HIIT general", kcal_per_unit=13.0, unit="minutos", is_predefined=True),
+                ]
+                db.add_all(predefined_exercises)
+                db.commit()
 
             db.close()
         return engine

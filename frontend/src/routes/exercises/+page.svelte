@@ -31,6 +31,10 @@
 	let myExercises = $derived(exercises.filter(e => !e.is_predefined));
 	let predefinedExercises = $derived(exercises.filter(e => e.is_predefined));
 
+	// ── Secciones desplegables ───────────────────────────────────────────────
+	let showMyExercises = $state(true);
+	let showPredefined = $state(false);
+
 	// ── Carga ────────────────────────────────────────────────────────────────
 	async function loadExercises() {
 		exercises = await api.get<Exercise[]>('/exercises');
@@ -128,104 +132,123 @@
 <h1>Ejercicios</h1>
 
 <!-- ═══════════════════════ MIS EJERCICIOS ════════════════════════════════ -->
-<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Mis ejercicios</h2>
+<button
+	onclick={() => showMyExercises = !showMyExercises}
+	style="display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; margin-bottom:0.5rem; cursor:pointer;">
+	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
+		Mis ejercicios
+		{#if myExercises.length > 0}
+			<span style="font-weight:400;">({myExercises.length})</span>
+		{/if}
+	</h2>
+	<span style="color:var(--text-muted); font-size:0.85rem; transition:transform 0.2s; display:inline-block; transform:{showMyExercises ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
+</button>
+
+{#if showMyExercises}
 	{#if !showNewForm}
 		<button onclick={() => { showNewForm = true; createError = ''; }}
-			style="font-size:0.8rem; padding:0.3rem 0.75rem; color:black;">+ Nuevo</button>
+			style="font-size:0.8rem; padding:0.3rem 0.75rem; color:black; margin-bottom:0.5rem;">+ Nuevo ejercicio</button>
 	{/if}
-</div>
 
-{#if showNewForm}
-	<div class="card" style="margin-bottom:1rem;">
-		<h2 style="margin-top:0; font-size:1rem; color:var(--text);">Nuevo ejercicio</h2>
-		<div class="form-group">
-			<label for="ex-name">Nombre</label>
-			<input id="ex-name" bind:value={newName} placeholder="Ej: Sentadillas" />
-		</div>
-		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-			<div class="form-group" style="margin-bottom:0;">
-				<label for="ex-kcal">Kcal por unidad</label>
-				<input id="ex-kcal" type="number" bind:value={newKcal} min="0.1" step="0.1" />
+	{#if showNewForm}
+		<div class="card" style="margin-bottom:1rem;">
+			<h2 style="margin-top:0; font-size:1rem; color:var(--text);">Nuevo ejercicio</h2>
+			<div class="form-group">
+				<label for="ex-name">Nombre</label>
+				<input id="ex-name" bind:value={newName} placeholder="Ej: Sentadillas" />
 			</div>
-			<div class="form-group" style="margin-bottom:0;">
-				<label for="ex-unit">Unidad</label>
-				<select id="ex-unit" bind:value={newUnit}
-					style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+				<div class="form-group" style="margin-bottom:0;">
+					<label for="ex-kcal">Kcal por unidad</label>
+					<input id="ex-kcal" type="number" bind:value={newKcal} min="0.1" step="0.1" />
+				</div>
+				<div class="form-group" style="margin-bottom:0;">
+					<label for="ex-unit">Unidad</label>
+					<select id="ex-unit" bind:value={newUnit}
+						style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
+						{#each UNIT_SUGGESTIONS as u}
+							<option value={u}>{u}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+			{#if newKcal > 0 && newName}
+				<p style="font-size:0.8rem; color:var(--text-muted); margin:0.5rem 0 0;">
+					Ejemplo: 10 {newUnit} = {(newKcal * 10).toFixed(0)} kcal
+				</p>
+			{/if}
+			{#if createError}<p class="error">{createError}</p>{/if}
+			<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+				<button class="btn-secondary" onclick={() => showNewForm = false} style="flex:1;">Cancelar</button>
+				<button onclick={createExercise} style="flex:2; color:black;">Guardar</button>
+			</div>
+		</div>
+	{/if}
+
+	{#if myExercises.length === 0 && !showNewForm}
+		<p style="font-size:0.85rem; color:var(--text-muted); padding:0.5rem 0 1rem;">
+			Aún no tienes ejercicios propios. ¡Crea uno o usa los predefinidos!
+		</p>
+	{/if}
+
+	{#each myExercises as ex (ex.id)}
+		{#if editingId === ex.id}
+			<div class="card" style="margin-bottom:0.5rem; border-color:var(--primary);">
+				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+					<input bind:value={editName} placeholder="Nombre" />
+					<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
+				</div>
+				<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
 					{#each UNIT_SUGGESTIONS as u}
 						<option value={u}>{u}</option>
 					{/each}
 				</select>
-			</div>
-		</div>
-		{#if newKcal > 0 && newName}
-			<p style="font-size:0.8rem; color:var(--text-muted); margin:0.5rem 0 0;">
-				Ejemplo: 10 {newUnit} = {(newKcal * 10).toFixed(0)} kcal
-			</p>
-		{/if}
-		{#if createError}<p class="error">{createError}</p>{/if}
-		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="btn-secondary" onclick={() => showNewForm = false} style="flex:1;">Cancelar</button>
-			<button onclick={createExercise} style="flex:2; color:black;">Guardar</button>
-		</div>
-	</div>
-{/if}
-
-{#if myExercises.length === 0 && !showNewForm}
-	<p style="font-size:0.85rem; color:var(--text-muted); padding:0.5rem 0 1rem;">
-		Aún no tienes ejercicios propios. ¡Crea uno o usa los predefinidos!
-	</p>
-{/if}
-
-{#each myExercises as ex (ex.id)}
-	{#if editingId === ex.id}
-		<div class="card" style="margin-bottom:0.5rem; border-color:var(--primary);">
-			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
-				<input bind:value={editName} placeholder="Nombre" />
-				<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
-			</div>
-			<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
-				{#each UNIT_SUGGESTIONS as u}
-					<option value={u}>{u}</option>
-				{/each}
-			</select>
-			<div style="display:flex; gap:0.5rem;">
-				<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
-				<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
-			</div>
-		</div>
-	{:else}
-		<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
-			<div>
-				<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">
-					{ex.kcal_per_unit} kcal / {ex.unit}
+				<div style="display:flex; gap:0.5rem;">
+					<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
+					<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
 				</div>
 			</div>
-			<div style="display:flex; gap:0.4rem;">
-				<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-					onclick={() => startEdit(ex)}>✏️</button>
-				<button class="btn-danger" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-					onclick={() => deleteExercise(ex.id)}>✕</button>
+		{:else}
+			<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
+				<div>
+					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
+					<div style="font-size:0.75rem; color:var(--text-muted);">
+						{ex.kcal_per_unit} kcal / {ex.unit}
+					</div>
+				</div>
+				<div style="display:flex; gap:0.4rem;">
+					<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
+						onclick={() => startEdit(ex)}>✏️</button>
+					<button class="btn-danger" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
+						onclick={() => deleteExercise(ex.id)}>✕</button>
+				</div>
 			</div>
-		</div>
-	{/if}
-{/each}
+		{/if}
+	{/each}
+{/if}
 
 <!-- ═══════════════════════ PREDEFINIDOS ════════════════════════════════════ -->
-<h2 style="margin:1.25rem 0 0.5rem; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
-	Ejercicios predefinidos
-</h2>
+<button
+	onclick={() => showPredefined = !showPredefined}
+	style="display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; margin:1.25rem 0 0.5rem; cursor:pointer;">
+	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
+		Ejercicios predefinidos
+		<span style="font-weight:400;">({predefinedExercises.length})</span>
+	</h2>
+	<span style="color:var(--text-muted); font-size:0.85rem; transition:transform 0.2s; display:inline-block; transform:{showPredefined ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
+</button>
 
-{#each predefinedExercises as ex (ex.id)}
-	<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
-		<div>
-			<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
-			<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
+{#if showPredefined}
+	{#each predefinedExercises as ex (ex.id)}
+		<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
+			<div>
+				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
+				<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
+			</div>
+			<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
 		</div>
-		<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
-	</div>
-{/each}
+	{/each}
+{/if}
 
 <!-- ═══════════════════════ SESIÓN DEL DÍA ══════════════════════════════════ -->
 <div style="margin-top:1.5rem; margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
