@@ -195,14 +195,21 @@
 		<div class="card" style="margin-bottom:1rem; margin-top:0.75rem;">
 			{#if goals}
 				{@const consumed = Math.round(summary.totals.calories)}
-				{@const remaining = goals.kcal - consumed}
-				{@const barColor = calBarColor(summary.totals.calories, goals.kcal)}
+				{@const burned = Math.round(summary.calories_burned)}
+				{@const net = Math.round(summary.net_calories)}
+				{@const remaining = goals.kcal - net}
+				{@const barColor = calBarColor(net, goals.kcal)}
+				{@const consumedPct = pct(consumed, goals.kcal)}
+				{@const netPct = pct(net, goals.kcal)}
 
 				<!-- 3-column hero numbers -->
 				<div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; margin-bottom:1rem;">
 					<div style="text-align:center;">
 						<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;">Consumidas</div>
 						<div style="font-size:1.6rem; font-weight:800; color:var(--cal); line-height:1;">{consumed}</div>
+						{#if burned > 0}
+							<div style="font-size:0.6rem; color:var(--danger); margin-top:0.15rem;">−{burned} 💪</div>
+						{/if}
 					</div>
 					<div style="text-align:center; color:var(--border-bright); font-size:1.2rem;">/</div>
 					<div style="text-align:center;">
@@ -215,13 +222,23 @@
 					</div>
 				</div>
 
-				<!-- Calorie progress bar -->
-				<div class="progress-bar" style="height:10px; margin-bottom:0.35rem;">
-					<div class="fill" style="width:{pct(summary.totals.calories, goals.kcal)}%; background:{barColor};"></div>
+				<!-- Calorie progress bar with burned segment -->
+				<div class="progress-bar" style="height:10px; margin-bottom:0.35rem; position:relative;">
+					<!-- Consumed (bruto) -->
+					<div class="fill" style="width:{consumedPct}%; background:{calBarColor(consumed, goals.kcal)};"></div>
+					<!-- Burned overlay (rojo) -->
+					{#if burned > 0}
+						<div style="position:absolute; top:0; left:{Math.max(0, netPct)}%; width:{Math.min(consumedPct - netPct, 100 - netPct)}%; height:100%; background:var(--danger); opacity:0.7;"></div>
+					{/if}
 				</div>
 				<div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-bottom:1rem;">
-					<span>{pct(summary.totals.calories, goals.kcal)}%</span>
-					<span>Objetivo: {goals.kcal} kcal</span>
+					{#if burned > 0}
+						<span>{netPct}% · Bruto: <strong style="color:var(--cal);">{consumed}</strong> · Neto: <strong style="color:var(--primary);">{net}</strong></span>
+						<span>/ {goals.kcal} kcal</span>
+					{:else}
+						<span>{consumedPct}%</span>
+						<span>Objetivo: {goals.kcal} kcal</span>
+					{/if}
 				</div>
 
 				<!-- Macro bars -->
@@ -254,18 +271,6 @@
 						</div>
 					</div>
 				</div>
-
-				<!-- Ejercicio del día (solo si hay calorías quemadas) -->
-				{#if summary.calories_burned > 0}
-					<div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-						<span style="font-size:0.75rem; color:var(--primary);">
-							💪 Ejercicio: -{Math.round(summary.calories_burned)} kcal
-						</span>
-						<span style="font-size:0.75rem; color:var(--text-muted);">
-							Neto: <strong style="color:var(--text);">{Math.round(summary.net_calories)}</strong> kcal
-						</span>
-					</div>
-				{/if}
 
 			{:else}
 				<!-- No goals -->
