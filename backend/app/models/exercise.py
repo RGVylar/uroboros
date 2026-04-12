@@ -9,11 +9,12 @@ class Exercise(Base):
     __tablename__ = "exercises"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
     name: Mapped[str] = mapped_column(nullable=False)
     kcal_per_unit: Mapped[float] = mapped_column(Float, nullable=False)  # Calorías por 1 unidad
     unit: Mapped[str] = mapped_column(nullable=False)  # "repeticiones", "minutos", "km", etc.
+    is_predefined: Mapped[bool] = mapped_column(default=False, nullable=False, server_default="false")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

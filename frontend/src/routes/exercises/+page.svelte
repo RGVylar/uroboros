@@ -6,7 +6,7 @@
 
 	if (!auth.isLoggedIn) goto('/login');
 
-	// ── Estado ejercicios predefinidos ──────────────────────────────────────
+	// ── Estado ─────────────────────────────────────────────────────────────
 	let exercises: Exercise[] = $state([]);
 	let showNewForm = $state(false);
 	let newName = $state('');
@@ -19,20 +19,22 @@
 	let editKcal = $state(0);
 	let editUnit = $state('');
 
-	// ── Estado sesión del día ───────────────────────────────────────────────
+	// ── Sesión del día ──────────────────────────────────────────────────────
 	const today = new Date().toISOString().slice(0, 10);
 	let session: ExerciseSession | null = $state(null);
 	let sessionLoading = $state(false);
-
 	let selectedExerciseId: number | null = $state(null);
 	let quantity = $state(0);
 	let addError = $state('');
 
-	// ── Carga de datos ──────────────────────────────────────────────────────
+	// ── Derived ─────────────────────────────────────────────────────────────
+	let myExercises = $derived(exercises.filter(e => !e.is_predefined));
+	let predefinedExercises = $derived(exercises.filter(e => e.is_predefined));
+
+	// ── Carga ────────────────────────────────────────────────────────────────
 	async function loadExercises() {
 		exercises = await api.get<Exercise[]>('/exercises');
 	}
-
 	async function loadSession() {
 		try {
 			session = await api.get<ExerciseSession | null>(`/exercise-sessions/day?day=${today}`);
@@ -40,13 +42,9 @@
 			session = null;
 		}
 	}
+	$effect(() => { loadExercises(); loadSession(); });
 
-	$effect(() => {
-		loadExercises();
-		loadSession();
-	});
-
-	// ── CRUD ejercicios predefinidos ────────────────────────────────────────
+	// ── CRUD mis ejercicios ──────────────────────────────────────────────────
 	async function createExercise() {
 		if (!newName.trim() || newKcal <= 0) {
 			createError = 'Rellena nombre y calorías por unidad';
@@ -57,32 +55,25 @@
 			const ex = await api.post<Exercise>('/exercises', {
 				name: newName.trim(),
 				kcal_per_unit: newKcal,
-				unit: newUnit.trim() || 'repeticiones',
+				unit: newUnit || 'repeticiones',
 			});
 			exercises = [...exercises, ex];
 			showNewForm = false;
-			newName = '';
-			newKcal = 0;
-			newUnit = 'repeticiones';
+			newName = ''; newKcal = 0; newUnit = 'repeticiones';
 		} catch (e: unknown) {
 			createError = e instanceof Error ? e.message : 'Error';
 		}
 	}
 
 	function startEdit(ex: Exercise) {
-		editingId = ex.id;
-		editName = ex.name;
-		editKcal = ex.kcal_per_unit;
-		editUnit = ex.unit;
+		editingId = ex.id; editName = ex.name; editKcal = ex.kcal_per_unit; editUnit = ex.unit;
 	}
 
 	async function saveEdit() {
 		if (!editingId) return;
 		try {
 			const updated = await api.patch<Exercise>(`/exercises/${editingId}`, {
-				name: editName.trim(),
-				kcal_per_unit: editKcal,
-				unit: editUnit.trim(),
+				name: editName.trim(), kcal_per_unit: editKcal, unit: editUnit.trim(),
 			});
 			exercises = exercises.map(e => (e.id === editingId ? updated : e));
 			editingId = null;
@@ -96,22 +87,18 @@
 		exercises = exercises.filter(e => e.id !== id);
 	}
 
-	// ── Registro en sesión del día ──────────────────────────────────────────
+	// ── Sesión ───────────────────────────────────────────────────────────────
 	async function addToSession() {
 		if (!selectedExerciseId || quantity <= 0) {
 			addError = 'Selecciona un ejercicio e indica la cantidad';
 			return;
 		}
-		addError = '';
-		sessionLoading = true;
+		addError = ''; sessionLoading = true;
 		try {
 			session = await api.post<ExerciseSession>('/exercise-sessions/day/entry', {
-				date: today,
-				exercise_id: selectedExerciseId,
-				quantity,
+				date: today, exercise_id: selectedExerciseId, quantity,
 			});
-			selectedExerciseId = null;
-			quantity = 0;
+			selectedExerciseId = null; quantity = 0;
 		} catch (e: unknown) {
 			addError = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -131,7 +118,6 @@
 		}
 	}
 
-	// ── Helpers ─────────────────────────────────────────────────────────────
 	function getExercise(id: number) {
 		return exercises.find(e => e.id === id);
 	}
@@ -141,24 +127,22 @@
 
 <h1>Ejercicios</h1>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- PANEL SUPERIOR: Ejercicios predefinidos                                -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════ MIS EJERCICIOS ════════════════════════════════ -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Mis ejercicios</h2>
+	{#if !showNewForm}
+		<button onclick={() => { showNewForm = true; createError = ''; }}
+			style="font-size:0.8rem; padding:0.3rem 0.75rem; color:black;">+ Nuevo</button>
+	{/if}
+</div>
 
-{#if !showNewForm}
-	<button onclick={() => { showNewForm = true; createError = ''; }}
-		style="width:100%; margin-bottom:1rem; color:black;">
-		+ Nuevo ejercicio
-	</button>
-{:else}
+{#if showNewForm}
 	<div class="card" style="margin-bottom:1rem;">
 		<h2 style="margin-top:0; font-size:1rem; color:var(--text);">Nuevo ejercicio</h2>
-
 		<div class="form-group">
 			<label for="ex-name">Nombre</label>
 			<input id="ex-name" bind:value={newName} placeholder="Ej: Sentadillas" />
 		</div>
-
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
 			<div class="form-group" style="margin-bottom:0;">
 				<label for="ex-kcal">Kcal por unidad</label>
@@ -174,15 +158,12 @@
 				</select>
 			</div>
 		</div>
-
 		{#if newKcal > 0 && newName}
 			<p style="font-size:0.8rem; color:var(--text-muted); margin:0.5rem 0 0;">
 				Ejemplo: 10 {newUnit} = {(newKcal * 10).toFixed(0)} kcal
 			</p>
 		{/if}
-
 		{#if createError}<p class="error">{createError}</p>{/if}
-
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
 			<button class="btn-secondary" onclick={() => showNewForm = false} style="flex:1;">Cancelar</button>
 			<button onclick={createExercise} style="flex:2; color:black;">Guardar</button>
@@ -190,53 +171,63 @@
 	</div>
 {/if}
 
-<!-- Lista de ejercicios predefinidos -->
-{#if exercises.length === 0}
-	<p style="text-align:center; color:var(--text-muted); padding:1rem 0;">
-		No tienes ejercicios definidos aún. Crea uno para empezar.
+{#if myExercises.length === 0 && !showNewForm}
+	<p style="font-size:0.85rem; color:var(--text-muted); padding:0.5rem 0 1rem;">
+		Aún no tienes ejercicios propios. ¡Crea uno o usa los predefinidos!
 	</p>
-{:else}
-	{#each exercises as ex (ex.id)}
-		{#if editingId === ex.id}
-			<!-- Modo edición inline -->
-			<div class="card" style="margin-bottom:0.5rem; border-color:var(--primary);">
-				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
-					<input bind:value={editName} placeholder="Nombre" />
-					<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
-				</div>
-				<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
-					{#each UNIT_SUGGESTIONS as u}
-						<option value={u}>{u}</option>
-					{/each}
-				</select>
-				<div style="display:flex; gap:0.5rem;">
-					<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
-					<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
-				</div>
-			</div>
-		{:else}
-			<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
-				<div>
-					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
-					<div style="font-size:0.75rem; color:var(--text-muted);">
-						{ex.kcal_per_unit} kcal / {ex.unit}
-					</div>
-				</div>
-				<div style="display:flex; gap:0.4rem;">
-					<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-						onclick={() => startEdit(ex)}>✏️</button>
-					<button class="btn-danger" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-						onclick={() => deleteExercise(ex.id)}>✕</button>
-				</div>
-			</div>
-		{/if}
-	{/each}
 {/if}
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- PANEL INFERIOR: Sesión del día                                         -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+{#each myExercises as ex (ex.id)}
+	{#if editingId === ex.id}
+		<div class="card" style="margin-bottom:0.5rem; border-color:var(--primary);">
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+				<input bind:value={editName} placeholder="Nombre" />
+				<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
+			</div>
+			<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
+				{#each UNIT_SUGGESTIONS as u}
+					<option value={u}>{u}</option>
+				{/each}
+			</select>
+			<div style="display:flex; gap:0.5rem;">
+				<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
+				<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
+			</div>
+		</div>
+	{:else}
+		<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
+			<div>
+				<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
+				<div style="font-size:0.75rem; color:var(--text-muted);">
+					{ex.kcal_per_unit} kcal / {ex.unit}
+				</div>
+			</div>
+			<div style="display:flex; gap:0.4rem;">
+				<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
+					onclick={() => startEdit(ex)}>✏️</button>
+				<button class="btn-danger" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
+					onclick={() => deleteExercise(ex.id)}>✕</button>
+			</div>
+		</div>
+	{/if}
+{/each}
 
+<!-- ═══════════════════════ PREDEFINIDOS ════════════════════════════════════ -->
+<h2 style="margin:1.25rem 0 0.5rem; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
+	Ejercicios predefinidos
+</h2>
+
+{#each predefinedExercises as ex (ex.id)}
+	<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
+		<div>
+			<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
+			<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
+		</div>
+		<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
+	</div>
+{/each}
+
+<!-- ═══════════════════════ SESIÓN DEL DÍA ══════════════════════════════════ -->
 <div style="margin-top:1.5rem; margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
 	<h2 style="margin:0; font-size:1rem; color:var(--text);">Hoy</h2>
 	{#if session}
@@ -247,7 +238,6 @@
 </div>
 
 {#if exercises.length > 0}
-	<!-- Formulario para añadir ejercicio al día -->
 	<div class="card" style="margin-bottom:0.75rem;">
 		<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
 			<div class="form-group" style="margin-bottom:0; flex:2; min-width:120px;">
@@ -255,9 +245,18 @@
 				<select id="sel-exercise" bind:value={selectedExerciseId}
 					style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
 					<option value={null}>Seleccionar...</option>
-					{#each exercises as ex}
-						<option value={ex.id}>{ex.name} ({ex.kcal_per_unit} kcal/{ex.unit})</option>
-					{/each}
+					{#if myExercises.length > 0}
+						<optgroup label="Mis ejercicios">
+							{#each myExercises as ex}
+								<option value={ex.id}>{ex.name} ({ex.kcal_per_unit} kcal/{ex.unit})</option>
+							{/each}
+						</optgroup>
+					{/if}
+					<optgroup label="Predefinidos">
+						{#each predefinedExercises as ex}
+							<option value={ex.id}>{ex.name} ({ex.kcal_per_unit} kcal/{ex.unit})</option>
+						{/each}
+					</optgroup>
 				</select>
 			</div>
 			<div class="form-group" style="margin-bottom:0; flex:1; min-width:80px;">
@@ -285,15 +284,12 @@
 	</div>
 {/if}
 
-<!-- Lista de ejercicios de la sesión de hoy -->
 {#if session && session.entries.length > 0}
 	{#each session.entries as entry (entry.id)}
 		{@const ex = entry.exercise ?? getExercise(entry.exercise_id)}
 		<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between;">
 			<div>
-				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">
-					{ex?.name ?? '—'}
-				</div>
+				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex?.name ?? '—'}</div>
 				<div style="font-size:0.75rem; color:var(--text-muted);">
 					{entry.quantity} {ex?.unit ?? ''} · {Math.round(entry.calories)} kcal
 				</div>

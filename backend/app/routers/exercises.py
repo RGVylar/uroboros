@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Exercise
@@ -11,8 +11,12 @@ router = APIRouter(prefix="/exercises", tags=["exercises"])
 
 @router.get("", response_model=list[ExerciseOut])
 def list_exercises(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    """Obtener todos los ejercicios predefinidos del usuario."""
-    stmt = select(Exercise).where(Exercise.user_id == user.id).order_by(Exercise.name)
+    """Ejercicios del usuario + predefinidos globales."""
+    stmt = (
+        select(Exercise)
+        .where(or_(Exercise.user_id == user.id, Exercise.is_predefined == True))  # noqa: E712
+        .order_by(Exercise.is_predefined.desc(), Exercise.name)
+    )
     return list(db.scalars(stmt))
 
 
@@ -22,12 +26,12 @@ def create_exercise(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Crear un nuevo ejercicio predefinido."""
     exercise = Exercise(
         user_id=user.id,
         name=payload.name,
         kcal_per_unit=payload.kcal_per_unit,
         unit=payload.unit,
+        is_predefined=False,
     )
     db.add(exercise)
     db.commit()
@@ -42,10 +46,11 @@ def update_exercise(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Actualizar un ejercicio predefinido."""
     exercise = db.get(Exercise, exercise_id)
     if not exercise or exercise.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    if exercise.is_predefined:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot edit predefined exercise")
 
     if payload.name is not None:
         exercise.name = payload.name
@@ -65,10 +70,11 @@ def delete_exercise(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Eliminar un ejercicio predefinido."""
     exercise = db.get(Exercise, exercise_id)
     if not exercise or exercise.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    if exercise.is_predefined:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete predefined exercise")
 
     db.delete(exercise)
     db.commit()

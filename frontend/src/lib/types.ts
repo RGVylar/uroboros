@@ -152,10 +152,11 @@ export interface Friendship {
 
 export interface Exercise {
 	id: number;
-	user_id: number;
+	user_id: number | null;
 	name: string;
 	kcal_per_unit: number;
 	unit: string;
+	is_predefined: boolean;
 	created_at: string;
 	updated_at: string;
 }

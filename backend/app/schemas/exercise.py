@@ -19,10 +19,11 @@ class ExerciseUpdate(BaseModel):
 class ExerciseOut(BaseModel):
     """Schema de respuesta para un ejercicio."""
     id: int
-    user_id: int
+    user_id: int | None
     name: str
     kcal_per_unit: float
     unit: str
+    is_predefined: bool = False
     created_at: datetime
     updated_at: datetime
 
