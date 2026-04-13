@@ -42,7 +42,8 @@ def add_entry_to_session(
 ):
     """Agregar un ejercicio a la sesión del día (crea la sesión si no existe)."""
     exercise = db.get(Exercise, payload.exercise_id)
-    if not exercise or exercise.user_id != user.id:
+    # Permitir ejercicios predefinidos (user_id == None) además de los propios del usuario
+    if not exercise or (exercise.user_id is not None and exercise.user_id != user.id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
 
     # Obtener o crear sesión del día
