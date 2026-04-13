@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Exercise, ExerciseSession } from '$lib/types';
+	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -91,6 +91,22 @@
 		exercises = exercises.filter(e => e.id !== id);
 	}
 
+	// Copiar un ejercicio predefinido a 'Mis ejercicios' para poder editarlo
+	async function personalizeExercise(ex: Exercise) {
+		try {
+			const created = await api.post<Exercise>('/exercises', {
+				name: ex.name,
+				kcal_per_unit: ex.kcal_per_unit,
+				unit: ex.unit,
+			});
+			exercises = [...exercises, created];
+			// Abrir editor para la copia creada
+			startEdit(created);
+		} catch (e: unknown) {
+			createError = e instanceof Error ? e.message : 'Error';
+		}
+	}
+
 	// ── Sesión ───────────────────────────────────────────────────────────────
 	async function addToSession() {
 		if (!selectedExerciseId || quantity <= 0) {
@@ -117,6 +133,45 @@
 			session = result ?? null;
 		} catch {
 			session = null;
+		} finally {
+			sessionLoading = false;
+		}
+	}
+
+	// Editar / sumar a una entrada existente
+	let editingEntryId: number | null = $state(null);
+	let editAddAmount = $state(0);
+	let entryEditError = $state('');
+
+	function startAddToEntry(entry: ExerciseSessionEntry) {
+		editingEntryId = entry.id;
+		editAddAmount = 0;
+		entryEditError = '';
+	}
+
+	function cancelEditEntry() {
+		editingEntryId = null;
+		editAddAmount = 0;
+		entryEditError = '';
+	}
+
+	async function saveAddToEntry(entryId: number) {
+		if (editAddAmount <= 0) {
+			entryEditError = 'Indica una cantidad positiva';
+			return;
+		}
+		entryEditError = '';
+		sessionLoading = true;
+		try {
+			const current = session?.entries.find(e => e.id === entryId);
+			const newQuantity = (current?.quantity ?? 0) + editAddAmount;
+			session = await api.patch<ExerciseSession>(`/exercise-sessions/day/entry/${entryId}`, {
+				quantity: newQuantity,
+			});
+			editingEntryId = null;
+			editAddAmount = 0;
+		} catch (e: unknown) {
+			entryEditError = e instanceof Error ? e.message : 'Error';
 		} finally {
 			sessionLoading = false;
 		}
@@ -245,7 +300,10 @@
 				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
 				<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
 			</div>
-			<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
+			<div style="display:flex; gap:0.5rem; align-items:center;">
+				<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
+				<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;" onclick={() => personalizeExercise(ex)}>Personalizar</button>
+			</div>
 		</div>
 	{/each}
 {/if}
@@ -317,8 +375,19 @@
 					{entry.quantity} {ex?.unit ?? ''} · {Math.round(entry.calories)} kcal
 				</div>
 			</div>
-			<button class="btn-danger" style="padding:0.3rem 0.65rem; font-size:0.8rem;"
-				onclick={() => deleteEntry(entry.id)}>✕</button>
+			{#if editingEntryId === entry.id}
+				<div style="display:flex; gap:0.5rem; align-items:center;">
+					<input type="number" bind:value={editAddAmount} min="1" step="1" style="width:6rem; padding:0.3rem;" />
+					<button class="btn-secondary" style="padding:0.3rem 0.6rem;" onclick={() => saveAddToEntry(entry.id)}>+ Sumar</button>
+					<button class="btn-secondary" style="padding:0.3rem 0.6rem;" onclick={cancelEditEntry}>Cancelar</button>
+				</div>
+				{#if entryEditError}<p class="error">{entryEditError}</p>{/if}
+			{:else}
+				<div style="display:flex; gap:0.4rem;">
+					<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;" onclick={() => startAddToEntry(entry)}>+ Añadir</button>
+					<button class="btn-danger" style="padding:0.3rem 0.65rem; font-size:0.8rem;" onclick={() => deleteEntry(entry.id)}>✕</button>
+				</div>
+			{/if}
 		</div>
 	{/each}
 {:else}
