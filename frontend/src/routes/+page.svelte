@@ -458,7 +458,9 @@
 					<div style="margin-bottom:1rem;">
 						<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding:0 0.25rem;">
 							<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
-							<span style="font-size:0.8rem; color:var(--cal);">{Math.round(meal.totals.calories)} kcal</span>
+							<span style="font-size:0.8rem; color:var(--cal);">
+								{Math.round(meal.totals.calories)} kcal · <span style="color:var(--prot); font-weight:600;">P{Math.round(meal.totals.protein)}g</span>
+							</span>
 						</div>
 						{#each meal.entries as entry (entry.id)}
 							{@render entryCard(entry)}
