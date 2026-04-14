@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -182,6 +182,28 @@
 			// ignore
 		} finally {
 			togglingCheatDay = false;
+		}
+	}
+
+	async function saveMealAsRecipe(meal: MealSection) {
+		if (!meal || !meal.entries || meal.entries.length === 0) {
+			alert('No hay entradas en esta comida para guardar como receta.');
+			return;
+		}
+
+		const defaultName = `${meal.label} - ${today}`;
+		const name = prompt('Nombre de la receta', defaultName);
+		if (!name) return;
+
+		const ingredients = meal.entries
+			.filter((e) => e.product_id)
+			.map((e) => ({ product_id: e.product_id, grams: e.grams }));
+
+		try {
+			await api.post('/recipes', { name, ingredients, is_shared: false });
+			alert('Receta guardada.');
+		} catch (err: any) {
+			alert('Error guardando la receta: ' + (err?.message || err));
 		}
 	}
 
@@ -457,7 +479,16 @@
 				{#each summary.meals as meal (meal.meal_type)}
 					<div style="margin-bottom:1rem;">
 						<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding:0 0.25rem;">
-							<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
+							<div style="display:flex; align-items:center; gap:0.5rem;">
+								<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
+								<button
+									class="btn-secondary"
+									onclick={(e) => { e.stopPropagation(); saveMealAsRecipe(meal); }}
+									disabled={meal.entries.length === 0}
+									style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+									Guardar receta
+								</button>
+							</div>
 							<span style="font-size:0.8rem; color:var(--cal);">
 								{Math.round(meal.totals.calories)} kcal · <span style="color:var(--prot); font-weight:600;">P{Math.round(meal.totals.protein)}g</span>
 							</span>
