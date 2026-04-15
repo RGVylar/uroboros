@@ -12,6 +12,7 @@ from app.deps import get_current_user
 from app.models import DiaryEntry, Product, User, ExerciseSession
 from app.models.cheat_day import CheatDayLog
 from app.models.diary import MealType
+from app.models.friendship import Friendship, FriendshipStatus
 from app.schemas.diary import (
     MEAL_LABELS,
     MEAL_ORDER,
@@ -24,6 +25,23 @@ from app.schemas.diary import (
 )
 
 router = APIRouter(prefix="/diary", tags=["diary"])
+
+
+def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
+    if actor_id == target_user_id:
+        return True
+
+    allowed = db.scalar(
+        select(Friendship.id)
+        .where(
+            Friendship.requester_id == actor_id,
+            Friendship.receiver_id == target_user_id,
+            Friendship.status == FriendshipStatus.accepted,
+            Friendship.can_add_food.is_(True),
+        )
+        .limit(1)
+    )
+    return allowed is not None
 
 
 def _build_entry(
@@ -60,6 +78,11 @@ def create_entry(
         other = db.get(User, payload.also_for_user_id)
         if not other:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
+        if not _can_log_for_user(db, user.id, other.id):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "No tienes permiso para registrar comida en el diario de este usuario",
+            )
         created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
 
     db.add_all(created)
@@ -296,6 +319,11 @@ def delete_entry(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
 
     if also_for_user_id and also_for_user_id != user.id:
+        if not _can_log_for_user(db, user.id, also_for_user_id):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "No tienes permiso para eliminar entradas de este usuario",
+            )
         # Find the partner's entry with same product logged on same day
         entry_date = entry.consumed_at.date()
         p_start = datetime.combine(entry_date, time.min, tzinfo=timezone.utc)
