@@ -29,6 +29,11 @@
 
 	// Delete confirm state
 	let deletingEntry: DiaryEntry | null = $state(null);
+	let savingRecipe = $state(false);
+	let recipeMealToSave: MealSection | null = $state(null);
+	let recipeNameDraft = $state('');
+	let recipeSaveError = $state('');
+	let recipeSaveSuccess = $state('');
 
 	async function load() {
 		loading = true;
@@ -185,25 +190,50 @@
 		}
 	}
 
-	async function saveMealAsRecipe(meal: MealSection) {
-		if (!meal || !meal.entries || meal.entries.length === 0) {
-			alert('No hay entradas en esta comida para guardar como receta.');
+	function startSaveMealAsRecipe(meal: MealSection) {
+		recipeSaveError = '';
+		recipeSaveSuccess = '';
+		recipeMealToSave = meal;
+		recipeNameDraft = `${meal.label} - ${today}`;
+	}
+
+	function closeRecipeModal() {
+		recipeMealToSave = null;
+		recipeNameDraft = '';
+		recipeSaveError = '';
+	}
+
+	async function confirmSaveMealAsRecipe() {
+		if (!recipeMealToSave || !recipeMealToSave.entries || recipeMealToSave.entries.length === 0) {
+			recipeSaveError = 'No hay entradas en esta comida para guardar como receta.';
 			return;
 		}
 
-		const defaultName = `${meal.label} - ${today}`;
-		const name = prompt('Nombre de la receta', defaultName);
-		if (!name) return;
+		const name = recipeNameDraft.trim();
+		if (!name) {
+			recipeSaveError = 'Pon un nombre para la receta.';
+			return;
+		}
 
-		const ingredients = meal.entries
+		const ingredients = recipeMealToSave.entries
 			.filter((e) => e.product_id)
 			.map((e) => ({ product_id: e.product_id, grams: e.grams }));
 
+		if (ingredients.length === 0) {
+			recipeSaveError = 'No hay ingredientes validos para guardar.';
+			return;
+		}
+
+		savingRecipe = true;
+		recipeSaveError = '';
 		try {
 			await api.post('/recipes', { name, ingredients, is_shared: false });
-			alert('Receta guardada.');
+			recipeSaveSuccess = 'Receta guardada.';
+			closeRecipeModal();
 		} catch (err: any) {
-			alert('Error guardando la receta: ' + (err?.message || err));
+			recipeSaveError = 'Error guardando la receta: ' + (err?.message || err);
+		} finally {
+			savingRecipe = false;
 		}
 	}
 
@@ -230,6 +260,12 @@
 		</div>
 		<button class="btn-secondary" onclick={() => changeDay(1)}>▶</button>
 	</div>
+
+	{#if recipeSaveSuccess}
+		<div class="card" style="margin-bottom:0.75rem; border-color:var(--primary); color:var(--primary); font-size:0.85rem; padding:0.65rem 0.8rem;">
+			{recipeSaveSuccess}
+		</div>
+	{/if}
 
 	<!-- Floating add button -->
 	<button class="fab" aria-label="Añadir comida" title="Añadir comida" onclick={() => goto('/add')}>
@@ -483,7 +519,7 @@
 								<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
 								<button
 									class="btn-secondary"
-									onclick={(e) => { e.stopPropagation(); saveMealAsRecipe(meal); }}
+									onclick={(e) => { e.stopPropagation(); startSaveMealAsRecipe(meal); }}
 									disabled={meal.entries.length === 0}
 									style="font-size:0.75rem; padding:0.25rem 0.5rem;">
 									Guardar receta
@@ -505,6 +541,42 @@
 			{/if}
 		{/if}
 	{/if}
+{/if}
+
+<!-- Save recipe modal -->
+{#if recipeMealToSave}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; display:flex; align-items:flex-end; justify-content:center; padding:1rem;" onclick={(e) => { if (e.target === e.currentTarget) closeRecipeModal(); }}>
+		<div class="card" style="width:100%; max-width:480px; padding:1.25rem;">
+			<div style="font-weight:700; margin-bottom:0.4rem;">Guardar receta</div>
+			<div style="color:var(--text-muted); font-size:0.82rem; margin-bottom:0.9rem;">
+				{recipeMealToSave.label} · {recipeMealToSave.entries.length} ingredientes
+			</div>
+
+			<div class="form-group">
+				<label for="recipe-name">Nombre</label>
+				<input
+					id="recipe-name"
+					type="text"
+					bind:value={recipeNameDraft}
+					autocapitalize="sentences"
+					autocomplete="off"
+					onkeydown={(e) => { if (e.key === 'Enter') confirmSaveMealAsRecipe(); }}
+				/>
+			</div>
+
+			{#if recipeSaveError}
+				<div style="color:var(--danger); font-size:0.8rem; margin-top:0.2rem;">{recipeSaveError}</div>
+			{/if}
+
+			<div style="display:flex; gap:0.5rem; margin-top:0.9rem;">
+				<button class="btn-secondary" onclick={closeRecipeModal} style="flex:1;" disabled={savingRecipe}>Cancelar</button>
+				<button onclick={confirmSaveMealAsRecipe} style="flex:2;" disabled={savingRecipe}>
+					{savingRecipe ? 'Guardando...' : 'Guardar receta'}
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <!-- Edit modal -->
