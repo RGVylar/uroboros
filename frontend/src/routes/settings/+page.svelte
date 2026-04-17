@@ -195,6 +195,19 @@
 
 <button class="btn-danger" onclick={logout} style="width:100%;">Cerrar sesión</button>
 
-<div style="text-align:center; margin-top:2rem; color:var(--text-muted); font-size:0.75rem;">
+<div style="text-align:center; margin-top:2rem; padding-bottom:0.5rem;">
+	<a
+		href="https://ko-fi.com/Z8Z81OW7UV"
+		target="_blank"
+		rel="noopener noreferrer"
+		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:var(--text-muted); text-decoration:none; padding:0.4rem 0.9rem; border-radius:99px; border:1px solid var(--border); background:var(--surface2); transition:color 0.2s, border-color 0.2s;"
+		onmouseenter={(e) => { e.currentTarget.style.color='var(--text)'; e.currentTarget.style.borderColor='var(--border-bright)'; }}
+		onmouseleave={(e) => { e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.borderColor='var(--border)'; }}
+	>
+		☕ Invítame una
+	</a>
+</div>
+
+<div style="text-align:center; margin-top:0.75rem; color:var(--text-muted); font-size:0.75rem;">
 	v0.3.0
 </div>
