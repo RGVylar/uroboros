@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -7,6 +8,9 @@
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	const urlDate = $page.url.searchParams.get('date');
+	let selectedDate = $state(urlDate ?? new Date().toISOString().slice(0, 10));
 
 	let isNative = Capacitor.isNativePlatform();
 
@@ -229,7 +233,7 @@
 				product_id: selected.id,
 				grams,
 				meal_type: mealType,
-				consumed_at: new Date().toISOString(),
+				consumed_at: new Date(selectedDate + 'T12:00:00').toISOString(),
 				also_for_user_id: alsoFor
 			});
 			saveLastGrams(selected.id, grams);
@@ -256,6 +260,11 @@
 		<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
 			Por 100{unit}: {selected.calories_per_100g} kcal · P{selected.protein_per_100g} · C{selected.carbs_per_100g} · G{selected.fat_per_100g}
 		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="entry-date">Fecha</label>
+		<input id="entry-date" type="date" bind:value={selectedDate} max={new Date().toISOString().slice(0, 10)} />
 	</div>
 
 	<div class="form-group">

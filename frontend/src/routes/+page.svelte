@@ -268,7 +268,7 @@
 	{/if}
 
 	<!-- Floating add button -->
-	<button class="fab" aria-label="Añadir comida" title="Añadir comida" onclick={() => goto('/add')}>
+	<button class="fab" aria-label="Añadir comida" title="Añadir comida" onclick={() => goto(`/add?date=${today}`)}>
 		<span class="fab-icon">➕</span>
 	</button>
 
@@ -460,7 +460,7 @@
 		<!-- Diary entries -->
 		{#if summary.entries.length === 0}
 			<p style="text-align:center; color:var(--text-muted); padding:1.5rem 0 0.5rem;">
-				Sin registros hoy.<br /><a href="/add">Añadir comida</a>
+				Sin registros hoy.<br /><a href="/add?date={today}">Añadir comida</a>
 			</p>
 			{#if isToday}
 				<button
@@ -479,7 +479,7 @@
 					</div>
 					<div style="display:flex; flex-direction:column; gap:0.4rem;">
 						{#each frequent as freq (freq.product.id)}
-							<a href="/add" style="text-decoration:none;">
+							<a href="/add?date={today}" style="text-decoration:none;">
 								<div class="card" style="cursor:pointer; transition:border-color 0.2s;">
 									<div style="display:flex; justify-content:space-between; align-items:start;">
 										<div style="flex:1;">
