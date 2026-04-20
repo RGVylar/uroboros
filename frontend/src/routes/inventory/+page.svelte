@@ -1,10 +1,76 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { CostSummary, InventoryItem, Product } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	let isNative = Capacitor.isNativePlatform();
+
+	// Barcode scanner (web)
+	let scanning = $state(false);
+	let videoEl: HTMLVideoElement | undefined = $state();
+	let scanError = $state('');
+	let stream: MediaStream | null = null;
+	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
+
+	async function startWebScan() {
+		scanError = '';
+		scanning = true;
+		try {
+			const { BrowserMultiFormatReader } = await import('@zxing/browser');
+			zxingReader = new BrowserMultiFormatReader();
+			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+			if (videoEl) {
+				videoEl.srcObject = stream;
+				videoEl.play();
+				zxingReader.decodeFromVideoElement(videoEl, (result) => {
+					if (result) {
+						stopWebScan();
+						searchByBarcode(result.getText());
+					}
+				});
+			}
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanning = false;
+		}
+	}
+
+	function stopWebScan() {
+		scanning = false;
+		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+		if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+	}
+
+	async function scanNative() {
+		try {
+			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+			const { supported } = await BarcodeScanner.isSupported();
+			if (!supported) { scanError = 'Escáner no soportado en este dispositivo'; return; }
+			const granted = await BarcodeScanner.requestPermissions();
+			if (granted.camera !== 'granted') { scanError = 'Permiso de cámara denegado'; return; }
+			const { barcodes } = await BarcodeScanner.scan();
+			if (barcodes.length > 0) searchByBarcode(barcodes[0].rawValue);
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'Error del escáner';
+		}
+	}
+
+	async function searchByBarcode(code: string) {
+		searching = true;
+		scanError = '';
+		try {
+			const p = await api.get<Product>(`/products/barcode/${code.trim()}`);
+			selectProduct(p);
+		} catch {
+			scanError = 'Producto no encontrado para ese código de barras';
+		} finally {
+			searching = false;
+		}
+	}
 
 	let items: InventoryItem[] = $state([]);
 	let cost: CostSummary | null = $state(null);
@@ -155,7 +221,7 @@
 	<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.75rem;">Añadir al inventario</div>
 
 	<div class="form-group" style="margin-bottom:0.5rem;">
-		<label for="inv-search">Producto</label>
+		<label for="inv-search">Buscar por nombre</label>
 		<div style="display:flex; gap:0.5rem;">
 			<input id="inv-search" bind:value={query}
 				placeholder="Arroz, pollo..."
@@ -163,6 +229,29 @@
 				style="flex:1;" />
 			<button onclick={searchProducts} disabled={searching}>Buscar</button>
 		</div>
+	</div>
+
+	<!-- Barcode -->
+	<div class="form-group" style="margin-bottom:0.5rem;">
+		<label>Código de barras</label>
+		{#if isNative}
+			<button onclick={scanNative} style="width:100%;" disabled={searching}>
+				📷 Escanear con cámara
+			</button>
+		{:else}
+			<button onclick={startWebScan} style="width:100%;" disabled={scanning || searching}>
+				{scanning ? 'Escaneando...' : '📷 Escanear con cámara'}
+			</button>
+		{/if}
+		{#if scanError}<p class="error" style="margin-top:0.4rem;">{scanError}</p>{/if}
+		{#if scanning}
+			<div style="margin-top:0.75rem; position:relative;">
+				<!-- svelte-ignore a11y_media_has_caption -->
+				<video bind:this={videoEl} style="width:100%; border-radius:8px; background:#000;" playsinline></video>
+				<button class="btn-danger" onclick={stopWebScan}
+					style="position:absolute; top:0.5rem; right:0.5rem; padding:0.3rem 0.6rem; font-size:0.8rem;">✕</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if searchResults.length > 0}
