@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Recipe, SharedRecipe, Product, DiaryEntry } from '$lib/types';
+	import type { Recipe, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
+	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -168,25 +169,43 @@
 		load();
 	}
 
-	async function logRecipe(recipe: Recipe) {
+	// ── Registrar receta con selector de comida ──────────────────────────────
+	let logPendingRecipe: Recipe | null = $state(null);
+	let logMealType: MealType = $state(guessMealType());
+	let logging = $state(false);
+
+	function guessMealType(): MealType {
+		const h = new Date().getHours();
+		if (h >= 6 && h < 11) return 'breakfast';
+		if (h >= 11 && h < 16) return 'lunch';
+		if (h >= 16 && h < 22) return 'dinner';
+		return 'snack';
+	}
+
+	function logRecipe(recipe: Recipe) {
+		logMealType = guessMealType();
+		logPendingRecipe = recipe;
+	}
+
+	async function confirmLog() {
+		if (!logPendingRecipe) return;
+		logging = true;
+		error = '';
 		try {
-			const now = new Date();
-			const hour = now.getHours();
-			let mealType = 'snack';
-			if (hour >= 6 && hour < 11) mealType = 'breakfast';
-			else if (hour >= 11 && hour < 16) mealType = 'lunch';
-			else if (hour >= 16 && hour < 22) mealType = 'dinner';
-			for (const ing of recipe.ingredients) {
+			for (const ing of logPendingRecipe.ingredients) {
 				await api.post<DiaryEntry[]>('/diary', {
 					product_id: ing.product_id,
 					grams: ing.grams,
-					meal_type: mealType,
+					meal_type: logMealType,
 					consumed_at: new Date().toISOString(),
 				});
 			}
+			logPendingRecipe = null;
 			goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			logging = false;
 		}
 	}
 
@@ -429,4 +448,35 @@
 
 {#if error && !showCreate}
 	<p class="error">{error}</p>
+{/if}
+
+<!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
+{#if logPendingRecipe}
+	<div
+		style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:flex-end; justify-content:center; z-index:100;"
+		onclick={(e) => { if (e.target === e.currentTarget) logPendingRecipe = null; }}
+	>
+		<div style="background:var(--surface); border-radius:20px 20px 0 0; padding:1.25rem; width:100%; max-width:480px;">
+			<div style="font-weight:800; font-size:1rem; margin-bottom:0.25rem;">¿A qué comida lo añades?</div>
+			<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">{logPendingRecipe.name}</div>
+
+			<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
+				{#each MEAL_ORDER as mt}
+					<button
+						onclick={() => logMealType = mt}
+						class:btn-secondary={logMealType !== mt}
+						style="font-size:0.78rem; padding:0.5rem 0.2rem;">
+						{MEAL_LABELS[mt]}
+					</button>
+				{/each}
+			</div>
+
+			<div style="display:flex; gap:0.5rem;">
+				<button class="btn-secondary" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
+				<button onclick={confirmLog} disabled={logging} style="flex:2;">
+					{logging ? 'Registrando...' : 'Registrar'}
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
