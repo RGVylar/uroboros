@@ -84,6 +84,37 @@ export interface Goals {
 	water_ml: number;
 	track_creatine: boolean;
 	cheat_days_enabled: boolean;
+	inventory_enabled: boolean;
+}
+
+export interface InventoryItem {
+	id: number;
+	user_id: number;
+	product_id: number;
+	product_name: string;
+	product_brand: string | null;
+	calories_per_100g: number;
+	quantity_g: number;
+	price_per_100g: number | null;
+	updated_at: string;
+}
+
+export interface CostSummary {
+	today: number | null;
+	this_week: number | null;
+	this_month: number | null;
+}
+
+export interface ShoppingListItem {
+	id: number;
+	user_id: number;
+	product_id: number | null;
+	product_name: string | null;
+	product_brand: string | null;
+	quantity_g: number | null;
+	is_checked: boolean;
+	source: 'manual' | 'recipe';
+	created_at: string;
 }
 
 export interface CheatDayToday {

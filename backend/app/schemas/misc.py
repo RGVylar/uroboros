@@ -13,6 +13,7 @@ class GoalsIn(BaseModel):
     water_ml: float = Field(ge=0, default=2000)
     track_creatine: bool = False
     cheat_days_enabled: bool = False
+    inventory_enabled: bool = False
 
 
 class GoalsOut(GoalsIn):

@@ -34,6 +34,7 @@ def _get_engine():
     )
     from app.models.exercise import Exercise
     from app.models.cheat_day import CheatDayLog
+    from app.models.inventory import InventoryItem, ShoppingListItem
     from app.models.product import ProductSource
 
     if settings.demo_mode:
@@ -72,6 +73,7 @@ def _get_engine():
             # Add any missing columns to existing SQLite tables (schema drift fix)
             with engine.connect() as conn:
                 _sqlite_add_column_if_missing(conn, "user_goals", "cheat_days_enabled", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "user_goals", "inventory_enabled", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "exercises", "is_predefined", "BOOLEAN NOT NULL DEFAULT 0")
                 conn.commit()
 

@@ -10,6 +10,7 @@
 	let goals: Goals | null = $state(null);
 	let savingCreatine = $state(false);
 	let savingCheatDays = $state(false);
+	let savingInventory = $state(false);
 
 	async function loadGoals() {
 		goals = await api.get<Goals>('/goals').catch(() => null);
@@ -38,6 +39,18 @@
 			// ignore
 		} finally {
 			savingCheatDays = false;
+		}
+	}
+
+	async function toggleInventory() {
+		if (!goals) return;
+		savingInventory = true;
+		try {
+			goals = await api.put<Goals>('/goals', { ...goals, inventory_enabled: !goals.inventory_enabled });
+		} catch {
+			// ignore
+		} finally {
+			savingInventory = false;
 		}
 	}
 
@@ -109,6 +122,37 @@
 		</div>
 		<span style="color:var(--text-muted); font-size:1rem;">›</span>
 	</button>
+
+	<!-- Inventario -->
+	{#if goals?.inventory_enabled}
+		<button onclick={() => goto('/inventory')} style="
+			display:flex; align-items:center; gap:0.9rem;
+			width:100%; text-align:left; background:var(--surface); color:var(--text);
+			border:1px solid var(--border); border-radius:14px;
+			padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
+		">
+			<span style="font-size:1.4rem;">🏠</span>
+			<div style="flex:1;">
+				<div style="font-weight:700; font-size:0.95rem;">Inventario</div>
+				<div style="font-size:0.75rem; color:var(--text-muted);">Stock en casa y coste por comida</div>
+			</div>
+			<span style="color:var(--text-muted); font-size:1rem;">›</span>
+		</button>
+
+		<button onclick={() => goto('/shopping-list')} style="
+			display:flex; align-items:center; gap:0.9rem;
+			width:100%; text-align:left; background:var(--surface); color:var(--text);
+			border:1px solid var(--border); border-radius:14px;
+			padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
+		">
+			<span style="font-size:1.4rem;">🛒</span>
+			<div style="flex:1;">
+				<div style="font-weight:700; font-size:0.95rem;">Lista de la compra</div>
+				<div style="font-size:0.75rem; color:var(--text-muted);">Generada desde recetas o manual</div>
+			</div>
+			<span style="color:var(--text-muted); font-size:1rem;">›</span>
+		</button>
+	{/if}
 
 	<!-- Amigos -->
 	<button onclick={() => goto('/friends')} style="
@@ -197,6 +241,42 @@
 				<span style="
 					position:absolute; top:3px;
 					left:{goals.cheat_days_enabled ? '23px' : '3px'};
+					width:18px; height:18px; border-radius:50%;
+					background:#fff; transition:left 0.2s;
+					box-shadow:0 1px 3px rgba(0,0,0,0.3);
+					display:block;
+				"></span>
+			</button>
+		</div>
+
+		<!-- Inventario -->
+		<div style="
+			display:flex; align-items:center; gap:0.9rem;
+			background:var(--surface);
+			border:1px solid var(--border); border-radius:14px;
+			padding:0.85rem 1rem;
+		">
+			<span style="font-size:1.4rem;">🏠</span>
+			<div style="flex:1;">
+				<div style="font-weight:700; font-size:0.95rem;">Inventario doméstico</div>
+				<div style="font-size:0.75rem; color:var(--text-muted);">
+					{goals.inventory_enabled ? 'Activo · stock, precios y lista de la compra' : 'Controla lo que tienes en casa'}
+				</div>
+			</div>
+			<button
+				onclick={toggleInventory}
+				disabled={savingInventory}
+				aria-label="Activar inventario"
+				style="
+					position:relative; width:44px; height:24px; border-radius:12px;
+					border:none; cursor:pointer; transition:background 0.2s;
+					background:{goals.inventory_enabled ? 'var(--primary)' : 'var(--border-bright)'};
+					flex-shrink:0; padding:0;
+				"
+			>
+				<span style="
+					position:absolute; top:3px;
+					left:{goals.inventory_enabled ? '23px' : '3px'};
 					width:18px; height:18px; border-radius:50%;
 					background:#fff; transition:left 0.2s;
 					box-shadow:0 1px 3px rgba(0,0,0,0.3);
