@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.measurement_keys import MEASUREMENT_KEYS
 
 
 class GoalsIn(BaseModel):
@@ -44,6 +46,35 @@ class WeightOut(BaseModel):
     id: int
     user_id: int
     weight: float
+    logged_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BodyMeasurementIn(BaseModel):
+    measurements: dict[str, float]
+    logged_at: datetime
+
+    @field_validator("measurements")
+    @classmethod
+    def validate_measurements(cls, v: dict[str, float]) -> dict[str, float]:
+        if not v:
+            raise ValueError("At least one measurement is required")
+        out: dict[str, float] = {}
+        for key, val in v.items():
+            if key not in MEASUREMENT_KEYS:
+                raise ValueError(f"Unknown measurement key: {key}")
+            if val <= 0:
+                raise ValueError("Measurement values must be positive")
+            out[key] = val
+        return out
+
+
+class BodyMeasurementOut(BaseModel):
+    id: int
+    user_id: int
+    measurements: dict[str, float]
     logged_at: datetime
 
     class Config:

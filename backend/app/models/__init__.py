@@ -3,6 +3,7 @@ from app.models.product import Product, ProductSource
 from app.models.diary import DiaryEntry
 from app.models.recipe import Recipe, RecipeIngredient
 from app.models.weight import WeightLog
+from app.models.body_measurement import BodyMeasurementLog
 from app.models.goals import UserGoals
 from app.models.water import WaterLog
 from app.models.friendship import Friendship, FriendshipStatus
@@ -18,6 +19,7 @@ __all__ = [
     "Recipe",
     "RecipeIngredient",
     "WeightLog",
+    "BodyMeasurementLog",
     "UserGoals",
     "WaterLog",
     "Friendship",

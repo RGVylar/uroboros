@@ -20,6 +20,7 @@ def _sqlite_add_column_if_missing(conn, table: str, column: str, col_def: str) -
 def _get_engine():
     # Import ALL models first so they're registered with Base (critical for create_all)
     from app.models import (
+        BodyMeasurementLog,
         CreatineLog,
         DiaryEntry,
         Friendship,

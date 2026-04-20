@@ -95,6 +95,21 @@
 		<span style="color:var(--text-muted); font-size:1rem;">›</span>
 	</button>
 
+	<!-- Medidas corporales -->
+	<button onclick={() => goto('/measurements')} style="
+		display:flex; align-items:center; gap:0.9rem;
+		width:100%; text-align:left; background:var(--surface); color:var(--text);
+		border:1px solid var(--border); border-radius:14px;
+		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
+	">
+		<span style="font-size:1.4rem;">📏</span>
+		<div style="flex:1;">
+			<div style="font-weight:700; font-size:0.95rem;">Registro de medidas</div>
+			<div style="font-size:0.75rem; color:var(--text-muted);">Contornos y gráfica por zona</div>
+		</div>
+		<span style="color:var(--text-muted); font-size:1rem;">›</span>
+	</button>
+
 	<!-- Amigos -->
 	<button onclick={() => goto('/friends')} style="
 		display:flex; align-items:center; gap:0.9rem;

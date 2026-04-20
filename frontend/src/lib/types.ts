@@ -108,6 +108,13 @@ export interface WeightLog {
 	logged_at: string;
 }
 
+export interface BodyMeasurementLog {
+	id: number;
+	user_id: number;
+	measurements: Record<string, number>;
+	logged_at: string;
+}
+
 export interface RecipeIngredient {
 	id: number;
 	product_id: number;
