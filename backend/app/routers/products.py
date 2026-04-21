@@ -86,6 +86,32 @@ async def get_or_fetch_by_barcode(
     return product
 
 
+def _relevance(name: str, brand: str | None, q: str) -> int:
+    """Score a product against a search query. Higher = more relevant."""
+    nl = name.lower()
+    ql = q.lower()
+
+    if nl == ql:
+        return 100                                    # exact name match
+    if nl.startswith(ql + " ") or nl.startswith(ql + ","):
+        return 90                                     # name starts with query
+    if nl.startswith(ql):
+        return 85                                     # name starts with query (no separator)
+    words = nl.split()
+    if words and words[0] == ql:
+        return 80                                     # first word is exactly query
+    if any(w == ql for w in words):
+        return 70                                     # any word is exactly query
+    if any(w.startswith(ql) for w in words):
+        return 60                                     # any word starts with query
+    if ql in nl:
+        return 40                                     # query contained anywhere in name
+    bl = (brand or "").lower()
+    if ql in bl:
+        return 15                                     # only brand matches
+    return 0
+
+
 @router.get("", response_model=list[ProductOut])
 async def search_products(
     q: str = Query(min_length=1),
@@ -94,24 +120,32 @@ async def search_products(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[Product]:
-    # Always search local DB
+    # Fetch all local matches (no DB-level limit — we rank in Python)
     stmt = (
         select(Product)
         .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
-        .offset(offset)
-        .limit(limit)
     )
-    local = list(db.scalars(stmt))
-    local_barcodes = {p.barcode for p in local if p.barcode}
-    local_ids = {p.id for p in local}
+    local_all = list(db.scalars(stmt))
 
-    # Always also search OFF (in parallel via await)
+    # Sort by relevance, then alphabetically as tiebreaker
+    local_all.sort(key=lambda p: (-_relevance(p.name, p.brand, q), p.name.lower()))
+
+    # Paginate on the ranked list
+    local = local_all[offset: offset + limit]
+    local_barcodes = {p.barcode for p in local_all if p.barcode}
+    local_ids = {p.id for p in local_all}
+
+    # Only call OFF if there's room left on this page
+    remaining = limit - len(local)
+    if remaining <= 0:
+        return local
+
     try:
         off_results = await search_by_name(q, limit=limit)
     except Exception:
         off_results = []
 
-    # Merge: skip anything already in local results by barcode
+    # Merge OFF results, deduplicating by barcode
     new_off: list[Product] = []
     existing_off: list[Product] = []
     for off in off_results:
@@ -141,8 +175,11 @@ async def search_products(
         for p in new_off:
             db.refresh(p)
 
-    # Local first, then extra OFF results
-    return local + existing_off + new_off
+    # Sort OFF results by relevance too before appending
+    off_combined = existing_off + new_off
+    off_combined.sort(key=lambda p: (-_relevance(p.name, p.brand, q), p.name.lower()))
+
+    return local + off_combined[:remaining]
 
 
 @router.get("/{product_id}", response_model=ProductOut)
