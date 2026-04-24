@@ -4,7 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
-	import { GlassHeader, Modal, EmptyState } from '$lib/components';
+	import { Modal } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -231,14 +231,40 @@
 	function macroLine(product: Product) {
 		return `${Math.round(product.calories_per_100g)} kcal · P${Math.round(product.protein_per_100g)} C${Math.round(product.carbs_per_100g)} G${Math.round(product.fat_per_100g)} (por 100g)`;
 	}
+
+	function hashHue(s: string): number {
+		let h = 0;
+		for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360;
+		return h;
+	}
+
+	function recipeGlyph(name: string): string {
+		const n = name.toLowerCase();
+		if (/desayun|avena|porridge/.test(n)) return '🥣';
+		if (/pollo|pechug/.test(n)) return '🍗';
+		if (/ensalada/.test(n)) return '🥗';
+		if (/pasta|espagueti/.test(n)) return '🍝';
+		if (/batido|smoothie|protein/.test(n)) return '🥤';
+		if (/pescado|salmón|atún/.test(n)) return '🐟';
+		if (/arroz|bowl/.test(n)) return '🍚';
+		if (/tosta|pan/.test(n)) return '🥪';
+		return '🍽';
+	}
 </script>
 
-<GlassHeader title="Recetas" />
+<!-- Header -->
+<div class="page-header">
+	<div>
+		<div class="header-eyebrow">Biblioteca</div>
+		<div class="header-title">Recetas</div>
+	</div>
+	<button class="btn-new" onclick={() => showCreate = !showCreate}>＋ Nueva</button>
+</div>
 
 <!-- ═══════════════════════════════════════ CREAR ═══════════════════════════ -->
 {#if showCreate}
-	<div class="card" style="margin-bottom:1rem;">
-		<h2 style="margin-top:0; color:var(--text);">Nueva receta</h2>
+	<div class="glass-card" style="margin-bottom:1rem;">
+		<h2 style="margin-top:0; font-size:1rem; color:#fff;">Nueva receta</h2>
 
 		<div class="form-group">
 			<label for="r-name">Nombre</label>
@@ -300,25 +326,25 @@
 		{#if error}<p class="error">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="btn-secondary" onclick={() => { showCreate = false; ingredients = []; }} style="flex:1;">Cancelar</button>
-			<button onclick={createRecipe} style="flex:2; color:black;">Guardar receta</button>
+			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; }} style="flex:1;">Cancelar</button>
+			<button class="action-btn action-btn-primary" onclick={createRecipe} style="flex:2;">Guardar receta</button>
 		</div>
 	</div>
-{:else}
-	<button onclick={() => showCreate = true} style="width:100%; margin-bottom:1rem; color:black;">
-		+ Nueva receta
-	</button>
 {/if}
 
 {#if recipes.length === 0 && !showCreate}
-	<EmptyState icon="🍳" title="Sin recetas" description="Crea una para registrar comidas más rápido" />
+	<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
+		<div style="font-size:2.5rem; margin-bottom:0.5rem;">🍳</div>
+		<div style="font-size:0.875rem; font-weight:600;">Sin recetas</div>
+		<div style="font-size:0.75rem; margin-top:0.25rem;">Crea una para registrar comidas más rápido</div>
+	</div>
 {/if}
 
 <!-- ═══════════════════════════════════════ MIS RECETAS ═════════════════════ -->
 {#each recipes as recipe (recipe.id)}
 	{#if editingRecipe?.id === recipe.id}
 		<!-- Edición inline -->
-		<div class="card" style="margin-bottom:0.75rem; border-color:var(--primary);">
+		<div class="glass-card" style="margin-bottom:0.75rem; border-color:oklch(75% 0.18 165 / 0.4);">
 			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
 				<h2 style="margin:0; font-size:1rem; color:var(--text);">Editar receta</h2>
 				<button class="btn-secondary" onclick={cancelEdit} style="font-size:0.75rem; padding:0.25rem 0.6rem;">✕</button>
@@ -386,30 +412,37 @@
 		</div>
 	{:else}
 		{@const macros = totalMacros(recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams })))}
-		<div class="card" style="margin-bottom:0.5rem;">
-			<button onclick={() => startEdit(recipe)}
-				style="width:100%; display:flex; justify-content:space-between; align-items:start; background:none; border:none; cursor:pointer; padding:0; margin-bottom:0.5rem; text-align:left;">
-				<div style="flex:1;">
-					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{recipe.name}</div>
-					<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">
-						{recipe.ingredients.length} ingrediente{recipe.ingredients.length !== 1 ? 's' : ''}
-						{#each recipe.ingredients.slice(0, 3) as ing}· {ing.product.name.split(' ')[0]}{/each}{#if recipe.ingredients.length > 3}…{/if}
+		{@const hue = hashHue(recipe.name)}
+		{@const preview = recipe.ingredients.slice(0,3).map(i => i.product.name.split(' ')[0]).join(' · ')}
+		<div class="glass-card recipe-card">
+			<div style="display:flex; gap:0.75rem; margin-bottom:0.75rem;">
+				<!-- Emoji avatar -->
+				<div class="recipe-avatar" style="background:linear-gradient(135deg, oklch(72% 0.16 {hue}), oklch(55% 0.14 {(hue+30) % 360}));">
+					{recipeGlyph(recipe.name)}
+				</div>
+				<div style="flex:1; min-width:0;">
+					<div style="display:flex; align-items:center; gap:0.375rem;">
+						<span class="recipe-name">{recipe.name}</span>
+						{#if recipe.is_shared}
+							<span class="shared-badge">🔗</span>
+						{/if}
+					</div>
+					<div class="recipe-sub">{recipe.ingredients.length} ing · {preview}</div>
+					<div class="recipe-macros">
+						<span style="color:oklch(85% 0.17 55);">{macros.cal}</span><span class="macro-unit">kcal</span>
+						<span style="color:oklch(78% 0.14 220); margin-left:0.5rem;">P{macros.p}</span>
+						<span style="color:oklch(78% 0.16 275);"> C{macros.c}</span>
+						<span style="color:oklch(75% 0.17 25);"> G{macros.f}</span>
 					</div>
 				</div>
-				<div style="text-align:right; margin-left:0.5rem;">
-					<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{macros.cal} kcal</div>
-					<div style="font-size:0.72rem; color:var(--text-muted);">P{macros.p} C{macros.c} G{macros.f}g</div>
-					<div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.15rem;">✏️ Editar</div>
-				</div>
-			</button>
-			<div style="display:flex; gap:0.4rem;">
-				<button onclick={() => logRecipe(recipe)} style="flex:1; font-size:0.85rem; color:black;">Registrar</button>
-				<button class="btn-secondary" style="font-size:0.75rem; padding:0.4rem 0.6rem;"
-					title={recipe.is_shared ? 'Dejar de compartir' : 'Compartir con amigos'}
-					onclick={() => toggleShare(recipe)}>
+			</div>
+			<div style="display:flex; gap:0.375rem;">
+				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">Registrar</button>
+				<button class="icon-btn" onclick={() => startEdit(recipe)} title="Editar">✏️</button>
+				<button class="icon-btn" onclick={() => toggleShare(recipe)} title={recipe.is_shared ? 'Dejar de compartir' : 'Compartir'}>
 					{recipe.is_shared ? '🔗' : '🔒'}
 				</button>
-				<button class="btn-danger" style="padding:0.4rem 0.65rem; font-size:0.8rem;" onclick={() => deleteRecipe(recipe.id)}>✕</button>
+				<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title="Borrar">✕</button>
 			</div>
 		</div>
 	{/if}
@@ -417,28 +450,34 @@
 
 <!-- ═══════════════════════════════════ RECETAS DE AMIGOS ═══════════════════ -->
 {#if sharedRecipes.length > 0}
-	<h2 style="font-size:1rem; color:var(--text); margin-top:1.5rem; margin-bottom:0.5rem;">
-		Recetas de amigos
-	</h2>
+	<div class="section-header" style="margin:1.25rem 0.25rem 0.625rem;">
+		<div style="font-size:0.8125rem; font-weight:700; color:#fff;">De tus amigos</div>
+		<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">Cópialas o regístralas</div>
+	</div>
 	{#each sharedRecipes as recipe (recipe.id)}
 		{@const macros = totalMacros(recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams })))}
-		<div class="card" style="margin-bottom:0.5rem;">
-			<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:0.5rem;">
-				<div style="flex:1;">
-					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{recipe.name}</div>
-					<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">
-						de {recipe.owner_name} · {recipe.ingredients.length} ing.
-						{#each recipe.ingredients.slice(0, 2) as ing}· {ing.product.name.split(' ')[0]}{/each}{#if recipe.ingredients.length > 2}…{/if}
+		{@const hue = hashHue(recipe.name)}
+		<div class="glass-card recipe-card">
+			<div style="display:flex; gap:0.75rem; margin-bottom:0.625rem;">
+				<div class="recipe-avatar" style="width:48px; height:48px; background:linear-gradient(135deg, oklch(68% 0.15 {(hue+60) % 360}), oklch(50% 0.13 {(hue+90) % 360}));">
+					{recipeGlyph(recipe.name)}
+				</div>
+				<div style="flex:1; min-width:0;">
+					<div class="recipe-name">{recipe.name}</div>
+					<div class="recipe-sub">
+						<span class="owner-badge">@{recipe.owner_name}</span>
+						{recipe.ingredients.length} ing
+					</div>
+					<div class="recipe-macros">
+						<span style="color:oklch(85% 0.17 55);">{macros.cal}</span><span class="macro-unit">kcal</span>
+						<span style="color:oklch(78% 0.14 220); margin-left:0.5rem;">P{macros.p}</span>
+						<span style="color:oklch(78% 0.16 275);"> C{macros.c}</span>
 					</div>
 				</div>
-				<div style="text-align:right; margin-left:0.5rem;">
-					<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{macros.cal} kcal</div>
-					<div style="font-size:0.72rem; color:var(--text-muted);">P{macros.p} C{macros.c} G{macros.f}g</div>
-				</div>
 			</div>
-			<div style="display:flex; gap:0.4rem;">
-				<button onclick={() => logRecipe(recipe)} style="flex:1; font-size:0.85rem; color:black;">Registrar</button>
-				<button class="btn-secondary" style="font-size:0.75rem; padding:0.4rem 0.7rem;"
+			<div style="display:flex; gap:0.375rem;">
+				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">Registrar</button>
+				<button class="action-btn" style="padding:0 0.875rem; background:oklch(75% 0.18 295 / 0.2); color:oklch(85% 0.15 295); border:none; border-radius:10px; font-family:inherit; cursor:pointer; font-weight:700; font-size:0.75rem;"
 					onclick={() => copySharedRecipe(recipe.id)}>📋 Copiar</button>
 			</div>
 		</div>
@@ -464,10 +503,165 @@
 			{/each}
 		</div>
 		<div style="display:flex; gap:0.5rem;">
-			<button class="btn-secondary" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
-			<button onclick={confirmLog} disabled={logging} style="flex:2;">
+			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
+			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging} style="flex:2;">
 				{logging ? 'Registrando...' : 'Registrar'}
 			</button>
 		</div>
 	</Modal>
 {/if}
+
+<style>
+	/* ── Header ── */
+	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+	.header-eyebrow {
+		font-size: 0.625rem;
+		letter-spacing: 0.15em;
+		color: rgba(255,255,255,0.45);
+		text-transform: uppercase;
+		font-weight: 600;
+	}
+	.header-title {
+		font-size: 1.25rem;
+		font-weight: 800;
+		color: #fff;
+		letter-spacing: -0.02em;
+	}
+	.btn-new {
+		padding: 0.625rem 0.875rem;
+		border-radius: 14px;
+		border: none;
+		cursor: pointer;
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		font-weight: 700;
+		font-size: 0.75rem;
+		font-family: inherit;
+		box-shadow: 0 6px 18px -4px oklch(75% 0.22 165 / 0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+		white-space: nowrap;
+	}
+
+	/* ── Glass card ── */
+	.glass-card {
+		background: rgba(255,255,255,0.05);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 20px;
+		padding: 0.875rem;
+	}
+
+	/* ── Recipe card ── */
+	.recipe-card { margin-bottom: 0.625rem; border-radius: 20px; }
+	.recipe-avatar {
+		width: 52px;
+		height: 52px;
+		border-radius: 14px;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.375rem;
+		color: #fff;
+		box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+	}
+	.recipe-name {
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: #fff;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.recipe-sub {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.45);
+		margin-top: 0.125rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.recipe-macros {
+		display: flex;
+		align-items: baseline;
+		gap: 0;
+		margin-top: 0.5rem;
+		font-size: 0.8125rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+	.macro-unit { font-size: 0.5625rem; color: rgba(255,255,255,0.4); margin-left: 0.125rem; }
+	.shared-badge {
+		padding: 0.0625rem 0.375rem;
+		border-radius: 99px;
+		background: oklch(75% 0.18 160 / 0.18);
+		color: oklch(85% 0.15 160);
+		font-size: 0.5625rem;
+		font-weight: 700;
+	}
+	.owner-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.0625rem 0.375rem;
+		border-radius: 99px;
+		background: oklch(75% 0.18 295 / 0.18);
+		color: oklch(85% 0.15 295);
+		font-weight: 700;
+		margin-right: 0.375rem;
+	}
+	.section-header { padding: 0 0.25rem; }
+
+	/* ── Action buttons ── */
+	.action-btn {
+		height: 36px;
+		border-radius: 12px;
+		border: none;
+		cursor: pointer;
+		font-size: 0.75rem;
+		font-weight: 700;
+		font-family: inherit;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 0.875rem;
+		transition: opacity 0.15s, transform 0.1s;
+	}
+	.action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+	.action-btn-primary {
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+	}
+	.action-btn-ghost {
+		background: rgba(255,255,255,0.06);
+		color: #fff;
+		border: 1px solid rgba(255,255,255,0.1) !important;
+	}
+	.icon-btn {
+		width: 36px;
+		height: 36px;
+		border-radius: 12px;
+		border: 1px solid rgba(255,255,255,0.08);
+		cursor: pointer;
+		background: rgba(255,255,255,0.05);
+		color: rgba(255,255,255,0.7);
+		font-size: 0.75rem;
+		font-family: inherit;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background 0.15s;
+	}
+	.icon-btn:hover { background: rgba(255,255,255,0.1); }
+	.icon-btn-danger {
+		background: oklch(65% 0.22 25 / 0.15);
+		border-color: oklch(65% 0.22 25 / 0.3);
+		color: oklch(78% 0.2 25);
+	}
+	.icon-btn-danger:hover { background: oklch(65% 0.22 25 / 0.25); }
+</style>
