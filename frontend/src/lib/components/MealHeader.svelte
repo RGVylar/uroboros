@@ -1,19 +1,6 @@
 <!--
-  MealHeader.svelte
-  Cabecera de una comida en el diario (Desayuno/Almuerzo/Cena/Snack) con kcal + acciones.
-  Reemplaza el bloque inline "flex + flex + spans" que ahora se repite en cada <meal>.
-
-  Uso:
-    <MealHeader
-      label={meal.label}
-      kcal={meal.totals.calories}
-      protein={meal.totals.protein}
-      hasEntries={meal.entries.length > 0}
-    >
-      {#snippet actions()}
-        <button class="btn-ghost" onclick={...}>Guardar receta</button>
-      {/snippet}
-    </MealHeader>
+  MealHeader.svelte — cabecera de comida con dot coloreado por tipo.
+  Props: label, kcal, protein, hasEntries, hue, actions (snippet)
 -->
 <script lang="ts">
 	interface Props {
@@ -21,20 +8,34 @@
 		kcal: number;
 		protein?: number;
 		hasEntries?: boolean;
+		hue?: number;          // oklch hue del tipo de comida (45=breakfast, 165=lunch, 285=dinner, 220=snack)
 		actions?: import('svelte').Snippet;
 	}
-	let { label, kcal, protein, hasEntries = true, actions }: Props = $props();
+	let { label, kcal, protein, hasEntries = true, hue = 160, actions }: Props = $props();
 </script>
 
-<div class="meal-header" class:empty={!hasEntries}>
+<div class="meal-header">
 	<div class="left">
+		<!-- Dot coloreado con glow -->
+		<div class="dot" style="
+			background: oklch(78% 0.16 {hue});
+			box-shadow: 0 0 8px oklch(78% 0.16 {hue});
+		"></div>
+
 		<span class="label">{label}</span>
-		{#if actions}<div class="actions">{@render actions()}</div>{/if}
+
+		{#if actions && hasEntries}
+			<div class="actions">{@render actions()}</div>
+		{/if}
 	</div>
+
 	<div class="totals">
-		<span class="kcal"><strong>{Math.round(kcal)}</strong> kcal</span>
+		<span class="kcal">
+			<strong style="color:oklch(85% 0.15 55);">{Math.round(kcal)}</strong>
+			<span class="muted"> kcal</span>
+		</span>
 		{#if protein !== undefined}
-			<span class="prot">P{Math.round(protein)}g</span>
+			<span class="prot" style="color:oklch(78% 0.14 220);">· P{Math.round(protein)}</span>
 		{/if}
 	</div>
 </div>
@@ -47,16 +48,21 @@
 		gap: 0.5rem;
 		padding: 0 0.25rem 0.5rem;
 	}
-	.meal-header.empty { opacity: 0.55; }
 	.left {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.5rem;
 		min-width: 0;
 		flex: 1;
 	}
+	.dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 99px;
+		flex-shrink: 0;
+	}
 	.label {
-		font-weight: 800;
+		font-weight: 700;
 		font-size: 0.88rem;
 		letter-spacing: -0.01em;
 	}
@@ -64,19 +70,11 @@
 	.totals {
 		display: inline-flex;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: 0.25rem;
 		font-variant-numeric: tabular-nums;
+		font-size: 0.78rem;
+		white-space: nowrap;
 	}
-	.kcal {
-		font-size: 0.8rem;
-		color: var(--cal);
-	}
-	.kcal strong {
-		font-weight: 800;
-	}
-	.prot {
-		font-size: 0.72rem;
-		color: var(--prot);
-		font-weight: 700;
-	}
+	.muted { color: rgba(255,255,255,0.5); }
+	.prot { font-weight: 700; font-size: 0.72rem; }
 </style>

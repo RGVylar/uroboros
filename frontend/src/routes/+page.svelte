@@ -4,6 +4,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+
+	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
 	import {
 		DayNav,
 		CalorieRing,
@@ -319,32 +321,21 @@
 
 			<!-- Creatine card (only today + tracking enabled) -->
 			{#if isToday && goals?.track_creatine && creatine !== null}
-				<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center;">
-					<!-- Mini ring -->
-					<svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0;">
-						<circle cx="26" cy="26" r="21" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
-						<circle cx="26" cy="26" r="21" fill="none"
-							stroke={creatine.taken ? 'var(--primary)' : 'rgba(255,255,255,0.15)'}
-							stroke-width="5"
-							stroke-linecap="round"
-							stroke-dasharray={creatine.taken ? '132 0' : '0 132'}
-							transform="rotate(-90 26 26)"
-							style="transition: stroke-dasharray 0.5s cubic-bezier(0.22,1,0.36,1), stroke 0.3s;"
-						/>
-						<text x="26" y="30" text-anchor="middle"
-							font-size="10" font-weight="800"
-							fill={creatine.taken ? 'var(--primary)' : 'var(--text-muted)'}
-						>{creatine.taken ? '✓' : '—'}</text>
-					</svg>
+				<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;">
+					<div style="
+						width:42px; height:42px; border-radius:50%;
+						background:{creatine.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
+						border:{creatine.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
+						display:flex; align-items:center; justify-content:center;
+						font-size:1.05rem; font-weight:800; color:var(--primary-ink);
+						transition: background 0.25s;
+					">{creatine.taken ? '✓' : ''}</div>
 					<div style="font-weight:700; font-size:0.82rem;">Creatina</div>
-					<button
-						onclick={toggleCreatine}
-						disabled={togglingCreatine}
-						class:btn-secondary={creatine.taken}
-						style="font-size:0.72rem; padding:0.35rem 0.75rem; width:100%; opacity:{togglingCreatine ? '0.6' : '1'};"
-					>
-						{creatine.taken ? 'Deshacer' : 'Marcar'}
-					</button>
+					<button onclick={toggleCreatine} disabled={togglingCreatine} style="
+						background:none; border:none; cursor:pointer; font-family:inherit;
+						font-size:0.72rem; font-weight:600; color:var(--primary); padding:0;
+						opacity:{togglingCreatine ? '0.5' : '1'}; box-shadow:none;
+					">{creatine.taken ? 'Deshacer' : 'Marcar'}</button>
 				</div>
 			{/if}
 		</div>
@@ -354,14 +345,13 @@
 			<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
 				<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
 					<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
-						<!-- Pac-man icon -->
 						<div style="
-							width:36px; height:36px; border-radius:50%; flex-shrink:0;
-							background:oklch(70% 0.18 45 / 0.2);
-							border:1px solid oklch(70% 0.18 45 / 0.35);
+							width:36px; height:36px; border-radius:12px; flex-shrink:0;
+							background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
+							border:1px solid oklch(70% 0.18 45 / 0.3);
 							display:flex; align-items:center; justify-content:center;
 							font-size:1.1rem;
-						">◀</div>
+						">🍕</div>
 						<div style="min-width:0;">
 							<div style="font-weight:700; font-size:0.88rem;">Cheat day</div>
 							<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
@@ -451,6 +441,7 @@
 							kcal={meal.totals.calories}
 							protein={meal.totals.protein}
 							hasEntries={meal.entries.length > 0}
+							hue={MEAL_HUES[meal.meal_type] ?? 160}
 						>
 							{#snippet actions()}
 								<button
@@ -583,8 +574,10 @@
 		</div>
 		<div style="text-align:right; margin-right:0.5rem;">
 			<div style="font-size:0.85rem; color:var(--cal);">{Math.round(entry.calories)} kcal</div>
-			<div style="font-size:0.72rem; color:var(--text-muted);">
-				P{Math.round(entry.protein)} C{Math.round(entry.carbs)} G{Math.round(entry.fat)}
+			<div style="font-size:0.72rem; font-variant-numeric:tabular-nums;">
+				<span style="color:oklch(78% 0.14 220);">P{Math.round(entry.protein)}</span>
+				<span style="color:oklch(78% 0.16 275);"> C{Math.round(entry.carbs)}</span>
+				<span style="color:oklch(75% 0.17 25);"> G{Math.round(entry.fat)}</span>
 			</div>
 		</div>
 		<button class="btn-danger" style="padding:0.3rem 0.5rem; font-size:0.75rem; flex-shrink:0;"

@@ -21,20 +21,20 @@
 	});
 
 	// Móvil: 4 items + FAB en el centro
-	type NavLink = { href: string; label: string; icon: string };
+	type NavLink = { href: string; label: string };
 	type FabSlot = { fab: true };
 	type NavItem = NavLink | FabSlot;
 
 	const mobileNav: NavItem[] = [
-		{ href: '/', label: 'Diario', icon: '📋' },
-		{ href: '/history', label: 'Historial', icon: '📅' },
+		{ href: '/', label: 'Diario' },
+		{ href: '/history', label: 'Historial' },
 		{ fab: true },
-		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
-		{ href: '/settings', label: 'Ajustes', icon: '⚙️' },
+		{ href: '/recipes', label: 'Recetas' },
+		{ href: '/settings', label: 'Ajustes' },
 	];
 
-	// Escritorio: todos los ítems en el sidebar
-	const sidebarNav: NavLink[] = [
+	// Escritorio: todos los ítems en el sidebar (con emoji como icono)
+	const sidebarNav = [
 		{ href: '/', label: 'Diario', icon: '📋' },
 		{ href: '/history', label: 'Historial', icon: '📅' },
 		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
