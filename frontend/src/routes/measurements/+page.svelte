@@ -1,15 +1,29 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
-	import { MEASUREMENT_COLORS, MEASUREMENT_FIELDS } from '$lib/measurements';
+	import { MEASUREMENT_FIELDS } from '$lib/measurements';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { BodyMeasurementLog } from '$lib/types';
-	import { GlassHeader, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	let logs: BodyMeasurementLog[] = $state([]);
 	let saving = $state(false);
+	let showAdd = $state(false);
+
+	// Hue per measurement key for oklch colors
+	const HUES: Record<string, number> = {
+		neck:    190,
+		chest:   220,
+		waist:   160,
+		hips:    340,
+		bicep_l: 45,
+		bicep_r: 45,
+		thigh_l: 295,
+		thigh_r: 295,
+		calf_l:  25,
+		calf_r:  25,
+	};
 
 	/** Form: only positive numbers are sent */
 	let form: Record<string, number> = $state(
@@ -20,9 +34,7 @@
 		logs = await api.get<BodyMeasurementLog[]>('/measurements');
 	}
 
-	$effect(() => {
-		load();
-	});
+	$effect(() => { load(); });
 
 	async function addEntry() {
 		const measurements: Record<string, number> = {};
@@ -38,6 +50,7 @@
 		});
 		for (const f of MEASUREMENT_FIELDS) form[f.key] = 0;
 		saving = false;
+		showAdd = false;
 		load();
 	}
 
@@ -47,13 +60,8 @@
 	}
 
 	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('es', {
-			day: 'numeric',
-			month: 'short',
-			year: '2-digit'
-		});
+		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' });
 	}
-
 	function fmtShort(iso: string) {
 		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 	}
@@ -62,217 +70,373 @@
 		return MEASUREMENT_FIELDS.find((f) => f.key === key)?.label ?? key;
 	}
 
-	const CHART_W = 300;
-	const CHART_H = 120;
-	const PAD = { top: 10, bottom: 24, left: 4, right: 4 };
-	const PLOT_W = CHART_W - PAD.left - PAD.right;
-	const PLOT_H = CHART_H - PAD.top - PAD.bottom;
+	// Chronological logs for chart
+	let chronological = $derived([...logs].reverse());
 
-	let chartData = $derived([...logs].reverse().slice(-30));
-
-	let keysInChart = $derived.by(() => {
-		const s = new Set<string>();
-		for (const row of chartData) {
-			for (const k of Object.keys(row.measurements)) {
-				const v = row.measurements[k];
-				if (typeof v === 'number' && !Number.isNaN(v)) s.add(k);
-			}
+	// Get current value for a key (most recent log that has it)
+	function currentFor(key: string): number | null {
+		for (const log of logs) {
+			const v = log.measurements[key];
+			if (typeof v === 'number' && !Number.isNaN(v)) return v;
 		}
-		return MEASUREMENT_FIELDS.map((f) => f.key).filter((k) => s.has(k));
-	});
-
-	let rangeByKey = $derived.by(() => {
-		const out: Record<string, { min: number; max: number }> = {};
-		for (const key of keysInChart) {
-			const vals: number[] = [];
-			for (const row of chartData) {
-				const v = row.measurements[key];
-				if (typeof v === 'number' && !Number.isNaN(v)) vals.push(v);
-			}
-			if (vals.length === 0) continue;
-			const mn = Math.min(...vals);
-			const mx = Math.max(...vals);
-			const pad = mx === mn ? 1 : (mx - mn) * 0.08;
-			out[key] = { min: mn - pad, max: mx + pad };
-		}
-		return out;
-	});
-
-	function cx(i: number, n: number): number {
-		if (n <= 1) return PAD.left + PLOT_W / 2;
-		return PAD.left + (i / (n - 1)) * PLOT_W;
+		return null;
 	}
 
-	function cy(val: number, key: string): number {
-		const r = rangeByKey[key];
-		if (!r) return PAD.top + PLOT_H;
-		const ratio = (val - r.min) / (r.max - r.min || 1);
-		return PAD.top + PLOT_H - ratio * PLOT_H;
-	}
-
-	function polylineSegmentsForKey(key: string): string[] {
-		const n = chartData.length;
-		if (n === 0) return [];
-		const segments: string[] = [];
-		let run: string[] = [];
-		for (let i = 0; i < n; i++) {
-			const v = chartData[i].measurements[key];
-			const has = typeof v === 'number' && !Number.isNaN(v);
-			if (has) {
-				run.push(`${cx(i, n)},${cy(v, key)}`);
-			} else if (run.length > 0) {
-				if (run.length >= 2) segments.push(run.join(' '));
-				run = [];
+	// Get previous value for a key (second most recent)
+	function prevFor(key: string): number | null {
+		let found = 0;
+		for (const log of logs) {
+			const v = log.measurements[key];
+			if (typeof v === 'number' && !Number.isNaN(v)) {
+				found++;
+				if (found === 2) return v;
 			}
 		}
-		if (run.length >= 2) segments.push(run.join(' '));
-		return segments;
+		return null;
 	}
 
-	let showChart = $derived.by(() => chartData.length >= 2 && keysInChart.length > 0);
+	// Sparkline data for a key (up to last 6 values)
+	function sparkFor(key: string): number[] {
+		const vals: number[] = [];
+		for (const log of chronological) {
+			const v = log.measurements[key];
+			if (typeof v === 'number' && !Number.isNaN(v)) vals.push(v);
+			if (vals.length >= 6) break;
+		}
+		return vals;
+	}
+
+	// Build smooth SVG path for sparkline
+	function sparkPath(vals: number[], w: number, h: number): string {
+		if (vals.length < 2) return '';
+		const min = Math.min(...vals);
+		const max = Math.max(...vals);
+		const range = max - min || 1;
+		const pad = 3;
+		const pts = vals.map((v, i) => ({
+			x: pad + (i / (vals.length - 1)) * (w - pad * 2),
+			y: pad + (1 - (v - min) / range) * (h - pad * 2),
+		}));
+		let d = `M ${pts[0].x},${pts[0].y}`;
+		for (let i = 1; i < pts.length; i++) {
+			const p0 = pts[i - 1], p1 = pts[i];
+			const mx = (p0.x + p1.x) / 2;
+			d += ` Q ${mx},${p0.y} ${mx},${(p0.y + p1.y) / 2} T ${p1.x},${p1.y}`;
+		}
+		return d;
+	}
+
+	// Fields that have at least one value
+	let activeFields = $derived(
+		MEASUREMENT_FIELDS.filter(f => currentFor(f.key) !== null)
+	);
 </script>
 
-<GlassHeader title="Medidas" subtitle="Centímetros · rellena las zonas que quieras" />
-
-<div class="card" style="margin-bottom:1rem;">
-	<div
-		style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem 0.75rem;"
-	>
-		{#each MEASUREMENT_FIELDS as f}
-			<div class="form-group" style="margin:0;">
-				<label for={f.key}>{f.label}</label>
-				<input
-					id={f.key}
-					type="number"
-					bind:value={form[f.key]}
-					step="0.1"
-					min="0"
-					placeholder="—"
-				/>
-			</div>
-		{/each}
+<!-- Page header -->
+<div class="trk-header">
+	<div style="flex:1; min-width:0;">
+		<h1 class="trk-title">Medidas</h1>
+		<div class="trk-sub">Control corporal · mensual</div>
 	</div>
-	<button style="margin-top:0.85rem; width:100%;" onclick={addEntry} disabled={saving}>
-		Guardar medidas
-	</button>
+	<button class="btn-reg" onclick={() => { showAdd = true; }}>+ Nueva</button>
 </div>
 
-{#if showChart}
-	<div class="card" style="margin-bottom:1rem;">
-		<div
-			style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.5rem;"
-		>
-			Evolución (últimos {Math.min(30, chartData.length)} registros)
-		</div>
-		<svg
-			viewBox="0 0 {CHART_W} {CHART_H}"
-			style="width:100%; height:120px; overflow:visible; display:block;"
-			preserveAspectRatio="none"
-		>
-			{#each [0.25, 0.5, 0.75] as frac}
-				{@const y = PAD.top + frac * PLOT_H}
-				<line
-					x1={PAD.left}
-					y1={y}
-					x2={CHART_W - PAD.right}
-					y2={y}
-					stroke="rgba(255,255,255,0.06)"
-					stroke-width="0.5"
-				/>
-			{/each}
+<!-- 2-column grid of measurement cards -->
+{#if activeFields.length > 0}
+<div class="meas-grid">
+	{#each activeFields as f}
+		{@const cur = currentFor(f.key)}
+		{@const prev = prevFor(f.key)}
+		{@const delta = cur !== null && prev !== null ? cur - prev : null}
+		{@const spark = sparkFor(f.key)}
+		{@const hue = HUES[f.key] ?? 160}
+		{@const color = `oklch(78% 0.16 ${hue})`}
+		<div class="meas-card glass-card">
+			<!-- Dot + label -->
+			<div style="display:flex; align-items:center; gap:0.5rem;">
+				<div class="meas-dot" style="background:{color}; box-shadow:0 0 12px {color};"></div>
+				<span class="meas-label">{f.label}</span>
+			</div>
 
-			{#each keysInChart as key}
-				{@const color = MEASUREMENT_COLORS[key] ?? '#94a3b8'}
-				{#each polylineSegmentsForKey(key) as pts}
-					<polyline
-						points={pts}
-						fill="none"
-						stroke={color}
-						stroke-width="1.25"
-						stroke-linejoin="round"
-						stroke-linecap="round"
-						opacity="0.95"
-					/>
-				{/each}
-				<!-- último punto por serie -->
-				{#if chartData.length}
-					{@const lastI = chartData.length - 1}
-					{@const v = chartData[lastI].measurements[key]}
-					{#if typeof v === 'number' && !Number.isNaN(v)}
-						<circle
-							cx={cx(lastI, chartData.length)}
-							cy={cy(v, key)}
-							r="3"
-							fill={color}
-							stroke="var(--bg)"
-							stroke-width="1"
-						/>
-					{/if}
-				{/if}
-			{/each}
-
-			{#if chartData.length > 1}
-				{@const n = chartData.length}
-				<text
-					x={PAD.left}
-					y={CHART_H - 4}
-					text-anchor="start"
-					font-size="7"
-					fill="var(--text-muted)">{fmtShort(chartData[0].logged_at)}</text>
-				<text
-					x={CHART_W - PAD.right}
-					y={CHART_H - 4}
-					text-anchor="end"
-					font-size="7"
-					fill="var(--text-muted)">{fmtShort(chartData[n - 1].logged_at)}</text>
+			<!-- Current value -->
+			{#if cur !== null}
+				<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.625rem;">
+					<div class="meas-value">{cur.toFixed(1)}</div>
+					<div class="meas-unit">cm</div>
+				</div>
+			{:else}
+				<div style="font-size:1.125rem; font-weight:700; color:rgba(255,255,255,0.3); margin-top:0.625rem;">—</div>
 			{/if}
-		</svg>
 
-		<div
-			style="display:flex; flex-wrap:wrap; gap:0.45rem 0.75rem; margin-top:0.65rem;"
-		>
-			{#each keysInChart as key}
-				<span
-					style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.7rem; color:var(--text-muted);"
-				>
-					<span
-						style="width:8px; height:8px; border-radius:2px; background:{MEASUREMENT_COLORS[
-							key
-						] ?? '#94a3b8'};"
-					></span>
-					{labelForKey(key)}
-				</span>
-			{/each}
+			<!-- Sparkline -->
+			{#if spark.length >= 2}
+				{@const path = sparkPath(spark, 130, 30)}
+				<div style="margin-top:0.5rem; height:30px;">
+					<svg viewBox="0 0 130 30" width="100%" height="30" style="display:block; overflow:visible;">
+						<path d={path} fill="none" stroke={color} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+					</svg>
+				</div>
+			{/if}
+
+			<!-- Delta -->
+			{#if delta !== null}
+				<div class="meas-delta" style="color:{delta === 0 ? 'rgba(255,255,255,0.4)' : delta > 0 ? 'oklch(85% 0.17 160)' : 'oklch(75% 0.18 30)'};">
+					{delta === 0 ? '–' : delta > 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(1)} cm
+				</div>
+			{/if}
+		</div>
+	{/each}
+</div>
+{/if}
+
+<!-- History log -->
+{#if logs.length > 0}
+<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">Registros</div>
+<div class="glass-card entry-list">
+	{#each logs.slice(0, 10) as row, i (row.id)}
+		<div class="entry-row" style="border-bottom:{i < Math.min(logs.length, 10) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
+			<div style="flex:1; min-width:0;">
+				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-bottom:0.25rem;">{fmt(row.logged_at)}</div>
+				<div style="display:flex; flex-wrap:wrap; gap:0.25rem 0.625rem; font-size:0.75rem;">
+					{#each Object.entries(row.measurements) as [k, v]}
+						{@const hue = HUES[k] ?? 160}
+						<span>
+							<span style="color:rgba(255,255,255,0.45);">{labelForKey(k)}:</span>
+							<strong style="color:oklch(78% 0.16 {hue});">
+								{typeof v === 'number' ? v.toFixed(1) : v}
+							</strong>
+							<span style="color:rgba(255,255,255,0.35);"> cm</span>
+						</span>
+					{/each}
+				</div>
+			</div>
+			<button class="del-btn" onclick={() => deleteLog(row.id)} aria-label="Eliminar">✕</button>
+		</div>
+	{/each}
+</div>
+{/if}
+
+<!-- Add modal (bottom sheet) -->
+{#if showAdd}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div class="modal-backdrop" onclick={() => (showAdd = false)}>
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="modal-sheet" onclick={(e) => e.stopPropagation()}>
+			<div class="modal-handle"></div>
+			<div class="modal-title">Registrar medidas</div>
+			<div class="modal-sub">Introduce los valores actuales</div>
+
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem 0.75rem; margin-bottom:1.25rem; max-height:50dvh; overflow-y:auto;">
+				{#each MEASUREMENT_FIELDS as f}
+					{@const hue = HUES[f.key] ?? 160}
+					<div class="form-field">
+						<label class="form-label" style="color:oklch(78% 0.15 {hue});" for="m-{f.key}">{f.label}</label>
+						<div style="display:flex; align-items:baseline; gap:0.25rem;">
+							<input
+								id="m-{f.key}"
+								type="number"
+								bind:value={form[f.key]}
+								step="0.1"
+								min="0"
+								placeholder="—"
+								class="field-input"
+							/>
+							<span style="font-size:0.7rem; color:rgba(255,255,255,0.4);">cm</span>
+						</div>
+					</div>
+				{/each}
+			</div>
+
+			<button class="btn-submit" onclick={addEntry} disabled={saving}>
+				{saving ? 'Guardando...' : 'Guardar medidas'}
+			</button>
 		</div>
 	</div>
 {/if}
 
-{#each logs as row (row.id)}
-	<div
-		class="card"
-		style="margin-bottom:0.5rem; display:flex; flex-direction:column; gap:0.5rem;"
-	>
-		<div
-			style="display:flex; justify-content:space-between; align-items:flex-start;"
-		>
-			<span style="color:var(--text-muted); font-size:0.8rem;">{fmt(row.logged_at)}</span>
-			<button
-				class="btn-danger"
-				style="padding:0.3rem 0.5rem; font-size:0.75rem;"
-				onclick={() => deleteLog(row.id)}>✕</button>
-		</div>
-		<div
-			style="display:flex; flex-wrap:wrap; gap:0.35rem 0.65rem; font-size:0.85rem;"
-		>
-			{#each Object.entries(row.measurements) as [k, v]}
-				<span>
-					<span style="color:var(--text-muted);">{labelForKey(k)}:</span>
-					<strong style="color:{MEASUREMENT_COLORS[k] ?? 'var(--text)'};">
-						{typeof v === 'number' ? v.toFixed(1) : v}
-					</strong>
-					<span style="color:var(--text-muted);"> cm</span>
-				</span>
-			{/each}
-		</div>
-	</div>
-{/each}
+<style>
+	/* ── Header ── */
+	.trk-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.25rem 0 0.875rem;
+	}
+	.trk-title {
+		font-size: 1.875rem;
+		font-weight: 400;
+		letter-spacing: -0.05em;
+		color: #fff;
+		line-height: 1;
+		margin: 0;
+		font-family: 'Lora', 'Georgia', serif;
+	}
+	.trk-sub {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.5);
+		margin-top: 0.25rem;
+	}
+	.btn-reg {
+		padding: 0.5rem 0.875rem;
+		border-radius: 99px;
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		font-weight: 700;
+		font-size: 0.75rem;
+		border: none;
+		cursor: pointer;
+		box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 20px oklch(75% 0.2 160 / 0.3);
+		white-space: nowrap;
+		font-family: inherit;
+	}
+
+	/* ── Glass card ── */
+	.glass-card {
+		background: rgba(255,255,255,0.05);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 20px;
+		padding: 0.875rem;
+	}
+
+	/* ── Measurement grid ── */
+	.meas-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.625rem;
+	}
+	.meas-card { border-radius: 22px; }
+	.meas-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
+		flex-shrink: 0;
+	}
+	.meas-label { font-size: 0.6875rem; color: rgba(255,255,255,0.6); font-weight: 600; }
+	.meas-value {
+		font-size: 1.625rem;
+		font-weight: 700;
+		color: #fff;
+		letter-spacing: -0.05em;
+		font-variant-numeric: tabular-nums;
+	}
+	.meas-unit { font-size: 0.625rem; color: rgba(255,255,255,0.4); }
+	.meas-delta {
+		margin-top: 0.25rem;
+		font-size: 0.625rem;
+		font-weight: 700;
+	}
+
+	/* ── Section ── */
+	.section-eyebrow {
+		font-size: 0.6875rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: rgba(255,255,255,0.45);
+		font-weight: 700;
+	}
+
+	/* ── Log entries ── */
+	.entry-list { padding: 0.25rem; }
+	.entry-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 0.625rem;
+	}
+	.del-btn {
+		background: none;
+		border: none;
+		color: rgba(255,255,255,0.3);
+		cursor: pointer;
+		font-size: 0.75rem;
+		padding: 0.25rem;
+		transition: color 0.15s;
+		font-family: inherit;
+		flex-shrink: 0;
+	}
+	.del-btn:hover { color: oklch(75% 0.2 25); }
+
+	/* ── Modal ── */
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 200;
+		display: flex;
+		align-items: flex-end;
+		background: rgba(0,0,0,0.5);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+	}
+	.modal-sheet {
+		width: 100%;
+		padding: 1.5rem 1.25rem 2.5rem;
+		background: rgba(18,20,26,0.92);
+		backdrop-filter: blur(40px) saturate(180%);
+		-webkit-backdrop-filter: blur(40px) saturate(180%);
+		border-top-left-radius: 28px;
+		border-top-right-radius: 28px;
+		border: 1px solid rgba(255,255,255,0.1);
+		border-bottom: none;
+		max-height: 90dvh;
+		overflow-y: auto;
+	}
+	.modal-handle {
+		width: 40px;
+		height: 4px;
+		border-radius: 99px;
+		background: rgba(255,255,255,0.2);
+		margin: 0 auto 1.125rem;
+	}
+	.modal-title {
+		font-size: 1.625rem;
+		color: #fff;
+		letter-spacing: -0.05em;
+		margin-bottom: 0.375rem;
+		font-family: 'Lora', 'Georgia', serif;
+		font-weight: 400;
+	}
+	.modal-sub {
+		font-size: 0.75rem;
+		color: rgba(255,255,255,0.5);
+		margin-bottom: 1.25rem;
+	}
+
+	/* ── Form ── */
+	.form-field { display: flex; flex-direction: column; gap: 0.25rem; }
+	.form-label { font-size: 0.6875rem; font-weight: 600; }
+	.field-input {
+		width: 100%;
+		box-sizing: border-box;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 10px;
+		color: #fff;
+		padding: 0.375rem 0.625rem;
+		font-size: 0.875rem;
+		font-family: inherit;
+		outline: none;
+		font-variant-numeric: tabular-nums;
+	}
+	.field-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
+
+	/* ── Submit ── */
+	.btn-submit {
+		width: 100%;
+		height: 52px;
+		border-radius: 16px;
+		border: none;
+		cursor: pointer;
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		font-weight: 800;
+		font-size: 0.9375rem;
+		font-family: inherit;
+		box-shadow:
+			0 10px 30px -8px oklch(75% 0.22 165 / 0.55),
+			inset 0 -2px 6px oklch(60% 0.2 170),
+			inset 0 1px 0 rgba(255,255,255,0.4);
+	}
+	.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
