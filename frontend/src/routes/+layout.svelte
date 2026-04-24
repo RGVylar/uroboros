@@ -1,3 +1,9 @@
+<!--
+  Bottom-nav actualizada para usar la nueva pill flotante.
+  Cambios mínimos respecto al original:
+    - Wrap del badge de notificación adaptado a la pill (posición ajustada).
+    - Sin cambios de lógica ni de rutas.
+-->
 <script lang="ts">
 	import '../app.css';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -6,7 +12,6 @@
 
 	let { children } = $props();
 
-	// Start polling for pending friend requests once logged in
 	$effect(() => {
 		if (auth.isLoggedIn) {
 			pendingFriends.start();
@@ -29,21 +34,39 @@
 </div>
 
 {#if auth.isLoggedIn}
-	<nav class="bottom">
+	<nav class="bottom" aria-label="Navegación principal">
 		{#each nav as item}
-			<a href={item.href} class:active={page.url.pathname === item.href} style="position:relative;">
-				<span class="icon">{item.icon}</span>
-				{item.label}
+			<a
+				href={item.href}
+				class:active={page.url.pathname === item.href}
+				aria-current={page.url.pathname === item.href ? 'page' : undefined}
+			>
+				<span class="icon" aria-hidden="true">{item.icon}</span>
+				<span>{item.label}</span>
 				{#if item.href === '/settings' && pendingFriends.count > 0}
-					<span style="
-						position:absolute; top:2px; right:2px;
-						background:var(--danger); color:#fff;
-						border-radius:99px; font-size:0.55rem; font-weight:800;
-						padding:0.05rem 0.3rem; line-height:1.4;
-						pointer-events:none;
-					">{pendingFriends.count}</span>
+					<span class="nav-badge" aria-label="{pendingFriends.count} solicitudes pendientes">
+						{pendingFriends.count}
+					</span>
 				{/if}
 			</a>
 		{/each}
 	</nav>
 {/if}
+
+<style>
+	.nav-badge {
+		position: absolute;
+		top: 2px;
+		right: 6px;
+		background: var(--danger);
+		color: #fff;
+		border-radius: 99px;
+		font-size: 0.55rem;
+		font-weight: 800;
+		padding: 0.08rem 0.35rem;
+		line-height: 1.4;
+		pointer-events: none;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+	}
+	nav.bottom a { position: relative; }
+</style>
