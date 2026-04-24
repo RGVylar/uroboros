@@ -4,6 +4,14 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import {
+		DayNav,
+		CalorieRing,
+		MacroBar,
+		MealHeader,
+		Modal,
+		EmptyState,
+	} from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -80,20 +88,6 @@
 	function pct(current: number, goal: number) {
 		if (!goal) return 0;
 		return Math.min(Math.round((current / goal) * 100), 100);
-	}
-
-	function calBarColor(consumed: number, goal: number): string {
-		if (!goal) return 'var(--cal)';
-		const ratio = consumed / goal;
-		if (ratio >= 1.05) return 'var(--danger)';
-		if (ratio >= 0.9) return '#ffaa44';
-		return 'var(--primary)';
-	}
-
-	function changeDay(delta: number) {
-		const d = new Date(today);
-		d.setDate(d.getDate() + delta);
-		today = d.toISOString().slice(0, 10);
 	}
 
 	let partner = $derived(users.find(u => u.id !== auth.user?.id) ?? null);
@@ -247,19 +241,7 @@
 {#if !auth.isLoggedIn}
 	<!-- redirect handled above -->
 {:else}
-	<!-- Day navigation -->
-	<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
-		<button class="btn-secondary" onclick={() => changeDay(-1)}>◀</button>
-		<div style="text-align:center;">
-			<h1 style="margin:0; font-size:1.1rem;">
-				{isToday ? 'Hoy' : new Date(today + 'T12:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })}
-			</h1>
-			{#if isToday && streak > 0}
-				<div style="font-size:0.75rem; color:var(--primary); margin-top:0.1rem;">🔥 {streak} {streak === 1 ? 'día' : 'días'} de racha</div>
-			{/if}
-		</div>
-		<button class="btn-secondary" onclick={() => changeDay(1)}>▶</button>
-	</div>
+	<DayNav bind:date={today} {streak} />
 
 	{#if recipeSaveSuccess}
 		<div class="card" style="margin-bottom:0.75rem; border-color:var(--primary); color:var(--primary); font-size:0.85rem; padding:0.65rem 0.8rem;">
@@ -279,82 +261,18 @@
 		<!-- Hero calories card -->
 		<div class="card" style="margin-bottom:1rem; margin-top:0.75rem;">
 			{#if goals}
-				{@const consumed = Math.round(summary.totals.calories)}
-				{@const burned = Math.round(summary.calories_burned)}
-				{@const net = Math.round(summary.net_calories)}
-				{@const remaining = goals.kcal - net}
-				{@const barColor = calBarColor(net, goals.kcal)}
-				{@const consumedPct = pct(consumed, goals.kcal)}
-				{@const netPct = pct(net, goals.kcal)}
+				<CalorieRing
+					consumed={summary.totals.calories}
+					goal={goals.kcal}
+					burned={summary.calories_burned}
+					net={summary.net_calories}
+				/>
+				<div style="height:1rem;"></div>
 
-				<!-- 3-column hero numbers -->
-				<div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:flex-start; margin-bottom:1rem;">
-					<div style="text-align:center;">
-						<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;">Consumidas</div>
-						<div style="font-size:1.6rem; font-weight:800; color:var(--cal); line-height:1;">{consumed}</div>
-						{#if burned > 0}
-							<div style="font-size:0.6rem; color:var(--danger); margin-top:0.15rem;">−{burned} 💪</div>
-						{/if}
-					</div>
-					<div style="text-align:center; color:var(--border-bright); font-size:1.2rem;">/</div>
-					<div style="text-align:center;">
-						<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;">
-							{remaining >= 0 ? 'Restantes' : 'Exceso'}
-						</div>
-						<div style="font-size:1.6rem; font-weight:800; color:{remaining >= 0 ? barColor : 'var(--danger)'}; line-height:1;">
-							{Math.abs(remaining)}
-						</div>
-					</div>
-				</div>
-
-				<!-- Calorie progress bar with burned segment -->
-				<div class="progress-bar" style="height:10px; margin-bottom:0.35rem; position:relative;">
-					<!-- Consumed (bruto) -->
-					<div class="fill" style="width:{consumedPct}%; background:{calBarColor(consumed, goals.kcal)};"></div>
-					<!-- Burned overlay (rojo) -->
-					{#if burned > 0}
-						<div style="position:absolute; top:0; left:{Math.max(0, netPct)}%; width:{Math.min(consumedPct - netPct, 100 - netPct)}%; height:100%; background:var(--danger); opacity:0.7;"></div>
-					{/if}
-				</div>
-				<div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-bottom:1rem;">
-					{#if burned > 0}
-						<span>{netPct}% · Bruto: <strong style="color:var(--cal);">{consumed}</strong> · Neto: <strong style="color:var(--primary);">{net}</strong></span>
-						<span>/ {goals.kcal} kcal</span>
-					{:else}
-						<span>{consumedPct}%</span>
-						<span>Objetivo: {goals.kcal} kcal</span>
-					{/if}
-				</div>
-
-				<!-- Macro bars -->
 				<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
-					<div>
-						<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
-							<span style="font-size:0.75rem; color:var(--prot); font-weight:600;">Prot</span>
-							<span style="font-size:0.7rem; color:var(--text-muted);">{Math.round(summary.totals.protein)}/{goals.protein}g</span>
-						</div>
-						<div class="progress-bar" style="height:6px;">
-							<div class="fill" style="width:{pct(summary.totals.protein, goals.protein)}%; background:var(--prot);"></div>
-						</div>
-					</div>
-					<div>
-						<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
-							<span style="font-size:0.75rem; color:var(--carb); font-weight:600;">Carb</span>
-							<span style="font-size:0.7rem; color:var(--text-muted);">{Math.round(summary.totals.carbs)}/{goals.carbs}g</span>
-						</div>
-						<div class="progress-bar" style="height:6px;">
-							<div class="fill" style="width:{pct(summary.totals.carbs, goals.carbs)}%; background:var(--carb);"></div>
-						</div>
-					</div>
-					<div>
-						<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
-							<span style="font-size:0.75rem; color:var(--fat); font-weight:600;">Grasa</span>
-							<span style="font-size:0.7rem; color:var(--text-muted);">{Math.round(summary.totals.fat)}/{goals.fat}g</span>
-						</div>
-						<div class="progress-bar" style="height:6px;">
-							<div class="fill" style="width:{pct(summary.totals.fat, goals.fat)}%; background:var(--fat);"></div>
-						</div>
-					</div>
+					<MacroBar label="Prot"  value={summary.totals.protein} goal={goals.protein} color="var(--prot)" />
+					<MacroBar label="Carb"  value={summary.totals.carbs}   goal={goals.carbs}   color="var(--carb)" />
+					<MacroBar label="Grasa" value={summary.totals.fat}     goal={goals.fat}     color="var(--fat)" />
 				</div>
 
 			{:else}
@@ -459,9 +377,13 @@
 
 		<!-- Diary entries -->
 		{#if summary.entries.length === 0}
-			<p style="text-align:center; color:var(--text-muted); padding:1.5rem 0 0.5rem;">
-				Sin registros hoy.<br /><a href="/add?date={today}">Añadir comida</a>
-			</p>
+			<EmptyState
+				icon="🥣"
+				title="Sin registros"
+				description={isToday ? 'Añade tu primera comida del día' : 'Este día está vacío'}
+				actionLabel={isToday ? 'Añadir comida' : undefined}
+				actionHref={isToday ? `/add?date=${today}` : undefined}
+			/>
 			{#if isToday}
 				<button
 					class="btn-secondary"
@@ -514,21 +436,23 @@
 			{#if summary.meals && summary.meals.length > 0}
 				{#each summary.meals as meal (meal.meal_type)}
 					<div style="margin-bottom:1rem;">
-						<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding:0 0.25rem;">
-							<div style="display:flex; align-items:center; gap:0.5rem;">
-								<span style="font-weight:700; font-size:0.9rem;">{meal.label}</span>
+						<MealHeader
+							label={meal.label}
+							kcal={meal.totals.calories}
+							protein={meal.totals.protein}
+							hasEntries={meal.entries.length > 0}
+						>
+							{#snippet actions()}
 								<button
-									class="btn-secondary"
+									class="btn-ghost"
 									onclick={(e) => { e.stopPropagation(); startSaveMealAsRecipe(meal); }}
 									disabled={meal.entries.length === 0}
-									style="font-size:0.75rem; padding:0.25rem 0.5rem;">
-									Guardar receta
+									style="font-size:0.72rem; padding:0.25rem 0.55rem;"
+								>
+									＋ Receta
 								</button>
-							</div>
-							<span style="font-size:0.8rem; color:var(--cal);">
-								{Math.round(meal.totals.calories)} kcal · <span style="color:var(--prot); font-weight:600;">P{Math.round(meal.totals.protein)}g</span>
-							</span>
-						</div>
+							{/snippet}
+						</MealHeader>
 						{#each meal.entries as entry (entry.id)}
 							{@render entryCard(entry)}
 						{/each}
@@ -545,97 +469,91 @@
 
 <!-- Save recipe modal -->
 {#if recipeMealToSave}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; display:flex; align-items:flex-end; justify-content:center; padding:1rem;" onclick={(e) => { if (e.target === e.currentTarget) closeRecipeModal(); }}>
-		<div class="card" style="width:100%; max-width:480px; padding:1.25rem;">
-			<div style="font-weight:700; margin-bottom:0.4rem;">Guardar receta</div>
-			<div style="color:var(--text-muted); font-size:0.82rem; margin-bottom:0.9rem;">
-				{recipeMealToSave.label} · {recipeMealToSave.entries.length} ingredientes
-			</div>
-
-			<div class="form-group">
-				<label for="recipe-name">Nombre</label>
-				<input
-					id="recipe-name"
-					type="text"
-					bind:value={recipeNameDraft}
-					autocapitalize="sentences"
-					autocomplete="off"
-					onkeydown={(e) => { if (e.key === 'Enter') confirmSaveMealAsRecipe(); }}
-				/>
-			</div>
-
-			{#if recipeSaveError}
-				<div style="color:var(--danger); font-size:0.8rem; margin-top:0.2rem;">{recipeSaveError}</div>
-			{/if}
-
-			<div style="display:flex; gap:0.5rem; margin-top:0.9rem;">
-				<button class="btn-secondary" onclick={closeRecipeModal} style="flex:1;" disabled={savingRecipe}>Cancelar</button>
-				<button onclick={confirmSaveMealAsRecipe} style="flex:2;" disabled={savingRecipe}>
-					{savingRecipe ? 'Guardando...' : 'Guardar receta'}
-				</button>
-			</div>
+	<Modal
+		onClose={closeRecipeModal}
+		title="Guardar receta"
+		subtitle="{recipeMealToSave.label} · {recipeMealToSave.entries.length} ingredientes"
+	>
+		<div class="form-group">
+			<label for="recipe-name">Nombre</label>
+			<input
+				id="recipe-name"
+				type="text"
+				bind:value={recipeNameDraft}
+				autocapitalize="sentences"
+				autocomplete="off"
+				onkeydown={(e) => { if (e.key === 'Enter') confirmSaveMealAsRecipe(); }}
+			/>
 		</div>
-	</div>
+
+		{#if recipeSaveError}
+			<div style="color:var(--danger); font-size:0.8rem; margin-top:0.2rem;">{recipeSaveError}</div>
+		{/if}
+
+		<div style="display:flex; gap:0.5rem; margin-top:0.9rem;">
+			<button class="btn-secondary" onclick={closeRecipeModal} style="flex:1;" disabled={savingRecipe}>Cancelar</button>
+			<button onclick={confirmSaveMealAsRecipe} style="flex:2;" disabled={savingRecipe}>
+				{savingRecipe ? 'Guardando...' : 'Guardar receta'}
+			</button>
+		</div>
+	</Modal>
 {/if}
 
 <!-- Edit modal -->
 {#if editingEntry}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; display:flex; align-items:flex-end; justify-content:center; padding:1rem;" onclick={(e) => { if (e.target === e.currentTarget) editingEntry = null; }}>
-		<div class="card" style="width:100%; max-width:480px; padding:1.25rem;">
-			<div style="font-weight:700; margin-bottom:0.75rem;">{editingEntry.product?.name}</div>
+	<Modal
+		onClose={() => editingEntry = null}
+		title={editingEntry.product?.name ?? 'Editar'}
+		subtitle="Editar entrada"
+	>
+		<div class="form-group">
+			<label for="edit-grams">Gramos</label>
+			<input id="edit-grams" type="number" bind:value={editGrams} min="1" step="1" style="width:100%;" />
+		</div>
 
-			<div class="form-group">
-				<label for="edit-grams">Gramos</label>
-				<input id="edit-grams" type="number" bind:value={editGrams} min="1" step="1" style="width:100%;" />
-			</div>
-
-			<div class="form-group">
-				<label>Comida</label>
-				<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
-					{#each MEAL_ORDER as mt}
-						<button
-							onclick={() => editMealType = mt}
-							class:btn-secondary={editMealType !== mt}
-							style="font-size:0.75rem; padding:0.4rem 0.2rem;">
-							{MEAL_LABELS[mt]}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-				<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">Cancelar</button>
-				<button onclick={saveEdit} disabled={editSaving} style="flex:2;">
-					{editSaving ? 'Guardando...' : 'Guardar'}
-				</button>
+		<div class="form-group">
+			<label>Comida</label>
+			<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
+				{#each MEAL_ORDER as mt}
+					<button
+						onclick={() => editMealType = mt}
+						class:btn-secondary={editMealType !== mt}
+						style="font-size:0.75rem; padding:0.4rem 0.2rem;">
+						{MEAL_LABELS[mt]}
+					</button>
+				{/each}
 			</div>
 		</div>
-	</div>
+
+		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+			<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">Cancelar</button>
+			<button onclick={saveEdit} disabled={editSaving} style="flex:2;">
+				{editSaving ? 'Guardando...' : 'Guardar'}
+			</button>
+		</div>
+	</Modal>
 {/if}
 
 <!-- Delete confirm (when partner exists) -->
 {#if deletingEntry}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; display:flex; align-items:center; justify-content:center; padding:1rem;" onclick={(e) => { if (e.target === e.currentTarget) deletingEntry = null; }}>
-		<div class="card" style="width:100%; max-width:380px; padding:1.25rem;">
-			<div style="font-weight:700; margin-bottom:0.5rem;">Borrar entrada</div>
-			<div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
-				{deletingEntry.product?.name} — {deletingEntry.grams}g<br/>
-				¿Borrar también para {partner?.name}?
-			</div>
-			<div style="display:flex; flex-direction:column; gap:0.5rem;">
-				<button class="btn-danger" onclick={() => confirmDelete(deletingEntry!.id, true)}>
-					Borrar para los dos
-				</button>
-				<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, false)}>
-					Solo para mí
-				</button>
-				<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
-			</div>
+	<Modal
+		onClose={() => deletingEntry = null}
+		title="Borrar entrada"
+		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}g"
+	>
+		<div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
+			¿Borrar también para {partner?.name}?
 		</div>
-	</div>
+		<div style="display:flex; flex-direction:column; gap:0.5rem;">
+			<button class="btn-danger" onclick={() => confirmDelete(deletingEntry!.id, true)}>
+				Borrar para los dos
+			</button>
+			<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, false)}>
+				Solo para mí
+			</button>
+			<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
+		</div>
+	</Modal>
 {/if}
 
 {#snippet entryCard(entry: DiaryEntry)}
