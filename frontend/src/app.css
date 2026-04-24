@@ -397,9 +397,10 @@ nav.bottom {
 	left: 50%;
 	transform: translateX(-50%);
 	bottom: max(0.8rem, env(safe-area-inset-bottom));
-	display: flex;
-	gap: 0.15rem;
-	padding: 0.45rem;
+	display: grid;
+	grid-template-columns: 1fr 1fr 80px 1fr 1fr;
+	align-items: center;
+	padding: 0.45rem 0.5rem;
 	background: rgba(10, 11, 18, 0.72);
 	backdrop-filter: var(--blur);
 	-webkit-backdrop-filter: var(--blur);
@@ -410,6 +411,7 @@ nav.bottom {
 		0 20px 50px -10px rgba(0,0,0,0.6);
 	z-index: 100;
 	max-width: calc(100% - 1.6rem);
+	overflow: visible;
 }
 nav.bottom a {
 	display: flex;
@@ -417,16 +419,14 @@ nav.bottom a {
 	align-items: center;
 	justify-content: center;
 	gap: 0.15rem;
-	padding: 0.5rem 0.85rem;
+	padding: 0.5rem 0.6rem;
 	border-radius: 99px;
 	font-size: 0.62rem;
 	color: var(--text-muted);
 	font-weight: 600;
 	letter-spacing: 0.02em;
 	transition: color 0.15s, background 0.15s;
-	min-width: 60px;
 }
-nav.bottom a .icon { font-size: 1.1rem; line-height: 1; }
 nav.bottom a:hover { color: var(--text); }
 nav.bottom a.active {
 	color: var(--primary);
