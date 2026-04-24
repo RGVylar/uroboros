@@ -219,13 +219,14 @@
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Cuenta</div>
 	<div class="settings-group">
-		<div class="settings-row" style="cursor:default;">
+		<button class="settings-row" onclick={() => goto('/profile')}>
 			<div class="icon-box">👤</div>
 			<div class="row-content">
 				<div class="row-label">{auth.user?.name ?? 'Usuario'}</div>
 				<div class="row-detail">{auth.user?.email ?? ''}</div>
 			</div>
-		</div>
+			<span class="chevron">›</span>
+		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={logout} style="cursor:pointer;">
 			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15);">→</div>
