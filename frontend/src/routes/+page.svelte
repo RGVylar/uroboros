@@ -289,84 +289,94 @@
 			{/if}
 		</div>
 
-		<!-- Water section -->
-		<div class="card" style="margin-bottom:1rem;">
-			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-				<span style="font-size:0.85rem; color:var(--water); font-weight:600;">Agua</span>
-				{#if water}
-					<span style="font-size:0.8rem; color:var(--text-muted);">
-						{Math.round(water.total_ml)}ml / {water.goal_ml}ml
-					</span>
-				{/if}
-			</div>
-			{#if water}
-				<div class="progress-bar" style="height:10px; margin-bottom:0.75rem;">
-					<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
-				</div>
-			{/if}
-			<div style="display:flex; gap:0.5rem;">
-				<button onclick={() => addWater(250)} style="flex:1; font-size:0.8rem; padding:0.4rem;">+250ml</button>
-				<button onclick={() => addWater(500)} style="flex:1; font-size:0.8rem; padding:0.4rem;">+500ml</button>
-				<button class="btn-secondary" onclick={removeWater} style="flex:1; font-size:0.8rem; padding:0.4rem;" disabled={!water || water.total_ml <= 0}>
-					Deshacer
-				</button>
-			</div>
-		</div>
+		<!-- Water + Creatine row (side-by-side when creatine is enabled) -->
+		<div style="display:grid; grid-template-columns:{isToday && goals?.track_creatine && creatine !== null ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
 
-		<!-- Creatine check (only today + tracking enabled) -->
-		{#if isToday && goals?.track_creatine && creatine !== null}
-			<div class="card" style="margin-bottom:1rem;">
-				<div style="display:flex; align-items:center; justify-content:space-between;">
-					<div style="display:flex; align-items:center; gap:0.6rem;">
-						<span style="font-size:1.3rem;">💊</span>
-						<div>
-							<div style="font-weight:700; font-size:0.9rem;">Creatina</div>
-							<div style="font-size:0.75rem; color:var(--text-muted);">
-								{creatine.taken ? '✅ Tomada hoy' : 'Sin registrar hoy'}
-							</div>
-						</div>
+			<!-- Water card -->
+			<div class="card" style="padding:0.85rem;">
+				<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
+					<span style="font-size:0.95rem;">💧</span>
+					<span style="font-size:0.82rem; color:var(--water); font-weight:700;">Agua</span>
+					{#if water}
+						<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
+							{Math.round(water.total_ml)} / {water.goal_ml} ml
+						</span>
+					{/if}
+				</div>
+				{#if water}
+					<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
+						<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
 					</div>
+				{/if}
+				<div style="display:flex; gap:0.35rem;">
+					<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
+					<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
+					<button class="btn-secondary" onclick={removeWater}
+						style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
+						disabled={!water || water.total_ml <= 0}>↩</button>
+				</div>
+			</div>
+
+			<!-- Creatine card (only today + tracking enabled) -->
+			{#if isToday && goals?.track_creatine && creatine !== null}
+				<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center;">
+					<!-- Mini ring -->
+					<svg width="52" height="52" viewBox="0 0 52 52" style="flex-shrink:0;">
+						<circle cx="26" cy="26" r="21" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+						<circle cx="26" cy="26" r="21" fill="none"
+							stroke={creatine.taken ? 'var(--primary)' : 'rgba(255,255,255,0.15)'}
+							stroke-width="5"
+							stroke-linecap="round"
+							stroke-dasharray={creatine.taken ? '132 0' : '0 132'}
+							transform="rotate(-90 26 26)"
+							style="transition: stroke-dasharray 0.5s cubic-bezier(0.22,1,0.36,1), stroke 0.3s;"
+						/>
+						<text x="26" y="30" text-anchor="middle"
+							font-size="10" font-weight="800"
+							fill={creatine.taken ? 'var(--primary)' : 'var(--text-muted)'}
+						>{creatine.taken ? '✓' : '—'}</text>
+					</svg>
+					<div style="font-weight:700; font-size:0.82rem;">Creatina</div>
 					<button
 						onclick={toggleCreatine}
 						disabled={togglingCreatine}
-						style="
-							padding:0.45rem 1rem; border-radius:20px; font-size:0.8rem; font-weight:700;
-							border:none; cursor:pointer; transition:background 0.2s, opacity 0.2s;
-							background:{creatine.taken ? 'var(--surface)' : 'var(--primary)'};
-							color:{creatine.taken ? 'var(--text-muted)' : '#000'};
-							border:1px solid {creatine.taken ? 'var(--border-bright)' : 'transparent'};
-							opacity:{togglingCreatine ? '0.6' : '1'};
-						"
+						class:btn-secondary={creatine.taken}
+						style="font-size:0.72rem; padding:0.35rem 0.75rem; width:100%; opacity:{togglingCreatine ? '0.6' : '1'};"
 					>
-						{creatine.taken ? 'Deshacer' : 'Marcar tomada'}
+						{creatine.taken ? 'Deshacer' : 'Marcar'}
 					</button>
 				</div>
-			</div>
-		{/if}
+			{/if}
+		</div>
 
 		<!-- Cheat day (only today + enabled) -->
 		{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
-			<div class="card" style="margin-bottom:1rem; {cheatDay.active ? 'border-color: #ff6b35;' : ''}">
-				<div style="display:flex; align-items:center; justify-content:space-between;">
-					<div style="display:flex; align-items:center; gap:0.6rem;">
-						<span style="font-size:1.3rem;">🍕</span>
-						<div>
-							<div style="font-weight:700; font-size:0.9rem;">Cheat day</div>
-							<div style="font-size:0.75rem; color:var(--text-muted);">
-								{cheatDay.active ? '✅ Racha protegida hoy' : 'Úsalo si no vas a registrar hoy'}
+			<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+					<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+						<!-- Pac-man icon -->
+						<div style="
+							width:36px; height:36px; border-radius:50%; flex-shrink:0;
+							background:oklch(70% 0.18 45 / 0.2);
+							border:1px solid oklch(70% 0.18 45 / 0.35);
+							display:flex; align-items:center; justify-content:center;
+							font-size:1.1rem;
+						">◀</div>
+						<div style="min-width:0;">
+							<div style="font-weight:700; font-size:0.88rem;">Cheat day</div>
+							<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+								{cheatDay.active ? 'Racha protegida hoy 🔥' : 'Úsalo si hoy no registras'}
 							</div>
 						</div>
 					</div>
 					<button
 						onclick={toggleCheatDay}
 						disabled={togglingCheatDay}
+						class:btn-secondary={cheatDay.active}
 						style="
-							padding:0.45rem 1rem; border-radius:20px; font-size:0.8rem; font-weight:700;
-							border:none; cursor:pointer; transition:background 0.2s, opacity 0.2s;
-							background:{cheatDay.active ? 'var(--surface)' : '#ff6b35'};
-							color:{cheatDay.active ? 'var(--text-muted)' : '#fff'};
-							border:1px solid {cheatDay.active ? 'var(--border-bright)' : 'transparent'};
+							flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700;
 							opacity:{togglingCheatDay ? '0.6' : '1'};
+							{!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}
 						"
 					>
 						{cheatDay.active ? 'Cancelar' : 'Activar'}
