@@ -168,39 +168,35 @@
 	}
 	nav.bottom a { position: relative; }
 
-	/* ── FAB en la nav ── */
+	/* ── FAB en la nav (slot central del grid) ── */
 	.nav-fab-link {
+		justify-self: center;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 46px;
-		height: 46px;
+		width: 56px;
+		height: 56px;
 		border-radius: 50%;
 		background: linear-gradient(180deg, var(--primary), var(--primary-dim));
 		box-shadow:
 			0 1px 0 rgba(255,255,255,0.3) inset,
 			0 8px 22px -4px var(--primary-glow);
-		margin: 0 0.2rem;
+		margin-top: -22px;
 		flex-shrink: 0;
 		transition: transform 0.15s, box-shadow 0.18s;
 		/* Reset herencia de nav.bottom a */
 		padding: 0 !important;
-		min-width: unset !important;
 		flex-direction: row !important;
 		gap: 0 !important;
 		font-size: unset !important;
 		color: var(--primary-ink) !important;
+		border-radius: 50% !important;
 	}
 	.nav-fab-link:hover {
-		transform: translateY(-2px);
+		transform: translateY(-3px);
 		box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 14px 30px -6px var(--primary-glow);
 	}
 	.nav-fab-link:active { transform: translateY(0); }
-	.nav-fab-icon {
-		font-size: 1.4rem;
-		font-weight: 800;
-		line-height: 1;
-	}
 
 	/* ── Badge sidebar ── */
 	.sidebar-badge {
