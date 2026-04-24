@@ -27,13 +27,23 @@
 	let quantity = $state(0);
 	let addError = $state('');
 
+	// ── UI state ─────────────────────────────────────────────────────────────
+	let activeTab = $state<'today'|'catalog'>('today');
+	let showDetail: Exercise | null = $state(null);
+	let detailQuantity = $state(30);
+	let catalogQuery = $state('');
+
 	// ── Derived ─────────────────────────────────────────────────────────────
 	let myExercises = $derived(exercises.filter(e => !e.is_predefined));
 	let predefinedExercises = $derived(exercises.filter(e => e.is_predefined));
-
-	// ── Secciones desplegables ───────────────────────────────────────────────
-	let showMyExercises = $state(true);
-	let showPredefined = $state(false);
+	let allExercises = $derived(exercises);
+	let filteredCatalog = $derived(
+		catalogQuery
+			? exercises.filter(e => e.name.toLowerCase().includes(catalogQuery.toLowerCase()))
+			: exercises
+	);
+	let totalKcal = $derived(session ? Math.round(session.total_calories) : 0);
+	let totalSessions = $derived(session?.entries.length ?? 0);
 
 	// ── Carga ────────────────────────────────────────────────────────────────
 	async function loadExercises() {
@@ -91,34 +101,14 @@
 		exercises = exercises.filter(e => e.id !== id);
 	}
 
-	// Copiar un ejercicio predefinido a 'Mis ejercicios' para poder editarlo
-	async function personalizeExercise(ex: Exercise) {
-		try {
-			const created = await api.post<Exercise>('/exercises', {
-				name: ex.name,
-				kcal_per_unit: ex.kcal_per_unit,
-				unit: ex.unit,
-			});
-			exercises = [...exercises, created];
-			// Abrir editor para la copia creada
-			startEdit(created);
-		} catch (e: unknown) {
-			createError = e instanceof Error ? e.message : 'Error';
-		}
-	}
-
 	// ── Sesión ───────────────────────────────────────────────────────────────
-	async function addToSession() {
-		if (!selectedExerciseId || quantity <= 0) {
-			addError = 'Selecciona un ejercicio e indica la cantidad';
-			return;
-		}
+	async function addToSession(exerciseId: number, qty: number) {
+		if (!exerciseId || qty <= 0) return;
 		addError = ''; sessionLoading = true;
 		try {
 			session = await api.post<ExerciseSession>('/exercise-sessions/day/entry', {
-				date: today, exercise_id: selectedExerciseId, quantity,
+				date: today, exercise_id: exerciseId, quantity: qty,
 			});
-			selectedExerciseId = null; quantity = 0;
 		} catch (e: unknown) {
 			addError = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -138,271 +128,268 @@
 		}
 	}
 
-	// Editar / sumar a una entrada existente
-	let editingEntryId: number | null = $state(null);
-	let editAddAmount = $state(0);
-	let entryEditError = $state('');
-
-	function startAddToEntry(entry: ExerciseSessionEntry) {
-		editingEntryId = entry.id;
-		editAddAmount = 0;
-		entryEditError = '';
-	}
-
-	function cancelEditEntry() {
-		editingEntryId = null;
-		editAddAmount = 0;
-		entryEditError = '';
-	}
-
-	async function saveAddToEntry(entryId: number) {
-		if (editAddAmount <= 0) {
-			entryEditError = 'Indica una cantidad positiva';
-			return;
-		}
-		entryEditError = '';
-		sessionLoading = true;
-		try {
-			const current = session?.entries.find(e => e.id === entryId);
-			const newQuantity = (current?.quantity ?? 0) + editAddAmount;
-			session = await api.patch<ExerciseSession>(`/exercise-sessions/day/entry/${entryId}`, {
-				quantity: newQuantity,
-			});
-			editingEntryId = null;
-			editAddAmount = 0;
-		} catch (e: unknown) {
-			entryEditError = e instanceof Error ? e.message : 'Error';
-		} finally {
-			sessionLoading = false;
-		}
-	}
-
 	function getExercise(id: number) {
 		return exercises.find(e => e.id === id);
 	}
 
+	function exerciseEmoji(name: string): string {
+		const n = name.toLowerCase();
+		if (/corr|run/.test(n)) return '🏃';
+		if (/cicl|bici/.test(n)) return '🚴';
+		if (/nata|swim/.test(n)) return '🏊';
+		if (/pesa|gym|muscul|fuerza|weight/.test(n)) return '🏋️';
+		if (/yoga|estira|flex/.test(n)) return '🧘';
+		if (/camin|walk/.test(n)) return '🚶';
+		if (/hiit|intens|interval/.test(n)) return '⚡';
+		if (/escal/.test(n)) return '🧗';
+		if (/baile|dance/.test(n)) return '💃';
+		if (/futbol|basket|tenis|padel/.test(n)) return '⚽';
+		if (/creat/.test(n)) return '💊';
+		return '💪';
+	}
+
+	// Ring SVG helper: r=40, cx=cy=50, viewBox 0 0 100 100
+	const RING_R = 40;
+	const RING_CIRC = 2 * Math.PI * RING_R; // ~251.3
+	function ringDash(pct: number) {
+		const p = Math.min(100, Math.max(0, pct));
+		return `${(p / 100) * RING_CIRC} ${RING_CIRC}`;
+	}
+
 	const UNIT_SUGGESTIONS = ['repeticiones', 'minutos', 'segundos', 'km', 'series', 'pasos'];
+
+	// Open detail sheet
+	function openDetail(ex: Exercise) {
+		showDetail = ex;
+		detailQuantity = ex.unit === 'minutos' || ex.unit === 'segundos' ? 30 : 10;
+	}
+
+	// Register from detail sheet
+	async function registerFromDetail() {
+		if (!showDetail) return;
+		await addToSession(showDetail.id, detailQuantity);
+		showDetail = null;
+		activeTab = 'today';
+	}
 </script>
 
-<!-- Header -->
-<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-	<div style="flex:1;">
-		<div style="font-size:0.625rem; letter-spacing:0.15em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:600;">Actividad</div>
-		<div style="font-size:1.25rem; font-weight:800; color:#fff; letter-spacing:-0.02em;">Ejercicios</div>
+<!-- ── Header ── -->
+<div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
+	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
+	<div style="flex:1; min-width:0;">
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Ejercicios</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Energía gastada hoy</div>
 	</div>
 </div>
 
-<!-- ═══════════════════════ MIS EJERCICIOS ════════════════════════════════ -->
-<button
-	onclick={() => showMyExercises = !showMyExercises}
-	style="display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; margin-bottom:0.5rem; cursor:pointer;">
-	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
-		Mis ejercicios
-		{#if myExercises.length > 0}
-			<span style="font-weight:400;">({myExercises.length})</span>
-		{/if}
-	</h2>
-	<span style="color:var(--text-muted); font-size:0.85rem; transition:transform 0.2s; display:inline-block; transform:{showMyExercises ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
-</button>
+<!-- ── Hero: burn ring ── -->
+<div class="glass-card" style="margin-bottom:0.875rem; background:linear-gradient(135deg, oklch(75% 0.18 30 / 0.18), rgba(255,255,255,0.04)); border-color:oklch(75% 0.18 30 / 0.25);">
+	<div style="display:flex; align-items:center; gap:1rem;">
+		<!-- Ring -->
+		<div style="flex-shrink:0;">
+			<svg width="100" height="100" viewBox="0 0 100 100">
+				<!-- track -->
+				<circle cx="50" cy="50" r={RING_R} fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>
+				<!-- progress -->
+				<circle cx="50" cy="50" r={RING_R} fill="none"
+					stroke="oklch(78% 0.18 30)"
+					stroke-width="10"
+					stroke-linecap="round"
+					stroke-dasharray={ringDash((totalKcal / 500) * 100)}
+					stroke-dashoffset="0"
+					transform="rotate(-90 50 50)"
+					style="filter: drop-shadow(0 0 6px oklch(75% 0.2 30 / 0.6)); transition: stroke-dasharray 0.4s ease;"/>
+				<!-- inner text -->
+				<text x="50" y="46" text-anchor="middle" fill="#fff" font-size="20" font-family="'Lora','Georgia',serif" font-weight="400">{totalKcal}</text>
+				<text x="50" y="58" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Geist,sans-serif" letter-spacing="1">KCAL</text>
+			</svg>
+		</div>
+		<!-- Stats -->
+		<div style="flex:1;">
+			<div style="font-size:0.625rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700;">Quemadas hoy</div>
+			<div style="font-size:2.25rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin-top:0.25rem; font-family:'Lora','Georgia',serif;">
+				{totalKcal} <span style="font-size:0.875rem; color:rgba(255,255,255,0.5); font-weight:400;">kcal</span>
+			</div>
+			<div style="display:flex; gap:0.625rem; margin-top:0.625rem; font-size:0.6875rem;">
+				<div><span style="color:rgba(255,255,255,0.5);">Sesiones:</span> <span style="color:#fff; font-weight:600;">{totalSessions}</span></div>
+			</div>
+		</div>
+	</div>
+</div>
 
-{#if showMyExercises}
-	{#if !showNewForm}
-		<button onclick={() => { showNewForm = true; createError = ''; }}
-			style="font-size:0.8rem; padding:0.3rem 0.75rem; color:black; margin-bottom:0.5rem;">+ Nuevo ejercicio</button>
+<!-- ── Tab switcher ── -->
+<div style="display:flex; gap:0.375rem; margin-bottom:1rem; padding:3px; border-radius:99px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+	{#each [{ id:'today', label:'Hoy' }, { id:'catalog', label:'Catálogo' }] as t}
+		<button onclick={() => activeTab = t.id as 'today'|'catalog'} style="
+			flex:1; padding:0.5625rem 0.75rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit;
+			background:{activeTab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent'};
+			color:{activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.5)'};
+			font-size:0.75rem; font-weight:700; transition:all 0.15s;
+		">{t.label}</button>
+	{/each}
+</div>
+
+<!-- ── TAB: HOY ── -->
+{#if activeTab === 'today'}
+	<div style="font-size:0.625rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.625rem;">Sesiones registradas</div>
+
+	{#if session && session.entries.length > 0}
+		<div class="glass-card" style="padding:0.375rem;">
+			{#each session.entries as entry, i (entry.id)}
+				{@const ex = entry.exercise ?? getExercise(entry.exercise_id)}
+				<div style="
+					display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem;
+					border-bottom:{i < session.entries.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};
+				">
+					<div style="width:40px; height:40px; border-radius:12px; background:oklch(75% 0.18 30 / 0.15); border:1px solid oklch(75% 0.18 30 / 0.2); display:flex; align-items:center; justify-content:center; font-size:1.125rem; flex-shrink:0;">{exerciseEmoji(ex?.name ?? '')}</div>
+					<div style="flex:1; min-width:0;">
+						<div style="font-size:0.8125rem; font-weight:600; color:#fff;">{ex?.name ?? '—'}</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{entry.quantity} {ex?.unit ?? ''}</div>
+					</div>
+					<div style="text-align:right; flex-shrink:0;">
+						<div style="font-size:0.875rem; font-weight:700; color:oklch(82% 0.17 30);">-{Math.round(entry.calories)}</div>
+						<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
+					</div>
+					<button onclick={() => deleteEntry(entry.id)} disabled={sessionLoading} style="width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0;">✕</button>
+				</div>
+			{/each}
+		</div>
+	{:else}
+		<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
+			<div style="font-size:2rem; margin-bottom:0.5rem;">🏃</div>
+			<div style="font-size:0.8125rem; font-weight:600; color:rgba(255,255,255,0.5);">Sin actividad registrada hoy</div>
+			<div style="font-size:0.6875rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">Ve al Catálogo para añadir</div>
+		</div>
 	{/if}
+
+	<!-- Quick add from catalog button -->
+	<button onclick={() => activeTab = 'catalog'} style="width:100%; margin-top:0.875rem; padding:0.875rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); font-family:inherit; font-size:0.8125rem; cursor:pointer;">+ Añadir actividad</button>
+
+<!-- ── TAB: CATÁLOGO ── -->
+{:else}
+	<!-- Search -->
+	<div style="position:relative; margin-bottom:0.75rem;">
+		<div style="position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.4); pointer-events:none; font-size:0.875rem;">🔍</div>
+		<input
+			bind:value={catalogQuery}
+			placeholder="Buscar ejercicio…"
+			style="width:100%; padding:0.8125rem 1rem 0.8125rem 2.5rem; border-radius:16px; font-size:0.8125rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; outline:none; font-family:inherit; box-sizing:border-box;"
+		/>
+	</div>
+
+	<!-- Add new exercise button -->
+	<button onclick={() => { showNewForm = !showNewForm; createError = ''; }} style="width:100%; margin-bottom:0.75rem; padding:0.75rem; border-radius:14px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);">
+		{showNewForm ? '✕ Cancelar' : '+ Crear ejercicio propio'}
+	</button>
 
 	{#if showNewForm}
-		<div class="glass-card" style="margin-bottom:1rem;">
-			<h2 style="margin-top:0; font-size:1rem; color:var(--text);">Nuevo ejercicio</h2>
-			<div class="form-group">
-				<label for="ex-name">Nombre</label>
-				<input id="ex-name" bind:value={newName} placeholder="Ej: Sentadillas" />
-			</div>
-			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-				<div class="form-group" style="margin-bottom:0;">
-					<label for="ex-kcal">Kcal por unidad</label>
-					<input id="ex-kcal" type="number" bind:value={newKcal} min="0.1" step="0.1" />
-				</div>
-				<div class="form-group" style="margin-bottom:0;">
-					<label for="ex-unit">Unidad</label>
-					<select id="ex-unit" bind:value={newUnit}
-						style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
-						{#each UNIT_SUGGESTIONS as u}
-							<option value={u}>{u}</option>
-						{/each}
+		<div class="glass-card" style="margin-bottom:0.875rem;">
+			<div style="font-size:0.75rem; font-weight:700; color:#fff; margin-bottom:0.75rem;">Nuevo ejercicio</div>
+			<div style="display:flex; flex-direction:column; gap:0.625rem;">
+				<input bind:value={newName} placeholder="Nombre" style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
+				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+					<input type="number" bind:value={newKcal} min="0.1" step="0.1" placeholder="Kcal / unidad" style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
+					<select bind:value={newUnit} style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(18,20,26,0.95); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;">
+						{#each UNIT_SUGGESTIONS as u}<option value={u}>{u}</option>{/each}
 					</select>
 				</div>
-			</div>
-			{#if newKcal > 0 && newName}
-				<p style="font-size:0.8rem; color:var(--text-muted); margin:0.5rem 0 0;">
-					Ejemplo: 10 {newUnit} = {(newKcal * 10).toFixed(0)} kcal
-				</p>
-			{/if}
-			{#if createError}<p class="error">{createError}</p>{/if}
-			<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-				<button class="btn-secondary" onclick={() => showNewForm = false} style="flex:1;">Cancelar</button>
-				<button onclick={createExercise} style="flex:2; color:black;">Guardar</button>
+				{#if createError}<div style="font-size:0.6875rem; color:oklch(75% 0.2 25);">{createError}</div>{/if}
+				<button onclick={createExercise} style="padding:0.75rem; border-radius:12px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer;">Guardar</button>
 			</div>
 		</div>
 	{/if}
 
-	{#if myExercises.length === 0 && !showNewForm}
-		<div style="text-align:center; padding:1.5rem 0; color:rgba(255,255,255,0.4);">
-			<div style="font-size:2rem; margin-bottom:0.375rem;">💪</div>
-			<div style="font-size:0.8125rem; font-weight:600;">Sin ejercicios propios</div>
-			<div style="font-size:0.6875rem; margin-top:0.25rem;">Crea uno o usa los predefinidos</div>
-		</div>
-	{/if}
-
-	{#each myExercises as ex (ex.id)}
-		{#if editingId === ex.id}
-			<div class="glass-card" style="margin-bottom:0.5rem; border-color:var(--primary);">
-				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
-					<input bind:value={editName} placeholder="Nombre" />
-					<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
-				</div>
-				<select bind:value={editUnit} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-bottom:0.5rem;">
-					{#each UNIT_SUGGESTIONS as u}
-						<option value={u}>{u}</option>
-					{/each}
-				</select>
-				<div style="display:flex; gap:0.5rem;">
-					<button class="btn-secondary" onclick={() => editingId = null} style="flex:1;">Cancelar</button>
-					<button onclick={saveEdit} style="flex:2; color:black;">Guardar cambios</button>
-				</div>
-			</div>
-		{:else}
-			<div class="glass-card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
-				<div>
-					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
-					<div style="font-size:0.75rem; color:var(--text-muted);">
-						{ex.kcal_per_unit} kcal / {ex.unit}
-					</div>
-				</div>
-				<div style="display:flex; gap:0.4rem;">
-					<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-						onclick={() => startEdit(ex)}>✏️</button>
-					<button class="btn-danger" style="font-size:0.75rem; padding:0.3rem 0.6rem;"
-						onclick={() => deleteExercise(ex.id)}>✕</button>
-				</div>
-			</div>
-		{/if}
-	{/each}
-{/if}
-
-<!-- ═══════════════════════ PREDEFINIDOS ════════════════════════════════════ -->
-<button
-	onclick={() => showPredefined = !showPredefined}
-	style="display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; margin:1.25rem 0 0.5rem; cursor:pointer;">
-	<h2 style="margin:0; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
-		Ejercicios predefinidos
-		<span style="font-weight:400;">({predefinedExercises.length})</span>
-	</h2>
-	<span style="color:var(--text-muted); font-size:0.85rem; transition:transform 0.2s; display:inline-block; transform:{showPredefined ? 'rotate(180deg)' : 'rotate(0deg)'};">▼</span>
-</button>
-
-{#if showPredefined}
-	{#each predefinedExercises as ex (ex.id)}
-		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
-			<div>
-				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
-				<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
-			</div>
-			<div style="display:flex; gap:0.5rem; align-items:center;">
-				<span style="font-size:0.65rem; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0.15rem 0.4rem;">Global</span>
-				<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;" onclick={() => personalizeExercise(ex)}>Personalizar</button>
-			</div>
-		</div>
-	{/each}
-{/if}
-
-<!-- ═══════════════════════ SESIÓN DEL DÍA ══════════════════════════════════ -->
-<div style="margin-top:1.5rem; margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
-	<h2 style="margin:0; font-size:1rem; color:var(--text);">Hoy</h2>
-	{#if session}
-		<span style="font-size:0.85rem; color:var(--primary); font-weight:700;">
-			🔥 {Math.round(session.total_calories)} kcal quemadas
-		</span>
-	{/if}
-</div>
-
-{#if exercises.length > 0}
-	<div class="glass-card" style="margin-bottom:0.75rem;">
-		<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
-			<div class="form-group" style="margin-bottom:0; flex:2; min-width:120px;">
-				<label for="sel-exercise" style="font-size:0.8rem;">Ejercicio</label>
-				<select id="sel-exercise" bind:value={selectedExerciseId}
-					style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
-					<option value={null}>Seleccionar...</option>
-					{#if myExercises.length > 0}
-						<optgroup label="Mis ejercicios">
-							{#each myExercises as ex}
-								<option value={ex.id}>{ex.name} ({ex.kcal_per_unit} kcal/{ex.unit})</option>
-							{/each}
-						</optgroup>
+	<!-- Catalog grid -->
+	{#if filteredCatalog.length > 0}
+		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem;">
+			{#each filteredCatalog as ex (ex.id)}
+				<button onclick={() => openDetail(ex)} style="
+					padding:0.875rem 0.75rem; border-radius:20px; text-align:left; cursor:pointer;
+					background:rgba(255,255,255,0.05); backdrop-filter:blur(24px) saturate(160%);
+					border:1px solid rgba(255,255,255,0.09); color:#fff; font-family:inherit;
+					display:flex; flex-direction:column; gap:0.375rem;
+					transition:background 0.15s;
+				">
+					<div style="font-size:1.75rem;">{exerciseEmoji(ex.name)}</div>
+					<div style="font-size:0.8125rem; font-weight:600; color:#fff; line-height:1.2;">{ex.name}</div>
+					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{ex.kcal_per_unit} kcal/{ex.unit}</div>
+					{#if !ex.is_predefined}
+						<div style="font-size:0.5625rem; color:oklch(80% 0.15 160); font-weight:600;">· Personalizado</div>
 					{/if}
-					<optgroup label="Predefinidos">
-						{#each predefinedExercises as ex}
-							<option value={ex.id}>{ex.name} ({ex.kcal_per_unit} kcal/{ex.unit})</option>
-						{/each}
-					</optgroup>
-				</select>
+				</button>
+			{/each}
+		</div>
+	{:else}
+		<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
+			<div style="font-size:0.8125rem;">Sin resultados para «{catalogQuery}»</div>
+		</div>
+	{/if}
+{/if}
+
+<!-- Bottom spacing -->
+<div style="height:6rem;"></div>
+
+<!-- ── Detail bottom sheet ── -->
+{#if showDetail}
+	<!-- Backdrop -->
+	<div onclick={() => showDetail = null} style="position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);"></div>
+
+	<!-- Sheet -->
+	<div style="position:fixed; bottom:0; left:0; right:0; z-index:101; padding:1.5rem 1.25rem max(2.25rem, calc(env(safe-area-inset-bottom, 0px) + 2.25rem)); background:rgba(18,20,26,0.95); backdrop-filter:blur(40px) saturate(180%); -webkit-backdrop-filter:blur(40px) saturate(180%); border-top-left-radius:28px; border-top-right-radius:28px; border:1px solid rgba(255,255,255,0.1); border-bottom:none;">
+		<!-- Handle -->
+		<div style="width:40px; height:4px; border-radius:99px; background:rgba(255,255,255,0.2); margin:0 auto 1.125rem;"></div>
+
+		<!-- Exercise info -->
+		<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.125rem;">
+			<div style="font-size:2.5rem;">{exerciseEmoji(showDetail.name)}</div>
+			<div>
+				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:'Lora','Georgia',serif;">{showDetail.name}</div>
+				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{showDetail.kcal_per_unit} kcal / {showDetail.unit}</div>
 			</div>
-			<div class="form-group" style="margin-bottom:0; flex:1; min-width:80px;">
-				<label for="qty-input" style="font-size:0.8rem;">
-					{selectedExerciseId ? (getExercise(selectedExerciseId)?.unit ?? 'Cantidad') : 'Cantidad'}
-				</label>
-				<input id="qty-input" type="number" bind:value={quantity} min="1" step="1" />
-			</div>
-			<button onclick={addToSession} disabled={sessionLoading}
-				style="padding:0.5rem 0.75rem; color:black; flex-shrink:0;">
-				{sessionLoading ? '...' : '+ Añadir'}
-			</button>
 		</div>
 
-		{#if selectedExerciseId && quantity > 0}
-			{@const ex = getExercise(selectedExerciseId)}
-			{#if ex}
-				<p style="font-size:0.78rem; color:var(--text-muted); margin:0.4rem 0 0;">
-					= {(ex.kcal_per_unit * quantity).toFixed(0)} kcal quemadas
-				</p>
-			{/if}
-		{/if}
+		<!-- Quantity -->
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-bottom:0.5rem; font-weight:600; letter-spacing:0.05em;">CANTIDAD ({showDetail.unit})</div>
+		<input
+			type="range"
+			min="1"
+			max={showDetail.unit === 'minutos' ? 180 : showDetail.unit === 'segundos' ? 600 : 100}
+			step={showDetail.unit === 'minutos' || showDetail.unit === 'segundos' ? 5 : 1}
+			bind:value={detailQuantity}
+			style="width:100%; accent-color:oklch(78% 0.18 30); margin-bottom:0.375rem;"
+		/>
+		<div style="display:flex; justify-content:space-between; font-size:0.625rem; color:rgba(255,255,255,0.4); margin-bottom:1.25rem;">
+			<span>1</span>
+			<span style="color:#fff; font-weight:700; font-size:0.875rem;">{detailQuantity} {showDetail.unit}</span>
+			<span>{showDetail.unit === 'minutos' ? 180 : showDetail.unit === 'segundos' ? 600 : 100}</span>
+		</div>
 
-		{#if addError}<p class="error">{addError}</p>{/if}
+		<!-- Kcal preview -->
+		<div style="display:flex; gap:0.625rem; margin-bottom:1.25rem;">
+			<div style="flex:1; padding:0.875rem 1rem; border-radius:18px; background:oklch(75% 0.18 30 / 0.12); border:1px solid oklch(75% 0.18 30 / 0.25);">
+				<div style="font-size:0.5625rem; letter-spacing:0.1em; color:rgba(255,255,255,0.5); text-transform:uppercase; font-weight:700;">Gasto estimado</div>
+				<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.375rem;">
+					<div style="font-size:2rem; font-weight:400; color:#fff; letter-spacing:-0.04em; font-family:'Lora','Georgia',serif;">{Math.round(showDetail.kcal_per_unit * detailQuantity)}</div>
+					<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
+				</div>
+			</div>
+		</div>
+
+		{#if addError}<div style="font-size:0.6875rem; color:oklch(75% 0.2 25); margin-bottom:0.75rem;">{addError}</div>{/if}
+
+		<button onclick={registerFromDetail} disabled={sessionLoading} style="width:100%; padding:0.875rem; border-radius:16px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.9375rem; font-family:inherit; box-shadow:0 10px 30px -8px oklch(75% 0.22 165 / 0.55), inset 0 1px 0 rgba(255,255,255,0.4);">
+			{sessionLoading ? 'Registrando...' : 'Registrar sesión'}
+		</button>
 	</div>
 {/if}
 
-{#if session && session.entries.length > 0}
-	{#each session.entries as entry (entry.id)}
-		{@const ex = entry.exercise ?? getExercise(entry.exercise_id)}
-		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
-			<div>
-				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex?.name ?? '—'}</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">
-					{entry.quantity} {ex?.unit ?? ''} · {Math.round(entry.calories)} kcal
-				</div>
-			</div>
-			{#if editingEntryId === entry.id}
-				<div style="display:flex; gap:0.5rem; align-items:center;">
-					<input type="number" bind:value={editAddAmount} min="1" step="1" style="width:6rem; padding:0.3rem;" />
-					<button class="btn-secondary" style="padding:0.3rem 0.6rem;" onclick={() => saveAddToEntry(entry.id)}>+ Sumar</button>
-					<button class="btn-secondary" style="padding:0.3rem 0.6rem;" onclick={cancelEditEntry}>Cancelar</button>
-				</div>
-				{#if entryEditError}<p class="error">{entryEditError}</p>{/if}
-			{:else}
-				<div style="display:flex; gap:0.4rem;">
-					<button class="btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;" onclick={() => startAddToEntry(entry)}>+ Añadir</button>
-					<button class="btn-danger" style="padding:0.3rem 0.65rem; font-size:0.8rem;" onclick={() => deleteEntry(entry.id)}>✕</button>
-				</div>
-			{/if}
-		</div>
-	{/each}
-{:else}
-	<p style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:0.75rem 0;">
-		Sin ejercicio registrado hoy.
-	</p>
-{/if}
-
-<!-- Bottom spacing for mobile nav -->
-<div style="height:6rem;"></div>
+<style>
+	.glass-card {
+		background: rgba(255,255,255,0.05);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 20px;
+		padding: 1rem;
+	}
+</style>
