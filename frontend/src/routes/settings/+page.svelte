@@ -4,8 +4,6 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import type { Goals } from '$lib/types';
-	import { GlassHeader } from '$lib/components';
-
 	if (!auth.isLoggedIn) goto('/login');
 
 	let goals: Goals | null = $state(null);
@@ -61,249 +59,276 @@
 	}
 </script>
 
-<GlassHeader title="Ajustes" />
+<!-- ── Header ── -->
+<div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
+	<div style="flex:1; min-width:0;">
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Ajustes</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Configuración y cuenta</div>
+	</div>
+</div>
 
-<!-- User info -->
-<div class="card" style="margin-bottom:1rem;">
-	<div style="display:flex; align-items:center; gap:0.75rem;">
-		<div style="width:42px; height:42px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:800; color:#000; flex-shrink:0;">
-			{(auth.user?.name ?? '?')[0].toUpperCase()}
+<!-- ── Group: Objetivos ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Objetivos</div>
+	<div class="settings-group">
+		<!-- Kcal y macros -->
+		<button class="settings-row" onclick={() => goto('/goals')}>
+			<div class="icon-box">🎯</div>
+			<div class="row-content">
+				<div class="row-label">Kcal y macros</div>
+				{#if goals}
+					<div class="row-detail">{Math.round(goals.kcal)} kcal · P{Math.round(goals.protein ?? 0)} / C{Math.round(goals.carbs ?? 0)} / G{Math.round(goals.fat ?? 0)}</div>
+				{/if}
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<!-- Creatina -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">💊</div>
+			<div class="row-content">
+				<div class="row-label">Trackear creatina</div>
+				<div class="row-detail">{goals?.track_creatine ? 'Activo' : 'Inactivo'}</div>
+			</div>
+			{#if goals}
+				<button
+					onclick={toggleCreatine}
+					disabled={savingCreatine}
+					class="toggle-btn"
+					style="background:{goals.track_creatine ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.track_creatine ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+				>
+					<span class="toggle-knob" style="left:{goals.track_creatine ? '18px' : '2px'};"></span>
+				</button>
+			{/if}
 		</div>
-		<div>
-			<div style="font-weight:700; font-size:1rem;">{auth.user?.name}</div>
-			<div style="font-size:0.8rem; color:var(--text-muted);">{auth.user?.email}</div>
+		<div class="row-divider"></div>
+		<!-- Cheat day -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">🍕</div>
+			<div class="row-content">
+				<div class="row-label">Cheat days</div>
+				<div class="row-detail">{goals?.cheat_days_enabled ? 'Activo' : 'Inactivo'}</div>
+			</div>
+			{#if goals}
+				<button
+					onclick={toggleCheatDays}
+					disabled={savingCheatDays}
+					class="toggle-btn"
+					style="background:{goals.cheat_days_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.cheat_days_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+				>
+					<span class="toggle-knob" style="left:{goals.cheat_days_enabled ? '18px' : '2px'};"></span>
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>
 
-<!-- Quick actions -->
-<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-
-	<!-- Metas -->
-	<button onclick={() => goto('/goals')} style="
-		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface); color:var(--text);
-		border:1px solid var(--border); border-radius:14px;
-		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-	">
-		<span style="font-size:1.4rem;">🎯</span>
-		<div style="flex:1;">
-			<div style="font-weight:700; font-size:0.95rem;">Objetivos</div>
-			<div style="font-size:0.75rem; color:var(--text-muted);">Calorías, macros y calculadora TDEE</div>
-		</div>
-		<span style="color:var(--text-muted); font-size:1rem;">›</span>
-	</button>
-
-	<!-- Peso -->
-	<button onclick={() => goto('/weight')} style="
-		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface); color:var(--text);
-		border:1px solid var(--border); border-radius:14px;
-		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-	">
-		<span style="font-size:1.4rem;">⚖️</span>
-		<div style="flex:1;">
-			<div style="font-weight:700; font-size:0.95rem;">Registro de peso</div>
-			<div style="font-size:0.75rem; color:var(--text-muted);">Seguimiento de tu evolución</div>
-		</div>
-		<span style="color:var(--text-muted); font-size:1rem;">›</span>
-	</button>
-
-	<!-- Medidas corporales -->
-	<button onclick={() => goto('/measurements')} style="
-		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface); color:var(--text);
-		border:1px solid var(--border); border-radius:14px;
-		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-	">
-		<span style="font-size:1.4rem;">📏</span>
-		<div style="flex:1;">
-			<div style="font-weight:700; font-size:0.95rem;">Registro de medidas</div>
-			<div style="font-size:0.75rem; color:var(--text-muted);">Contornos y gráfica por zona</div>
-		</div>
-		<span style="color:var(--text-muted); font-size:1rem;">›</span>
-	</button>
-
-	<!-- Inventario -->
-	{#if goals?.inventory_enabled}
-		<button onclick={() => goto('/inventory')} style="
-			display:flex; align-items:center; gap:0.9rem;
-			width:100%; text-align:left; background:var(--surface); color:var(--text);
-			border:1px solid var(--border); border-radius:14px;
-			padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-		">
-			<span style="font-size:1.4rem;">🏠</span>
-			<div style="flex:1;">
-				<div style="font-weight:700; font-size:0.95rem;">Inventario</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">Stock en casa y coste por comida</div>
+<!-- ── Group: Pareja ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Pareja</div>
+	<div class="settings-group">
+		<button class="settings-row" onclick={() => goto('/friends')}>
+			<div class="icon-box">💑</div>
+			<div class="row-content">
+				<div class="row-label" style="display:flex; align-items:center; gap:0.4rem;">
+					Amigos y pareja
+					{#if pendingFriends.count > 0}
+						<span style="background:oklch(55% 0.23 25); color:#fff; border-radius:99px; padding:0.05rem 0.4rem; font-size:0.625rem; font-weight:800; line-height:1.5;">{pendingFriends.count}</span>
+					{/if}
+				</div>
+				<div class="row-detail">Gestiona amigos y permisos</div>
 			</div>
-			<span style="color:var(--text-muted); font-size:1rem;">›</span>
+			<span class="chevron">›</span>
 		</button>
-
-		<button onclick={() => goto('/shopping-list')} style="
-			display:flex; align-items:center; gap:0.9rem;
-			width:100%; text-align:left; background:var(--surface); color:var(--text);
-			border:1px solid var(--border); border-radius:14px;
-			padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-		">
-			<span style="font-size:1.4rem;">🛒</span>
-			<div style="flex:1;">
-				<div style="font-weight:700; font-size:0.95rem;">Lista de la compra</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">Generada desde recetas o manual</div>
-			</div>
-			<span style="color:var(--text-muted); font-size:1rem;">›</span>
-		</button>
-	{/if}
-
-	<!-- Amigos -->
-	<button onclick={() => goto('/friends')} style="
-		display:flex; align-items:center; gap:0.9rem;
-		width:100%; text-align:left; background:var(--surface); color:var(--text);
-		border:1px solid var(--border); border-radius:14px;
-		padding:0.85rem 1rem; cursor:pointer; transition:border-color 0.2s;
-	">
-		<span style="font-size:1.4rem;">👥</span>
-		<div style="flex:1;">
-			<div style="font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
-				Amigos
-				{#if pendingFriends.count > 0}
-					<span style="background:var(--danger); color:#fff; border-radius:99px; padding:0.05rem 0.45rem; font-size:0.65rem; font-weight:800; line-height:1.4;">
-						{pendingFriends.count}
-					</span>
-				{/if}
-			</div>
-			<div style="font-size:0.75rem; color:var(--text-muted);">Gestiona amigos y permisos</div>
-		</div>
-		<span style="color:var(--text-muted); font-size:1rem;">›</span>
-	</button>
-
-	{#if goals}
-		<!-- Creatina -->
-		<div style="
-			display:flex; align-items:center; gap:0.9rem;
-			background:var(--surface);
-			border:1px solid var(--border); border-radius:14px;
-			padding:0.85rem 1rem;
-		">
-			<span style="font-size:1.4rem;">💊</span>
-			<div style="flex:1;">
-				<div style="font-weight:700; font-size:0.95rem;">Registro de creatina</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">
-					{goals.track_creatine ? 'Activo · check diario en el inicio' : 'Registra si te la tomas cada día'}
-				</div>
-			</div>
-			<button
-				onclick={toggleCreatine}
-				disabled={savingCreatine}
-				aria-label="Activar registro de creatina"
-				style="
-					position:relative; width:44px; height:24px; border-radius:12px;
-					border:none; cursor:pointer; transition:background 0.2s;
-					background:{goals.track_creatine ? 'var(--primary)' : 'var(--border-bright)'};
-					flex-shrink:0; padding:0;
-				"
-			>
-				<span style="
-					position:absolute; top:3px;
-					left:{goals.track_creatine ? '23px' : '3px'};
-					width:18px; height:18px; border-radius:50%;
-					background:#fff; transition:left 0.2s;
-					box-shadow:0 1px 3px rgba(0,0,0,0.3);
-					display:block;
-				"></span>
-			</button>
-		</div>
-
-		<!-- Cheat Day -->
-		<div style="
-			display:flex; align-items:center; gap:0.9rem;
-			background:var(--surface);
-			border:1px solid var(--border); border-radius:14px;
-			padding:0.85rem 1rem;
-		">
-			<span style="font-size:1.4rem;">🍕</span>
-			<div style="flex:1;">
-				<div style="font-weight:700; font-size:0.95rem;">Cheat day</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">
-					{goals.cheat_days_enabled ? 'Activo · protege tu racha un día' : 'Sálvate la racha cuando te la saltes'}
-				</div>
-			</div>
-			<button
-				onclick={toggleCheatDays}
-				disabled={savingCheatDays}
-				aria-label="Activar cheat day"
-				style="
-					position:relative; width:44px; height:24px; border-radius:12px;
-					border:none; cursor:pointer; transition:background 0.2s;
-					background:{goals.cheat_days_enabled ? 'var(--primary)' : 'var(--border-bright)'};
-					flex-shrink:0; padding:0;
-				"
-			>
-				<span style="
-					position:absolute; top:3px;
-					left:{goals.cheat_days_enabled ? '23px' : '3px'};
-					width:18px; height:18px; border-radius:50%;
-					background:#fff; transition:left 0.2s;
-					box-shadow:0 1px 3px rgba(0,0,0,0.3);
-					display:block;
-				"></span>
-			</button>
-		</div>
-
-		<!-- Inventario -->
-		<div style="
-			display:flex; align-items:center; gap:0.9rem;
-			background:var(--surface);
-			border:1px solid var(--border); border-radius:14px;
-			padding:0.85rem 1rem;
-		">
-			<span style="font-size:1.4rem;">🏠</span>
-			<div style="flex:1;">
-				<div style="font-weight:700; font-size:0.95rem;">Inventario doméstico</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">
-					{goals.inventory_enabled ? 'Activo · stock, precios y lista de la compra' : 'Controla lo que tienes en casa'}
-				</div>
-			</div>
-			<button
-				onclick={toggleInventory}
-				disabled={savingInventory}
-				aria-label="Activar inventario"
-				style="
-					position:relative; width:44px; height:24px; border-radius:12px;
-					border:none; cursor:pointer; transition:background 0.2s;
-					background:{goals.inventory_enabled ? 'var(--primary)' : 'var(--border-bright)'};
-					flex-shrink:0; padding:0;
-				"
-			>
-				<span style="
-					position:absolute; top:3px;
-					left:{goals.inventory_enabled ? '23px' : '3px'};
-					width:18px; height:18px; border-radius:50%;
-					background:#fff; transition:left 0.2s;
-					box-shadow:0 1px 3px rgba(0,0,0,0.3);
-					display:block;
-				"></span>
-			</button>
-		</div>
-	{/if}
-
+	</div>
 </div>
 
-<button class="btn-danger" onclick={logout} style="width:100%;">Cerrar sesión</button>
+<!-- ── Group: Datos ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Datos</div>
+	<div class="settings-group">
+		<button class="settings-row" onclick={() => goto('/weight')}>
+			<div class="icon-box">⚖️</div>
+			<div class="row-content">
+				<div class="row-label">Registro de peso</div>
+				<div class="row-detail">Seguimiento de evolución</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => goto('/measurements')}>
+			<div class="icon-box">📏</div>
+			<div class="row-content">
+				<div class="row-label">Medidas corporales</div>
+				<div class="row-detail">Contornos y gráfica por zona</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<!-- Inventario toggle + nav -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">🏠</div>
+			<div class="row-content">
+				<div class="row-label">Inventario doméstico</div>
+				<div class="row-detail">{goals?.inventory_enabled ? 'Activo' : 'Inactivo'}</div>
+			</div>
+			{#if goals}
+				<button
+					onclick={toggleInventory}
+					disabled={savingInventory}
+					class="toggle-btn"
+					style="background:{goals.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+				>
+					<span class="toggle-knob" style="left:{goals.inventory_enabled ? '18px' : '2px'};"></span>
+				</button>
+			{/if}
+		</div>
+		{#if goals?.inventory_enabled}
+			<div class="row-divider"></div>
+			<button class="settings-row" onclick={() => goto('/inventory')}>
+				<div class="icon-box">📦</div>
+				<div class="row-content">
+					<div class="row-label">Ver inventario</div>
+					<div class="row-detail">Stock, precios y alertas</div>
+				</div>
+				<span class="chevron">›</span>
+			</button>
+			<div class="row-divider"></div>
+			<button class="settings-row" onclick={() => goto('/shopping-list')}>
+				<div class="icon-box">🛒</div>
+				<div class="row-content">
+					<div class="row-label">Lista de la compra</div>
+					<div class="row-detail">Generada desde recetas</div>
+				</div>
+				<span class="chevron">›</span>
+			</button>
+		{/if}
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => goto('/history')}>
+			<div class="icon-box">📤</div>
+			<div class="row-content">
+				<div class="row-label">Exportar datos</div>
+				<div class="row-detail">CSV · Historial completo</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+	</div>
+</div>
 
-<div style="text-align:center; margin-top:2rem; padding-bottom:0.5rem;">
-	<a
-		href="https://ko-fi.com/Z8Z81OW7UV"
-		target="_blank"
-		rel="noopener noreferrer"
-		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:var(--text-muted); text-decoration:none; padding:0.4rem 0.9rem; border-radius:99px; border:1px solid var(--border); background:var(--surface2); transition:color 0.2s, border-color 0.2s;"
-		onmouseenter={(e) => { e.currentTarget.style.color='var(--text)'; e.currentTarget.style.borderColor='var(--border-bright)'; }}
-		onmouseleave={(e) => { e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.borderColor='var(--border)'; }}
-	>
+<!-- ── Group: Cuenta ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Cuenta</div>
+	<div class="settings-group">
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">👤</div>
+			<div class="row-content">
+				<div class="row-label">{auth.user?.name ?? 'Usuario'}</div>
+				<div class="row-detail">{auth.user?.email ?? ''}</div>
+			</div>
+		</div>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={logout} style="cursor:pointer;">
+			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15);">→</div>
+			<div class="row-content">
+				<div class="row-label" style="color:oklch(75% 0.2 25);">Cerrar sesión</div>
+			</div>
+		</button>
+	</div>
+</div>
+
+<!-- Ko-fi -->
+<div style="text-align:center; margin-top:1rem; padding-bottom:0.5rem;">
+	<a href="https://ko-fi.com/Z8Z81OW7UV" target="_blank" rel="noopener noreferrer"
+		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:rgba(255,255,255,0.45); text-decoration:none; padding:0.35rem 0.875rem; border-radius:99px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
 		☕ Invítame una
 	</a>
 </div>
+<div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>
 
-<div style="text-align:center; margin-top:0.75rem; color:var(--text-muted); font-size:0.75rem;">
-	v0.3.0
-</div>
+<style>
+	.group-label {
+		font-size: 0.625rem;
+		letter-spacing: 0.12em;
+		color: rgba(255,255,255,0.45);
+		text-transform: uppercase;
+		font-weight: 700;
+		padding: 0 0.375rem 0.5rem;
+	}
+	.settings-group {
+		background: rgba(255,255,255,0.05);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 18px;
+		overflow: hidden;
+	}
+	.settings-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.875rem;
+		width: 100%;
+		background: none;
+		border: none;
+		color: #fff;
+		font-family: inherit;
+		text-align: left;
+	}
+	.row-divider {
+		height: 1px;
+		background: rgba(255,255,255,0.05);
+		margin: 0 0.875rem;
+	}
+	.icon-box {
+		width: 32px;
+		height: 32px;
+		border-radius: 10px;
+		background: rgba(255,255,255,0.05);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.875rem;
+		flex-shrink: 0;
+	}
+	.row-content {
+		flex: 1;
+		min-width: 0;
+	}
+	.row-label {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #fff;
+	}
+	.row-detail {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.45);
+		margin-top: 0.125rem;
+	}
+	.chevron {
+		color: rgba(255,255,255,0.3);
+		font-size: 0.875rem;
+		flex-shrink: 0;
+	}
+	.toggle-btn {
+		position: relative;
+		width: 40px;
+		height: 24px;
+		border-radius: 99px;
+		border: 1px solid;
+		cursor: pointer;
+		flex-shrink: 0;
+		padding: 0;
+		transition: background 0.2s, border-color 0.2s;
+	}
+	.toggle-knob {
+		position: absolute;
+		top: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+		box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+		transition: left 0.2s;
+		display: block;
+	}
+</style>
