@@ -3,7 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Friendship } from '$lib/types';
-	import { GlassHeader, Modal } from '$lib/components';
+	import { Modal } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -86,14 +86,17 @@
 	}
 </script>
 
-<GlassHeader title="Amigos">
-	{#snippet left()}
-		<button class="btn-ghost" onclick={() => goto('/settings')} style="font-size:1rem; padding:0.3rem 0.6rem;">←</button>
-	{/snippet}
-</GlassHeader>
+<!-- Header -->
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+	<div style="flex:1;">
+		<div style="font-size:0.625rem; letter-spacing:0.15em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:600;">Social</div>
+		<div style="font-size:1.25rem; font-weight:800; color:#fff; letter-spacing:-0.02em;">Amigos</div>
+	</div>
+	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; font-family:inherit;">←</button>
+</div>
 
 <!-- Añadir amigo -->
-<div class="card" style="margin-bottom:1.25rem;">
+<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1rem; margin-bottom:1.25rem;">
 	<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
 		Añadir amigo
 	</div>
@@ -131,7 +134,7 @@
 				</span>
 			</div>
 			{#each pending as f (f.id)}
-				<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.75rem;">
+				<div class="glass-card" style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.75rem;">
 					<div style="flex:1; min-width:0;">
 						<div style="font-weight:600; font-size:0.9rem;">{f.requester.name}</div>
 						<div style="font-size:0.75rem; color:var(--text-muted);">{f.requester.email}</div>
@@ -156,7 +159,7 @@
 	</div>
 
 	{#if friends.length === 0}
-		<div class="card" style="text-align:center; color:var(--text-muted); padding:2rem 1rem;">
+		<div class="glass-card" style="text-align:center; color:var(--text-muted); padding:2rem 1rem;">
 			<div style="font-size:2rem; margin-bottom:0.5rem;">👥</div>
 			<div style="font-size:0.9rem;">Aún no tienes amigos en la app.</div>
 			<div style="font-size:0.8rem; margin-top:0.25rem;">Envía una solicitud con el email de alguien.</div>
@@ -164,7 +167,7 @@
 	{:else}
 		{#each friends as f (f.id)}
 			{@const iAmReceiver = f.receiver.id === auth.user?.id}
-			<div class="card" style="margin-bottom:0.6rem;">
+			<div class="glass-card" style="margin-bottom:0.6rem;">
 				<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:{iAmReceiver ? '0.75rem' : '0'};">
 					<div style="flex:1; min-width:0;">
 						<div style="font-weight:600; font-size:0.9rem;">{friendName(f)}</div>

@@ -3,7 +3,6 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
-	import { GlassHeader, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -185,7 +184,13 @@
 	const UNIT_SUGGESTIONS = ['repeticiones', 'minutos', 'segundos', 'km', 'series', 'pasos'];
 </script>
 
-<GlassHeader title="Ejercicios" />
+<!-- Header -->
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+	<div style="flex:1;">
+		<div style="font-size:0.625rem; letter-spacing:0.15em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:600;">Actividad</div>
+		<div style="font-size:1.25rem; font-weight:800; color:#fff; letter-spacing:-0.02em;">Ejercicios</div>
+	</div>
+</div>
 
 <!-- ═══════════════════════ MIS EJERCICIOS ════════════════════════════════ -->
 <button
@@ -207,7 +212,7 @@
 	{/if}
 
 	{#if showNewForm}
-		<div class="card" style="margin-bottom:1rem;">
+		<div class="glass-card" style="margin-bottom:1rem;">
 			<h2 style="margin-top:0; font-size:1rem; color:var(--text);">Nuevo ejercicio</h2>
 			<div class="form-group">
 				<label for="ex-name">Nombre</label>
@@ -242,12 +247,16 @@
 	{/if}
 
 	{#if myExercises.length === 0 && !showNewForm}
-		<EmptyState icon="💪" title="Sin ejercicios propios" description="Crea uno o usa los predefinidos" />
+		<div style="text-align:center; padding:1.5rem 0; color:rgba(255,255,255,0.4);">
+			<div style="font-size:2rem; margin-bottom:0.375rem;">💪</div>
+			<div style="font-size:0.8125rem; font-weight:600;">Sin ejercicios propios</div>
+			<div style="font-size:0.6875rem; margin-top:0.25rem;">Crea uno o usa los predefinidos</div>
+		</div>
 	{/if}
 
 	{#each myExercises as ex (ex.id)}
 		{#if editingId === ex.id}
-			<div class="card" style="margin-bottom:0.5rem; border-color:var(--primary);">
+			<div class="glass-card" style="margin-bottom:0.5rem; border-color:var(--primary);">
 				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
 					<input bind:value={editName} placeholder="Nombre" />
 					<input type="number" bind:value={editKcal} min="0.1" step="0.1" placeholder="Kcal/unidad" />
@@ -263,7 +272,7 @@
 				</div>
 			</div>
 		{:else}
-			<div class="card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
+			<div class="glass-card" style="margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between;">
 				<div>
 					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{ex.name}</div>
 					<div style="font-size:0.75rem; color:var(--text-muted);">
@@ -294,7 +303,7 @@
 
 {#if showPredefined}
 	{#each predefinedExercises as ex (ex.id)}
-		<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
+		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; opacity:0.85;">
 			<div>
 				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex.name}</div>
 				<div style="font-size:0.72rem; color:var(--text-muted);">{ex.kcal_per_unit} kcal / {ex.unit}</div>
@@ -318,7 +327,7 @@
 </div>
 
 {#if exercises.length > 0}
-	<div class="card" style="margin-bottom:0.75rem;">
+	<div class="glass-card" style="margin-bottom:0.75rem;">
 		<div style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
 			<div class="form-group" style="margin-bottom:0; flex:2; min-width:120px;">
 				<label for="sel-exercise" style="font-size:0.8rem;">Ejercicio</label>
@@ -367,7 +376,7 @@
 {#if session && session.entries.length > 0}
 	{#each session.entries as entry (entry.id)}
 		{@const ex = entry.exercise ?? getExercise(entry.exercise_id)}
-		<div class="card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between;">
+		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between;">
 			<div>
 				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex?.name ?? '—'}</div>
 				<div style="font-size:0.75rem; color:var(--text-muted);">
