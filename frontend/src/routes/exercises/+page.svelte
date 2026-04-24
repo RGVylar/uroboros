@@ -376,7 +376,7 @@
 {#if session && session.entries.length > 0}
 	{#each session.entries as entry (entry.id)}
 		{@const ex = entry.exercise ?? getExercise(entry.exercise_id)}
-		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between;">
+		<div class="glass-card" style="margin-bottom:0.4rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
 			<div>
 				<div style="font-weight:600; font-size:0.9rem; color:var(--text);">{ex?.name ?? '—'}</div>
 				<div style="font-size:0.75rem; color:var(--text-muted);">
@@ -403,3 +403,6 @@
 		Sin ejercicio registrado hoy.
 	</p>
 {/if}
+
+<!-- Bottom spacing for mobile nav -->
+<div style="height:6rem;"></div>

@@ -11,6 +11,18 @@
 	// ── Estado general ──────────────────────────────────────────────────────
 	let recipes: Recipe[] = $state([]);
 	let sharedRecipes: SharedRecipe[] = $state([]);
+	let activeFilter = $state<'all' | 'own' | 'shared' | 'friends'>('all');
+
+	let filteredRecipes = $derived(
+		activeFilter === 'all' || activeFilter === 'own' || activeFilter === 'shared'
+			? recipes.filter(r => {
+				if (activeFilter === 'own') return !r.is_shared;
+				if (activeFilter === 'shared') return r.is_shared;
+				return true;
+			  })
+			: []
+	);
+	let showFriendRecipes = $derived(activeFilter === 'all' || activeFilter === 'friends');
 	let showCreate = $state(false);
 	let error = $state('');
 
@@ -254,11 +266,43 @@
 
 <!-- Header -->
 <div class="page-header">
-	<div>
+	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; font-family:inherit; flex-shrink:0;">←</button>
+	<div style="flex:1;">
 		<div class="header-eyebrow">Biblioteca</div>
 		<div class="header-title">Recetas</div>
 	</div>
 	<button class="btn-new" onclick={() => showCreate = !showCreate}>＋ Nueva</button>
+</div>
+
+<!-- Stats strip -->
+<div class="glass-card" style="margin-bottom:1rem; padding:0.875rem;">
+	<div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:center;">
+		<div style="text-align:center;">
+			<div style="font-size:1.375rem; font-weight:800; color:oklch(85% 0.15 160); letter-spacing:-0.03em;">{recipes.length}</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">Propias</div>
+		</div>
+		<div style="width:1px; height:2rem; background:rgba(255,255,255,0.08);"></div>
+		<div style="text-align:center;">
+			<div style="font-size:1.375rem; font-weight:800; color:oklch(80% 0.17 220); letter-spacing:-0.03em;">{recipes.filter(r => r.is_shared).length}</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">Compartidas</div>
+		</div>
+		<div style="width:1px; height:2rem; background:rgba(255,255,255,0.08);"></div>
+		<div style="text-align:center;">
+			<div style="font-size:1.375rem; font-weight:800; color:oklch(80% 0.17 295); letter-spacing:-0.03em;">{sharedRecipes.length}</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">De amigos</div>
+		</div>
+	</div>
+</div>
+
+<!-- Filter chips -->
+<div style="display:flex; gap:0.4rem; margin-bottom:1rem; overflow-x:auto; padding-bottom:0.1rem; scrollbar-width:none;">
+	{#each [['all','Todas'],['own','Propias'],['shared','Compartidas'],['friends','De amigos']] as [val, label]}
+		<button
+			onclick={() => activeFilter = val as 'all'|'own'|'shared'|'friends'}
+			style="white-space:nowrap; font-size:0.75rem; padding:0.375rem 0.75rem; border-radius:99px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid {activeFilter===val ? 'oklch(75% 0.18 160 / 0.5)' : 'rgba(255,255,255,0.1)'}; background:{activeFilter===val ? 'oklch(75% 0.18 160 / 0.15)' : 'rgba(255,255,255,0.05)'}; color:{activeFilter===val ? 'oklch(85% 0.15 160)' : 'rgba(255,255,255,0.55)'}; flex-shrink:0;">
+			{label}
+		</button>
+	{/each}
 </div>
 
 <!-- ═══════════════════════════════════════ CREAR ═══════════════════════════ -->
@@ -341,7 +385,7 @@
 {/if}
 
 <!-- ═══════════════════════════════════════ MIS RECETAS ═════════════════════ -->
-{#each recipes as recipe (recipe.id)}
+{#each filteredRecipes as recipe (recipe.id)}
 	{#if editingRecipe?.id === recipe.id}
 		<!-- Edición inline -->
 		<div class="glass-card" style="margin-bottom:0.75rem; border-color:oklch(75% 0.18 165 / 0.4);">
@@ -449,7 +493,7 @@
 {/each}
 
 <!-- ═══════════════════════════════════ RECETAS DE AMIGOS ═══════════════════ -->
-{#if sharedRecipes.length > 0}
+{#if sharedRecipes.length > 0 && showFriendRecipes}
 	<div class="section-header" style="margin:1.25rem 0.25rem 0.625rem;">
 		<div style="font-size:0.8125rem; font-weight:700; color:#fff;">De tus amigos</div>
 		<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">Cópialas o regístralas</div>
@@ -487,6 +531,9 @@
 {#if error && !showCreate}
 	<p class="error">{error}</p>
 {/if}
+
+<!-- Bottom spacing for mobile nav -->
+<div style="height:6rem;"></div>
 
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}

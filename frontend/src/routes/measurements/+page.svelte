@@ -371,7 +371,7 @@
 	}
 	.modal-sheet {
 		width: 100%;
-		padding: 1.5rem 1.25rem 2.5rem;
+		padding: 1.5rem 1.25rem max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem));
 		background: rgba(18,20,26,0.92);
 		backdrop-filter: blur(40px) saturate(180%);
 		-webkit-backdrop-filter: blur(40px) saturate(180%);

@@ -237,13 +237,15 @@
 		return cells;
 	});
 	let isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
+	let adherenceDays = $derived(trendData.filter(d => goals?.kcal ? Math.abs(d.calories - goals.kcal) < 250 : false).length);
 </script>
 
-<!-- ── Tracking header ── -->
-<div class="trk-header">
+<!-- ── Header ── -->
+<div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
+	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; padding:0; font-family:inherit; flex-shrink:0; font-size:1rem;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 class="trk-title">Historial</h1>
-		<div class="trk-sub">Últimos {trendDays} días</div>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Historial</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Últimos 7 días</div>
 	</div>
 	<div style="display:flex; gap:0.3rem;">
 		<button class="csv-btn" onclick={() => exportCSV(true)}>CSV mes</button>
@@ -251,208 +253,106 @@
 	</div>
 </div>
 
-<!-- ── Trend Chart ── -->
-<div class="glass-card" style="margin-bottom:0.75rem;">
-	<!-- Header row: macro tabs + day toggle -->
-	<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.875rem; gap:0.5rem;">
-		<!-- Macro tabs -->
-		<div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
-			{#each Object.entries(MACRO_CONFIG) as [key, cfg]}
-				<button
-					onclick={() => trendMacro = key as TrendMacro}
-					class="macro-tab"
-					style="
-						border-color:{trendMacro === key ? cfg.color : 'rgba(255,255,255,0.1)'};
-						background:{trendMacro === key ? cfg.color + '22' : 'transparent'};
-						color:{trendMacro === key ? cfg.color : 'rgba(255,255,255,0.5)'};
-						font-weight:{trendMacro === key ? '700' : '400'};
-					"
-				>{cfg.label}</button>
-			{/each}
+{#if loadingTrend}
+	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">Cargando...</p>
+{:else}
+
+<!-- ── Summary stats ── -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem; margin-bottom:0.625rem;">
+	<!-- Media kcal -->
+	<div class="glass-card">
+		<div class="stat-eyebrow">Media kcal</div>
+		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
+			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendAvg.toLocaleString('es-ES')}</div>
+			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
 		</div>
-		<!-- Day range toggle -->
-		<div class="range-selector">
-			<button
-				onclick={() => trendDays = 7}
-				class="range-btn"
-				class:range-btn-active={trendDays === 7}
-			>7d</button>
-			<button
-				onclick={() => trendDays = 30}
-				class="range-btn"
-				class:range-btn-active={trendDays === 30}
-			>30d</button>
+		{#if goals?.kcal}
+			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
+				{trendAvg < goals.kcal ? '↓' : '↑'} {Math.abs(trendAvg - goals.kcal)} vs objetivo
+			</div>
+		{/if}
+	</div>
+	<!-- Adherencia -->
+	<div class="glass-card">
+		<div class="stat-eyebrow">Adherencia</div>
+		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
+			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendData.length > 0 ? Math.round(adherenceDays / trendData.length * 100) : 0}</div>
+			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>
+		</div>
+		<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); margin-top:0.25rem;">
+			{adherenceDays} de {trendData.length} días en rango
 		</div>
 	</div>
+</div>
 
-	{#if loadingTrend}
-		<div style="height:98px; display:flex; align-items:center; justify-content:center;">
-			<span style="font-size:0.8rem; color:var(--text-muted);">Cargando...</span>
-		</div>
-	{:else if trendData.length > 0}
-		{@const n = trendData.length}
-		{@const slotW = chartSlotW(n)}
-		{@const bW = chartBarW(n)}
-		{@const goalVal = chartGoalVal()}
-		{@const goalY = goalVal ? CHART_BAR_H - barH(goalVal, trendMax) : null}
-		{@const cfg = MACRO_CONFIG[trendMacro]}
-
-		<!-- Stats row: avg, max -->
-		<div style="display:flex; gap:1.25rem; margin-bottom:0.75rem;">
-			<div>
-				<div class="stat-lbl">Media</div>
-				<div class="stat-val" style="color:{cfg.color};">{trendAvg}<span class="stat-unit">{cfg.unit}</span></div>
-			</div>
-			<div>
-				<div class="stat-lbl">Máx</div>
-				<div class="stat-val">{trendPeak}<span class="stat-unit">{cfg.unit}</span></div>
-			</div>
-			{#if goalVal}
-				<div>
-					<div class="stat-lbl">Objetivo</div>
-					<div class="stat-val" style="color:rgba(255,255,255,0.5);">{Math.round(goalVal)}<span class="stat-unit">{cfg.unit}</span></div>
-				</div>
-			{/if}
-		</div>
-
-		<!-- SVG bar chart -->
-		<svg
-			viewBox="0 0 {CHART_W} {CHART_TOTAL_H}"
-			style="width:100%; height:98px; overflow:visible; display:block;"
-			preserveAspectRatio="none"
-		>
-			<!-- Goal reference line -->
-			{#if goalY !== null}
-				<line
-					x1="0" y1={goalY}
-					x2={CHART_W} y2={goalY}
-					stroke="var(--danger)" stroke-width="0.8"
-					stroke-dasharray="4,3" opacity="0.7"
-				/>
-			{/if}
-
+<!-- ── Bar chart ── -->
+<div class="glass-card" style="margin-bottom:0.625rem;">
+	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">Calorías por día</div>
+	{#if trendData.length > 0}
+		{@const goalKcal = goals?.kcal ?? 0}
+		{@const maxCal = Math.max(...trendData.map(d => d.calories), goalKcal, 1)}
+		<div style="display:flex; align-items:flex-end; gap:0.375rem; height:7.5rem;">
 			{#each trendData as d, i}
-				{@const val = d[trendMacro]}
-				{@const bh = barH(val, trendMax)}
-				{@const x = i * slotW + (slotW - bW) / 2}
-				{@const y = CHART_BAR_H - bh}
-				{@const isLabelDay = showDateLabel(i, n)}
-				{@const isTodayBar = isToday(d.date)}
-
-				<!-- Bar -->
-				<rect
-					x={x} y={y}
-					width={bW} height={bh}
-					fill={val > 0 ? cfg.color : 'var(--surface2)'}
-					opacity={isTodayBar ? 1 : 0.7}
-					rx="2"
-				/>
-
-				<!-- Today highlight -->
-				{#if isTodayBar && bh > 0}
-					<rect
-						x={x} y={y}
-						width={bW} height={bh}
-						fill="none"
-						stroke={cfg.color}
-						stroke-width="1"
-						rx="2"
-					/>
-				{/if}
-
-				<!-- Date label -->
-				{#if isLabelDay}
-					<text
-						x={x + bW / 2}
-						y={CHART_BAR_H + CHART_LABEL_H - 4}
-						text-anchor="middle"
-						font-size="7"
-						fill={isTodayBar ? cfg.color : 'var(--text-muted)'}
-						font-weight={isTodayBar ? '700' : '400'}
-					>{isLabelDay}</text>
-				{/if}
+				{@const pct = Math.min(100, (d.calories / maxCal) * 100)}
+				{@const over = goalKcal > 0 && d.calories > goalKcal + 100}
+				{@const under = goalKcal > 0 && d.calories > 0 && d.calories < goalKcal - 350}
+				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
+				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.3rem;">
+					{#if d.calories > 0}
+						<div style="font-size:0.5rem; color:rgba(255,255,255,0.4); line-height:1;">{Math.round(d.calories)}</div>
+					{:else}
+						<div style="font-size:0.5rem; color:transparent; line-height:1;">0</div>
+					{/if}
+					<div style="width:100%; border-radius:6px; min-height:3px; background:{d.calories === 0 ? 'rgba(255,255,255,0.06)' : over ? 'linear-gradient(180deg, oklch(75% 0.18 30), oklch(55% 0.2 20))' : under ? 'linear-gradient(180deg, oklch(75% 0.13 270), oklch(55% 0.15 270))' : 'linear-gradient(180deg, oklch(85% 0.18 160), oklch(65% 0.2 180))'}; height:{pct}%; box-shadow:{d.calories > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'};"></div>
+					<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); font-weight:600;">{dayLabel}</div>
+				</div>
 			{/each}
-		</svg>
-	{/if}
-</div>
-
-<!-- Month navigation -->
-<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
-	<button class="nav-btn" onclick={prevMonth}>◀</button>
-	<span style="font-weight:700; font-size:0.9375rem;">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-	<button class="nav-btn" onclick={nextMonth} disabled={isCurrentMonth}>▶</button>
-</div>
-
-<!-- Day headers -->
-<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px;">
-	{#each DAY_NAMES as name}
-		<div style="text-align:center; font-size:0.6875rem; color:rgba(255,255,255,0.4); font-weight:600; padding:0.25rem 0;">{name}</div>
-	{/each}
-</div>
-
-<!-- Calendar grid -->
-<div class="glass-card" style="padding:0.5rem;">
-	{#if loadingMonth}
-		<p style="text-align:center; color:var(--text-muted); padding:2rem 0; font-size:0.85rem;">Cargando...</p>
-	{:else}
-		<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">
-			{#each calendarDays as cell}
-				{#if cell.day === null}
-					<div></div>
-				{:else if isFuture(viewYear, viewMonth, cell.day)}
-					<div style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; opacity:0.2; font-size:0.8rem;">{cell.day}</div>
-				{:else}
-					{@const hasData = cell.date && monthData[cell.date] > 0}
-					{@const isSelected = cell.date === selectedDay}
-					{@const isTodayCell = cell.date ? isToday(cell.date) : false}
-					{@const tookCreatine = trackCreatine && cell.date ? creatineDates.has(cell.date) : false}
-					{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
-					<button
-						onclick={() => cell.date && selectDay(cell.date)}
-						style="
-							aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-							border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative;
-							border: {isSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'};
-							background: {isSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'};
-							font-weight: {isTodayCell ? '700' : '400'};
-							color: {isTodayCell ? 'var(--primary)' : 'var(--text)'};
-							transition: border-color 0.15s;
-						">
-						<span>{cell.day}</span>
-						{#if hasData && cell.date}
-							<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
-						{/if}
-						{#if tookCreatine}
-							<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;">💊</span>
-						{/if}
-						{#if didExercise}
-							<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;">💪</span>
-						{/if}
-					</button>
-				{/if}
-			{/each}
+		</div>
+		<!-- Legend -->
+		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(75% 0.18 180);"></div> En rango</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(65% 0.18 30);"></div> Exceso</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(65% 0.14 270);"></div> Déficit</div>
 		</div>
 	{/if}
 </div>
 
-<!-- Legend -->
-<div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin:0.75rem 0; font-size:0.72rem; color:var(--text-muted);">
-	<span>Intensidad:</span>
-	{#each ['<1200','1200-1800','1800-2400','>2400'] as label, i}
-		<span style="display:flex; align-items:center; gap:3px;">
-			<span style="width:12px; height:12px; border-radius:3px; background:{['rgba(79,255,153,0.25)','rgba(79,255,153,0.45)','rgba(79,255,153,0.65)','rgba(79,255,153,0.85)'][i]}; display:inline-block;"></span>
-			{label}
-		</span>
+<!-- ── Day list ── -->
+<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:1.25rem 0.25rem 0.625rem;">Días</div>
+<div class="glass-card" style="padding:0.375rem;">
+	{#each [...trendData].reverse() as d, i}
+		{@const goalKcal2 = goals?.kcal ?? 0}
+		{@const over2 = goalKcal2 > 0 && d.calories > goalKcal2 + 100}
+		{@const under2 = goalKcal2 > 0 && d.calories > 0 && d.calories < goalKcal2 - 350}
+		{@const statusColor = over2 ? 'oklch(75% 0.18 30)' : under2 ? 'oklch(75% 0.13 270)' : 'oklch(85% 0.17 160)'}
+		{@const isSelected = selectedDay === d.date}
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div
+			onclick={() => selectDay(d.date)}
+			style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < trendData.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'}; cursor:pointer; border-radius:12px; background:{isSelected ? 'rgba(255,255,255,0.05)' : 'transparent'};"
+		>
+			<!-- Date box -->
+			<div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+				<div style="font-size:0.5625rem; color:rgba(255,255,255,0.4); line-height:1;">{d.date.slice(5,7)}</div>
+				<div style="font-size:0.875rem; font-weight:700; color:#fff; line-height:1;">{d.date.slice(8,10)}</div>
+			</div>
+			<div style="flex:1; min-width:0;">
+				<div style="font-size:0.8125rem; font-weight:600; display:flex; align-items:center; gap:0.375rem;">
+					{isToday(d.date) ? 'Hoy' : new Date(d.date + 'T12:00').toLocaleDateString('es', { weekday:'short' })}
+					<div style="width:6px; height:6px; border-radius:99px; background:{d.calories > 0 ? statusColor : 'rgba(255,255,255,0.2)'};"></div>
+				</div>
+				<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
+					{d.calories > 0 ? `${Math.round(d.calories)} kcal · P ${Math.round(d.protein)}g · C ${Math.round(d.carbs)}g · G ${Math.round(d.fat)}g` : 'Sin registros'}
+				</div>
+			</div>
+			<div style="font-size:0.625rem; color:rgba(255,255,255,0.3);">›</div>
+		</div>
 	{/each}
-	{#if trackCreatine}
-		<span style="display:flex; align-items:center; gap:3px;">💊 Creatina tomada</span>
-	{/if}
-	<span style="display:flex; align-items:center; gap:3px;">💪 Ejercicio</span>
 </div>
 
-<!-- Day detail -->
+<!-- ── Day detail ── -->
 {#if selectedDay}
-	<div style="margin-top:0.75rem;">
+	<div style="margin-top:1rem;">
 		<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff;">
 				{new Date(selectedDay + 'T12:00').toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' })}
@@ -464,21 +364,21 @@
 		{:else if selectedSummary && selectedSummary.entries.length > 0}
 			<div class="glass-card" style="margin-bottom:0.75rem;">
 				<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.5rem;">
-					<div class="day-macro">
-						<div class="day-macro-lbl">Kcal</div>
-						<div class="day-macro-val" style="color:oklch(85% 0.17 55);">{Math.round(selectedSummary.totals.calories)}</div>
+					<div style="text-align:center;">
+						<div class="stat-eyebrow">Kcal</div>
+						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(85% 0.17 55);">{Math.round(selectedSummary.totals.calories)}</div>
 					</div>
-					<div class="day-macro">
-						<div class="day-macro-lbl">Prot</div>
-						<div class="day-macro-val" style="color:oklch(78% 0.14 220);">{Math.round(selectedSummary.totals.protein)}g</div>
+					<div style="text-align:center;">
+						<div class="stat-eyebrow">Prot</div>
+						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(78% 0.14 220);">{Math.round(selectedSummary.totals.protein)}g</div>
 					</div>
-					<div class="day-macro">
-						<div class="day-macro-lbl">Carb</div>
-						<div class="day-macro-val" style="color:oklch(78% 0.16 275);">{Math.round(selectedSummary.totals.carbs)}g</div>
+					<div style="text-align:center;">
+						<div class="stat-eyebrow">Carb</div>
+						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(78% 0.16 275);">{Math.round(selectedSummary.totals.carbs)}g</div>
 					</div>
-					<div class="day-macro">
-						<div class="day-macro-lbl">Grasa</div>
-						<div class="day-macro-val" style="color:oklch(75% 0.17 25);">{Math.round(selectedSummary.totals.fat)}g</div>
+					<div style="text-align:center;">
+						<div class="stat-eyebrow">Grasa</div>
+						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(75% 0.17 25);">{Math.round(selectedSummary.totals.fat)}g</div>
 					</div>
 				</div>
 			</div>
@@ -512,27 +412,94 @@
 	</div>
 {/if}
 
+<!-- ── Calendar section ── -->
+<div style="margin-top:1.5rem;">
+	<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin-bottom:0.75rem;">Calendario</div>
+
+	<!-- Month navigation -->
+	<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+		<button class="nav-btn" onclick={prevMonth}>◀</button>
+		<span style="font-weight:700; font-size:0.9375rem;">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+		<button class="nav-btn" onclick={nextMonth} disabled={isCurrentMonth}>▶</button>
+	</div>
+
+	<!-- Day headers -->
+	<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px;">
+		{#each DAY_NAMES as name}
+			<div style="text-align:center; font-size:0.6875rem; color:rgba(255,255,255,0.4); font-weight:600; padding:0.25rem 0;">{name}</div>
+		{/each}
+	</div>
+
+	<!-- Calendar grid -->
+	<div class="glass-card" style="padding:0.5rem;">
+		{#if loadingMonth}
+			<p style="text-align:center; color:rgba(255,255,255,0.4); padding:2rem 0; font-size:0.85rem;">Cargando...</p>
+		{:else}
+			<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">
+				{#each calendarDays as cell}
+					{#if cell.day === null}
+						<div></div>
+					{:else if isFuture(viewYear, viewMonth, cell.day)}
+						<div style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; opacity:0.2; font-size:0.8rem;">{cell.day}</div>
+					{:else}
+						{@const hasData = cell.date && monthData[cell.date] > 0}
+						{@const isCalSelected = cell.date === selectedDay}
+						{@const isTodayCell = cell.date ? isToday(cell.date) : false}
+						{@const tookCreatine = trackCreatine && cell.date ? creatineDates.has(cell.date) : false}
+						{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
+						<button
+							onclick={() => cell.date && selectDay(cell.date)}
+							style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative; border:{isCalSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'}; background:{isCalSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'}; font-weight:{isTodayCell ? '700' : '400'}; color:{isTodayCell ? 'var(--primary)' : 'var(--text)'}; transition:border-color 0.15s;">
+							<span>{cell.day}</span>
+							{#if hasData && cell.date}
+								<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
+							{/if}
+							{#if tookCreatine}
+								<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;">💊</span>
+							{/if}
+							{#if didExercise}
+								<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;">💪</span>
+							{/if}
+						</button>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+	</div>
+
+	<!-- Legend -->
+	<div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin:0.75rem 0; font-size:0.72rem; color:var(--text-muted);">
+		{#each ['<1200','1200-1800','1800-2400','>2400'] as lbl, i}
+			<span style="display:flex; align-items:center; gap:3px;">
+				<span style="width:12px; height:12px; border-radius:3px; background:{['rgba(79,255,153,0.25)','rgba(79,255,153,0.45)','rgba(79,255,153,0.65)','rgba(79,255,153,0.85)'][i]}; display:inline-block;"></span>
+				{lbl}
+			</span>
+		{/each}
+		{#if trackCreatine}<span>💊 Creatina</span>{/if}
+		<span>💪 Ejercicio</span>
+	</div>
+</div>
+
+{/if}
+
+<!-- Bottom spacing -->
+<div style="height:6rem;"></div>
+
 <style>
-	/* ── Header ── */
-	.trk-header {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.25rem 0 0.875rem;
+	.glass-card {
+		background: rgba(255,255,255,0.05);
+		backdrop-filter: blur(24px) saturate(160%);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 20px;
+		padding: 1rem;
 	}
-	.trk-title {
-		font-size: 1.875rem;
-		font-weight: 400;
-		letter-spacing: -0.05em;
-		color: #fff;
-		line-height: 1;
-		margin: 0;
-		font-family: 'Lora', 'Georgia', serif;
-	}
-	.trk-sub {
-		font-size: 0.6875rem;
+	.stat-eyebrow {
+		font-size: 0.625rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 		color: rgba(255,255,255,0.5);
-		margin-top: 0.25rem;
+		font-weight: 700;
 	}
 	.csv-btn {
 		padding: 0.25rem 0.5rem;
@@ -544,75 +511,7 @@
 		font-weight: 600;
 		font-family: inherit;
 		cursor: pointer;
-		transition: background 0.15s;
 	}
-	.csv-btn:hover { background: rgba(255,255,255,0.12); }
-
-	/* ── Glass card ── */
-	.glass-card {
-		background: rgba(255,255,255,0.05);
-		backdrop-filter: blur(24px) saturate(160%);
-		-webkit-backdrop-filter: blur(24px) saturate(160%);
-		border: 1px solid rgba(255,255,255,0.09);
-		border-radius: 20px;
-		padding: 1rem;
-	}
-
-	/* ── Macro tab ── */
-	.macro-tab {
-		font-size: 0.72rem;
-		padding: 0.2rem 0.55rem;
-		border-radius: 20px;
-		border: 1px solid;
-		cursor: pointer;
-		transition: all 0.15s;
-		font-family: inherit;
-	}
-
-	/* ── Range selector ── */
-	.range-selector {
-		display: flex;
-		border: 1px solid rgba(255,255,255,0.1);
-		border-radius: 8px;
-		overflow: hidden;
-		flex-shrink: 0;
-	}
-	.range-btn {
-		font-size: 0.75rem;
-		padding: 0.25rem 0.6rem;
-		border: none;
-		cursor: pointer;
-		background: transparent;
-		color: rgba(255,255,255,0.5);
-		font-weight: 400;
-		font-family: inherit;
-		transition: background 0.15s, color 0.15s;
-	}
-	.range-btn-active {
-		background: rgba(255,255,255,0.12);
-		color: #fff;
-		font-weight: 700;
-	}
-
-	/* ── Stats ── */
-	.stat-lbl {
-		font-size: 0.625rem;
-		color: rgba(255,255,255,0.5);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-	.stat-val {
-		font-size: 1rem;
-		font-weight: 800;
-		color: #fff;
-	}
-	.stat-unit {
-		font-size: 0.625rem;
-		font-weight: 400;
-		margin-left: 1px;
-	}
-
-	/* ── Nav buttons ── */
 	.nav-btn {
 		padding: 0.375rem 0.75rem;
 		border-radius: 10px;
@@ -622,13 +521,6 @@
 		font-size: 0.75rem;
 		cursor: pointer;
 		font-family: inherit;
-		transition: background 0.15s;
 	}
-	.nav-btn:hover { background: rgba(255,255,255,0.1); }
 	.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-	/* ── Day detail macros ── */
-	.day-macro { text-align: center; }
-	.day-macro-lbl { font-size: 0.6rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-	.day-macro-val { font-size: 1.125rem; font-weight: 800; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
 </style>

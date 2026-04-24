@@ -245,6 +245,14 @@
 {:else}
 	<DayNav bind:date={today} {streak} />
 
+	{#if isToday && streak > 0}
+		<div style="display:flex; justify-content:center; margin-bottom:1rem;">
+			<div style="display:inline-flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:99px; background:linear-gradient(135deg, oklch(75% 0.18 40 / 0.18), oklch(75% 0.18 40 / 0.05)); border:1px solid oklch(75% 0.18 45 / 0.35); font-size:0.75rem; font-weight:600; color:oklch(85% 0.15 55);">
+				🔥 {streak} días de racha
+			</div>
+		</div>
+	{/if}
+
 	{#if recipeSaveSuccess}
 		<div class="card" style="margin-bottom:0.75rem; border-color:var(--primary); color:var(--primary); font-size:0.85rem; padding:0.65rem 0.8rem;">
 			{recipeSaveSuccess}
