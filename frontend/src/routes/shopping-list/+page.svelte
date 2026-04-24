@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Product, Recipe, ShoppingListItem } from '$lib/types';
+	import { GlassHeader, Modal, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -138,11 +139,11 @@
 	}
 </script>
 
-<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1.25rem;">
-	<button class="btn-secondary" onclick={() => goto('/settings')}
-		style="padding:0.4rem 0.7rem; font-size:0.85rem;">‹</button>
-	<h1 style="margin:0; font-size:1.3rem; font-weight:800;">Lista de la compra</h1>
-</div>
+<GlassHeader title="Lista de la compra">
+	{#snippet left()}
+		<button class="btn-ghost" onclick={() => goto('/settings')} style="font-size:1.1rem; padding:0.3rem 0.6rem;">‹</button>
+	{/snippet}
+</GlassHeader>
 
 <!-- Actions bar -->
 <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
@@ -297,51 +298,32 @@
 
 <!-- Recipe modal -->
 {#if showRecipeModal}
-	<div style="
-		position:fixed; inset:0; background:rgba(0,0,0,0.7);
-		display:flex; align-items:flex-end; justify-content:center;
-		z-index:100; padding:0 0 env(safe-area-inset-bottom,0);
-	" onclick={(e) => { if (e.target === e.currentTarget) { showRecipeModal = false; generateMsg = ''; } }}>
-		<div style="
-			background:var(--surface); border-radius:20px 20px 0 0;
-			padding:1.25rem; width:100%; max-width:480px; max-height:70vh; overflow-y:auto;
-		">
-			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-				<div style="font-weight:800; font-size:1rem;">Generar desde receta</div>
-				<button onclick={() => { showRecipeModal = false; generateMsg = ''; }}
-					style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--text-muted);">✕</button>
+	<Modal onClose={() => { showRecipeModal = false; generateMsg = ''; }} title="Generar desde receta" subtitle="Se añadirán los ingredientes que falten en el inventario">
+		{#if generateMsg}
+			<div style="background:var(--surface2); border-radius:8px; padding:0.6rem 0.75rem; margin-bottom:0.75rem; font-size:0.85rem; color:var(--primary); font-weight:600;">
+				{generateMsg}
 			</div>
+		{/if}
 
-			<p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 0.75rem;">
-				Se añadirán a la lista los ingredientes que falten en tu inventario.
-			</p>
-
-			{#if generateMsg}
-				<div style="background:var(--surface2); border-radius:8px; padding:0.6rem 0.75rem; margin-bottom:0.75rem; font-size:0.85rem; color:var(--primary); font-weight:600;">
-					{generateMsg}
-				</div>
-			{/if}
-
-			{#if loadingRecipes}
-				<p style="text-align:center; color:var(--text-muted);">Cargando recetas...</p>
-			{:else if recipes.length === 0}
-				<p style="text-align:center; color:var(--text-muted);">No tienes recetas guardadas.</p>
-			{:else}
-				{#each recipes as recipe (recipe.id)}
-					<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-						<div>
-							<div style="font-weight:600;">{recipe.name}</div>
-							<div style="font-size:0.75rem; color:var(--text-muted);">{recipe.ingredients.length} ingredientes</div>
-						</div>
-						<button
-							onclick={() => generateFromRecipe(recipe.id)}
-							disabled={generatingId === recipe.id}
-							style="font-size:0.8rem; padding:0.4rem 0.75rem;">
-							{generatingId === recipe.id ? '...' : 'Añadir'}
-						</button>
+		{#if loadingRecipes}
+			<p style="text-align:center; color:var(--text-muted);">Cargando recetas...</p>
+		{:else if recipes.length === 0}
+			<EmptyState icon="🍳" title="Sin recetas" description="Crea recetas desde la pestaña Recetas" />
+		{:else}
+			{#each recipes as recipe (recipe.id)}
+				<div class="card" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+					<div>
+						<div style="font-weight:600;">{recipe.name}</div>
+						<div style="font-size:0.75rem; color:var(--text-muted);">{recipe.ingredients.length} ingredientes</div>
 					</div>
-				{/each}
-			{/if}
-		</div>
-	</div>
+					<button
+						onclick={() => generateFromRecipe(recipe.id)}
+						disabled={generatingId === recipe.id}
+						style="font-size:0.8rem; padding:0.4rem 0.75rem;">
+						{generatingId === recipe.id ? '...' : 'Añadir'}
+					</button>
+				</div>
+			{/each}
+		{/if}
+	</Modal>
 {/if}

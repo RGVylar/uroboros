@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Friendship } from '$lib/types';
+	import { GlassHeader, Modal } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -85,12 +86,11 @@
 	}
 </script>
 
-<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem;">
-	<button class="btn-secondary" onclick={() => goto('/settings')} style="padding:0.35rem 0.6rem; font-size:0.85rem;">
-		←
-	</button>
-	<h1 style="margin:0; font-size:1.2rem; font-weight:800;">Amigos</h1>
-</div>
+<GlassHeader title="Amigos">
+	{#snippet left()}
+		<button class="btn-ghost" onclick={() => goto('/settings')} style="font-size:1rem; padding:0.3rem 0.6rem;">←</button>
+	{/snippet}
+</GlassHeader>
 
 <!-- Añadir amigo -->
 <div class="card" style="margin-bottom:1.25rem;">
@@ -212,23 +212,10 @@
 
 <!-- Delete confirmation modal -->
 {#if confirmDeleteId !== null}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div onclick={() => confirmDeleteId = null} style="
-		position:fixed; inset:0; background:rgba(0,0,0,0.6);
-		display:flex; align-items:center; justify-content:center;
-		z-index:100; padding:1.5rem;
-	">
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-		<div onclick={(e) => e.stopPropagation()} class="card" style="width:100%; max-width:320px; text-align:center;">
-			<div style="font-size:1.5rem; margin-bottom:0.5rem;">👥</div>
-			<div style="font-weight:700; font-size:1rem; margin-bottom:0.4rem;">¿Eliminar amigo?</div>
-			<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1.25rem;">
-				Se eliminará la amistad y los permisos asociados.
-			</div>
-			<div style="display:flex; gap:0.5rem;">
-				<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">Cancelar</button>
-				<button class="btn-danger" onclick={confirmRemove} style="flex:1; font-weight:700;">Eliminar</button>
-			</div>
+	<Modal onClose={() => confirmDeleteId = null} title="¿Eliminar amigo?" subtitle="Se eliminará la amistad y los permisos asociados.">
+		<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+			<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">Cancelar</button>
+			<button class="btn-danger" onclick={confirmRemove} style="flex:1;">Eliminar</button>
 		</div>
-	</div>
+	</Modal>
 {/if}

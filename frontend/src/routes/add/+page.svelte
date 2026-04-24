@@ -6,6 +6,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Product, User, DiaryEntry, MealType, RecommendedProduct } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import { GlassHeader } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -253,7 +254,11 @@
 </script>
 
 {#if selected}
-	<h1>Registrar comida</h1>
+	<GlassHeader title="Registrar" subtitle={selected.name}>
+		{#snippet left()}
+			<button class="btn-ghost" onclick={() => selected = null} style="font-size:1rem; padding:0.3rem 0.6rem;">←</button>
+		{/snippet}
+	</GlassHeader>
 	<div class="card" style="margin-bottom:1rem;">
 		<div style="font-weight:700;">{selected.name}</div>
 		{#if selected.brand}<div style="color:var(--text-muted); font-size:0.85rem;">{selected.brand}</div>{/if}
@@ -269,12 +274,13 @@
 
 	<div class="form-group">
 		<label>Tipo de comida</label>
-		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
+		<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
 			{#each MEAL_ORDER as mt}
 				<button
 					onclick={() => mealType = mt}
-					class:btn-secondary={mealType !== mt}
-					style="font-size:0.75rem; padding:0.4rem 0.2rem;">
+					class="chip"
+					class:active={mealType === mt}
+					style="font-size:0.75rem;">
 					{MEAL_LABELS[mt]}
 				</button>
 			{/each}
@@ -344,7 +350,11 @@
 	</div>
 
 {:else if showManual}
-	<h1>Producto manual</h1>
+	<GlassHeader title="Producto manual">
+		{#snippet left()}
+			<button class="btn-ghost" onclick={() => showManual = false} style="font-size:1rem; padding:0.3rem 0.6rem;">←</button>
+		{/snippet}
+	</GlassHeader>
 	<div class="form-group"><label for="m-name">Nombre</label><input id="m-name" bind:value={manualName} required /></div>
 	<div class="form-group"><label for="m-brand">Marca (opcional)</label><input id="m-brand" bind:value={manualBrand} /></div>
 	<div class="form-group"><label for="m-cal">Kcal / 100g</label><input id="m-cal" type="number" bind:value={manualCal} min="0" step="0.1" /></div>
@@ -360,7 +370,7 @@
 	</div>
 
 {:else}
-	<h1>Añadir comida</h1>
+	<GlassHeader title="Añadir comida" />
 
 	{#if !loadingRecs && recommendations.length > 0}
 		<div style="margin-bottom:1.5rem;">

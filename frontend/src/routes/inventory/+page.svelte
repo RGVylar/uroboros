@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { CostSummary, InventoryItem, Product } from '$lib/types';
+	import { GlassHeader, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -192,11 +193,11 @@
 	);
 </script>
 
-<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1.25rem;">
-	<button class="btn-secondary" onclick={() => goto('/settings')}
-		style="padding:0.4rem 0.7rem; font-size:0.85rem;">‹</button>
-	<h1 style="margin:0; font-size:1.3rem; font-weight:800;">Inventario</h1>
-</div>
+<GlassHeader title="Inventario">
+	{#snippet left()}
+		<button class="btn-ghost" onclick={() => goto('/settings')} style="font-size:1.1rem; padding:0.3rem 0.6rem;">‹</button>
+	{/snippet}
+</GlassHeader>
 
 <!-- Cost summary -->
 {#if cost && (cost.today !== null || cost.this_week !== null || cost.this_month !== null)}

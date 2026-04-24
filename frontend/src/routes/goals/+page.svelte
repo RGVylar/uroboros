@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Goals } from '$lib/types';
+	import { GlassHeader } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -93,7 +94,7 @@
 		<p style="color:var(--text-muted);">Configura tus objetivos diarios para empezar a trackear</p>
 	</div>
 {:else}
-	<h1>Objetivos diarios</h1>
+	<GlassHeader title="Objetivos diarios" />
 {/if}
 
 {#if loading}

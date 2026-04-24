@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
+	import { GlassHeader, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -184,7 +185,7 @@
 	const UNIT_SUGGESTIONS = ['repeticiones', 'minutos', 'segundos', 'km', 'series', 'pasos'];
 </script>
 
-<h1>Ejercicios</h1>
+<GlassHeader title="Ejercicios" />
 
 <!-- ═══════════════════════ MIS EJERCICIOS ════════════════════════════════ -->
 <button
@@ -241,9 +242,7 @@
 	{/if}
 
 	{#if myExercises.length === 0 && !showNewForm}
-		<p style="font-size:0.85rem; color:var(--text-muted); padding:0.5rem 0 1rem;">
-			Aún no tienes ejercicios propios. ¡Crea uno o usa los predefinidos!
-		</p>
+		<EmptyState icon="💪" title="Sin ejercicios propios" description="Crea uno o usa los predefinidos" />
 	{/if}
 
 	{#each myExercises as ex (ex.id)}

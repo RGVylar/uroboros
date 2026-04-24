@@ -4,6 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import type { Goals } from '$lib/types';
+	import { GlassHeader } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -60,7 +61,7 @@
 	}
 </script>
 
-<h1 style="font-size:1.3rem; font-weight:800; margin-bottom:1.25rem;">Ajustes</h1>
+<GlassHeader title="Ajustes" />
 
 <!-- User info -->
 <div class="card" style="margin-bottom:1rem;">

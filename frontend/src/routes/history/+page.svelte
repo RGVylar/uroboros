@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api';
 	import type { DaySummary, Goals } from '$lib/types';
+	import { GlassHeader, EmptyState, MealHeader } from '$lib/components';
 
 	function exportCSV(month?: boolean) {
 		const token = auth.token;
@@ -238,13 +239,14 @@
 	let isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
 </script>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-	<h1 style="margin:0;">Historial</h1>
-	<div style="display:flex; gap:0.4rem;">
-		<button class="btn-secondary" onclick={() => exportCSV(true)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">CSV mes</button>
-		<button class="btn-secondary" onclick={() => exportCSV(false)} style="font-size:0.75rem; padding:0.35rem 0.6rem;">CSV todo</button>
-	</div>
-</div>
+<GlassHeader title="Historial">
+	{#snippet right()}
+		<div style="display:flex; gap:0.3rem;">
+			<button class="btn-ghost" onclick={() => exportCSV(true)} style="font-size:0.7rem; padding:0.25rem 0.45rem;">CSV mes</button>
+			<button class="btn-ghost" onclick={() => exportCSV(false)} style="font-size:0.7rem; padding:0.25rem 0.45rem;">CSV todo</button>
+		</div>
+	{/snippet}
+</GlassHeader>
 
 <!-- ── Trend Chart ── -->
 <div class="card" style="margin-bottom:1rem;">
@@ -482,10 +484,7 @@
 			</div>
 			{#each selectedSummary.meals as meal (meal.meal_type)}
 				<div style="margin-bottom:0.75rem;">
-					<div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; padding:0 0.25rem;">
-						<span style="font-weight:700; font-size:0.85rem;">{meal.label}</span>
-						<span style="font-size:0.8rem; color:var(--cal);">{Math.round(meal.totals.calories)} kcal</span>
-					</div>
+					<MealHeader label={meal.label} kcal={meal.totals.calories} protein={meal.totals.protein} hasEntries={meal.entries.length > 0} />
 					{#each meal.entries as entry (entry.id)}
 						<div class="card" style="margin-bottom:0.3rem; padding:0.6rem; display:flex; justify-content:space-between; align-items:center;">
 							<div>
@@ -501,7 +500,7 @@
 				</div>
 			{/each}
 		{:else}
-			<p style="text-align:center; color:var(--text-muted); padding:1rem 0; font-size:0.85rem;">Sin registros este día.</p>
+			<EmptyState icon="📅" title="Sin registros" description="Este día no tiene entradas" />
 		{/if}
 	</div>
 {/if}

@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { WeightLog } from '$lib/types';
+	import { GlassHeader, StatPill, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -72,7 +73,7 @@
 	);
 </script>
 
-<h1>Registro de peso</h1>
+<GlassHeader title="Peso" subtitle="Últimos 30 días" />
 
 <!-- Add form -->
 <div class="card" style="margin-bottom:1rem;">
@@ -89,23 +90,10 @@
 {#if chartData.length >= 2}
 	<div class="card" style="margin-bottom:1rem;">
 		<!-- Stats row -->
-		<div style="display:flex; gap:1.5rem; margin-bottom:0.75rem; align-items:flex-end;">
-			<div>
-				<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Actual</div>
-				<div style="font-size:1.3rem; font-weight:800; color:var(--primary); line-height:1;">{weights[0].weight}<span style="font-size:0.75rem; font-weight:400;"> kg</span></div>
-			</div>
-			{#if change !== null}
-				<div>
-					<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Cambio total</div>
-					<div style="font-size:1.1rem; font-weight:700; color:{change > 0 ? 'var(--danger)' : change < 0 ? 'var(--primary)' : 'var(--text-muted)'}; line-height:1;">
-						{change > 0 ? '+' : ''}{change.toFixed(1)}<span style="font-size:0.75rem; font-weight:400;"> kg</span>
-					</div>
-				</div>
-			{/if}
-			<div style="margin-left:auto; text-align:right;">
-				<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Registros</div>
-				<div style="font-size:1.1rem; font-weight:700; color:var(--text-muted);">{weights.length}</div>
-			</div>
+		<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-bottom:0.75rem;">
+			<StatPill value={weights[0].weight.toFixed(1)} unit="kg" label="Actual" trend={change ?? undefined} trendBetterIsDown />
+			<StatPill value={change !== null ? (change > 0 ? '+' : '') + change.toFixed(1) : '—'} unit={change !== null ? 'kg' : ''} label="Cambio" />
+			<StatPill value={weights.length} label="Registros" />
 		</div>
 
 		<!-- SVG line chart -->

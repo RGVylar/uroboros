@@ -4,6 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import { GlassHeader, Modal, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -232,7 +233,7 @@
 	}
 </script>
 
-<h1>Recetas</h1>
+<GlassHeader title="Recetas" />
 
 <!-- ═══════════════════════════════════════ CREAR ═══════════════════════════ -->
 {#if showCreate}
@@ -310,9 +311,7 @@
 {/if}
 
 {#if recipes.length === 0 && !showCreate}
-	<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">
-		Sin recetas aún. Crea una para registrar comidas más rápido.
-	</p>
+	<EmptyState icon="🍳" title="Sin recetas" description="Crea una para registrar comidas más rápido" />
 {/if}
 
 <!-- ═══════════════════════════════════════ MIS RECETAS ═════════════════════ -->
@@ -452,31 +451,23 @@
 
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}
-	<div
-		style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:flex-end; justify-content:center; z-index:100;"
-		onclick={(e) => { if (e.target === e.currentTarget) logPendingRecipe = null; }}
-	>
-		<div style="background:var(--surface); border-radius:20px 20px 0 0; padding:1.25rem; width:100%; max-width:480px;">
-			<div style="font-weight:800; font-size:1rem; margin-bottom:0.25rem;">¿A qué comida lo añades?</div>
-			<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">{logPendingRecipe.name}</div>
-
-			<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
-				{#each MEAL_ORDER as mt}
-					<button
-						onclick={() => logMealType = mt}
-						class:btn-secondary={logMealType !== mt}
-						style="font-size:0.78rem; padding:0.5rem 0.2rem;">
-						{MEAL_LABELS[mt]}
-					</button>
-				{/each}
-			</div>
-
-			<div style="display:flex; gap:0.5rem;">
-				<button class="btn-secondary" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
-				<button onclick={confirmLog} disabled={logging} style="flex:2;">
-					{logging ? 'Registrando...' : 'Registrar'}
+	<Modal onClose={() => logPendingRecipe = null} title="¿A qué comida lo añades?" subtitle={logPendingRecipe.name}>
+		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
+			{#each MEAL_ORDER as mt}
+				<button
+					onclick={() => logMealType = mt}
+					class="chip"
+					class:active={logMealType === mt}
+					style="font-size:0.78rem;">
+					{MEAL_LABELS[mt]}
 				</button>
-			</div>
+			{/each}
 		</div>
-	</div>
+		<div style="display:flex; gap:0.5rem;">
+			<button class="btn-secondary" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
+			<button onclick={confirmLog} disabled={logging} style="flex:2;">
+				{logging ? 'Registrando...' : 'Registrar'}
+			</button>
+		</div>
+	</Modal>
 {/if}

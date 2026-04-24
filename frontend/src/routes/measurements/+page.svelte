@@ -4,6 +4,7 @@
 	import { MEASUREMENT_COLORS, MEASUREMENT_FIELDS } from '$lib/measurements';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { BodyMeasurementLog } from '$lib/types';
+	import { GlassHeader, EmptyState } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -131,10 +132,7 @@
 	let showChart = $derived.by(() => chartData.length >= 2 && keysInChart.length > 0);
 </script>
 
-<h1>Registro de medidas</h1>
-<p style="font-size:0.85rem; color:var(--text-muted); margin:-0.5rem 0 1rem;">
-	Centímetros (cm). Rellena las zonas que quieras en cada registro.
-</p>
+<GlassHeader title="Medidas" subtitle="Centímetros · rellena las zonas que quieras" />
 
 <div class="card" style="margin-bottom:1rem;">
 	<div
