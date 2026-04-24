@@ -100,8 +100,11 @@
 	<nav class="bottom" aria-label="Navegación principal">
 		{#each mobileNav as item}
 			{#if 'fab' in item}
+				<!-- FAB centrado, flota por encima del pill -->
 				<a href="/add" class="nav-fab-link" aria-label="Añadir comida">
-					<span class="nav-fab-icon" aria-hidden="true">＋</span>
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+						<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+					</svg>
 				</a>
 			{:else}
 				{@const link = item as NavLink}
@@ -110,7 +113,31 @@
 					class:active={page.url.pathname === link.href}
 					aria-current={page.url.pathname === link.href ? 'page' : undefined}
 				>
-					<span class="icon" aria-hidden="true">{link.icon}</span>
+					<!-- SVG icons por ruta -->
+					{#if link.href === '/'}
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<rect x="4" y="4" width="16" height="16" rx="4"
+								fill={page.url.pathname === '/' ? 'oklch(85% 0.17 160 / 0.2)' : 'none'}
+								stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						</svg>
+					{:else if link.href === '/history'}
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						</svg>
+					{:else if link.href === '/recipes'}
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M6 11h12v1a6 6 0 01-6 6h0a6 6 0 01-6-6v-1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M7 8c0-1 1-2 2-2s2 1 2 2M13 7c0-1 1-2 2-2s2 1 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						</svg>
+					{:else if link.href === '/settings'}
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						</svg>
+					{/if}
 					<span>{link.label}</span>
 					{#if link.href === '/settings' && pendingFriends.count > 0}
 						<span class="nav-badge" aria-label="{pendingFriends.count} solicitudes pendientes">
