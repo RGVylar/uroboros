@@ -31,12 +31,22 @@
 	function onKey(e: KeyboardEvent) {
 		if (e.key === 'Escape' && dismissable) onClose();
 	}
+
+	// Teleport: mueve el nodo a document.body para escapar del stacking context
+	// del .container (z-index:1), que quedaba por debajo del nav (z-index:100).
+	function teleport(node: HTMLElement) {
+		document.body.appendChild(node);
+		return {
+			destroy() { node.remove(); }
+		};
+	}
 </script>
 
 <svelte:window onkeydown={onKey} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
+	use:teleport
 	class="backdrop"
 	onclick={(e) => { if (dismissable && e.target === e.currentTarget) onClose(); }}
 	role="dialog"
