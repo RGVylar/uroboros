@@ -268,158 +268,124 @@
 		<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">Cargando...</p>
 	{:else if summary}
 
-		<!-- Hero calories card -->
-		<div class="card" style="margin-bottom:1rem; margin-top:0.75rem;">
-			{#if goals}
-				<CalorieRing
-					consumed={summary.totals.calories}
-					goal={goals.kcal}
-					burned={summary.calories_burned}
-					net={summary.net_calories}
-				/>
-				<div style="height:1rem;"></div>
+		<div class="diary-body">
 
-				<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
-					<MacroBar label="Prot"  value={summary.totals.protein} goal={goals.protein} color="var(--prot)" />
-					<MacroBar label="Carb"  value={summary.totals.carbs}   goal={goals.carbs}   color="var(--carb)" />
-					<MacroBar label="Grasa" value={summary.totals.fat}     goal={goals.fat}     color="var(--fat)" />
-				</div>
+		<!-- ── LEFT: stats panel ── -->
+		<div class="diary-left">
 
-			{:else}
-				<!-- No goals -->
-				<div style="display:flex; justify-content:space-between; align-items:center;">
-					<div>
-						<div style="font-size:1.8rem; font-weight:800; color:var(--cal);">{Math.round(summary.totals.calories)}</div>
-						<div style="font-size:0.75rem; color:var(--text-muted);">kcal · P{Math.round(summary.totals.protein)}g · C{Math.round(summary.totals.carbs)}g · G{Math.round(summary.totals.fat)}g</div>
+			<!-- Hero calories card -->
+			<div class="card" style="margin-bottom:0.75rem; margin-top:0.75rem;">
+				{#if goals}
+					<CalorieRing
+						consumed={summary.totals.calories}
+						goal={goals.kcal}
+						burned={summary.calories_burned}
+						net={summary.net_calories}
+					/>
+					<div style="height:1rem;"></div>
+					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
+						<MacroBar label="Prot"  value={summary.totals.protein} goal={goals.protein} color="var(--prot)" />
+						<MacroBar label="Carb"  value={summary.totals.carbs}   goal={goals.carbs}   color="var(--carb)" />
+						<MacroBar label="Grasa" value={summary.totals.fat}     goal={goals.fat}     color="var(--fat)" />
 					</div>
-					<a href="/goals" class="btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid var(--border);">
-						Fijar objetivos
-					</a>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Water + Creatine row (side-by-side when creatine is enabled) -->
-		<div style="display:grid; grid-template-columns:{isToday && goals?.track_creatine && creatine !== null ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
-
-			<!-- Water card -->
-			<div class="card" style="padding:0.85rem;">
-				<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
-					<span style="font-size:0.95rem;">💧</span>
-					<span style="font-size:0.82rem; color:var(--water); font-weight:700;">Agua</span>
-					{#if water}
-						<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
-							{Math.round(water.total_ml)} / {water.goal_ml} ml
-						</span>
-					{/if}
-				</div>
-				{#if water}
-					<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
-						<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
+				{:else}
+					<div style="display:flex; justify-content:space-between; align-items:center;">
+						<div>
+							<div style="font-size:1.8rem; font-weight:800; color:var(--cal);">{Math.round(summary.totals.calories)}</div>
+							<div style="font-size:0.75rem; color:var(--text-muted);">kcal · P{Math.round(summary.totals.protein)}g · C{Math.round(summary.totals.carbs)}g · G{Math.round(summary.totals.fat)}g</div>
+						</div>
+						<a href="/goals" class="btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid var(--border);">
+							Fijar objetivos
+						</a>
 					</div>
 				{/if}
-				<div style="display:flex; gap:0.35rem;">
-					<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
-					<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
-					<button class="btn-secondary" onclick={removeWater}
-						style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
-						disabled={!water || water.total_ml <= 0}>↩</button>
-				</div>
 			</div>
 
-			<!-- Creatine card (only today + tracking enabled) -->
-			{#if isToday && goals?.track_creatine && creatine !== null}
-				<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;">
-					<div style="
-						width:42px; height:42px; border-radius:50%;
-						background:{creatine.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
-						border:{creatine.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
-						display:flex; align-items:center; justify-content:center;
-						font-size:1.05rem; font-weight:800; color:var(--primary-ink);
-						transition: background 0.25s;
-					">{creatine.taken ? '✓' : ''}</div>
-					<div style="font-weight:700; font-size:0.82rem;">Creatina</div>
-					<button onclick={toggleCreatine} disabled={togglingCreatine} style="
-						background:none; border:none; cursor:pointer; font-family:inherit;
-						font-size:0.72rem; font-weight:600; color:var(--primary); padding:0;
-						opacity:{togglingCreatine ? '0.5' : '1'}; box-shadow:none;
-					">{creatine.taken ? 'Deshacer' : 'Marcar'}</button>
+			<!-- Water + Creatine -->
+			<div style="display:grid; grid-template-columns:{isToday && goals?.track_creatine && creatine !== null ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
+				<div class="card" style="padding:0.85rem;">
+					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
+						<span style="font-size:0.95rem;">💧</span>
+						<span style="font-size:0.82rem; color:var(--water); font-weight:700;">Agua</span>
+						{#if water}
+							<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
+								{Math.round(water.total_ml)} / {water.goal_ml} ml
+							</span>
+						{/if}
+					</div>
+					{#if water}
+						<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
+							<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
+						</div>
+					{/if}
+					<div style="display:flex; gap:0.35rem;">
+						<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
+						<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
+						<button class="btn-secondary" onclick={removeWater}
+							style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
+							disabled={!water || water.total_ml <= 0}>↩</button>
+					</div>
 				</div>
-			{/if}
-		</div>
-
-		<!-- Cheat day (only today + enabled) -->
-		{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
-			<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
-				<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
-					<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+				{#if isToday && goals?.track_creatine && creatine !== null}
+					<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;">
 						<div style="
-							width:36px; height:36px; border-radius:12px; flex-shrink:0;
-							background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
-							border:1px solid oklch(70% 0.18 45 / 0.3);
+							width:42px; height:42px; border-radius:50%;
+							background:{creatine.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
+							border:{creatine.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
 							display:flex; align-items:center; justify-content:center;
-							font-size:1.1rem;
-						">🍕</div>
-						<div style="min-width:0;">
-							<div style="font-weight:700; font-size:0.88rem;">Cheat day</div>
-							<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-								{cheatDay.active ? 'Racha protegida hoy 🔥' : 'Úsalo si hoy no registras'}
+							font-size:1.05rem; font-weight:800; color:var(--primary-ink);
+							transition: background 0.25s;
+						">{creatine.taken ? '✓' : ''}</div>
+						<div style="font-weight:700; font-size:0.82rem;">Creatina</div>
+						<button onclick={toggleCreatine} disabled={togglingCreatine} style="
+							background:none; border:none; cursor:pointer; font-family:inherit;
+							font-size:0.72rem; font-weight:600; color:var(--primary); padding:0;
+							opacity:{togglingCreatine ? '0.5' : '1'}; box-shadow:none;
+						">{creatine.taken ? 'Deshacer' : 'Marcar'}</button>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Cheat day -->
+			{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
+				<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+						<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+							<div style="
+								width:36px; height:36px; border-radius:12px; flex-shrink:0;
+								background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
+								border:1px solid oklch(70% 0.18 45 / 0.3);
+								display:flex; align-items:center; justify-content:center;
+								font-size:1.1rem;
+							">🍕</div>
+							<div style="min-width:0;">
+								<div style="font-weight:700; font-size:0.88rem;">Cheat day</div>
+								<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+									{cheatDay.active ? 'Racha protegida hoy 🔥' : 'Úsalo si hoy no registras'}
+								</div>
 							</div>
 						</div>
+						<button
+							onclick={toggleCheatDay}
+							disabled={togglingCheatDay}
+							class:btn-secondary={cheatDay.active}
+							style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay ? '0.6' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
+						>{cheatDay.active ? 'Cancelar' : 'Activar'}</button>
 					</div>
-					<button
-						onclick={toggleCheatDay}
-						disabled={togglingCheatDay}
-						class:btn-secondary={cheatDay.active}
-						style="
-							flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700;
-							opacity:{togglingCheatDay ? '0.6' : '1'};
-							{!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}
-						"
-					>
-						{cheatDay.active ? 'Cancelar' : 'Activar'}
-					</button>
 				</div>
-			</div>
-		{/if}
-
-		<!-- Diary entries -->
-		{#if summary.entries.length === 0}
-			<EmptyState
-				icon="🥣"
-				title="Sin registros"
-				description={isToday ? 'Añade tu primera comida del día' : 'Este día está vacío'}
-				actionLabel={isToday ? 'Añadir comida' : undefined}
-				actionHref={isToday ? `/add?date=${today}` : undefined}
-			/>
-			{#if isToday}
-				<button
-					class="btn-secondary"
-					onclick={copyFromYesterday}
-					disabled={copyingYesterday}
-					style="width:100%; margin-top:0.75rem; margin-bottom:1rem;">
-					{copyingYesterday ? 'Copiando...' : '↩ Igual que ayer'}
-				</button>
 			{/if}
-			<!-- Frequently used -->
-			{#if frequent.length > 0}
-				<div style="margin-top:0.5rem;">
-					<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">
-						Usados frecuentemente
-					</div>
-					<div style="display:flex; flex-direction:column; gap:0.4rem;">
+
+			<!-- Frequent products (desktop: show in left panel when there are entries) -->
+			{#if frequent.length > 0 && summary.entries.length > 0}
+				<div class="diary-frequent-desktop">
+					<div style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:0.5rem;">Frecuentes</div>
+					<div style="display:flex; flex-direction:column; gap:0.35rem;">
 						{#each frequent as freq (freq.product.id)}
 							<a href="/add?date={today}" style="text-decoration:none;">
-								<div class="card" style="cursor:pointer; transition:border-color 0.2s;">
-									<div style="display:flex; justify-content:space-between; align-items:start;">
-										<div style="flex:1;">
-											<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
-											{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
-											<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} veces</div>
-										</div>
-										<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
-											<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
-										</div>
+								<div class="card" style="cursor:pointer; padding:0.6rem 0.75rem;">
+									<div style="display:flex; justify-content:space-between; align-items:center;">
+										<div style="font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.product.name}</div>
+										<div style="font-size:0.72rem; color:var(--cal); font-weight:600; flex-shrink:0; margin-left:0.5rem;">{freq.product.calories_per_100g} kcal</div>
 									</div>
 								</div>
 							</a>
@@ -427,52 +393,101 @@
 					</div>
 				</div>
 			{/if}
-		{:else}
-			<!-- Copy yesterday compact -->
-			{#if isToday}
-				<div style="display:flex; justify-content:flex-end; margin-bottom:0.5rem;">
+
+		</div><!-- /diary-left -->
+
+		<!-- ── RIGHT: diary entries ── -->
+		<div class="diary-right" style="margin-top:0.75rem;">
+
+			{#if summary.entries.length === 0}
+				<EmptyState
+					icon="🥣"
+					title="Sin registros"
+					description={isToday ? 'Añade tu primera comida del día' : 'Este día está vacío'}
+					actionLabel={isToday ? 'Añadir comida' : undefined}
+					actionHref={isToday ? `/add?date=${today}` : undefined}
+				/>
+				{#if isToday}
 					<button
 						class="btn-secondary"
 						onclick={copyFromYesterday}
 						disabled={copyingYesterday}
-						style="font-size:0.75rem; padding:0.3rem 0.7rem;">
-						{copyingYesterday ? '...' : '↩ Igual que ayer'}
+						style="width:100%; margin-top:0.75rem; margin-bottom:1rem;">
+						{copyingYesterday ? 'Copiando...' : '↩ Igual que ayer'}
 					</button>
-				</div>
+				{/if}
+				{#if frequent.length > 0}
+					<div style="margin-top:0.5rem;">
+						<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">Usados frecuentemente</div>
+						<div style="display:flex; flex-direction:column; gap:0.4rem;">
+							{#each frequent as freq (freq.product.id)}
+								<a href="/add?date={today}" style="text-decoration:none;">
+									<div class="card" style="cursor:pointer;">
+										<div style="display:flex; justify-content:space-between; align-items:start;">
+											<div style="flex:1;">
+												<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
+												{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
+												<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} veces</div>
+											</div>
+											<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
+												<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
+											</div>
+										</div>
+									</div>
+								</a>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			{:else}
+				{#if isToday}
+					<div style="display:flex; justify-content:flex-end; margin-bottom:0.5rem;">
+						<button
+							class="btn-secondary"
+							onclick={copyFromYesterday}
+							disabled={copyingYesterday}
+							style="font-size:0.75rem; padding:0.3rem 0.7rem;">
+							{copyingYesterday ? '...' : '↩ Igual que ayer'}
+						</button>
+					</div>
+				{/if}
+
+				{#if summary.meals && summary.meals.length > 0}
+					{#each summary.meals as meal (meal.meal_type)}
+						<div style="margin-bottom:1rem;">
+							<MealHeader
+								label={meal.label}
+								kcal={meal.totals.calories}
+								protein={meal.totals.protein}
+								hasEntries={meal.entries.length > 0}
+								hue={MEAL_HUES[meal.meal_type] ?? 160}
+							>
+								{#snippet actions()}
+									<button
+										class="btn-ghost"
+										onclick={(e) => { e.stopPropagation(); startSaveMealAsRecipe(meal); }}
+										disabled={meal.entries.length === 0}
+										style="font-size:0.72rem; padding:0.25rem 0.55rem;"
+									>
+										＋ Receta
+									</button>
+								{/snippet}
+							</MealHeader>
+							{#each meal.entries as entry (entry.id)}
+								{@render entryCard(entry)}
+							{/each}
+						</div>
+					{/each}
+				{:else}
+					{#each summary.entries as entry (entry.id)}
+						{@render entryCard(entry)}
+					{/each}
+				{/if}
 			{/if}
 
-			{#if summary.meals && summary.meals.length > 0}
-				{#each summary.meals as meal (meal.meal_type)}
-					<div style="margin-bottom:1rem;">
-						<MealHeader
-							label={meal.label}
-							kcal={meal.totals.calories}
-							protein={meal.totals.protein}
-							hasEntries={meal.entries.length > 0}
-							hue={MEAL_HUES[meal.meal_type] ?? 160}
-						>
-							{#snippet actions()}
-								<button
-									class="btn-ghost"
-									onclick={(e) => { e.stopPropagation(); startSaveMealAsRecipe(meal); }}
-									disabled={meal.entries.length === 0}
-									style="font-size:0.72rem; padding:0.25rem 0.55rem;"
-								>
-									＋ Receta
-								</button>
-							{/snippet}
-						</MealHeader>
-						{#each meal.entries as entry (entry.id)}
-							{@render entryCard(entry)}
-						{/each}
-					</div>
-				{/each}
-			{:else}
-				{#each summary.entries as entry (entry.id)}
-					{@render entryCard(entry)}
-				{/each}
-			{/if}
-		{/if}
+		</div><!-- /diary-right -->
+		</div><!-- /diary-body -->
+
 	{/if}
 {/if}
 

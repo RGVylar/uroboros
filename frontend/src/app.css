@@ -468,8 +468,20 @@ nav.bottom a.active {
 	/* Ocultar FAB de página (sidebar + botón en contenido son suficientes) */
 	.fab { bottom: 1.5rem; right: 1.5rem; }
 
+	/* Ampliar container — en desktop hay espacio de sobra */
+	.container { max-width: 980px; }
+
 	/* Padding inferior sin bottom-nav */
 	.container.page { padding-bottom: 2.5rem; }
+
+	/* Diario: 2 columnas — stats fijas a la izquierda, entradas a la derecha */
+	.diary-body {
+		display: grid;
+		grid-template-columns: 300px 1fr;
+		gap: 1.25rem;
+		align-items: start;
+	}
+	.diary-left { position: sticky; top: 1rem; }
 
 	/* Mostrar sidebar */
 	.sidebar {
