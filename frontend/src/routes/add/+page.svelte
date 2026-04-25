@@ -628,7 +628,7 @@
 	.glass-btn {
 		width: 36px;
 		height: 36px;
-		border-radius: 12px;
+		border-radius: 50%;
 		background: rgba(255,255,255,0.07);
 		border: 1px solid rgba(255,255,255,0.1);
 		color: rgba(255,255,255,0.8);
