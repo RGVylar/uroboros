@@ -291,19 +291,17 @@
 	{#if trendData.length > 0}
 		{@const goalKcal = goals?.kcal ?? 0}
 		{@const maxCal = Math.max(...trendData.map(d => d.calories), goalKcal, 1)}
-		<div style="display:flex; align-items:flex-end; gap:0.375rem; height:7.5rem;">
+		{@const BAR_MAX_PX = 90}
+		<div style="display:flex; align-items:flex-end; gap:0.375rem;">
 			{#each trendData as d, i}
 				{@const pct = Math.min(100, (d.calories / maxCal) * 100)}
+				{@const barPx = Math.max(d.calories > 0 ? 4 : 2, Math.round((pct / 100) * BAR_MAX_PX))}
 				{@const over = goalKcal > 0 && d.calories > goalKcal + 100}
 				{@const under = goalKcal > 0 && d.calories > 0 && d.calories < goalKcal - 350}
 				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
-				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.3rem;">
-					{#if d.calories > 0}
-						<div style="font-size:0.5rem; color:rgba(255,255,255,0.4); line-height:1;">{Math.round(d.calories)}</div>
-					{:else}
-						<div style="font-size:0.5rem; color:transparent; line-height:1;">0</div>
-					{/if}
-					<div style="width:100%; border-radius:6px; min-height:3px; background:{d.calories === 0 ? 'rgba(255,255,255,0.06)' : over ? 'linear-gradient(180deg, oklch(75% 0.18 30), oklch(55% 0.2 20))' : under ? 'linear-gradient(180deg, oklch(75% 0.13 270), oklch(55% 0.15 270))' : 'linear-gradient(180deg, oklch(85% 0.18 160), oklch(65% 0.2 180))'}; height:{pct}%; box-shadow:{d.calories > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'};"></div>
+				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
+					<div style="font-size:0.5rem; color:{d.calories > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem;">{d.calories > 0 ? Math.round(d.calories) : '·'}</div>
+					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{d.calories === 0 ? 'rgba(255,255,255,0.06)' : over ? 'linear-gradient(180deg, oklch(75% 0.18 30), oklch(55% 0.2 20))' : under ? 'linear-gradient(180deg, oklch(75% 0.13 270), oklch(55% 0.15 270))' : 'linear-gradient(180deg, oklch(85% 0.18 160), oklch(65% 0.2 180))'}; box-shadow:{d.calories > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); font-weight:600;">{dayLabel}</div>
 				</div>
 			{/each}
