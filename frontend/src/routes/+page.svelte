@@ -281,6 +281,7 @@
 						goal={goals.kcal}
 						burned={summary.calories_burned}
 						net={summary.net_calories}
+						size={175}
 					/>
 					<div style="height:1rem;"></div>
 					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
@@ -384,8 +385,8 @@
 							<a href="/add?date={today}" style="text-decoration:none;">
 								<div class="card" style="cursor:pointer; padding:0.6rem 0.75rem;">
 									<div style="display:flex; justify-content:space-between; align-items:center;">
-										<div style="font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.product.name}</div>
-										<div style="font-size:0.72rem; color:var(--cal); font-weight:600; flex-shrink:0; margin-left:0.5rem;">{freq.product.calories_per_100g} kcal</div>
+										<div class="diary-frequent-name" style="font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.product.name}</div>
+										<div class="diary-frequent-kcal" style="font-size:0.72rem; color:var(--cal); font-weight:600; flex-shrink:0; margin-left:0.5rem;">{freq.product.calories_per_100g} kcal</div>
 									</div>
 								</div>
 							</a>
@@ -588,16 +589,16 @@
 		tabindex="0"
 		onkeydown={(e) => { if (e.key === 'Enter') startEdit(entry); }}>
 		<div style="flex:1; min-width:0;">
-			<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+			<div class="diary-entry-name" style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
 				{entry.product?.name ?? `Producto #${entry.product_id}`}
 			</div>
-			<div style="font-size:0.78rem; color:var(--text-muted);">
+			<div class="diary-entry-detail" style="font-size:0.78rem; color:var(--text-muted);">
 				{entry.grams}g · {fmtTime(entry.consumed_at)}
 			</div>
 		</div>
 		<div style="text-align:right; margin-right:0.5rem;">
-			<div style="font-size:0.85rem; color:var(--cal);">{Math.round(entry.calories)} kcal</div>
-			<div style="font-size:0.72rem; font-variant-numeric:tabular-nums;">
+			<div class="diary-entry-kcal" style="font-size:0.85rem; color:var(--cal);">{Math.round(entry.calories)} kcal</div>
+			<div class="diary-entry-macros" style="font-size:0.72rem; font-variant-numeric:tabular-nums;">
 				<span style="color:oklch(78% 0.14 220);">P{Math.round(entry.protein)}</span>
 				<span style="color:oklch(78% 0.16 275);"> C{Math.round(entry.carbs)}</span>
 				<span style="color:oklch(75% 0.17 25);"> G{Math.round(entry.fat)}</span>

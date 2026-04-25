@@ -465,23 +465,49 @@ nav.bottom a.active {
 	/* Ocultar nav móvil */
 	nav.bottom { display: none !important; }
 
-	/* Ocultar FAB de página (sidebar + botón en contenido son suficientes) */
+	/* FAB: reposicionar para desktop */
 	.fab { bottom: 1.5rem; right: 1.5rem; }
 
-	/* Ampliar container — en desktop hay espacio de sobra */
-	.container { max-width: 980px; }
+	/* Container llena todo el main-content disponible */
+	.container {
+		max-width: none;
+		margin: 0;
+		padding: 1.5rem 2rem;
+	}
 
 	/* Padding inferior sin bottom-nav */
 	.container.page { padding-bottom: 2.5rem; }
 
-	/* Diario: 2 columnas — stats fijas a la izquierda, entradas a la derecha */
+	/* Diario: 2 columnas — panel stats fijo izquierda, entradas derecha */
 	.diary-body {
 		display: grid;
-		grid-template-columns: 300px 1fr;
-		gap: 1.25rem;
+		grid-template-columns: 340px 1fr;
+		gap: 2rem;
 		align-items: start;
 	}
-	.diary-left { position: sticky; top: 1rem; }
+	.diary-left { position: sticky; top: 1.5rem; }
+
+	/* ── Escalar diario en desktop ── */
+	.diary-left .card  { padding: 1.5rem; }
+	.diary-right .card { padding: 1rem 1.5rem; margin-bottom: 0.5rem; }
+
+	/* Entry card: nombre y detalle más grandes */
+	.diary-entry-name   { font-size: 1rem !important; }
+	.diary-entry-detail { font-size: 0.85rem !important; }
+	.diary-entry-kcal   { font-size: 0.95rem !important; }
+	.diary-entry-macros { font-size: 0.8rem !important; }
+
+	/* Meal header más grande */
+	.meal-header .label   { font-size: 1rem !important; }
+	.meal-header .totals  { font-size: 0.88rem !important; }
+
+	/* Agua / creatine: fuentes y botones más grandes */
+	.diary-left .card button { font-size: 0.82rem !important; padding: 0.45rem 0.4rem !important; }
+
+	/* Frecuentes: nombres más visibles */
+	.diary-frequent-desktop .card { padding: 0.75rem 1rem; }
+	.diary-frequent-name { font-size: 0.9rem !important; }
+	.diary-frequent-kcal { font-size: 0.8rem !important; }
 
 	/* Mostrar sidebar */
 	.sidebar {
