@@ -25,6 +25,16 @@
 		calf_r:  25,
 	};
 
+	const bodyPoints = [
+		{ key: 'neck',    label: 'Cuello',  x: 50, y: 22 },
+		{ key: 'chest',   label: 'Pecho',   x: 50, y: 38 },
+		{ key: 'bicep_l', label: 'Brazo',   x: 22, y: 42 },
+		{ key: 'waist',   label: 'Cintura', x: 50, y: 55 },
+		{ key: 'hips',    label: 'Cadera',  x: 50, y: 66 },
+		{ key: 'thigh_l', label: 'Muslo',   x: 42, y: 78 },
+		{ key: 'calf_l',  label: 'Gemelo',  x: 42, y: 95 },
+	];
+
 	/** Form: only positive numbers are sent */
 	let form: Record<string, number> = $state(
 		Object.fromEntries(MEASUREMENT_FIELDS.map((f) => [f.key, 0]))
@@ -188,6 +198,47 @@
 	{/each}
 </div>
 {/if}
+
+<!-- Body silhouette map -->
+<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">Registro corporal</div>
+<div class="glass-card" style="display:flex; flex-direction:column; align-items:center; padding:1.25rem 1rem 0.875rem;">
+	<svg viewBox="0 0 100 130" width="200" height="260">
+		<defs>
+			<linearGradient id="body-grad" x1="0" y1="0" x2="0" y2="1">
+				<stop offset="0%" stop-color="oklch(85% 0.15 160 / 0.3)"/>
+				<stop offset="100%" stop-color="oklch(65% 0.18 210 / 0.12)"/>
+			</linearGradient>
+		</defs>
+		<!-- head -->
+		<circle cx="50" cy="15" r="8" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
+		<!-- torso -->
+		<path d="M 38 26 L 62 26 L 66 58 L 58 70 L 42 70 L 34 58 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
+		<!-- arms -->
+		<path d="M 38 28 L 28 32 L 22 55 L 28 58 L 34 38 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
+		<path d="M 62 28 L 72 32 L 78 55 L 72 58 L 66 38 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
+		<!-- legs -->
+		<path d="M 42 70 L 40 115 L 46 115 L 50 78 L 54 115 L 60 115 L 58 70 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
+
+		<!-- measurement dots with labels -->
+		{#each bodyPoints as pt}
+			{@const cur = currentFor(pt.key)}
+			{@const hue = HUES[pt.key] ?? 160}
+			{@const col = `oklch(80% 0.16 ${hue})`}
+			{#if cur !== null}
+				<g>
+					<circle cx={pt.x} cy={pt.y} r="5" fill={`oklch(80% 0.16 ${hue} / 0.3)`}/>
+					<circle cx={pt.x} cy={pt.y} r="2" fill={col}/>
+					<line x1={pt.x} y1={pt.y} x2={pt.x < 50 ? 8 : 92} y2={pt.y} stroke="rgba(255,255,255,0.15)" stroke-dasharray="1 2"/>
+					<text x={pt.x < 50 ? 8 : 92} y={pt.y - 1.5} font-size="3.5" fill="rgba(255,255,255,0.7)"
+						text-anchor={pt.x < 50 ? 'start' : 'end'}>{pt.label}</text>
+					<text x={pt.x < 50 ? 8 : 92} y={pt.y + 3} font-size="3" fill={col}
+						text-anchor={pt.x < 50 ? 'start' : 'end'} font-weight="600">{cur.toFixed(1)}cm</text>
+				</g>
+			{/if}
+		{/each}
+	</svg>
+	<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.25rem;">Toca + Nueva para registrar</div>
+</div>
 
 <!-- History log -->
 {#if logs.length > 0}

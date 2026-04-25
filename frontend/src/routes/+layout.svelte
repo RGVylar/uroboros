@@ -29,7 +29,7 @@
 		{ href: '/', label: 'Diario' },
 		{ href: '/history', label: 'Historial' },
 		{ fab: true },
-		{ href: '/recipes', label: 'Recetas' },
+		{ href: '/exercises', label: 'Ejercicios' },
 		{ href: '/settings', label: 'Ajustes' },
 	];
 
@@ -126,11 +126,11 @@
 							<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
 							<path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
 						</svg>
-					{:else if link.href === '/recipes'}
+					{:else if link.href === '/exercises'}
 						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M6 11h12v1a6 6 0 01-6 6h0a6 6 0 01-6-6v-1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M7 8c0-1 1-2 2-2s2 1 2 2M13 7c0-1 1-2 2-2s2 1 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-							<path d="M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M6 12h12M3 9l3 3-3 3M21 9l-3 3 3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+							<rect x="8" y="10" width="2" height="4" rx="1" fill="currentColor" opacity="0.5"/>
+							<rect x="14" y="10" width="2" height="4" rx="1" fill="currentColor" opacity="0.5"/>
 						</svg>
 					{:else if link.href === '/settings'}
 						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">

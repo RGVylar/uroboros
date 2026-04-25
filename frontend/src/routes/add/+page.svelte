@@ -293,8 +293,8 @@
 	<!-- Header -->
 	<div class="add-header">
 		<button class="glass-btn" onclick={() => (selected = null)} aria-label="Volver">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-				<path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+				<path d="M15 6l-6 6 6 6" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div style="flex:1; min-width:0;">
@@ -408,8 +408,8 @@
 {:else if showManual}
 	<div class="add-header">
 		<button class="glass-btn" onclick={() => (showManual = false)} aria-label="Volver">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-				<path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+				<path d="M15 6l-6 6 6 6" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div>
@@ -458,8 +458,8 @@
 	<!-- Header -->
 	<div class="add-header">
 		<button class="glass-btn" onclick={() => goto('/')} aria-label="Volver al diario">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-				<path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+				<path d="M15 6l-6 6 6 6" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div>
@@ -486,13 +486,8 @@
 			aria-label="Escanear código de barras"
 			disabled={scanning}
 		>
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-				<rect x="2" y="6" width="2" height="12" rx="1" fill="currentColor"/>
-				<rect x="6" y="6" width="1" height="12" rx="0.5" fill="currentColor"/>
-				<rect x="9" y="6" width="2" height="12" rx="1" fill="currentColor"/>
-				<rect x="13" y="6" width="1" height="12" rx="0.5" fill="currentColor"/>
-				<rect x="16" y="6" width="2" height="12" rx="1" fill="currentColor"/>
-				<rect x="20" y="6" width="2" height="12" rx="1" fill="currentColor"/>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+				<path d="M4 6v12M7 6v12M10 6v12M13 6v12M17 6v12M20 6v12" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" stroke-linecap="round"/>
 			</svg>
 		</button>
 	</div>
