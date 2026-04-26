@@ -26,13 +26,13 @@
 	};
 
 	const bodyPoints: { key: string; label: string; x: number; y: number; side: 'left' | 'right' }[] = [
-		{ key: 'neck',    label: 'Cuello',  x: 100, y: 35,  side: 'right' },
-		{ key: 'chest',   label: 'Pecho',   x: 100, y: 58,  side: 'right' },
-		{ key: 'bicep_l', label: 'Brazo',   x: 56,  y: 64,  side: 'left'  },
-		{ key: 'waist',   label: 'Cintura', x: 100, y: 80,  side: 'right' },
-		{ key: 'hips',    label: 'Cadera',  x: 100, y: 96,  side: 'right' },
-		{ key: 'thigh_l', label: 'Muslo',   x: 88,  y: 122, side: 'left'  },
-		{ key: 'calf_l',  label: 'Gemelo',  x: 87,  y: 157, side: 'left'  },
+		{ key: 'neck',    label: 'Cuello',  x: 100, y: 30,  side: 'right' },
+		{ key: 'chest',   label: 'Pecho',   x: 100, y: 54,  side: 'right' },
+		{ key: 'bicep_l', label: 'Brazo',   x: 63,  y: 62,  side: 'left'  },
+		{ key: 'waist',   label: 'Cintura', x: 100, y: 76,  side: 'right' },
+		{ key: 'hips',    label: 'Cadera',  x: 100, y: 94,  side: 'right' },
+		{ key: 'thigh_l', label: 'Muslo',   x: 90,  y: 126, side: 'left'  },
+		{ key: 'calf_l',  label: 'Gemelo',  x: 88,  y: 164, side: 'left'  },
 	];
 
 	/** Form: only positive numbers are sent */
@@ -203,7 +203,7 @@
 <div class="section-eyebrow" style="margin:1.5rem 0.25rem 0.75rem;">Registro corporal</div>
 <div class="glass-card body-card">
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<svg viewBox="0 0 200 200" width="100%" style="max-width:340px; display:block; margin:0 auto; overflow:visible;" aria-label="Mapa corporal de medidas">
+	<svg viewBox="0 0 200 205" width="100%" style="max-width:340px; display:block; margin:0 auto; overflow:visible;" aria-label="Mapa corporal de medidas">
 		<defs>
 			<linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
 				<stop offset="0%" stop-color="oklch(80% 0.14 165 / 0.5)"/>
@@ -215,24 +215,62 @@
 			</filter>
 		</defs>
 
-		<!-- ── Body silhouette ── -->
+		<!-- ── Body silhouette — proporciones humanas 8-heads ── -->
 		<!-- Head -->
-		<circle cx="100" cy="17" r="12"
+		<ellipse cx="100" cy="13" rx="10.5" ry="11.5"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+		<!-- Neck — trapezoidal, slim -->
+		<path d="M 96.5 24 L 103.5 24 L 104.5 32 L 95.5 32 Z"
+			fill="url(#body-fill)" stroke="none"/>
+		<!-- Torso — hombros anchos, cintura tallada, caderas medias -->
+		<path d="
+			M 83 32
+			C 74 32 70 37 70 44
+			L 70 66
+			C 70 72 72 76 76 78
+			L 76 84
+			C 76 90 80 95 85 96
+			L 86 98 L 114 98
+			L 115 96
+			C 120 95 124 90 124 84
+			L 124 78
+			C 128 76 130 72 130 66
+			L 130 44
+			C 130 37 126 32 117 32
+			Z"
 			fill="url(#body-fill)" stroke="rgba(255,255,255,0.2)" stroke-width="0.6"/>
-		<!-- Neck -->
-		<path d="M 96 28 L 104 28 L 105 35 L 95 35 Z"
-			fill="url(#body-fill)" stroke="rgba(255,255,255,0.13)" stroke-width="0.4"/>
-		<!-- Torso + shoulders (smooth bezier) -->
-		<path d="M 74 36 Q 63 36 61 46 L 61 79 Q 60 88 69 92 L 76 95 L 124 95 L 131 92 Q 140 88 139 79 L 139 46 Q 137 36 126 36 Z"
-			fill="url(#body-fill)" stroke="rgba(255,255,255,0.2)" stroke-width="0.6"/>
-		<!-- Left arm -->
-		<path d="M 73 40 Q 60 44 52 61 L 48 81 Q 46 88 53 90 Q 58 83 63 70 L 70 46 Z"
-			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
-		<!-- Right arm -->
-		<path d="M 127 40 Q 140 44 148 61 L 152 81 Q 154 88 147 90 Q 142 83 137 70 L 130 46 Z"
-			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
-		<!-- Legs -->
-		<path d="M 76 95 L 74 188 L 96 188 L 100 127 L 104 188 L 126 188 L 124 95 Z"
+		<!-- Left arm — delgado, anatómico -->
+		<path d="
+			M 82 34
+			C 75 35 68 40 64 50
+			L 60 70
+			C 58 78 60 87 64 89
+			C 67 84 68 76 72 64
+			L 78 42
+			Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.16)" stroke-width="0.5"/>
+		<!-- Right arm — espejo -->
+		<path d="
+			M 118 34
+			C 125 35 132 40 136 50
+			L 140 70
+			C 142 78 140 87 136 89
+			C 133 84 132 76 128 64
+			L 122 42
+			Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.16)" stroke-width="0.5"/>
+		<!-- Legs — separadas con gap natural -->
+		<path d="
+			M 86 98
+			C 84 110 82 130 81 152
+			L 80 195
+			L 96 195
+			C 96 175 98 150 100 130
+			C 102 150 104 175 104 195
+			L 120 195
+			L 119 152
+			C 118 130 116 110 114 98
+			Z"
 			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
 
 		<!-- ── Measurement dots + labels ── -->
