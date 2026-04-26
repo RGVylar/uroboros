@@ -165,6 +165,15 @@
 			<span class="chevron">›</span>
 		</button>
 		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => goto('/exercises')}>
+			<div class="icon-box">💪</div>
+			<div class="row-content">
+				<div class="row-label">Ejercicios</div>
+				<div class="row-detail">Biblioteca y rutinas de entreno</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
 		<!-- Inventario toggle + nav -->
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🏠</div>
