@@ -25,14 +25,14 @@
 		calf_r:  25,
 	};
 
-	const bodyPoints = [
-		{ key: 'neck',    label: 'Cuello',  x: 50, y: 22 },
-		{ key: 'chest',   label: 'Pecho',   x: 50, y: 38 },
-		{ key: 'bicep_l', label: 'Brazo',   x: 22, y: 42 },
-		{ key: 'waist',   label: 'Cintura', x: 50, y: 55 },
-		{ key: 'hips',    label: 'Cadera',  x: 50, y: 66 },
-		{ key: 'thigh_l', label: 'Muslo',   x: 42, y: 78 },
-		{ key: 'calf_l',  label: 'Gemelo',  x: 42, y: 95 },
+	const bodyPoints: { key: string; label: string; x: number; y: number; side: 'left' | 'right' }[] = [
+		{ key: 'neck',    label: 'Cuello',  x: 100, y: 35,  side: 'right' },
+		{ key: 'chest',   label: 'Pecho',   x: 100, y: 58,  side: 'right' },
+		{ key: 'bicep_l', label: 'Brazo',   x: 56,  y: 64,  side: 'left'  },
+		{ key: 'waist',   label: 'Cintura', x: 100, y: 80,  side: 'right' },
+		{ key: 'hips',    label: 'Cadera',  x: 100, y: 96,  side: 'right' },
+		{ key: 'thigh_l', label: 'Muslo',   x: 88,  y: 122, side: 'left'  },
+		{ key: 'calf_l',  label: 'Gemelo',  x: 87,  y: 157, side: 'left'  },
 	];
 
 	/** Form: only positive numbers are sent */
@@ -200,44 +200,88 @@
 {/if}
 
 <!-- Body silhouette map -->
-<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">Registro corporal</div>
-<div class="glass-card" style="display:flex; flex-direction:column; align-items:center; padding:1.25rem 1rem 0.875rem;">
-	<svg viewBox="0 0 100 130" width="200" height="260">
+<div class="section-eyebrow" style="margin:1.5rem 0.25rem 0.75rem;">Registro corporal</div>
+<div class="glass-card body-card">
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<svg viewBox="0 0 200 200" width="100%" style="max-width:340px; display:block; margin:0 auto; overflow:visible;" aria-label="Mapa corporal de medidas">
 		<defs>
-			<linearGradient id="body-grad" x1="0" y1="0" x2="0" y2="1">
-				<stop offset="0%" stop-color="oklch(85% 0.15 160 / 0.3)"/>
-				<stop offset="100%" stop-color="oklch(65% 0.18 210 / 0.12)"/>
+			<linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
+				<stop offset="0%" stop-color="oklch(80% 0.14 165 / 0.5)"/>
+				<stop offset="100%" stop-color="oklch(58% 0.12 210 / 0.08)"/>
 			</linearGradient>
+			<filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+				<feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+				<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+			</filter>
 		</defs>
-		<!-- head -->
-		<circle cx="50" cy="15" r="8" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
-		<!-- torso -->
-		<path d="M 38 26 L 62 26 L 66 58 L 58 70 L 42 70 L 34 58 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
-		<!-- arms -->
-		<path d="M 38 28 L 28 32 L 22 55 L 28 58 L 34 38 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
-		<path d="M 62 28 L 72 32 L 78 55 L 72 58 L 66 38 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
-		<!-- legs -->
-		<path d="M 42 70 L 40 115 L 46 115 L 50 78 L 54 115 L 60 115 L 58 70 Z" fill="url(#body-grad)" stroke="rgba(255,255,255,0.15)"/>
 
-		<!-- measurement dots with labels -->
+		<!-- ── Body silhouette ── -->
+		<!-- Head -->
+		<circle cx="100" cy="17" r="12"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.2)" stroke-width="0.6"/>
+		<!-- Neck -->
+		<path d="M 96 28 L 104 28 L 105 35 L 95 35 Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.13)" stroke-width="0.4"/>
+		<!-- Torso + shoulders (smooth bezier) -->
+		<path d="M 74 36 Q 63 36 61 46 L 61 79 Q 60 88 69 92 L 76 95 L 124 95 L 131 92 Q 140 88 139 79 L 139 46 Q 137 36 126 36 Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.2)" stroke-width="0.6"/>
+		<!-- Left arm -->
+		<path d="M 73 40 Q 60 44 52 61 L 48 81 Q 46 88 53 90 Q 58 83 63 70 L 70 46 Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+		<!-- Right arm -->
+		<path d="M 127 40 Q 140 44 148 61 L 152 81 Q 154 88 147 90 Q 142 83 137 70 L 130 46 Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+		<!-- Legs -->
+		<path d="M 76 95 L 74 188 L 96 188 L 100 127 L 104 188 L 126 188 L 124 95 Z"
+			fill="url(#body-fill)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+
+		<!-- ── Measurement dots + labels ── -->
 		{#each bodyPoints as pt}
 			{@const cur = currentFor(pt.key)}
 			{@const hue = HUES[pt.key] ?? 160}
-			{@const col = `oklch(80% 0.16 ${hue})`}
+			{@const col  = `oklch(84% 0.22 ${hue})`}
+			{@const colA = `oklch(84% 0.22 ${hue} / 0.35)`}
+			{@const colB = `oklch(84% 0.22 ${hue} / 0.15)`}
+			{@const onRight = pt.side === 'right'}
+			{@const lx = onRight ? 120 : 40}
+			{@const edgeX = onRight ? pt.x + 7 : pt.x - 7}
 			{#if cur !== null}
-				<g>
-					<circle cx={pt.x} cy={pt.y} r="5" fill={`oklch(80% 0.16 ${hue} / 0.3)`}/>
-					<circle cx={pt.x} cy={pt.y} r="2" fill={col}/>
-					<line x1={pt.x} y1={pt.y} x2={pt.x < 50 ? 8 : 92} y2={pt.y} stroke="rgba(255,255,255,0.15)" stroke-dasharray="1 2"/>
-					<text x={pt.x < 50 ? 8 : 92} y={pt.y - 1.5} font-size="3.5" fill="rgba(255,255,255,0.7)"
-						text-anchor={pt.x < 50 ? 'start' : 'end'}>{pt.label}</text>
-					<text x={pt.x < 50 ? 8 : 92} y={pt.y + 3} font-size="3" fill={col}
-						text-anchor={pt.x < 50 ? 'start' : 'end'} font-weight="600">{cur.toFixed(1)}cm</text>
+				<g onclick={() => showAdd = true} style="cursor:pointer;">
+					<!-- Dashed leader line -->
+					<line x1={edgeX} y1={pt.y} x2={lx} y2={pt.y}
+						stroke="rgba(255,255,255,0.25)" stroke-width="0.5" stroke-dasharray="2 2.5"/>
+					<!-- Outer glow -->
+					<circle cx={pt.x} cy={pt.y} r="9" fill={colB} filter="url(#dot-glow)"/>
+					<!-- Mid ring -->
+					<circle cx={pt.x} cy={pt.y} r="5.5" fill={colA}/>
+					<!-- Inner dot -->
+					<circle cx={pt.x} cy={pt.y} r="2.5" fill={col}/>
+					<!-- Label pill background -->
+					<rect
+						x={onRight ? 121 : 2} y={pt.y - 8.5}
+						width="50" height="17" rx="4.5"
+						fill="rgba(8,10,16,0.75)" stroke="rgba(255,255,255,0.1)" stroke-width="0.4"/>
+					<!-- Label name -->
+					<text x={onRight ? 124 : 5} y={pt.y - 1.5}
+						font-size="3.6" fill="rgba(255,255,255,0.55)"
+						text-anchor="start" font-weight="600">{pt.label}</text>
+					<!-- Label value -->
+					<text x={onRight ? 124 : 5} y={pt.y + 5}
+						font-size="4" fill={col}
+						text-anchor="start" font-weight="700">{cur.toFixed(1)}cm</text>
 				</g>
+			{:else}
+				<!-- Ghost dot: sin datos -->
+				<circle cx={pt.x} cy={pt.y} r="4"
+					fill="none" stroke="rgba(255,255,255,0.18)"
+					stroke-width="0.7" stroke-dasharray="1.5 1.5"/>
 			{/if}
 		{/each}
 	</svg>
-	<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.25rem;">Toca + Nueva para registrar</div>
+	<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); text-align:center; margin-top:0.75rem;">
+		Toca un punto o <button onclick={() => showAdd = true}
+			style="all:unset; color:oklch(78% 0.18 165); cursor:pointer; font-weight:700; font-size:inherit;">+ Nueva</button> para registrar
+	</div>
 </div>
 
 <!-- History log -->
@@ -339,6 +383,11 @@
 		box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 20px oklch(75% 0.2 160 / 0.3);
 		white-space: nowrap;
 		font-family: inherit;
+	}
+
+	/* ── Body card ── */
+	.body-card {
+		padding: 1.25rem 0.75rem 1rem;
 	}
 
 	/* ── Glass card ── */
