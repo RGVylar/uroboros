@@ -55,11 +55,11 @@
 	let trendData: TrendEntry[] = $state([]);
 	let loadingTrend = $state(false);
 
-	const MACRO_CONFIG: Record<TrendMacro, { label: string; color: string; unit: string }> = {
-		calories: { label: 'Calorías', color: 'var(--cal)',  unit: 'kcal' },
-		protein:  { label: 'Proteína', color: 'var(--prot)', unit: 'g' },
-		carbs:    { label: 'Carbos',   color: 'var(--carb)', unit: 'g' },
-		fat:      { label: 'Grasa',    color: 'var(--fat)',  unit: 'g' },
+	const MACRO_CONFIG: Record<TrendMacro, { label: string; color: string; raw: string; unit: string }> = {
+		calories: { label: 'Calorías', color: 'var(--cal)',  raw: '80% 0.17 45',  unit: 'kcal' },
+		protein:  { label: 'Proteína', color: 'var(--prot)', raw: '75% 0.14 220', unit: 'g' },
+		carbs:    { label: 'Carbos',   color: 'var(--carb)', raw: '75% 0.16 295', unit: 'g' },
+		fat:      { label: 'Grasa',    color: 'var(--fat)',  raw: '72% 0.18 25',  unit: 'g' },
 	};
 
 	const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -319,9 +319,9 @@
 				flex:1;
 				padding:0.5rem 0.625rem;
 				border-radius:8px;
-				border:1px solid {trendMacro === macro ? config.color : 'rgba(255,255,255,0.1)'};
-				background:{trendMacro === macro ? config.color + '25' : 'rgba(255,255,255,0.05)'};
-				color:{trendMacro === macro ? config.color : 'rgba(255,255,255,0.6)'};
+				border:1px solid {trendMacro === macro ? `oklch(${config.raw} / 0.55)` : 'rgba(255,255,255,0.1)'};
+				background:{trendMacro === macro ? `oklch(${config.raw} / 0.15)` : 'rgba(255,255,255,0.05)'};
+				color:{trendMacro === macro ? `oklch(${config.raw})` : 'rgba(255,255,255,0.6)'};
 				font-size:0.7rem;
 				font-weight:600;
 				font-family:inherit;
@@ -342,7 +342,7 @@
 		{@const goalVal = chartGoalVal() ?? 0}
 		{@const maxVal = trendMax}
 		{@const BAR_MAX_PX = 90}
-		{@const macroColor = MACRO_CONFIG[trendMacro].color}
+		{@const macroRaw = MACRO_CONFIG[trendMacro].raw}
 		<div style="display:flex; align-items:flex-end; gap:0.375rem;">
 			{#each trendData as d, i}
 				{@const val = d[trendMacro]}
@@ -353,17 +353,17 @@
 				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
 				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
 					<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem;">{val > 0 ? Math.round(val) : '·'}</div>
-					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? macroColor + 'CC' : under ? macroColor + '55' : macroColor + '99'}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
+					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : `oklch(${macroRaw} / 0.65)`}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); font-weight:600;">{dayLabel}</div>
 				</div>
 			{/each}
 		</div>
 		<!-- Legend -->
-		{@const legColor = MACRO_CONFIG[trendMacro].color}
+		{@const legRaw = MACRO_CONFIG[trendMacro].raw}
 		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}99;"></div> En rango</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}CC;"></div> Exceso</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}55;"></div> Déficit</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.65);"></div> En rango</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.9);"></div> Exceso</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.35);"></div> Déficit</div>
 		</div>
 	{/if}
 </div>
