@@ -118,8 +118,18 @@ async def search_products(
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ) -> list[Product]:
+    # Build a map of product_id → usage count for this user (for ranking boost)
+    from sqlalchemy import func as sqlfunc
+    from app.models import DiaryEntry as DE
+    freq_rows = db.execute(
+        select(DE.product_id, sqlfunc.count(DE.id).label("cnt"))
+        .where(DE.user_id == user.id)
+        .group_by(DE.product_id)
+    ).all()
+    user_freq: dict[int, int] = {row[0]: row[1] for row in freq_rows}
+
     # Fetch all local matches (no DB-level limit — we rank in Python)
     stmt = (
         select(Product)
@@ -127,8 +137,14 @@ async def search_products(
     )
     local_all = list(db.scalars(stmt))
 
-    # Sort by relevance, then alphabetically as tiebreaker
-    local_all.sort(key=lambda p: (-_relevance(p.name, p.brand, q), p.name.lower()))
+    # Sort by relevance + user history boost, then alphabetically as tiebreaker
+    # Boost: up to +30 points for products the user has logged before (capped)
+    def _sort_key(p: Product) -> tuple:
+        rel = _relevance(p.name, p.brand, q)
+        boost = min(30, user_freq.get(p.id, 0) * 3) if rel > 0 else 0
+        return (-(rel + boost), p.name.lower())
+
+    local_all.sort(key=_sort_key)
 
     # Paginate on the ranked list
     local = local_all[offset: offset + limit]
