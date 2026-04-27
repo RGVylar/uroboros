@@ -31,34 +31,49 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Generate Android icons
-        working-directory: frontend
-        run: |
-          # Install ImageMagick
-          sudo apt-get update && sudo apt-get install -y imagemagick
-
-          # Generate icons from logo.png
-          declare -A SIZES=( ["mdpi"]="48" ["hdpi"]="72" ["xhdpi"]="96" ["xxhdpi"]="144" ["xxxhdpi"]="192" )
-
-          for density in "${!SIZES[@]}"; do
-            size=${SIZES[$density]}
-            mkdir -p "android/app/src/main/res/mipmap-$density"
-
-            # Resize logo to target size
-            convert "static/logo.png" -resize "${size}x${size}" -extent "${size}x${size}" \
-              -background "none" -gravity Center \
-              "android/app/src/main/res/mipmap-$density/ic_launcher.png"
-
-            convert "static/logo.png" -resize "${size}x${size}" -extent "${size}x${size}" \
-              -background "none" -gravity Center \
-              "android/app/src/main/res/mipmap-$density/ic_launcher_round.png"
-          done
-
-          echo "Icons generated successfully"
-
       - name: Sync Capacitor
         working-directory: frontend
         run: npx cap sync android
+
+      - name: Generate Android icons
+        working-directory: frontend
+        run: |
+          sudo apt-get update && sudo apt-get install -y imagemagick
+
+          declare -A SIZES=(
+            ["mdpi"]="48"
+            ["hdpi"]="72"
+            ["xhdpi"]="96"
+            ["xxhdpi"]="144"
+            ["xxxhdpi"]="192"
+          )
+
+          for density in "${!SIZES[@]}"; do
+            size=${SIZES[$density]}
+            dir="android/app/src/main/res/mipmap-$density"
+            mkdir -p "$dir"
+
+            # Launcher icon (square)
+            convert "static/logo.png" -resize "${size}x${size}" \
+              -background none -gravity center -extent "${size}x${size}" \
+              "$dir/ic_launcher.png"
+
+            # Round launcher icon
+            convert "static/logo.png" -resize "${size}x${size}" \
+              -background none -gravity center -extent "${size}x${size}" \
+              "$dir/ic_launcher_round.png"
+
+            # Foreground layer (for adaptive icons, API 26+)
+            # Use 108dp canvas with logo at 72% to leave safe zone padding
+            safe=$(echo "$size * 108 / 72" | bc)
+            convert "static/logo.png" -resize "${size}x${size}" \
+              -background none -gravity center -extent "${safe}x${safe}" \
+              "$dir/ic_launcher_foreground.png"
+
+            echo "✓ $density: ${size}px"
+          done
+
+          echo "All icons generated"
 
       - name: Build debug APK
         working-directory: frontend/android
