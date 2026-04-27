@@ -358,7 +358,7 @@
 					{#if !is30}
 						<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem; white-space:nowrap;">{val > 0 ? Math.round(val) : '·'}</div>
 					{/if}
-					<div style="width:100%; border-radius:{is30 ? '3px' : '6px'}; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : `oklch(${macroRaw} / 0.65)`}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none'}; transition:height 0.3s ease;"></div>
+					<div style="width:100%; border-radius:{is30 ? '3px' : '6px'}; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : 'oklch(85% 0.18 160 / 0.75)'}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none'}; transition:height 0.3s ease;"></div>
 					<div style="font-size:{is30 ? '0.45rem' : '0.625rem'}; color:{showLabel ? 'rgba(255,255,255,0.5)' : 'transparent'}; font-weight:600; white-space:nowrap; overflow:hidden;">{is30 ? dayNum : dayLabel}</div>
 				</div>
 			{/each}
@@ -366,7 +366,7 @@
 		<!-- Legend -->
 		{@const legRaw = MACRO_CONFIG[trendMacro].raw}
 		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.65);"></div> En rango</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(85% 0.18 160 / 0.75);"></div> En rango</div>
 			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.9);"></div> Exceso</div>
 			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.35);"></div> Déficit</div>
 		</div>
