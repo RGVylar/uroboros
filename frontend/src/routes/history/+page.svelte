@@ -285,32 +285,85 @@
 	</div>
 </div>
 
+<!-- ── Trend days selector ── -->
+<div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+	{#each [7, 30] as days}
+		<button
+			onclick={() => trendDays = days}
+			style="
+				flex:1;
+				padding:0.4rem 0.5rem;
+				border-radius:6px;
+				border:1px solid {trendDays === days ? 'rgba(79,255,153,0.5)' : 'rgba(255,255,255,0.1)'};
+				background:{trendDays === days ? 'rgba(79,255,153,0.15)' : 'rgba(255,255,255,0.05)'};
+				color:{trendDays === days ? 'oklch(85% 0.17 160)' : 'rgba(255,255,255,0.5)'};
+				font-size:0.65rem;
+				font-weight:600;
+				font-family:inherit;
+				cursor:pointer;
+				transition:all 0.2s ease;
+				text-align:center;
+			"
+		>
+			{days} días
+		</button>
+	{/each}
+</div>
+
+<!-- ── Macro selector buttons ── -->
+<div style="display:flex; gap:0.5rem; margin-bottom:0.875rem;">
+	{#each Object.entries(MACRO_CONFIG) as [macro, config]}
+		<button
+			onclick={() => trendMacro = macro}
+			style="
+				flex:1;
+				padding:0.5rem 0.625rem;
+				border-radius:8px;
+				border:1px solid {trendMacro === macro ? config.color : 'rgba(255,255,255,0.1)'};
+				background:{trendMacro === macro ? config.color + '25' : 'rgba(255,255,255,0.05)'};
+				color:{trendMacro === macro ? config.color : 'rgba(255,255,255,0.6)'};
+				font-size:0.7rem;
+				font-weight:600;
+				font-family:inherit;
+				cursor:pointer;
+				transition:all 0.2s ease;
+				text-align:center;
+			"
+		>
+			{config.label}
+		</button>
+	{/each}
+</div>
+
 <!-- ── Bar chart ── -->
 <div class="glass-card" style="margin-bottom:0.625rem;">
-	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">Calorías por día</div>
+	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">{MACRO_CONFIG[trendMacro].label} por día</div>
 	{#if trendData.length > 0}
-		{@const goalKcal = goals?.kcal ?? 0}
-		{@const maxCal = Math.max(...trendData.map(d => d.calories), goalKcal, 1)}
+		{@const goalVal = chartGoalVal() ?? 0}
+		{@const maxVal = trendMax}
 		{@const BAR_MAX_PX = 90}
+		{@const macroColor = MACRO_CONFIG[trendMacro].color}
 		<div style="display:flex; align-items:flex-end; gap:0.375rem;">
 			{#each trendData as d, i}
-				{@const pct = Math.min(100, (d.calories / maxCal) * 100)}
-				{@const barPx = Math.max(d.calories > 0 ? 4 : 2, Math.round((pct / 100) * BAR_MAX_PX))}
-				{@const over = goalKcal > 0 && d.calories > goalKcal + 100}
-				{@const under = goalKcal > 0 && d.calories > 0 && d.calories < goalKcal - 350}
+				{@const val = d[trendMacro]}
+				{@const pct = Math.min(100, (val / maxVal) * 100)}
+				{@const barPx = Math.max(val > 0 ? 4 : 2, Math.round((pct / 100) * BAR_MAX_PX))}
+				{@const over = goalVal > 0 && val > goalVal + (trendMacro === 'calories' ? 100 : 10)}
+				{@const under = goalVal > 0 && val > 0 && val < goalVal - (trendMacro === 'calories' ? 350 : 20)}
 				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
 				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
-					<div style="font-size:0.5rem; color:{d.calories > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem;">{d.calories > 0 ? Math.round(d.calories) : '·'}</div>
-					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{d.calories === 0 ? 'rgba(255,255,255,0.06)' : over ? 'linear-gradient(180deg, oklch(75% 0.18 30), oklch(55% 0.2 20))' : under ? 'linear-gradient(180deg, oklch(75% 0.13 270), oklch(55% 0.15 270))' : 'linear-gradient(180deg, oklch(85% 0.18 160), oklch(65% 0.2 180))'}; box-shadow:{d.calories > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
+					<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem;">{val > 0 ? Math.round(val) : '·'}</div>
+					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? macroColor + 'CC' : under ? macroColor + '55' : macroColor + '99'}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); font-weight:600;">{dayLabel}</div>
 				</div>
 			{/each}
 		</div>
 		<!-- Legend -->
+		{@const legColor = MACRO_CONFIG[trendMacro].color}
 		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(75% 0.18 180);"></div> En rango</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(65% 0.18 30);"></div> Exceso</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(65% 0.14 270);"></div> Déficit</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}99;"></div> En rango</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}CC;"></div> Exceso</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{legColor}55;"></div> Déficit</div>
 		</div>
 	{/if}
 </div>
