@@ -4,7 +4,7 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Product, User, DiaryEntry, MealType, RecommendedProduct } from '$lib/types';
+	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -17,6 +17,10 @@
 	// Recommendations state
 	let recommendations: RecommendedProduct[] = $state([]);
 	let loadingRecs = $state(false);
+
+	// Frequent / history state
+	let frequent: FrequentProduct[] = $state([]);
+	let loadingFrequent = $state(false);
 
 	// Web barcode scanner state
 	let scanning = $state(false);
@@ -133,9 +137,21 @@
 		}
 	}
 
+	async function loadFrequent() {
+		loadingFrequent = true;
+		try {
+			frequent = await api.get<FrequentProduct[]>('/products/frequent?limit=15');
+		} catch {
+			frequent = [];
+		} finally {
+			loadingFrequent = false;
+		}
+	}
+
 	$effect(() => {
 		api.get<User[]>('/users').then(u => users = u).catch(() => {});
 		loadRecommendations();
+		loadFrequent();
 	});
 
 	async function searchByName() {
@@ -524,54 +540,76 @@
 	</div>
 
 	<!-- Results section (when query) -->
-	{#if query && (searching || results.length > 0)}
-		<div class="section-header">
-			<div>
-				<div class="section-title">Resultados</div>
-			</div>
-			{#if results.length > 0}
-				<div class="section-count">{results.length} resultados</div>
-			{/if}
-		</div>
-
+	{#if query}
 		{#if searching && results.length === 0}
 			<div class="loading-row">Buscando...</div>
-		{/if}
-
-		<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-			{#each results as product (product.id)}
-				<button class="product-row" onclick={() => selectProduct(product)}>
-					<div class="product-avatar" style="
-						background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
-					">{productGlyph(product.name)}</div>
-					<div style="flex:1; min-width:0; text-align:left;">
-						<div class="product-name">{product.name}</div>
-						<div class="product-brand">{product.brand ?? '—'}</div>
-					</div>
-					<div style="text-align:right; flex-shrink:0;">
-						<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-						<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
-					</div>
+		{:else if results.length > 0}
+			<div class="section-header">
+				<div><div class="section-title">Resultados</div></div>
+				<div class="section-count">{results.length} encontrados</div>
+			</div>
+			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+				{#each results as product (product.id)}
+					<button class="product-row" onclick={() => selectProduct(product)}>
+						<div class="product-avatar" style="
+							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
+						">{productGlyph(product.name)}</div>
+						<div style="flex:1; min-width:0; text-align:left;">
+							<div class="product-name">{product.name}</div>
+							<div class="product-brand">{product.brand ?? '—'}</div>
+						</div>
+						<div style="text-align:right; flex-shrink:0;">
+							<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+							<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+						</div>
+					</button>
+				{/each}
+			</div>
+			{#if hasMore}
+				<button class="load-more-btn" onclick={loadMore} disabled={searching}>
+					{searching ? 'Cargando...' : 'Mostrar más'}
 				</button>
-			{/each}
-		</div>
-
-		{#if hasMore}
-			<button class="load-more-btn" onclick={loadMore} disabled={searching}>
-				{searching ? 'Cargando...' : 'Mostrar más'}
-			</button>
+			{/if}
 		{/if}
 	{/if}
 
-	<!-- Suggestions section (when no query) -->
-	{#if !query && activeFilter === 'suggestions'}
-		{#if loadingRecs}
-			<div class="loading-row">Cargando sugerencias...</div>
-		{:else if recommendations.length > 0}
+	<!-- Sin query: frecuentes primero, luego sugerencias según chip -->
+	{#if !query}
+		<!-- Historial de uso (siempre visible) -->
+		{#if loadingFrequent}
+			<div class="loading-row">Cargando historial...</div>
+		{:else if frequent.length > 0}
 			<div class="section-header">
 				<div>
-					<div class="section-title">Sugerencias para ti</div>
-					<div class="section-sub">Basado en tu rutina</div>
+					<div class="section-title">Mis alimentos</div>
+					<div class="section-sub">Los que más usas</div>
+				</div>
+			</div>
+			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+				{#each frequent as f (f.product.id)}
+					<button class="product-row" onclick={() => selectProduct(f.product)}>
+						<div class="product-avatar" style="
+							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(f.product.name)} / 0.35), oklch(60% 0.12 {hashHue(f.product.name)} / 0.15));
+						">{productGlyph(f.product.name)}</div>
+						<div style="flex:1; min-width:0; text-align:left;">
+							<div class="product-name">{f.product.name}</div>
+							<div class="product-brand">{f.product.brand ?? '—'}</div>
+						</div>
+						<div style="text-align:right; flex-shrink:0;">
+							<div class="product-kcal">{f.product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+							<div class="product-per">/100{isDrink(f.product) ? 'ml' : 'g'}</div>
+						</div>
+					</button>
+				{/each}
+			</div>
+		{/if}
+
+		<!-- Sugerencias IA (solo si chip activo = suggestions) -->
+		{#if activeFilter === 'suggestions' && !loadingRecs && recommendations.length > 0}
+			<div class="section-header">
+				<div>
+					<div class="section-title">Sugerencias para ahora</div>
+					<div class="section-sub">Basado en tus calorías restantes</div>
 				</div>
 			</div>
 			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
@@ -586,7 +624,7 @@
 						</div>
 						<div style="text-align:right; flex-shrink:0;">
 							<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
-							<div class="product-per">{rec.suggested_grams}g</div>
+							<div class="product-per">{rec.suggested_grams}g sugerido</div>
 						</div>
 					</button>
 				{/each}
