@@ -664,13 +664,15 @@
 		border-radius: 50%;
 		background: rgba(255,255,255,0.07);
 		border: 1px solid rgba(255,255,255,0.1);
-		color: rgba(255,255,255,0.8);
+		color: white !important;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
 		transition: background 0.15s;
+		padding: 0 !important;
+		box-shadow: none !important;
 	}
 	.glass-btn:hover { background: rgba(255,255,255,0.12); }
 
@@ -713,13 +715,15 @@
 		border-radius: 12px;
 		background: rgba(255,255,255,0.06);
 		border: 1px solid rgba(255,255,255,0.1);
-		color: oklch(85% 0.15 160);
+		color: oklch(85% 0.15 160) !important;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
 		transition: background 0.15s;
+		padding: 0 !important;
+		box-shadow: none !important;
 	}
 	.barcode-btn:hover { background: rgba(255,255,255,0.1); }
 
