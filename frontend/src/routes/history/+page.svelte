@@ -343,18 +343,23 @@
 		{@const maxVal = trendMax}
 		{@const BAR_MAX_PX = 90}
 		{@const macroRaw = MACRO_CONFIG[trendMacro].raw}
-		<div style="display:flex; align-items:flex-end; gap:0.375rem;">
+		{@const is30 = trendDays === 30}
+		<div style="display:flex; align-items:flex-end; gap:{is30 ? '2px' : '0.375rem'};">
 			{#each trendData as d, i}
 				{@const val = d[trendMacro]}
 				{@const pct = Math.min(100, (val / maxVal) * 100)}
 				{@const barPx = Math.max(val > 0 ? 4 : 2, Math.round((pct / 100) * BAR_MAX_PX))}
 				{@const over = goalVal > 0 && val > goalVal + (trendMacro === 'calories' ? 100 : 10)}
 				{@const under = goalVal > 0 && val > 0 && val < goalVal - (trendMacro === 'calories' ? 350 : 20)}
+				{@const dayNum = parseInt(d.date.slice(8))}
 				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
-				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
-					<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem;">{val > 0 ? Math.round(val) : '·'}</div>
-					<div style="width:100%; border-radius:6px; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : `oklch(${macroRaw} / 0.65)`}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.25)' : 'none'}; transition:height 0.3s ease;"></div>
-					<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); font-weight:600;">{dayLabel}</div>
+				{@const showLabel = !is30 || dayNum % 7 === 1 || i === trendDays - 1}
+				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.125rem; min-width:0;">
+					{#if !is30}
+						<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem; white-space:nowrap;">{val > 0 ? Math.round(val) : '·'}</div>
+					{/if}
+					<div style="width:100%; border-radius:{is30 ? '3px' : '6px'}; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : `oklch(${macroRaw} / 0.65)`}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none'}; transition:height 0.3s ease;"></div>
+					<div style="font-size:{is30 ? '0.45rem' : '0.625rem'}; color:{showLabel ? 'rgba(255,255,255,0.5)' : 'transparent'}; font-weight:600; white-space:nowrap; overflow:hidden;">{is30 ? dayNum : dayLabel}</div>
 				</div>
 			{/each}
 		</div>
