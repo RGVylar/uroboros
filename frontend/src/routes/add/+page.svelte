@@ -45,8 +45,7 @@
 				zxingReader.decodeFromVideoElement(videoEl, async (result, err) => {
 					if (result) {
 						stopWebScan();
-						barcode = result.getText();
-						await searchByBarcode();
+						await searchByBarcode(result.getText());
 					}
 				});
 			}
@@ -205,16 +204,17 @@
 		}
 	}
 
-	async function searchByBarcode() {
-		if (!barcode.trim()) return;
+	async function searchByBarcode(code?: string) {
+		const target = (code ?? barcode).trim();
+		if (!target) return;
 		searching = true;
 		error = '';
 		try {
-			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
-			barcode = ''; // limpiar para ocultar el input row
+			const p = await api.get<Product>(`/products/barcode/${target}`);
 			selectProduct(p); // navegar directo al detalle
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Producto no encontrado con ese código';
+			barcode = target; // solo mostrar el input si no se encontró
+			error = 'Producto no encontrado con ese código';
 		} finally {
 			searching = false;
 		}
@@ -237,8 +237,7 @@
 
 			const { barcodes } = await BarcodeScanner.scan();
 			if (barcodes.length > 0) {
-				barcode = barcodes[0].rawValue;
-				await searchByBarcode();
+				await searchByBarcode(barcodes[0].rawValue);
 			}
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Scanner error';
