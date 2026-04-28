@@ -70,7 +70,6 @@
 
 	let query = $state('');
 	let barcode = $state('');
-	let foundProduct: Product | null = $state(null);
 	let results: Product[] = $state([]);
 	let searching = $state(false);
 	let searchOffset = $state(0);
@@ -206,18 +205,13 @@
 		}
 	}
 
-	async function searchByBarcode(autoNavigate = false) {
+	async function searchByBarcode() {
 		if (!barcode.trim()) return;
 		searching = true;
 		error = '';
-		foundProduct = null;
 		try {
 			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
-			if (autoNavigate) {
-				selectProduct(p);   // nativo Android: funciona desde contexto awaited
-			} else {
-				foundProduct = p;   // web/iOS: mostramos preview, el usuario toca "Añadir"
-			}
+			selectProduct(p);
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -243,7 +237,7 @@
 			const { barcodes } = await BarcodeScanner.scan();
 			if (barcodes.length > 0) {
 				barcode = barcodes[0].rawValue;
-				await searchByBarcode(true);   // nativo: navega directamente al producto
+				await searchByBarcode();
 			}
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Scanner error';
@@ -533,30 +527,17 @@
 		</button>
 	</div>
 
-	<!-- Barcode manual input / product found -->
+	<!-- Barcode manual input -->
 	{#if barcode}
-		{#if foundProduct}
-			<button class="product-row" onclick={() => selectProduct(foundProduct!)} style="margin-bottom:0.5rem;">
-				<div class="product-avatar" style="
-					background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(foundProduct.name)} / 0.35), oklch(60% 0.12 {hashHue(foundProduct.name)} / 0.15));
-				">{productGlyph(foundProduct.name)}</div>
-				<div style="flex:1; min-width:0; text-align:left;">
-					<div class="product-name">{foundProduct.name}</div>
-					<div class="product-brand">{foundProduct.brand ?? '—'}</div>
-				</div>
-				<div style="text-align:right; flex-shrink:0;">
-					<div class="product-kcal">{foundProduct.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-					<div class="product-per" style="color:oklch(85% 0.15 160); font-weight:700;">Añadir →</div>
-				</div>
-			</button>
-		{:else}
-			<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem;">
-				<input bind:value={barcode} placeholder="Código de barras" class="field-input" style="flex:1;" />
-				<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1rem; height:44px; border-radius:12px;">
-					{searching ? '...' : 'Buscar'}
-				</button>
+		<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+			<div style="flex:1; min-width:0;">
+				<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-bottom:0.2rem;">Código escaneado</div>
+				<div style="font-size:0.875rem; font-weight:600; color:#fff; font-variant-numeric:tabular-nums;">{barcode}</div>
 			</div>
-		{/if}
+			<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1.25rem; height:44px; border-radius:12px; width:auto; flex-shrink:0;">
+				{searching ? 'Buscando...' : 'Añadir →'}
+			</button>
+		</div>
 	{/if}
 
 	{#if scanError}<p class="add-error">{scanError}</p>{/if}
