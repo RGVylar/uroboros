@@ -385,7 +385,7 @@
 								font-size:1.05rem; font-weight:800; color:var(--primary-ink);
 								transition: background 0.25s;
 							">{supplements[0].taken ? '✓' : ''}</div>
-							<div style="font-weight:700; font-size:0.82rem;">{supplements[0].name}</div>
+							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{supplements[0].name}</div>
 							<span role="button" tabindex="0"
 								onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
 								onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
@@ -410,14 +410,14 @@
 									{suppTaken}/{suppCount}
 								</div>
 							</div>
-							<div style="font-weight:700; font-size:0.82rem;">Suplementos</div>
+							<div style="font-weight:700; font-size:0.82rem; color:#fff;">Suplementos</div>
 							<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? '¡Todo tomado! ✓' : 'Toca para marcar'}</div>
 						</button>
 					{:else}
 						<!-- No supplements yet -->
 						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
 							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">＋</div>
-							<div style="font-weight:700; font-size:0.82rem;">Suplementos</div>
+							<div style="font-weight:700; font-size:0.82rem; color:#fff;">Suplementos</div>
 							<div style="font-size:0.7rem; color:var(--text-muted);">Añadir suplemento</div>
 						</button>
 					{/if}

@@ -12,6 +12,14 @@
 	const urlDate = $page.url.searchParams.get('date');
 	let selectedDate = $state(urlDate ?? new Date().toISOString().slice(0, 10));
 
+	// Use current time for today's entries, noon for past dates
+	function consumedAt(dateStr: string): string {
+		const today = new Date().toISOString().slice(0, 10);
+		return dateStr === today
+			? new Date().toISOString()
+			: new Date(dateStr + 'T12:00:00').toISOString();
+	}
+
 	let isNative = Capacitor.isNativePlatform();
 
 	// Recommendations state
@@ -160,7 +168,7 @@
 			await api.post<DiaryEntry[]>('/diary/recipe', {
 				recipe_id: recipe.id,
 				meal_type: mealType,
-				consumed_at: new Date(selectedDate + 'T12:00:00').toISOString(),
+				consumed_at: consumedAt(selectedDate),
 			});
 			goto('/');
 		} catch (e: unknown) {
@@ -277,7 +285,7 @@
 				product_id: selected.id,
 				grams,
 				meal_type: mealType,
-				consumed_at: new Date(selectedDate + 'T12:00:00').toISOString(),
+				consumed_at: consumedAt(selectedDate),
 				also_for_user_id: alsoFor
 			});
 			saveLastGrams(selected.id, grams);
