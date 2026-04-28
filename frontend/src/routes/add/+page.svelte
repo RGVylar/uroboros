@@ -70,6 +70,7 @@
 
 	let query = $state('');
 	let barcode = $state('');
+	let barcodeNotFound = $state(false);
 	let results: Product[] = $state([]);
 	let searching = $state(false);
 	let searchOffset = $state(0);
@@ -208,12 +209,13 @@
 	async function searchByBarcode() {
 		if (!barcode.trim()) return;
 		searching = true;
+		barcodeNotFound = false;
 		error = '';
 		try {
 			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
 			selectProduct(p);
-		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Error';
+		} catch {
+			barcodeNotFound = true;
 		} finally {
 			searching = false;
 		}
@@ -527,17 +529,32 @@
 		</button>
 	</div>
 
-	<!-- Barcode manual input -->
+	<!-- Barcode row -->
 	{#if barcode}
-		<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-			<div style="flex:1; min-width:0;">
-				<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-bottom:0.2rem;">Código escaneado</div>
-				<div style="font-size:0.875rem; font-weight:600; color:#fff; font-variant-numeric:tabular-nums;">{barcode}</div>
+		{#if barcodeNotFound}
+			<div style="margin-bottom:0.75rem; background:oklch(65% 0.22 25 / 0.08); border:1px solid oklch(65% 0.22 25 / 0.2); border-radius:16px; padding:0.875rem;">
+				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">Producto no encontrado</div>
+				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">El código <span style="font-variant-numeric:tabular-nums;">{barcode}</span> no está en la base de datos.</div>
+				<div style="display:flex; gap:0.5rem;">
+					<button onclick={() => { barcodeNotFound = false; barcode = ''; }} class="filter-chip" style="flex:1;">
+						Escanear otro
+					</button>
+					<button onclick={() => { barcodeNotFound = false; barcode = ''; showManual = true; }} class="filter-chip" style="flex:1;">
+						✏️ Crear manual
+					</button>
+				</div>
 			</div>
-			<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1.25rem; height:44px; border-radius:12px; width:auto; flex-shrink:0;">
-				{searching ? 'Buscando...' : 'Añadir →'}
-			</button>
-		</div>
+		{:else}
+			<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+				<div style="flex:1; min-width:0;">
+					<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-bottom:0.2rem;">Código escaneado</div>
+					<div style="font-size:0.875rem; font-weight:600; color:#fff; font-variant-numeric:tabular-nums;">{barcode}</div>
+				</div>
+				<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1.25rem; height:44px; border-radius:12px; width:auto; flex-shrink:0;">
+					{searching ? 'Buscando...' : 'Añadir →'}
+				</button>
+			</div>
+		{/if}
 	{/if}
 
 	{#if scanError}<p class="add-error">{scanError}</p>{/if}
