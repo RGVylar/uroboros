@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -91,6 +91,26 @@ def delete_supplement(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Supplement not found")
     db.delete(supp)
     db.commit()
+
+
+# ── Monthly summary (for calendar) ───────────────────────────────────────────
+
+@router.get("/month", response_model=list[str])
+def get_supplement_month(
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[str]:
+    """Returns list of YYYY-MM-DD strings where at least one supplement was taken."""
+    rows = db.execute(
+        select(SupplementLog.logged_date).distinct().where(
+            SupplementLog.user_id == user.id,
+            extract("year", SupplementLog.logged_date) == year,
+            extract("month", SupplementLog.logged_date) == month,
+        )
+    ).scalars().all()
+    return [str(d) for d in rows]
 
 
 # ── Daily log ─────────────────────────────────────────────────────────────────

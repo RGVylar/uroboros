@@ -40,9 +40,9 @@
 	// Calendar data
 	let monthData: Record<string, number> = $state({});
 	let loadingMonth = $state(false);
-	let creatineDates: Set<string> = $state(new Set());
+	let supplementDates: Set<string> = $state(new Set());
 	let exerciseDates: Set<string> = $state(new Set());
-	let trackCreatine = $state(false);
+	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
 
 	// Goals (for reference line)
 	let goals: Goals | null = $state(null);
@@ -113,12 +113,12 @@
 				.then(s => ({ date, calories: s.totals.calories, has_exercise: s.has_exercise }))
 				.catch(() => ({ date, calories: 0, has_exercise: false }));
 		});
-		const creatinePromise = trackCreatine
-			? api.get<string[]>(`/creatine/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
+		const supplementPromise = suppEnabled
+			? api.get<string[]>(`/supplements/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
 			: Promise.resolve([]);
-		const [results, creatineDatesArr] = await Promise.all([
+		const [results, supplementDatesArr] = await Promise.all([
 			Promise.all(diaryPromises),
-			creatinePromise,
+			supplementPromise,
 		]);
 		const newData: Record<string, number> = {};
 		const newExerciseDates = new Set<string>();
@@ -127,7 +127,7 @@
 			if (r.has_exercise) newExerciseDates.add(r.date);
 		}
 		monthData = newData;
-		creatineDates = new Set(creatineDatesArr);
+		supplementDates = new Set(supplementDatesArr);
 		exerciseDates = newExerciseDates;
 		loadingMonth = false;
 	}
@@ -221,10 +221,10 @@
 	// Effects
 	$effect(() => {
 		api.get<Goals>('/goals')
-			.then(g => { goals = g; trackCreatine = g.track_creatine ?? false; })
+			.then(g => { goals = g; })
 			.catch(() => {});
 	});
-	$effect(() => { viewMonth; viewYear; trackCreatine; loadMonthData(); });
+	$effect(() => { viewMonth; viewYear; loadMonthData(); });
 	$effect(() => { trendDays; loadTrendData(); });
 
 	let calendarDays = $derived.by(() => {
@@ -501,7 +501,7 @@
 						{@const hasData = cell.date && monthData[cell.date] > 0}
 						{@const isCalSelected = cell.date === selectedDay}
 						{@const isTodayCell = cell.date ? isToday(cell.date) : false}
-						{@const tookCreatine = trackCreatine && cell.date ? creatineDates.has(cell.date) : false}
+						{@const tookCreatine = suppEnabled && cell.date ? supplementDates.has(cell.date) : false}
 						{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
 						<button
 							onclick={() => cell.date && selectDay(cell.date)}
@@ -531,7 +531,7 @@
 				{lbl}
 			</span>
 		{/each}
-		{#if trackCreatine}<span>💊 Creatina</span>{/if}
+		{#if suppEnabled}<span>💊 Suplementos</span>{/if}
 		<span>💪 Ejercicio</span>
 	</div>
 </div>
