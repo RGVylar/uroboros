@@ -29,12 +29,10 @@
 	let scanError = $state('');
 	let stream: MediaStream | null = null;
 	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
-	let buscaBtn: HTMLButtonElement | undefined;
 
 	async function startWebScan() {
 		scanError = '';
 		scanning = true;
-		let handled = false;
 		try {
 			const { BrowserMultiFormatReader } = await import('@zxing/browser');
 			zxingReader = new BrowserMultiFormatReader();
@@ -44,15 +42,11 @@
 			if (videoEl) {
 				videoEl.srcObject = stream;
 				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, (result, _err) => {
-					if (result && !handled) {
-						handled = true;
-						const code = result.getText();
+				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+					if (result) {
+						barcode = result.getText();
 						stopWebScan();
-						barcode = code;
-						// Programmatically click the "Buscar" button — same code path
-						// that the user clicks manually, which works correctly
-						setTimeout(() => buscaBtn?.click(), 100);
+						searchByBarcode();
 					}
 				});
 			}
@@ -537,7 +531,7 @@
 	{#if barcode}
 		<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem;">
 			<input bind:value={barcode} placeholder="Código de barras" class="field-input" style="flex:1;" />
-			<button bind:this={buscaBtn} onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1rem; height:44px; border-radius:12px;">Buscar</button>
+			<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1rem; height:44px; border-radius:12px;">Buscar</button>
 		</div>
 	{/if}
 
