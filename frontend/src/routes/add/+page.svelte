@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Capacitor } from '@capacitor/core';
@@ -42,11 +43,12 @@
 			if (videoEl) {
 				videoEl.srcObject = stream;
 				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+				zxingReader.decodeFromVideoElement(videoEl, async (result, _err) => {
 					if (result) {
-						barcode = result.getText();
 						stopWebScan();
-						searchByBarcode();
+						barcode = result.getText();
+						await tick();
+						await searchByBarcode();
 					}
 				});
 			}
