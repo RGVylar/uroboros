@@ -11,7 +11,6 @@
 
 	const urlDate = $page.url.searchParams.get('date');
 	let selectedDate = $state(urlDate ?? new Date().toISOString().slice(0, 10));
-	const urlBarcode = $page.url.searchParams.get('barcode');
 
 	let isNative = Capacitor.isNativePlatform();
 
@@ -30,10 +29,10 @@
 	let scanError = $state('');
 	let stream: MediaStream | null = null;
 	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
+
 	async function startWebScan() {
 		scanError = '';
 		scanning = true;
-		let handled = false;
 		try {
 			const { BrowserMultiFormatReader } = await import('@zxing/browser');
 			zxingReader = new BrowserMultiFormatReader();
@@ -44,13 +43,10 @@
 				videoEl.srcObject = stream;
 				videoEl.play();
 				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
-					if (result && !handled) {
-						handled = true;
+					if (result) {
+						barcode = result.getText();
 						stopWebScan();
-						// Navegar con el barcode en la URL — goto() funciona desde
-						// cualquier contexto; la página se reinicia y busca el producto
-						// durante el mount, que es un contexto fiable en iOS y todos los navegadores
-						goto(`/add?barcode=${encodeURIComponent(result.getText())}&date=${selectedDate}`);
+						searchByBarcode();
 					}
 				});
 			}
@@ -169,13 +165,6 @@
 		} finally {
 			saving = false;
 		}
-	}
-
-	// Si venimos de un escaneo de barcode (URL param), buscar el producto al montar
-	if (urlBarcode) {
-		api.get<Product>(`/products/barcode/${encodeURIComponent(urlBarcode)}`)
-			.then(p => { selected = p; grams = getLastGrams(p.id); })
-			.catch(() => { error = 'Producto no encontrado'; barcode = urlBarcode; });
 	}
 
 	$effect(() => {
