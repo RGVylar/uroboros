@@ -83,24 +83,15 @@
 			<span class="chevron">›</span>
 		</button>
 		<div class="row-divider"></div>
-		<!-- Creatina -->
-		<div class="settings-row" style="cursor:default;">
+		<!-- Suplementos -->
+		<button class="settings-row" onclick={() => goto('/supplements')}>
 			<div class="icon-box">💊</div>
 			<div class="row-content">
-				<div class="row-label">Trackear creatina</div>
-				<div class="row-detail">{goals?.track_creatine ? 'Activo' : 'Inactivo'}</div>
+				<div class="row-label">Suplementos</div>
+				<div class="row-detail">Gestiona tu lista diaria</div>
 			</div>
-			{#if goals}
-				<button
-					onclick={toggleCreatine}
-					disabled={savingCreatine}
-					class="toggle-btn"
-					style="background:{goals.track_creatine ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.track_creatine ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
-				>
-					<span class="toggle-knob" style="left:{goals.track_creatine ? '18px' : '2px'};"></span>
-				</button>
-			{/if}
-		</div>
+			<span class="chevron">›</span>
+		</button>
 		<div class="row-divider"></div>
 		<!-- Cheat day -->
 		<div class="settings-row" style="cursor:default;">

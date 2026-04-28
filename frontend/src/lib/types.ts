@@ -229,3 +229,15 @@ export interface ExerciseSession {
 	created_at: string;
 	updated_at: string;
 }
+
+export interface UserSupplement {
+	id: number;
+	name: string;
+	position: number;
+}
+
+export interface SupplementToday {
+	supplement_id: number;
+	name: string;
+	taken: boolean;
+}

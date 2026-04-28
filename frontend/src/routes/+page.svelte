@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -28,6 +28,13 @@
 	let copyingYesterday = $state(false);
 	let creatine: CreatineToday | null = $state(null);
 	let togglingCreatine = $state(false);
+	let supplements: SupplementToday[] = $state([]);
+	let showSupplModal = $state(false);
+	let newSuppName = $state('');
+	let addingSuppName = $state(false);
+	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
+	let suppCount = $derived(supplements.length);
+	let suppTaken = $derived(supplements.filter(s => s.taken).length);
 	let cheatDay: CheatDayToday | null = $state(null);
 	let togglingCheatDay = $state(false);
 
@@ -71,6 +78,12 @@
 				creatine = await api.get<CreatineToday>('/creatine/today').catch(() => null);
 			} else {
 				creatine = null;
+			}
+			// Load supplements (always, if viewing today)
+			if (isTodayVal) {
+				supplements = await api.get<SupplementToday[]>('/supplements/today').catch(() => []);
+			} else {
+				supplements = [];
 			}
 			// Load cheat day status only if enabled and viewing today
 			if (g?.cheat_days_enabled && isTodayVal) {
@@ -165,6 +178,35 @@
 		} finally {
 			togglingCreatine = false;
 		}
+	}
+
+	async function toggleSupp(suppId: number, taken: boolean) {
+		try {
+			if (taken) {
+				supplements = await api.del<SupplementToday[]>(`/supplements/log/${suppId}`);
+			} else {
+				supplements = await api.post<SupplementToday[]>(`/supplements/log/${suppId}`, {});
+			}
+		} catch { /* ignore */ }
+	}
+
+	async function addSupp() {
+		if (!newSuppName.trim()) return;
+		addingSuppName = true;
+		try {
+			await api.post<UserSupplement>('/supplements', { name: newSuppName.trim() });
+			newSuppName = '';
+			supplements = await api.get<SupplementToday[]>('/supplements/today');
+		} catch { /* ignore */ } finally {
+			addingSuppName = false;
+		}
+	}
+
+	async function deleteSupp(suppId: number) {
+		try {
+			await api.del(`/supplements/${suppId}`);
+			supplements = await api.get<SupplementToday[]>('/supplements/today');
+		} catch { /* ignore */ }
 	}
 
 	async function toggleCheatDay() {
@@ -302,8 +344,8 @@
 				{/if}
 			</div>
 
-			<!-- Water + Creatine -->
-			<div style="display:grid; grid-template-columns:{isToday && goals?.track_creatine && creatine !== null ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
+			<!-- Water + Supplements -->
+			<div style="display:grid; grid-template-columns:{isToday && suppCount > 0 ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
 				<div class="card" style="padding:0.85rem;">
 					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
 						<span style="font-size:0.95rem;">💧</span>
@@ -327,23 +369,58 @@
 							disabled={!water || water.total_ml <= 0}>↩</button>
 					</div>
 				</div>
-				{#if isToday && goals?.track_creatine && creatine !== null}
-					<div class="card" style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;">
-						<div style="
-							width:42px; height:42px; border-radius:50%;
-							background:{creatine.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
-							border:{creatine.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
-							display:flex; align-items:center; justify-content:center;
-							font-size:1.05rem; font-weight:800; color:var(--primary-ink);
-							transition: background 0.25s;
-						">{creatine.taken ? '✓' : ''}</div>
-						<div style="font-weight:700; font-size:0.82rem;">Creatina</div>
-						<button onclick={toggleCreatine} disabled={togglingCreatine} style="
-							background:none; border:none; cursor:pointer; font-family:inherit;
-							font-size:0.72rem; font-weight:600; color:var(--primary); padding:0;
-							opacity:{togglingCreatine ? '0.5' : '1'}; box-shadow:none;
-						">{creatine.taken ? 'Deshacer' : 'Marcar'}</button>
-					</div>
+				{#if isToday && suppEnabled}
+					{#if suppCount === 1}
+						<!-- Single supplement: tap to toggle directly -->
+						<div class="card" role="button" tabindex="0"
+							onclick={() => toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
+							onkeydown={(e) => e.key === 'Enter' && toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
+							style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center; cursor:pointer;
+							{supplements[0].taken ? 'background:linear-gradient(135deg, var(--primary) -20%, var(--surface) 70%); border-color: var(--primary);' : ''}">
+							<div style="
+								width:42px; height:42px; border-radius:50%;
+								background:{supplements[0].taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
+								border:{supplements[0].taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
+								display:flex; align-items:center; justify-content:center;
+								font-size:1.05rem; font-weight:800; color:var(--primary-ink);
+								transition: background 0.25s;
+							">{supplements[0].taken ? '✓' : ''}</div>
+							<div style="font-weight:700; font-size:0.82rem;">{supplements[0].name}</div>
+							<span role="button" tabindex="0"
+								onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
+								onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
+								style="font-size:0.72rem; font-weight:600; color:var(--text-muted); cursor:pointer;">
+								{supplements[0].taken ? 'Deshacer · Gestionar' : 'Marcar · Gestionar'}
+							</span>
+						</div>
+					{:else if suppCount > 1}
+						<!-- Multiple supplements: tap opens modal with ring -->
+						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
+							<div style="position:relative; width:42px; height:42px;">
+								<svg viewBox="0 0 42 42" style="width:42px; height:42px; transform:rotate(-90deg);">
+									<circle cx="21" cy="21" r="17" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+									<circle cx="21" cy="21" r="17" fill="none"
+										stroke="{suppTaken === suppCount ? 'var(--primary)' : 'oklch(75% 0.18 160)'}"
+										stroke-width="4"
+										stroke-dasharray="{Math.round(2 * 3.14159 * 17)}"
+										stroke-dashoffset="{Math.round(2 * 3.14159 * 17 * (1 - suppTaken / suppCount))}"
+										stroke-linecap="round"/>
+								</svg>
+								<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:{suppTaken === suppCount ? 'var(--primary)' : '#fff'};">
+									{suppTaken}/{suppCount}
+								</div>
+							</div>
+							<div style="font-weight:700; font-size:0.82rem;">Suplementos</div>
+							<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? '¡Todo tomado! ✓' : 'Toca para marcar'}</div>
+						</button>
+					{:else}
+						<!-- No supplements yet -->
+						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
+							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">＋</div>
+							<div style="font-weight:700; font-size:0.82rem;">Suplementos</div>
+							<div style="font-size:0.7rem; color:var(--text-muted);">Añadir suplemento</div>
+						</button>
+					{/if}
 				{/if}
 			</div>
 
@@ -577,6 +654,49 @@
 				Solo para mí
 			</button>
 			<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Supplements modal -->
+{#if showSupplModal}
+	<Modal onClose={() => showSupplModal = false} title="💊 Suplementos" subtitle="Marca los que has tomado hoy">
+		<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
+			{#each supplements as s (s.supplement_id)}
+				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.07);">
+					<button
+						onclick={() => toggleSupp(s.supplement_id, s.taken)}
+						style="
+							width:28px; height:28px; border-radius:50%; flex-shrink:0; cursor:pointer;
+							background:{s.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
+							border:{s.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.3)'};
+							color:var(--primary-ink); font-size:0.85rem; font-weight:800;
+							display:flex; align-items:center; justify-content:center;
+							transition: background 0.2s; box-shadow:none; padding:0;
+						">{s.taken ? '✓' : ''}</button>
+					<span style="flex:1; font-size:0.875rem; font-weight:600; color:{s.taken ? 'rgba(255,255,255,0.5)' : '#fff'}; text-decoration:{s.taken ? 'line-through' : 'none'};">{s.name}</span>
+					<button
+						onclick={() => deleteSupp(s.supplement_id)}
+						style="background:none; border:none; color:rgba(255,255,255,0.25); font-size:1rem; cursor:pointer; padding:0.25rem; box-shadow:none; line-height:1;"
+						aria-label="Eliminar">✕</button>
+				</div>
+			{/each}
+			{#if supplements.length === 0}
+				<div style="text-align:center; color:rgba(255,255,255,0.4); font-size:0.8rem; padding:1rem 0;">
+					Aún no tienes suplementos. Añade uno abajo.
+				</div>
+			{/if}
+		</div>
+		<div style="display:flex; gap:0.5rem;">
+			<input
+				bind:value={newSuppName}
+				placeholder="Nombre del suplemento..."
+				onkeydown={(e) => { if (e.key === 'Enter') addSupp(); }}
+				style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; padding:0.5rem 0.75rem; font-size:0.875rem; font-family:inherit; outline:none;"
+			/>
+			<button onclick={addSupp} disabled={addingSuppName || !newSuppName.trim()} style="padding:0.5rem 0.875rem; border-radius:10px; background:var(--primary); color:var(--primary-ink); font-weight:700; font-size:0.8rem; border:none; cursor:pointer; opacity:{!newSuppName.trim() ? '0.5' : '1'};">
+				+ Añadir
+			</button>
 		</div>
 	</Modal>
 {/if}

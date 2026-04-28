@@ -17,7 +17,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE TYPE meal_type AS ENUM ('breakfast', 'lunch', 'dinner', 'snack')")
+    # Only create ENUM type for PostgreSQL
+    from sqlalchemy.dialects import postgresql
+    dialect = op.get_context().dialect
+
+    if dialect.name == 'postgresql':
+        op.execute("CREATE TYPE meal_type AS ENUM ('breakfast', 'lunch', 'dinner', 'snack')")
+
     op.add_column(
         "diary_entries",
         sa.Column(
@@ -31,4 +37,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("diary_entries", "meal_type")
-    op.execute("DROP TYPE meal_type")
+
+    # Only drop ENUM type for PostgreSQL
+    dialect = op.get_context().dialect
+    if dialect.name == 'postgresql':
+        op.execute("DROP TYPE meal_type")

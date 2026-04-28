@@ -19,23 +19,21 @@ def _sqlite_add_column_if_missing(conn, table: str, column: str, col_def: str) -
 
 def _get_engine():
     # Import ALL models first so they're registered with Base (critical for create_all)
-    from app.models import (
-        BodyMeasurementLog,
-        CreatineLog,
-        DiaryEntry,
-        Friendship,
-        Product,
-        Recipe,
-        RecipeIngredient,
-        User,
-        UserGoals,
-        WaterLog,
-        WeightLog,
-    )
-    from app.models.exercise import Exercise
+    # Import directly from submodules to avoid circular imports
+    from app.models.user import User
+    from app.models.product import Product, ProductSource
+    from app.models.diary import DiaryEntry
+    from app.models.recipe import Recipe, RecipeIngredient
+    from app.models.weight import WeightLog
+    from app.models.body_measurement import BodyMeasurementLog
+    from app.models.goals import UserGoals
+    from app.models.water import WaterLog
+    from app.models.friendship import Friendship
+    from app.models.creatine import CreatineLog
     from app.models.cheat_day import CheatDayLog
+    from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
     from app.models.inventory import InventoryItem, ShoppingListItem
-    from app.models.product import ProductSource
+    from app.models.supplement import UserSupplement, SupplementLog
 
     if settings.demo_mode:
         from app.security import hash_password
