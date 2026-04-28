@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Capacitor } from '@capacitor/core';
@@ -34,6 +33,7 @@
 	async function startWebScan() {
 		scanError = '';
 		scanning = true;
+		let handled = false;
 		try {
 			const { BrowserMultiFormatReader } = await import('@zxing/browser');
 			zxingReader = new BrowserMultiFormatReader();
@@ -43,12 +43,27 @@
 			if (videoEl) {
 				videoEl.srcObject = stream;
 				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, async (result, _err) => {
-					if (result) {
+				zxingReader.decodeFromVideoElement(videoEl, (result, _err) => {
+					if (result && !handled) {
+						handled = true;
+						const code = result.getText();
 						stopWebScan();
-						barcode = result.getText();
-						await tick();
-						await searchByBarcode();
+						barcode = code;
+						// setTimeout puts us in a fresh macrotask outside ZXing's rAF context
+						// so Svelte can properly react to state changes
+						setTimeout(async () => {
+							searching = true;
+							error = '';
+							try {
+								const p = await api.get<Product>(`/products/barcode/${code.trim()}`);
+								selected = p;
+								grams = getLastGrams(p.id);
+							} catch (e: unknown) {
+								error = e instanceof Error ? e.message : 'Producto no encontrado';
+							} finally {
+								searching = false;
+							}
+						}, 0);
 					}
 				});
 			}
