@@ -42,10 +42,11 @@
 			if (videoEl) {
 				videoEl.srcObject = stream;
 				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, async (result, err) => {
+				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
 					if (result) {
+						barcode = result.getText();
 						stopWebScan();
-						await searchByBarcode(result.getText());
+						searchByBarcode();
 					}
 				});
 			}
@@ -204,17 +205,15 @@
 		}
 	}
 
-	async function searchByBarcode(code?: string) {
-		const target = (code ?? barcode).trim();
-		if (!target) return;
+	async function searchByBarcode() {
+		if (!barcode.trim()) return;
 		searching = true;
 		error = '';
 		try {
-			const p = await api.get<Product>(`/products/barcode/${target}`);
-			selectProduct(p); // navegar directo al detalle
+			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
+			selectProduct(p);
 		} catch (e: unknown) {
-			barcode = target; // solo mostrar el input si no se encontró
-			error = 'Producto no encontrado con ese código';
+			error = e instanceof Error ? e.message : 'Error';
 		} finally {
 			searching = false;
 		}
@@ -237,7 +236,8 @@
 
 			const { barcodes } = await BarcodeScanner.scan();
 			if (barcodes.length > 0) {
-				await searchByBarcode(barcodes[0].rawValue);
+				barcode = barcodes[0].rawValue;
+				await searchByBarcode();
 			}
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Scanner error';
