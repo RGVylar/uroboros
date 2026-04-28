@@ -11,6 +11,7 @@
 
 	const urlDate = $page.url.searchParams.get('date');
 	let selectedDate = $state(urlDate ?? new Date().toISOString().slice(0, 10));
+	const urlBarcode = $page.url.searchParams.get('barcode');
 
 	let isNative = Capacitor.isNativePlatform();
 
@@ -29,18 +30,6 @@
 	let scanError = $state('');
 	let stream: MediaStream | null = null;
 	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
-	let autoSearch = $state(false);
-
-	// $effect corre DESPUÉS de que el DOM se actualiza. Cuando el escáner
-	// detecta un código, pone autoSearch=true; aquí el botón ya está en el DOM
-	// y podemos disparar el mismo click que el usuario haría manualmente.
-	$effect(() => {
-		if (autoSearch && !scanning) {
-			autoSearch = false;
-			document.querySelector<HTMLButtonElement>('[data-buscar]')?.click();
-		}
-	});
-
 	async function startWebScan() {
 		scanError = '';
 		scanning = true;
@@ -57,9 +46,11 @@
 				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
 					if (result && !handled) {
 						handled = true;
-						barcode = result.getText();
-						stopWebScan();       // pone scanning = false
-						autoSearch = true;  // dispara el $effect tras DOM update
+						stopWebScan();
+						// Navegar con el barcode en la URL — goto() funciona desde
+						// cualquier contexto; la página se reinicia y busca el producto
+						// durante el mount, que es un contexto fiable en iOS y todos los navegadores
+						goto(`/add?barcode=${encodeURIComponent(result.getText())}&date=${selectedDate}`);
 					}
 				});
 			}
@@ -178,6 +169,13 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	// Si venimos de un escaneo de barcode (URL param), buscar el producto al montar
+	if (urlBarcode) {
+		api.get<Product>(`/products/barcode/${encodeURIComponent(urlBarcode)}`)
+			.then(p => { selected = p; grams = getLastGrams(p.id); })
+			.catch(() => { error = 'Producto no encontrado'; barcode = urlBarcode; });
 	}
 
 	$effect(() => {
@@ -544,7 +542,7 @@
 	{#if barcode}
 		<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem;">
 			<input bind:value={barcode} placeholder="Código de barras" class="field-input" style="flex:1;" />
-			<button data-buscar onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1rem; height:44px; border-radius:12px;">Buscar</button>
+			<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1rem; height:44px; border-radius:12px;">Buscar</button>
 		</div>
 	{/if}
 
