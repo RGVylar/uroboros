@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func as sqlfunc, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Friendship, FriendshipStatus, Recipe, RecipeIngredient, User
-from app.schemas.misc import RecipeIn, RecipeOut, SharedRecipeOut
+from app.models import DiaryEntry, Friendship, FriendshipStatus, Recipe, RecipeIngredient, User
+from app.schemas.misc import FrequentRecipeOut, RecipeIn, RecipeOut, SharedRecipeOut
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -28,6 +28,30 @@ def _friend_ids(db: Session, user_id: int) -> set[int]:
     for f in db.scalars(stmt):
         ids.add(f.receiver_id if f.requester_id == user_id else f.requester_id)
     return ids
+
+
+# ── GET /recipes/frequent ────────────────────────────────────────────────────
+@router.get("/frequent", response_model=list[FrequentRecipeOut])
+def get_frequent_recipes(
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[dict]:
+    """Return user's most frequently logged recipes."""
+    rows = db.execute(
+        select(DiaryEntry.recipe_id, sqlfunc.count(DiaryEntry.id).label("cnt"))
+        .where(DiaryEntry.user_id == user.id, DiaryEntry.recipe_id.isnot(None))
+        .group_by(DiaryEntry.recipe_id)
+        .order_by(sqlfunc.count(DiaryEntry.id).desc())
+        .limit(limit)
+    ).all()
+
+    result = []
+    for recipe_id, count in rows:
+        recipe = _load_recipe(db, recipe_id)
+        if recipe:
+            result.append({"recipe": recipe, "count": count})
+    return result
 
 
 # ── GET /recipes/shared  (must be before /{recipe_id}) ──────────────────────

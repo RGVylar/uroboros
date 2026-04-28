@@ -23,6 +23,7 @@ from app.schemas.diary import (
     DiaryEntryUpdate,
     MealSection,
 )
+from app.schemas.misc import DiaryRecipeCreate
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
@@ -45,7 +46,8 @@ def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
 
 
 def _build_entry(
-    user_id: int, product: Product, grams: float, consumed_at: datetime, meal_type: MealType
+    user_id: int, product: Product, grams: float, consumed_at: datetime, meal_type: MealType,
+    recipe_id: int | None = None,
 ) -> DiaryEntry:
     factor = grams / 100.0
     return DiaryEntry(
@@ -58,6 +60,7 @@ def _build_entry(
         fat=product.fat_per_100g * factor,
         consumed_at=consumed_at,
         meal_type=meal_type,
+        recipe_id=recipe_id,
     )
 
 
@@ -90,6 +93,44 @@ def create_entry(
     for e in created:
         db.refresh(e)
     return created
+
+
+@router.post("/recipe", response_model=list[DiaryEntryOut], status_code=status.HTTP_201_CREATED)
+def log_recipe(
+    payload: DiaryRecipeCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[DiaryEntry]:
+    """Log all ingredients of a recipe at once, tagging each entry with recipe_id."""
+    from app.models import Recipe, RecipeIngredient  # noqa: F401 (avoid circular at module level)
+    from sqlalchemy.orm import selectinload
+
+    recipe = db.scalar(
+        select(Recipe)
+        .options(selectinload(Recipe.ingredients))
+        .where(Recipe.id == payload.recipe_id)
+    )
+    if not recipe:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    if recipe.owner_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your recipe")
+
+    meal_type = MealType(payload.meal_type)
+    entries: list[DiaryEntry] = []
+    for ing in recipe.ingredients:
+        product = db.get(Product, ing.product_id)
+        if not product:
+            continue
+        entries.append(_build_entry(
+            user.id, product, ing.grams, payload.consumed_at, meal_type,
+            recipe_id=recipe.id,
+        ))
+
+    db.add_all(entries)
+    db.commit()
+    for e in entries:
+        db.refresh(e)
+    return entries
 
 
 @router.get("/day", response_model=DaySummary)

@@ -4,7 +4,7 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct } from '$lib/types';
+	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct, FrequentRecipe } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -20,6 +20,7 @@
 
 	// Frequent / history state
 	let frequent: FrequentProduct[] = $state([]);
+	let frequentRecipes: FrequentRecipe[] = $state([]);
 	let loadingFrequent = $state(false);
 
 	// Web barcode scanner state
@@ -140,11 +141,29 @@
 	async function loadFrequent() {
 		loadingFrequent = true;
 		try {
-			frequent = await api.get<FrequentProduct[]>('/products/frequent?limit=15');
-		} catch {
-			frequent = [];
+			[frequent, frequentRecipes] = await Promise.all([
+				api.get<FrequentProduct[]>('/products/frequent?limit=15').catch(() => []),
+				api.get<FrequentRecipe[]>('/recipes/frequent?limit=5').catch(() => []),
+			]);
 		} finally {
 			loadingFrequent = false;
+		}
+	}
+
+	async function logRecipe(recipe: FrequentRecipe['recipe']) {
+		saving = true;
+		error = '';
+		try {
+			await api.post<DiaryEntry[]>('/diary/recipe', {
+				recipe_id: recipe.id,
+				meal_type: mealType,
+				consumed_at: new Date(selectedDate + 'T12:00:00').toISOString(),
+			});
+			goto('/');
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'Error';
+		} finally {
+			saving = false;
 		}
 	}
 
@@ -578,7 +597,7 @@
 		<!-- Historial de uso (siempre visible) -->
 		{#if loadingFrequent}
 			<div class="loading-row">Cargando historial...</div>
-		{:else if frequent.length > 0}
+		{:else if frequentRecipes.length > 0 || frequent.length > 0}
 			<div class="section-header">
 				<div>
 					<div class="section-title">Mis alimentos</div>
@@ -586,6 +605,22 @@
 				</div>
 			</div>
 			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+				<!-- Recetas frecuentes primero -->
+				{#each frequentRecipes as f (f.recipe.id)}
+					{@const totalKcal = f.recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
+					<button class="product-row" onclick={() => logRecipe(f.recipe)} disabled={saving}>
+						<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
+						<div style="flex:1; min-width:0; text-align:left;">
+							<div class="product-name">{f.recipe.name}</div>
+							<div class="product-brand">{f.recipe.ingredients.length} ingredientes</div>
+						</div>
+						<div style="text-align:right; flex-shrink:0;">
+							<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
+							<div class="product-per" style="color:oklch(75% 0.15 160);">receta</div>
+						</div>
+					</button>
+				{/each}
+				<!-- Productos frecuentes -->
 				{#each frequent as f (f.product.id)}
 					<button class="product-row" onclick={() => selectProduct(f.product)}>
 						<div class="product-avatar" style="

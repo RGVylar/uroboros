@@ -132,3 +132,17 @@ class ProductOutMinimal(BaseModel):
 
 
 RecipeIngredientOut.model_rebuild()
+
+
+class FrequentRecipeOut(BaseModel):
+    recipe: RecipeOut
+    count: int
+
+    class Config:
+        from_attributes = True
+
+
+class DiaryRecipeCreate(BaseModel):
+    recipe_id: int
+    meal_type: str
+    consumed_at: datetime

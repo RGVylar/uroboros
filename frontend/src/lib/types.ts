@@ -177,6 +177,11 @@ export interface FrequentProduct {
 	count: number;
 }
 
+export interface FrequentRecipe {
+	recipe: Recipe;
+	count: number;
+}
+
 export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
 
 export interface UserMinimal {
