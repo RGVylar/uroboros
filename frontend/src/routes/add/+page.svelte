@@ -42,11 +42,11 @@
 			if (videoEl) {
 				videoEl.srcObject = stream;
 				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+				zxingReader.decodeFromVideoElement(videoEl, async (result, err) => {
 					if (result) {
-						barcode = result.getText();
 						stopWebScan();
-						searchByBarcode();
+						barcode = result.getText();
+						await searchByBarcode();
 					}
 				});
 			}
@@ -211,9 +211,10 @@
 		error = '';
 		try {
 			const p = await api.get<Product>(`/products/barcode/${barcode.trim()}`);
-			selectProduct(p);
+			barcode = ''; // limpiar para ocultar el input row
+			selectProduct(p); // navegar directo al detalle
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Error';
+			error = e instanceof Error ? e.message : 'Producto no encontrado con ese código';
 		} finally {
 			searching = false;
 		}
