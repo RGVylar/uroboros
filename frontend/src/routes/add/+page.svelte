@@ -33,6 +33,8 @@
 	async function startWebScan() {
 		scanError = '';
 		scanning = true;
+		barcode = '';
+		barcodeNotFound = false;
 		try {
 			const { BrowserMultiFormatReader } = await import('@zxing/browser');
 			zxingReader = new BrowserMultiFormatReader();
@@ -222,6 +224,8 @@
 	}
 
 	async function scanBarcode() {
+		barcode = '';
+		barcodeNotFound = false;
 		try {
 			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
 			const { supported } = await BarcodeScanner.isSupported();
