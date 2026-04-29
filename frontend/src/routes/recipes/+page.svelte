@@ -562,14 +562,24 @@
 		</div>
 
 		{#if partner}
-			<div style="padding:0.625rem; background:rgba(255,255,255,0.04); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-bottom:1rem;">
-				<div style="display:flex; align-items:center; justify-content:space-between;">
-					<div style="font-size:0.8125rem; font-weight:600; color:#fff;">También para {partner.name}</div>
-					<button onclick={() => alsoFor = alsoFor ? null : partner.id} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{alsoFor ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {alsoFor ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
-						<div style="position:absolute; top:2px; left:{alsoFor ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
-					</button>
+			<button
+				type="button"
+				onclick={() => { alsoFor = alsoFor === null ? partner.id : null; }}
+				aria-pressed={alsoFor !== null}
+				class="share-card"
+				class:share-card-active={alsoFor !== null}
+				style="margin-bottom:1rem;"
+			>
+				<div class="share-badge-icon" class:share-badge-icon-active={alsoFor !== null}>2×</div>
+				<div style="flex:1; min-width:0; text-align:left;">
+					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Registrar en las dos cuentas</div>
 				</div>
-			</div>
+				<!-- Toggle switch -->
+				<div class="toggle-track" class:toggle-track-on={alsoFor !== null}>
+					<div class="toggle-thumb" class:toggle-thumb-on={alsoFor !== null}></div>
+				</div>
+			</button>
 		{/if}
 
 		<div style="display:flex; gap:0.5rem;">
@@ -734,4 +744,73 @@
 		color: oklch(78% 0.2 25);
 	}
 	.icon-btn-danger:hover { background: oklch(65% 0.22 25 / 0.25); }
+
+	/* ── Partner share toggle ── */
+	.share-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 20px;
+		padding: 0.875rem;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.share-card:hover { background: rgba(255,255,255,0.08); }
+	.share-card-active {
+		background: oklch(75% 0.18 165 / 0.1);
+		border-color: oklch(80% 0.17 165 / 0.3);
+	}
+	.share-badge-icon {
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		background: rgba(255,255,255,0.06);
+		color: oklch(85% 0.15 160);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 800;
+		font-size: 0.875rem;
+		letter-spacing: -0.03em;
+		flex-shrink: 0;
+		transition: background 0.2s, color 0.2s;
+	}
+	.share-badge-icon-active {
+		background: linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170));
+		color: #041010;
+	}
+
+	/* ── Toggle switch ── */
+	.toggle-track {
+		width: 44px;
+		height: 26px;
+		border-radius: 99px;
+		background: rgba(255,255,255,0.08);
+		border: 1px solid rgba(255,255,255,0.1);
+		position: relative;
+		transition: background 0.2s, border-color 0.2s;
+		flex-shrink: 0;
+	}
+	.toggle-track-on {
+		background: oklch(75% 0.18 165 / 0.3);
+		border-color: oklch(80% 0.17 165 / 0.5);
+	}
+	.toggle-thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: #d0d4d8;
+		box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+		transition: left 0.2s, background 0.2s;
+	}
+	.toggle-thumb-on {
+		left: 20px;
+		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+	}
 </style>
