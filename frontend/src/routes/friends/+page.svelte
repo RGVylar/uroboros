@@ -227,10 +227,9 @@
 									{/if}
 								</div>
 							</div>
-							<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-							<div onclick={() => toggleSharedInventory(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{mySharedFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {mySharedFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+							<button onclick={() => toggleSharedInventory(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{mySharedFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {mySharedFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 								<div style="position:absolute; top:2px; left:{mySharedFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
-							</div>
+							</button>
 						</div>
 						{#if theirSharedFlag(f) && !mySharedFlag(f)}
 							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar a compartir</div>
@@ -244,10 +243,9 @@
 								{myCanAddFlag(f) ? `${partnerName(f)} puede registrar en tu diario` : 'Solo lectura para ellos'}
 							</div>
 						</div>
-						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-						<div onclick={() => togglePermission(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+						<button onclick={() => togglePermission(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 							<div style="position:absolute; top:2px; left:{myCanAddFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
-						</div>
+						</button>
 					</div>
 				</div>
 			{/each}
