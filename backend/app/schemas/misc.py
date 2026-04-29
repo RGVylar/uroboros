@@ -146,3 +146,4 @@ class DiaryRecipeCreate(BaseModel):
     recipe_id: int
     meal_type: str
     consumed_at: datetime
+    also_for_user_id: int | None = None

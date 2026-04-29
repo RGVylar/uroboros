@@ -169,6 +169,7 @@
 				recipe_id: recipe.id,
 				meal_type: mealType,
 				consumed_at: consumedAt(selectedDate),
+				also_for_user_id: alsoFor,
 			});
 			goto('/');
 		} catch (e: unknown) {

@@ -131,15 +131,26 @@ def log_recipe(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your recipe")
 
     meal_type = MealType(payload.meal_type)
+    user_ids = [user.id]
+
+    if payload.also_for_user_id and payload.also_for_user_id != user.id:
+        other = db.get(User, payload.also_for_user_id)
+        if not other:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
+        if not _can_log_for_user(db, user.id, other.id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No tienes permiso para registrar en el diario de este usuario")
+        user_ids.append(other.id)
+
     entries: list[DiaryEntry] = []
-    for ing in recipe.ingredients:
-        product = db.get(Product, ing.product_id)
-        if not product:
-            continue
-        entries.append(_build_entry(
-            user.id, product, ing.grams, payload.consumed_at, meal_type,
-            recipe_id=recipe.id,
-        ))
+    for uid in user_ids:
+        for ing in recipe.ingredients:
+            product = db.get(Product, ing.product_id)
+            if not product:
+                continue
+            entries.append(_build_entry(
+                uid, product, ing.grams, payload.consumed_at, meal_type,
+                recipe_id=recipe.id,
+            ))
 
     db.add_all(entries)
     db.commit()
