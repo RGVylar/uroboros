@@ -196,6 +196,7 @@ export interface Friendship {
 	receiver: UserMinimal;
 	status: FriendshipStatus;
 	can_add_food: boolean;
+	shared_inventory: boolean;
 	created_at: string;
 }
 

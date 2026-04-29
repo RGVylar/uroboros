@@ -66,6 +66,11 @@
 		load();
 	}
 
+	async function toggleSharedInventory(f: Friendship) {
+		await api.patch(`/friends/${f.id}`, { shared_inventory: !f.shared_inventory });
+		load();
+	}
+
 	async function removeFriend(id: number) {
 		confirmDeleteId = id;
 	}
@@ -181,8 +186,19 @@
 						</div>
 						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">Eliminar</button>
 					</div>
+					<!-- Shared inventory toggle (either participant) -->
+					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
+						<div>
+							<div style="font-size:0.75rem; font-weight:600; color:#fff;">🏠 Inventario compartido</div>
+							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{f.shared_inventory ? 'Un inventario y lista de compra para los dos' : 'Inventarios separados'}</div>
+						</div>
+						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+						<div onclick={() => toggleSharedInventory(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{f.shared_inventory ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {f.shared_inventory ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+							<div style="position:absolute; top:2px; left:{f.shared_inventory ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
+						</div>
+					</div>
 					{#if iAmReceiver}
-						<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
+						<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
 							<div>
 								<div style="font-size:0.75rem; font-weight:600; color:#fff;">Puede añadir comidas</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{f.can_add_food ? `${f.requester.name} registra en tu diario` : 'Solo lectura'}</div>

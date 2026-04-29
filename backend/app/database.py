@@ -32,7 +32,7 @@ def _get_engine():
     from app.models.creatine import CreatineLog
     from app.models.cheat_day import CheatDayLog
     from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
-    from app.models.inventory import InventoryItem, ShoppingListItem
+    from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
     from app.models.supplement import UserSupplement, SupplementLog
 
     if settings.demo_mode:
@@ -73,6 +73,7 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "user_goals", "cheat_days_enabled", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "user_goals", "inventory_enabled", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "exercises", "is_predefined", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "friendships", "shared_inventory", "BOOLEAN NOT NULL DEFAULT 0")
                 conn.commit()
 
             # Seed demo data
@@ -80,8 +81,11 @@ def _get_engine():
 
             # Create demo users (skip if they already exist)
             from sqlalchemy import select
+            from app.models.friendship import Friendship, FriendshipStatus
+
             existing_user1 = db.scalar(select(User).where(User.email == "demo@demo.com"))
             existing_user2 = db.scalar(select(User).where(User.email == "demo2@demo.com"))
+            existing_pilar = db.scalar(select(User).where(User.email == "pilar@demo.com"))
 
             if not existing_user1:
                 user1 = User(email="demo@demo.com", password_hash=hash_password("demo1234"), name="Demo User")
@@ -95,11 +99,52 @@ def _get_engine():
             else:
                 user2 = existing_user2
 
+            if not existing_pilar:
+                pilar = User(email="pilar@demo.com", password_hash=hash_password("demo1234"), name="Pilar")
+                db.add(pilar)
+            else:
+                pilar = existing_pilar
+
             db.commit()
             if not existing_user1:
                 db.refresh(user1)
             if not existing_user2:
                 db.refresh(user2)
+            if not existing_pilar:
+                db.refresh(pilar)
+
+            # Create demo friendship between Demo User and Pilar (accepted)
+            existing_friendship = db.scalar(
+                select(Friendship).where(
+                    Friendship.requester_id == pilar.id,
+                    Friendship.receiver_id == user1.id,
+                )
+            )
+            if not existing_friendship:
+                db.add(Friendship(
+                    requester_id=pilar.id,
+                    receiver_id=user1.id,
+                    status=FriendshipStatus.accepted,
+                    can_add_food=True,
+                    shared_inventory=False,
+                ))
+                db.commit()
+
+            # Create demo goals for user1 (if not exist)
+            existing_goals = db.scalar(select(UserGoals).where(UserGoals.user_id == user1.id))
+            if not existing_goals:
+                db.add(UserGoals(
+                    user_id=user1.id,
+                    kcal=2200,
+                    protein=160,
+                    carbs=220,
+                    fat=70,
+                    water_ml=2500,
+                    track_creatine=False,
+                    cheat_days_enabled=False,
+                    inventory_enabled=True,
+                ))
+                db.commit()
 
             # Create demo products
             demo_products = [

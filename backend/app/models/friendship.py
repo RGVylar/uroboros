@@ -38,6 +38,8 @@ class Friendship(Base):
     )
     # Permission: can the requester add food to the receiver's diary?
     can_add_food: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    # Shared household: both users share one inventory + shopping list
+    shared_inventory: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

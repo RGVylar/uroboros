@@ -42,10 +42,10 @@
 	}
 
 	async function toggleInventory() {
-		if (!goals) return;
 		savingInventory = true;
 		try {
-			goals = await api.put<Goals>('/goals', { ...goals, inventory_enabled: !goals.inventory_enabled });
+			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false };
+			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
 		} catch {
 			// ignore
 		} finally {
@@ -172,16 +172,14 @@
 				<div class="row-label">Inventario doméstico</div>
 				<div class="row-detail">{goals?.inventory_enabled ? 'Activo' : 'Inactivo'}</div>
 			</div>
-			{#if goals}
-				<button
-					onclick={toggleInventory}
-					disabled={savingInventory}
-					class="toggle-btn"
-					style="background:{goals.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
-				>
-					<span class="toggle-knob" style="left:{goals.inventory_enabled ? '18px' : '2px'};"></span>
-				</button>
-			{/if}
+			<button
+				onclick={toggleInventory}
+				disabled={savingInventory}
+				class="toggle-btn"
+				style="background:{goals?.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals?.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+			>
+				<span class="toggle-knob" style="left:{goals?.inventory_enabled ? '18px' : '2px'};"></span>
+			</button>
 		</div>
 		{#if goals?.inventory_enabled}
 			<div class="row-divider"></div>

@@ -10,7 +10,7 @@ from app.models.friendship import Friendship, FriendshipStatus
 from app.models.creatine import CreatineLog
 from app.models.cheat_day import CheatDayLog
 from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
-from app.models.inventory import InventoryItem, ShoppingListItem
+from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.supplement import UserSupplement, SupplementLog
 
 __all__ = [
@@ -33,6 +33,8 @@ __all__ = [
     "ExerciseSessionEntry",
     "InventoryItem",
     "ShoppingListItem",
+    "SharedInventoryItem",
+    "SharedShoppingListItem",
     "UserSupplement",
     "SupplementLog",
 ]

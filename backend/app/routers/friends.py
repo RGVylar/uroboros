@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User
+from app.models import User, InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.friendship import Friendship, FriendshipStatus
 from app.schemas.friendship import FriendshipOut, FriendshipRequest, FriendshipUpdate
 
@@ -118,6 +120,110 @@ def send_request(
 
 
 # ---------------------------------------------------------------------------
+# Helper: migrate personal inventories → shared on activation
+# ---------------------------------------------------------------------------
+
+def _migrate_to_shared(db: Session, f: Friendship) -> None:
+    """Copy both users' personal inventory + shopping list into the shared tables."""
+    user_ids = [f.requester_id, f.receiver_id]
+
+    # ── Inventory ────────────────────────────────────────────────────────────
+    personal_items = list(db.scalars(
+        select(InventoryItem).where(InventoryItem.user_id.in_(user_ids))
+    ))
+    # Merge by product_id: sum quantities
+    merged: dict[int, dict] = {}
+    for item in personal_items:
+        if item.product_id not in merged:
+            merged[item.product_id] = {
+                "quantity_g": item.quantity_g,
+                "price_per_100g": item.price_per_100g,
+                "added_by_user_id": item.user_id,
+            }
+        else:
+            merged[item.product_id]["quantity_g"] += item.quantity_g
+            # Keep most recent price if available
+            if item.price_per_100g is not None:
+                merged[item.product_id]["price_per_100g"] = item.price_per_100g
+
+    for product_id, data in merged.items():
+        # Skip if already exists in shared (idempotent)
+        existing = db.scalar(
+            select(SharedInventoryItem).where(
+                SharedInventoryItem.friendship_id == f.id,
+                SharedInventoryItem.product_id == product_id,
+            )
+        )
+        if not existing:
+            db.add(SharedInventoryItem(
+                friendship_id=f.id,
+                product_id=product_id,
+                quantity_g=data["quantity_g"],
+                price_per_100g=data["price_per_100g"],
+                added_by_user_id=data["added_by_user_id"],
+            ))
+
+    # ── Shopping list ─────────────────────────────────────────────────────────
+    personal_shopping = list(db.scalars(
+        select(ShoppingListItem).where(ShoppingListItem.user_id.in_(user_ids))
+    ))
+    for item in personal_shopping:
+        db.add(SharedShoppingListItem(
+            friendship_id=f.id,
+            product_id=item.product_id,
+            name=item.name,
+            quantity_g=item.quantity_g,
+            is_checked=item.is_checked,
+            source=item.source,
+            added_by_user_id=item.user_id,
+        ))
+
+    db.flush()
+
+
+def _split_from_shared(db: Session, f: Friendship) -> None:
+    """On deactivation: copy shared items back to each user's personal inventory."""
+    shared_items = list(db.scalars(
+        select(SharedInventoryItem).where(SharedInventoryItem.friendship_id == f.id)
+    ))
+    for item in shared_items:
+        # Give the item to whoever added it; if conflict, give to requester
+        owner_id = item.added_by_user_id
+        existing = db.scalar(
+            select(InventoryItem).where(
+                InventoryItem.user_id == owner_id,
+                InventoryItem.product_id == item.product_id,
+            )
+        )
+        if existing:
+            existing.quantity_g += item.quantity_g
+        else:
+            db.add(InventoryItem(
+                user_id=owner_id,
+                product_id=item.product_id,
+                quantity_g=item.quantity_g,
+                price_per_100g=item.price_per_100g,
+            ))
+        db.delete(item)
+
+    shared_shopping = list(db.scalars(
+        select(SharedShoppingListItem).where(SharedShoppingListItem.friendship_id == f.id)
+    ))
+    for item in shared_shopping:
+        db.add(ShoppingListItem(
+            user_id=item.added_by_user_id,
+            product_id=item.product_id,
+            name=item.name,
+            quantity_g=item.quantity_g,
+            is_checked=item.is_checked,
+            source=item.source,
+        ))
+        db.delete(item)
+
+    db.flush()
+
+
+# ---------------------------------------------------------------------------
 # PATCH /friends/{id}  — accept/reject request or update permissions
 # ---------------------------------------------------------------------------
 @router.patch("/{friendship_id}", response_model=FriendshipOut)
@@ -140,6 +246,17 @@ def update_friendship(
         if f.receiver_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor controla los permisos")
         f.can_add_food = payload.can_add_food
+
+    if payload.shared_inventory is not None:
+        # Either participant can toggle shared inventory
+        if f.status != FriendshipStatus.accepted:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada para compartir inventario")
+        was_shared = f.shared_inventory
+        f.shared_inventory = payload.shared_inventory
+        if payload.shared_inventory and not was_shared:
+            _migrate_to_shared(db, f)
+        elif not payload.shared_inventory and was_shared:
+            _split_from_shared(db, f)
 
     db.commit()
     db.refresh(f)
