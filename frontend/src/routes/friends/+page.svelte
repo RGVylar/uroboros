@@ -61,14 +61,38 @@
 
 	async function togglePermission(f: Friendship) {
 		const iAmReceiver = f.receiver.id === auth.user?.id;
-		if (!iAmReceiver) return; // solo el receptor gestiona permisos
-		await api.patch(`/friends/${f.id}`, { can_add_food: !f.can_add_food });
+		// Each controls their own flag: "allow partner to add to MY diary"
+		const patch = iAmReceiver
+			? { can_add_food: !f.can_add_food }
+			: { can_add_food_requester: !f.can_add_food_requester };
+		await api.patch(`/friends/${f.id}`, patch);
 		load();
 	}
 
+	function myCanAddFlag(f: Friendship): boolean {
+		// My flag = whether I allow the other person to add to MY diary
+		return f.receiver.id === auth.user?.id ? f.can_add_food : f.can_add_food_requester;
+	}
+
+	function partnerName(f: Friendship): string {
+		return f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name;
+	}
+
 	async function toggleSharedInventory(f: Friendship) {
-		await api.patch(`/friends/${f.id}`, { shared_inventory: !f.shared_inventory });
+		const iAmRequester = f.requester.id === auth.user?.id;
+		const patch = iAmRequester
+			? { shared_inventory_requester: !f.shared_inventory_requester }
+			: { shared_inventory_receiver: !f.shared_inventory_receiver };
+		await api.patch(`/friends/${f.id}`, patch);
 		load();
+	}
+
+	function mySharedFlag(f: Friendship): boolean {
+		return f.requester.id === auth.user?.id ? f.shared_inventory_requester : f.shared_inventory_receiver;
+	}
+
+	function theirSharedFlag(f: Friendship): boolean {
+		return f.requester.id === auth.user?.id ? f.shared_inventory_receiver : f.shared_inventory_requester;
 	}
 
 	async function removeFriend(id: number) {
@@ -186,33 +210,45 @@
 						</div>
 						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">Eliminar</button>
 					</div>
-					<!-- Shared inventory toggle (either participant) -->
-					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
-						<div>
-							<div style="font-size:0.75rem; font-weight:600; color:#fff;">🏠 Inventario compartido</div>
-							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{f.shared_inventory ? 'Un inventario y lista de compra para los dos' : 'Inventarios separados'}</div>
-						</div>
-						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-						<div onclick={() => toggleSharedInventory(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{f.shared_inventory ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {f.shared_inventory ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
-							<div style="position:absolute; top:2px; left:{f.shared_inventory ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
-						</div>
-					</div>
-					{#if iAmReceiver}
-						<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
+					<!-- Shared inventory double-flag -->
+					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
+						<div style="display:flex; align-items:center; justify-content:space-between;">
 							<div>
-								<div style="font-size:0.75rem; font-weight:600; color:#fff;">Puede añadir comidas</div>
-								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{f.can_add_food ? `${f.requester.name} registra en tu diario` : 'Solo lectura'}</div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;">🏠 Inventario compartido</div>
+								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
+									{#if f.shared_inventory}
+										Un inventario y lista de compra para los dos ✓
+									{:else if mySharedFlag(f) && !theirSharedFlag(f)}
+										Esperando a {f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name}...
+									{:else if !mySharedFlag(f) && theirSharedFlag(f)}
+										{f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name} quiere compartir
+									{:else}
+										Inventarios separados
+									{/if}
+								</div>
 							</div>
 							<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-							<div onclick={() => togglePermission(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{f.can_add_food ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {f.can_add_food ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
-								<div style="position:absolute; top:2px; left:{f.can_add_food ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
+							<div onclick={() => toggleSharedInventory(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{mySharedFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {mySharedFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+								<div style="position:absolute; top:2px; left:{mySharedFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
 							</div>
 						</div>
-					{:else}
-						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.375rem; padding-left:0.25rem;">
-							{f.can_add_food ? '★ Puede registrar en tu diario' : 'Solo puede ver'}
+						{#if theirSharedFlag(f) && !mySharedFlag(f)}
+							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar a compartir</div>
+						{/if}
+					</div>
+					<!-- Each controls their own: "allow partner to add to MY diary" -->
+					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
+						<div>
+							<div style="font-size:0.75rem; font-weight:600; color:#fff;">Permitir añadir a mi diario</div>
+							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
+								{myCanAddFlag(f) ? `${partnerName(f)} puede registrar en tu diario` : 'Solo lectura para ellos'}
+							</div>
 						</div>
-					{/if}
+						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+						<div onclick={() => togglePermission(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+							<div style="position:absolute; top:2px; left:{myCanAddFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
+						</div>
+					</div>
 				</div>
 			{/each}
 		</div>

@@ -27,7 +27,8 @@ def _get_active_shared_friendship(db: Session, user_id: int) -> Friendship | Non
         select(Friendship).where(
             or_(Friendship.requester_id == user_id, Friendship.receiver_id == user_id),
             Friendship.status == FriendshipStatus.accepted,
-            Friendship.shared_inventory == True,  # noqa: E712
+            Friendship.shared_inventory_requester == True,  # noqa: E712
+            Friendship.shared_inventory_receiver == True,  # noqa: E712
         )
     )
 

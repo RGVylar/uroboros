@@ -32,7 +32,8 @@ def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
     if actor_id == target_user_id:
         return True
 
-    allowed = db.scalar(
+    # Case 1: actor is requester, target is receiver, receiver gave permission
+    as_requester = db.scalar(
         select(Friendship.id)
         .where(
             Friendship.requester_id == actor_id,
@@ -42,7 +43,21 @@ def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
         )
         .limit(1)
     )
-    return allowed is not None
+    if as_requester is not None:
+        return True
+
+    # Case 2: actor is receiver, target is requester, requester gave permission
+    as_receiver = db.scalar(
+        select(Friendship.id)
+        .where(
+            Friendship.requester_id == target_user_id,
+            Friendship.receiver_id == actor_id,
+            Friendship.status == FriendshipStatus.accepted,
+            Friendship.can_add_food_requester.is_(True),
+        )
+        .limit(1)
+    )
+    return as_receiver is not None
 
 
 def _build_entry(

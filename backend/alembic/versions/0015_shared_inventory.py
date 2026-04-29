@@ -15,8 +15,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add shared_inventory flag to friendships
-    op.execute("ALTER TABLE friendships ADD COLUMN shared_inventory BOOLEAN NOT NULL DEFAULT FALSE")
+    # Add double-flag shared inventory to friendships
+    op.execute("ALTER TABLE friendships ADD COLUMN shared_inventory_requester BOOLEAN NOT NULL DEFAULT FALSE")
+    op.execute("ALTER TABLE friendships ADD COLUMN shared_inventory_receiver BOOLEAN NOT NULL DEFAULT FALSE")
+    # Add bidirectional can_add_food
+    op.execute("ALTER TABLE friendships ADD COLUMN can_add_food_requester BOOLEAN NOT NULL DEFAULT FALSE")
 
     # Shared inventory items (belong to a friendship, not a user)
     op.execute("""

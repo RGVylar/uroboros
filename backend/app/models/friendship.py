@@ -36,10 +36,17 @@ class Friendship(Base):
         default=FriendshipStatus.pending,
         server_default="pending",
     )
-    # Permission: can the requester add food to the receiver's diary?
+    # receiver controls: can the requester add food to the receiver's diary?
     can_add_food: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    # Shared household: both users share one inventory + shopping list
-    shared_inventory: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # requester controls: can the receiver add food to the requester's diary?
+    can_add_food_requester: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # Shared household: each side opts in independently; active when both are true
+    shared_inventory_requester: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    shared_inventory_receiver: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+
+    @property
+    def shared_inventory(self) -> bool:
+        return self.shared_inventory_requester and self.shared_inventory_receiver
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -21,7 +21,10 @@ class FriendshipOut(BaseModel):
     receiver: UserMinimal
     status: FriendshipStatus
     can_add_food: bool
-    shared_inventory: bool
+    can_add_food_requester: bool
+    shared_inventory_requester: bool
+    shared_inventory_receiver: bool
+    shared_inventory: bool  # computed: both true
     created_at: datetime
 
     class Config:
@@ -36,5 +39,8 @@ class FriendshipRequest(BaseModel):
 class FriendshipUpdate(BaseModel):
     """Accept/reject a request, or update permissions."""
     status: Literal["accepted", "rejected"] | None = None
-    can_add_food: bool | None = None
-    shared_inventory: bool | None = None
+    can_add_food: bool | None = None           # receiver controls
+    can_add_food_requester: bool | None = None  # requester controls
+    # Each side opts in independently
+    shared_inventory_requester: bool | None = None
+    shared_inventory_receiver: bool | None = None

@@ -195,8 +195,11 @@ export interface Friendship {
 	requester: UserMinimal;
 	receiver: UserMinimal;
 	status: FriendshipStatus;
-	can_add_food: boolean;
-	shared_inventory: boolean;
+	can_add_food: boolean;           // receiver controls: requester can add to receiver's diary
+	can_add_food_requester: boolean; // requester controls: receiver can add to requester's diary
+	shared_inventory_requester: boolean;
+	shared_inventory_receiver: boolean;
+	shared_inventory: boolean; // both true
 	created_at: string;
 }
 

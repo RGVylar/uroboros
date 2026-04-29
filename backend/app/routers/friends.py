@@ -62,12 +62,35 @@ def pending_count(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict[str, int]:
-    stmt = select(Friendship).where(
-        Friendship.receiver_id == user.id,
-        Friendship.status == FriendshipStatus.pending,
-    )
-    count = len(list(db.scalars(stmt)))
-    return {"count": count}
+    # Pending friend requests
+    friend_requests = len(list(db.scalars(
+        select(Friendship).where(
+            Friendship.receiver_id == user.id,
+            Friendship.status == FriendshipStatus.pending,
+        )
+    )))
+
+    # Pending inventory share: other side activated their flag, mine is still off
+    # Case: I am receiver, requester activated theirs but I haven't
+    inv_as_receiver = len(list(db.scalars(
+        select(Friendship).where(
+            Friendship.receiver_id == user.id,
+            Friendship.status == FriendshipStatus.accepted,
+            Friendship.shared_inventory_requester == True,  # noqa: E712
+            Friendship.shared_inventory_receiver == False,  # noqa: E712
+        )
+    )))
+    # Case: I am requester, receiver activated theirs but I haven't
+    inv_as_requester = len(list(db.scalars(
+        select(Friendship).where(
+            Friendship.requester_id == user.id,
+            Friendship.status == FriendshipStatus.accepted,
+            Friendship.shared_inventory_receiver == True,  # noqa: E712
+            Friendship.shared_inventory_requester == False,  # noqa: E712
+        )
+    )))
+
+    return {"count": friend_requests + inv_as_receiver + inv_as_requester}
 
 
 # ---------------------------------------------------------------------------
@@ -242,20 +265,42 @@ def update_friendship(
         f.status = FriendshipStatus(payload.status)
 
     if payload.can_add_food is not None:
-        # Only the receiver controls whether the friend can add food to their diary
+        # Receiver controls whether requester can add to receiver's diary
         if f.receiver_id != user.id:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor controla los permisos")
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor controla este permiso")
         f.can_add_food = payload.can_add_food
 
-    if payload.shared_inventory is not None:
-        # Either participant can toggle shared inventory
+    if payload.can_add_food_requester is not None:
+        # Requester controls whether receiver can add to requester's diary
+        if f.requester_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante controla este permiso")
+        f.can_add_food_requester = payload.can_add_food_requester
+
+    # Double-flag shared inventory: each side opts in independently
+    if payload.shared_inventory_requester is not None:
+        if f.requester_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante puede cambiar su flag")
         if f.status != FriendshipStatus.accepted:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada para compartir inventario")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
         was_shared = f.shared_inventory
-        f.shared_inventory = payload.shared_inventory
-        if payload.shared_inventory and not was_shared:
+        f.shared_inventory_requester = payload.shared_inventory_requester
+        now_shared = f.shared_inventory
+        if now_shared and not was_shared:
             _migrate_to_shared(db, f)
-        elif not payload.shared_inventory and was_shared:
+        elif not now_shared and was_shared:
+            _split_from_shared(db, f)
+
+    if payload.shared_inventory_receiver is not None:
+        if f.receiver_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor puede cambiar su flag")
+        if f.status != FriendshipStatus.accepted:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
+        was_shared = f.shared_inventory
+        f.shared_inventory_receiver = payload.shared_inventory_receiver
+        now_shared = f.shared_inventory
+        if now_shared and not was_shared:
+            _migrate_to_shared(db, f)
+        elif not now_shared and was_shared:
             _split_from_shared(db, f)
 
     db.commit()
