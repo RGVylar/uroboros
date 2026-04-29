@@ -234,10 +234,15 @@ export interface UserSupplement {
 	id: number;
 	name: string;
 	position: number;
+	days_of_week: number[] | null; // 0=Mon…6=Sun, null=every day
 }
 
 export interface SupplementToday {
 	supplement_id: number;
 	name: string;
 	taken: boolean;
+	days_of_week: number[] | null;
 }
+
+// L M X J V S D
+export const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];

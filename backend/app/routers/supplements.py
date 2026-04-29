@@ -17,21 +17,28 @@ router = APIRouter(prefix="/supplements", tags=["supplements"])
 
 class SupplementIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    days_of_week: list[int] | None = None  # 0=Mon … 6=Sun, None=every day
 
 
 class SupplementOut(BaseModel):
     id: int
     name: str
     position: int
+    days_of_week: list[int] | None = None
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm_obj(cls, s: UserSupplement) -> "SupplementOut":
+        return cls(id=s.id, name=s.name, position=s.position, days_of_week=s.days_of_week)
 
 
 class SupplementTodayOut(BaseModel):
     supplement_id: int
     name: str
     taken: bool
+    days_of_week: list[int] | None = None
 
 
 # ── CRUD ─────────────────────────────────────────────────────────────────────
@@ -40,12 +47,13 @@ class SupplementTodayOut(BaseModel):
 def list_supplements(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[UserSupplement]:
-    return list(db.scalars(
+) -> list[SupplementOut]:
+    supps = list(db.scalars(
         select(UserSupplement)
         .where(UserSupplement.user_id == user.id)
         .order_by(UserSupplement.position, UserSupplement.id)
     ))
+    return [SupplementOut.from_orm_obj(s) for s in supps]
 
 
 @router.post("", response_model=SupplementOut, status_code=status.HTTP_201_CREATED)
@@ -53,15 +61,13 @@ def create_supplement(
     payload: SupplementIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> UserSupplement:
-    count = db.scalar(
-        select(UserSupplement).where(UserSupplement.user_id == user.id)
-    )
+) -> SupplementOut:
     supp = UserSupplement(user_id=user.id, name=payload.name, position=0)
+    supp.days_of_week = payload.days_of_week
     db.add(supp)
     db.commit()
     db.refresh(supp)
-    return supp
+    return SupplementOut.from_orm_obj(supp)
 
 
 @router.put("/{supp_id}", response_model=SupplementOut)
@@ -70,14 +76,15 @@ def update_supplement(
     payload: SupplementIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> UserSupplement:
+) -> SupplementOut:
     supp = db.get(UserSupplement, supp_id)
     if not supp or supp.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Supplement not found")
     supp.name = payload.name
+    supp.days_of_week = payload.days_of_week
     db.commit()
     db.refresh(supp)
-    return supp
+    return SupplementOut.from_orm_obj(supp)
 
 
 @router.delete("/{supp_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -115,17 +122,16 @@ def get_supplement_month(
 
 # ── Daily log ─────────────────────────────────────────────────────────────────
 
-@router.get("/today", response_model=list[SupplementTodayOut])
-def get_today(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> list[dict]:
+def _today_response(db: Session, user: User) -> list[dict]:
     today = date.today()
-    supps = list(db.scalars(
+    weekday = today.weekday()  # 0=Mon, 6=Sun
+    all_supps = list(db.scalars(
         select(UserSupplement)
         .where(UserSupplement.user_id == user.id)
         .order_by(UserSupplement.position, UserSupplement.id)
     ))
+    # Filter to only supplements scheduled for today
+    supps = [s for s in all_supps if s.active_today(weekday)]
     taken_ids = set(db.scalars(
         select(SupplementLog.supplement_id).where(
             SupplementLog.user_id == user.id,
@@ -133,9 +139,17 @@ def get_today(
         )
     ))
     return [
-        {"supplement_id": s.id, "name": s.name, "taken": s.id in taken_ids}
+        {"supplement_id": s.id, "name": s.name, "taken": s.id in taken_ids, "days_of_week": s.days_of_week}
         for s in supps
     ]
+
+
+@router.get("/today", response_model=list[SupplementTodayOut])
+def get_today(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[dict]:
+    return _today_response(db, user)
 
 
 @router.post("/log/{supp_id}", response_model=list[SupplementTodayOut])
@@ -158,7 +172,7 @@ def log_supplement(
     if not existing:
         db.add(SupplementLog(user_id=user.id, supplement_id=supp_id, logged_date=today))
         db.commit()
-    return get_today(db=db, user=user)
+    return _today_response(db, user)
 
 
 @router.delete("/log/{supp_id}", response_model=list[SupplementTodayOut])
@@ -178,4 +192,4 @@ def unlog_supplement(
     if entry:
         db.delete(entry)
         db.commit()
-    return get_today(db=db, user=user)
+    return _today_response(db, user)
