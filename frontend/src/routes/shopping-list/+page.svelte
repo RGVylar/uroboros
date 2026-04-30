@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
 	import type { Product, Recipe, ShoppingListItem } from '$lib/types';
 	import { Modal } from '$lib/components';
 
@@ -20,6 +21,7 @@
 	let addMode: 'product' | 'text' = $state('product');
 	let saving = $state(false);
 	let error = $state('');
+	let scanError = $state('');
 
 	// From recipe
 	let showRecipeModal = $state(false);
@@ -51,6 +53,19 @@
 			searchResults = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}&limit=10&offset=0`);
 		} catch {
 			searchResults = [];
+		} finally {
+			searching = false;
+		}
+	}
+
+	async function searchByBarcode(code: string) {
+		searching = true;
+		scanError = '';
+		try {
+			const p = await api.get<Product>(`/products/barcode/${code.trim()}`);
+			selectProduct(p);
+		} catch {
+			scanError = 'Producto no encontrado para ese código de barras';
 		} finally {
 			searching = false;
 		}
@@ -189,6 +204,10 @@
 					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }} style="flex:1;" />
 				<button onclick={searchProducts} disabled={searching} style="padding:0 0.875rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:rgba(255,255,255,0.8); cursor:pointer; font-family:inherit;">Buscar</button>
 			</div>
+			<div style="margin-bottom:0.5rem;">
+				<BarcodeScanner onScan={searchByBarcode} onError={(e) => scanError = e} />
+			</div>
+			{#if scanError}<p class="error" style="margin-bottom:0.5rem;">{scanError}</p>{/if}
 			{#if searchResults.length > 0}
 				<div class="glass-card" style="padding:0.375rem; margin-bottom:0.5rem;">
 					{#each searchResults as p (p.id)}

@@ -3,47 +3,13 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
 	import type { CostSummary, InventoryItem, Product } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	let isNative = Capacitor.isNativePlatform();
-
-	// Barcode scanner (web)
-	let scanning = $state(false);
-	let videoEl: HTMLVideoElement | undefined = $state();
 	let scanError = $state('');
-	let stream: MediaStream | null = null;
-	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
-
-	async function startWebScan() {
-		scanError = '';
-		scanning = true;
-		try {
-			const { BrowserMultiFormatReader } = await import('@zxing/browser');
-			zxingReader = new BrowserMultiFormatReader();
-			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-			if (videoEl) {
-				videoEl.srcObject = stream;
-				videoEl.play();
-				zxingReader.decodeFromVideoElement(videoEl, (result) => {
-					if (result) {
-						stopWebScan();
-						searchByBarcode(result.getText());
-					}
-				});
-			}
-		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
-			scanning = false;
-		}
-	}
-
-	function stopWebScan() {
-		scanning = false;
-		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-		if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-	}
 
 	async function scanNative() {
 		try {
@@ -265,23 +231,13 @@
 	<div class="form-group" style="margin-bottom:0.5rem;">
 		<label>Código de barras</label>
 		{#if isNative}
-			<button onclick={scanNative} style="width:100%;" disabled={searching}>
+			<button onclick={scanNative} style="width:100%; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#fff; cursor:pointer; font-family:inherit; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.5rem;" disabled={searching}>
 				📷 Escanear con cámara
 			</button>
 		{:else}
-			<button onclick={startWebScan} style="width:100%;" disabled={scanning || searching}>
-				{scanning ? 'Escaneando...' : '📷 Escanear con cámara'}
-			</button>
+			<BarcodeScanner onScan={searchByBarcode} onError={(e) => scanError = e} />
 		{/if}
 		{#if scanError}<p class="error" style="margin-top:0.4rem;">{scanError}</p>{/if}
-		{#if scanning}
-			<div style="margin-top:0.75rem; position:relative;">
-				<!-- svelte-ignore a11y_media_has_caption -->
-				<video bind:this={videoEl} style="width:100%; border-radius:8px; background:#000;" playsinline></video>
-				<button class="btn-danger" onclick={stopWebScan}
-					style="position:absolute; top:0.5rem; right:0.5rem; padding:0.3rem 0.6rem; font-size:0.8rem;">✕</button>
-			</div>
-		{/if}
 	</div>
 
 	{#if searchResults.length > 0}
