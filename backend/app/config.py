@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     off_base_url: str = "https://es.openfoodfacts.org"
     demo_mode: bool = False
     resend_api_key: str = ""
-    email_from: str = "uroboros <noreply@comida.mugrelore.com>"
+    email_from: str = "uroboros <noreply@mugrelore.com>"
     app_url: str = "https://comida.mugrelore.com"
 
 
