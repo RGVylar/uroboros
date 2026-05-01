@@ -1,8 +1,8 @@
 <script lang="ts">
 	const lastUpdated = '1 de mayo de 2026';
-	const contactEmail = 'privacidad@mugrelore.com';
+	const contactEmail = 'mugrelore@gmail.com';
 	const appName = 'uroboros';
-	const devName = 'Rubén Goylar';
+	const devName = 'Ramón González Vignau';
 </script>
 
 <svelte:head>
