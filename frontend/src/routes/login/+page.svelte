@@ -71,5 +71,10 @@
 				{loading ? '...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
 			</button>
 		</form>
+		{#if mode === 'login'}
+			<div style="text-align:center; margin-top:1rem;">
+				<a href="/forgot-password" style="font-size:0.8125rem; color:rgba(255,255,255,0.4); text-decoration:none;">¿Olvidaste tu contraseña?</a>
+			</div>
+		{/if}
 	</div>
 </div>

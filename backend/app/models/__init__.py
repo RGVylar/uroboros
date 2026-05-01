@@ -12,6 +12,7 @@ from app.models.cheat_day import CheatDayLog
 from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
 from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.supplement import UserSupplement, SupplementLog
+from app.models.password_reset import PasswordResetToken
 
 __all__ = [
     "User",
@@ -37,4 +38,5 @@ __all__ = [
     "SharedShoppingListItem",
     "UserSupplement",
     "SupplementLog",
+    "PasswordResetToken",
 ]
