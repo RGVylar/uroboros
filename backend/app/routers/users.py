@@ -5,19 +5,19 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
-from app.models.body_measurement import BodyMeasurement
-from app.models.cheat_day import CheatDay
-from app.models.creatine import Creatine
+from app.models.body_measurement import BodyMeasurementLog
+from app.models.cheat_day import CheatDayLog
+from app.models.creatine import CreatineLog
 from app.models.diary import DiaryEntry
-from app.models.exercise import ExerciseSession
-from app.models.friendship import Friendship
-from app.models.friendship import FriendshipStatus
-from app.models.goals import Goals
-from app.models.inventory import InventoryItem
+from app.models.exercise import ExerciseSession, ExerciseSessionEntry
+from app.models.friendship import Friendship, FriendshipStatus
+from app.models.goals import UserGoals
+from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.password_reset import PasswordResetToken
-from app.models.supplement import Supplement
-from app.models.water import WaterEntry
-from app.models.weight import WeightEntry
+from app.models.recipe import Recipe, RecipeIngredient
+from app.models.supplement import UserSupplement, SupplementLog
+from app.models.water import WaterLog
+from app.models.weight import WeightLog
 from app.schemas.auth import UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -29,7 +29,6 @@ def list_users(
     user: User = Depends(get_current_user),
 ) -> list[User]:
     """Users available for the 'also log for' picker (self + allowed friends)."""
-    # Case 1: I am requester, receiver gave me permission (can_add_food)
     as_requester = (
         select(Friendship.receiver_id)
         .where(
@@ -38,7 +37,6 @@ def list_users(
             Friendship.can_add_food.is_(True),
         )
     )
-    # Case 2: I am receiver, requester gave me permission (can_add_food_requester)
     as_receiver = (
         select(Friendship.requester_id)
         .where(
@@ -47,7 +45,6 @@ def list_users(
             Friendship.can_add_food_requester.is_(True),
         )
     )
-
     stmt = (
         select(User)
         .where(or_(User.id == user.id, User.id.in_(as_requester), User.id.in_(as_receiver)))
@@ -64,19 +61,12 @@ def delete_account(
     """Permanently delete the current user and all their data."""
     uid = user.id
 
-    # Importaciones adicionales necesarias aquí
-    from app.models.inventory import ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
-    from app.models.exercise import ExerciseSessionEntry
-    from app.models.supplement import UserSupplement, SupplementLog
-    from app.models.recipe import Recipe, RecipeIngredient
-
-    # Borrar en orden para respetar FKs
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == uid))
-    db.execute(delete(WaterEntry).where(WaterEntry.user_id == uid))
-    db.execute(delete(CheatDay).where(CheatDay.user_id == uid))
-    db.execute(delete(Creatine).where(Creatine.user_id == uid))
-    db.execute(delete(BodyMeasurement).where(BodyMeasurement.user_id == uid))
-    db.execute(delete(WeightEntry).where(WeightEntry.user_id == uid))
+    db.execute(delete(WaterLog).where(WaterLog.user_id == uid))
+    db.execute(delete(CheatDayLog).where(CheatDayLog.user_id == uid))
+    db.execute(delete(CreatineLog).where(CreatineLog.user_id == uid))
+    db.execute(delete(BodyMeasurementLog).where(BodyMeasurementLog.user_id == uid))
+    db.execute(delete(WeightLog).where(WeightLog.user_id == uid))
     db.execute(delete(DiaryEntry).where(DiaryEntry.user_id == uid))
     db.execute(delete(SupplementLog).where(SupplementLog.user_id == uid))
     db.execute(delete(UserSupplement).where(UserSupplement.user_id == uid))
@@ -99,12 +89,12 @@ def delete_account(
         db.execute(delete(RecipeIngredient).where(RecipeIngredient.recipe_id.in_(recipe_ids)))
     db.execute(delete(Recipe).where(Recipe.user_id == uid))
 
-    # Amistades (como requester o receiver)
+    # Amistades
     db.execute(delete(Friendship).where(
         (Friendship.requester_id == uid) | (Friendship.receiver_id == uid)
     ))
 
-    db.execute(delete(Goals).where(Goals.user_id == uid))
+    db.execute(delete(UserGoals).where(UserGoals.user_id == uid))
     db.execute(delete(User).where(User.id == uid))
     db.commit()
 
