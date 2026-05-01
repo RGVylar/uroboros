@@ -410,3 +410,33 @@ def delete_entry(
 
     db.delete(entry)
     db.commit()
+
+
+@router.delete("/meal/{meal_type}", status_code=status.HTTP_204_NO_CONTENT)
+def clear_meal(
+    meal_type: str,
+    day: date = Query(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Delete all diary entries for a given meal_type on a given day."""
+    try:
+        mt = MealType(meal_type)
+    except ValueError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Meal type inválido")
+
+    day_start = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    day_end   = datetime.combine(day, time.max, tzinfo=timezone.utc)
+
+    entries = db.scalars(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user.id,
+            DiaryEntry.meal_type == mt,
+            DiaryEntry.consumed_at >= day_start,
+            DiaryEntry.consumed_at <= day_end,
+        )
+    ).all()
+
+    for e in entries:
+        db.delete(e)
+    db.commit()

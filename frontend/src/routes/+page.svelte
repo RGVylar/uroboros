@@ -52,6 +52,16 @@
 	let recipeSaveError = $state('');
 	let recipeSaveSuccess = $state('');
 
+	// Clear meal state
+	let clearingMeal: MealSection | null = $state(null);
+
+	async function confirmClearMeal() {
+		if (!clearingMeal) return;
+		await api.del(`/diary/meal/${clearingMeal.meal_type}?day=${today}`);
+		clearingMeal = null;
+		await load();
+	}
+
 	async function load() {
 		loading = true;
 		try {
@@ -549,6 +559,14 @@
 									>
 										＋ Receta
 									</button>
+									<button
+										class="btn-ghost"
+										onclick={(e) => { e.stopPropagation(); clearingMeal = meal; }}
+										disabled={meal.entries.length === 0}
+										style="font-size:0.72rem; padding:0.25rem 0.55rem; color:oklch(70% 0.18 25);"
+									>
+										🗑 Vaciar
+									</button>
 								{/snippet}
 							</MealHeader>
 							{#each meal.entries as entry (entry.id)}
@@ -654,6 +672,16 @@
 				Solo para mí
 			</button>
 			<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Clear meal modal -->
+{#if clearingMeal}
+	<Modal onClose={() => clearingMeal = null} title="🗑 Vaciar {clearingMeal.label}" subtitle="Se borrarán todos los alimentos de esta comida">
+		<div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+			<button class="btn-danger" onclick={confirmClearMeal}>Vaciar</button>
+			<button class="btn-secondary" onclick={() => clearingMeal = null}>Cancelar</button>
 		</div>
 	</Modal>
 {/if}
