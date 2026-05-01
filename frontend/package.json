@@ -12,6 +12,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
+		"@capacitor/assets": "^3.0.5",
+		"@capacitor/splash-screen": "^8.0.1",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.57.0",
@@ -28,6 +30,7 @@
 		"@capacitor/cli": "^8.3.0",
 		"@capacitor/core": "^8.3.0",
 		"@zxing/browser": "^0.1.5",
-		"@zxing/library": "^0.21.3"
+		"@zxing/library": "^0.21.3",
+		"canvas": "^3.2.3"
 	}
 }
