@@ -10,6 +10,22 @@
 	let savingCreatine = $state(false);
 	let savingCheatDays = $state(false);
 	let savingInventory = $state(false);
+	let showDeleteModal = $state(false);
+	let deletingAccount = $state(false);
+	let deleteConfirmText = $state('');
+
+	async function deleteAccount() {
+		if (deleteConfirmText !== 'ELIMINAR') return;
+		deletingAccount = true;
+		try {
+			await api.del('/users/me');
+			auth.logout();
+			goto('/login');
+		} catch {
+			deletingAccount = false;
+			showDeleteModal = false;
+		}
+	}
 
 	async function loadGoals() {
 		goals = await api.get<Goals>('/goals').catch(() => null);
@@ -232,8 +248,46 @@
 				<div class="row-label" style="color:oklch(75% 0.2 25);">Cerrar sesión</div>
 			</div>
 		</button>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => { showDeleteModal = true; deleteConfirmText = ''; }} style="cursor:pointer;">
+			<div class="icon-box" style="background:oklch(40% 0.2 25 / 0.2);">🗑️</div>
+			<div class="row-content">
+				<div class="row-label" style="color:oklch(65% 0.2 25);">Eliminar cuenta</div>
+				<div class="row-detail">Borra todos tus datos permanentemente</div>
+			</div>
+		</button>
 	</div>
 </div>
+
+<!-- ── Modal eliminar cuenta ── -->
+{#if showDeleteModal}
+	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick={() => showDeleteModal = false}>
+		<div style="background:#0f1520; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:1.5rem; width:100%; max-width:360px;" onclick={(e) => e.stopPropagation()}>
+			<div style="font-size:2rem; text-align:center; margin-bottom:0.75rem;">⚠️</div>
+			<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.5rem; text-align:center;">Eliminar cuenta</h2>
+			<p style="font-size:0.8125rem; color:rgba(255,255,255,0.6); margin:0 0 1.25rem; text-align:center; line-height:1.5;">
+				Esta acción es <strong style="color:#fff;">irreversible</strong>. Se borrarán todos tus datos: diario, recetas, inventario, peso y medidas.
+			</p>
+			<p style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin:0 0 0.5rem;">Escribe <strong style="color:#fff;">ELIMINAR</strong> para confirmar:</p>
+			<input
+				bind:value={deleteConfirmText}
+				placeholder="ELIMINAR"
+				style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.75rem; color:#fff; font-family:inherit; font-size:0.875rem; box-sizing:border-box; margin-bottom:1rem; outline:none;"
+			/>
+			<div style="display:flex; gap:0.75rem;">
+				<button onclick={() => showDeleteModal = false}
+					style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.875rem; cursor:pointer;">
+					Cancelar
+				</button>
+				<button onclick={deleteAccount}
+					disabled={deleteConfirmText !== 'ELIMINAR' || deletingAccount}
+					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:{deleteConfirmText === 'ELIMINAR' ? 'oklch(50% 0.22 25)' : 'rgba(255,255,255,0.05)'}; color:{deleteConfirmText === 'ELIMINAR' ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.875rem; font-weight:700; cursor:{deleteConfirmText === 'ELIMINAR' ? 'pointer' : 'not-allowed'}; transition:background 0.2s;">
+					{deletingAccount ? 'Eliminando...' : 'Eliminar'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Ko-fi -->
 <div style="text-align:center; margin-top:1rem; padding-bottom:0.5rem;">

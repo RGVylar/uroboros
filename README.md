@@ -64,4 +64,7 @@ pct exec 200 -- bash -c "cd /opt/uroboros && git pull && cd backend && .venv/bin
 
 pct exec 200 -- bash -c "git config --global --add safe.directory /opt/uroboros && cd /opt/uroboros && git pull && cd frontend && npm ci && npm run build && systemctl restart caddy "
 
+
+pct exec 200 -- bash -c "cd /opt/uroboros && git pull && cd backend && .venv/bin/pip install -q -r requirements.txt && .venv/bin/alembic upgrade head && systemctl restart uroboros-backend"
+
 ```
