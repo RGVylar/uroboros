@@ -9,7 +9,6 @@
 	if (!auth.isLoggedIn) goto('/login');
 
 	let isNative = Capacitor.isNativePlatform();
-	let scanError = $state('');
 
 	async function scanNative() {
 		try {
@@ -216,29 +215,12 @@
 <div class="glass-card" style="margin-bottom:0.875rem;">
 	<div style="font-weight:700; font-size:0.875rem; margin-bottom:0.75rem; color:#fff;">Añadir al inventario</div>
 
-	<div class="form-group" style="margin-bottom:0.5rem;">
-		<label for="inv-search">Buscar por nombre</label>
-		<div style="display:flex; gap:0.5rem;">
-			<input id="inv-search" bind:value={query}
-				placeholder="Arroz, pollo..."
-				onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }}
-				style="flex:1;" />
-			<button onclick={searchProducts} disabled={searching}>Buscar</button>
-		</div>
-	</div>
-
-	<!-- Barcode -->
-	<div class="form-group" style="margin-bottom:0.5rem;">
-		<label>Código de barras</label>
-		{#if isNative}
-			<button onclick={scanNative} style="width:100%; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#fff; cursor:pointer; font-family:inherit; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.5rem;" disabled={searching}>
-				📷 Escanear con cámara
-			</button>
-		{:else}
-			<BarcodeScanner onScan={searchByBarcode} onError={(e) => scanError = e} />
-		{/if}
-		{#if scanError}<p class="error" style="margin-top:0.4rem;">{scanError}</p>{/if}
-	</div>
+	<BarcodeScanner
+		bind:bind_query={query}
+		placeholder="Buscar arroz, pollo..."
+		onScan={searchByBarcode}
+		onSearch={searchProducts}
+	/>
 
 	{#if searchResults.length > 0}
 		<div style="border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:0.5rem;">

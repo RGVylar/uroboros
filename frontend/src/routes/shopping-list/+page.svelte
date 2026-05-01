@@ -21,7 +21,6 @@
 	let addMode: 'product' | 'text' = $state('product');
 	let saving = $state(false);
 	let error = $state('');
-	let scanError = $state('');
 
 	// From recipe
 	let showRecipeModal = $state(false);
@@ -199,15 +198,12 @@
 		</div>
 
 		{#if addMode === 'product'}
-			<div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-				<input bind:value={query} placeholder="Buscar producto..."
-					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }} style="flex:1;" />
-				<button onclick={searchProducts} disabled={searching} style="padding:0 0.875rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:rgba(255,255,255,0.8); cursor:pointer; font-family:inherit;">Buscar</button>
-			</div>
-			<div style="margin-bottom:0.5rem;">
-				<BarcodeScanner onScan={searchByBarcode} onError={(e) => scanError = e} />
-			</div>
-			{#if scanError}<p class="error" style="margin-bottom:0.5rem;">{scanError}</p>{/if}
+			<BarcodeScanner
+				bind:bind_query={query}
+				placeholder="Buscar producto..."
+				onScan={searchByBarcode}
+				onSearch={searchProducts}
+			/>
 			{#if searchResults.length > 0}
 				<div class="glass-card" style="padding:0.375rem; margin-bottom:0.5rem;">
 					{#each searchResults as p (p.id)}
