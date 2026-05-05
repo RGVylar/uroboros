@@ -13,26 +13,31 @@
 
 	// Hue per measurement key for oklch colors
 	const HUES: Record<string, number> = {
-		neck:    190,
-		chest:   220,
-		waist:   160,
-		hips:    340,
-		bicep_l: 45,
-		bicep_r: 45,
-		thigh_l: 295,
-		thigh_r: 295,
-		calf_l:  25,
-		calf_r:  25,
+		neck:     190,
+		chest:    220,
+		waist:    160,
+		navel:    330,
+		hips:     340,
+		bicep_l:  45,
+		bicep_r:  45,
+		forearm_l: 280,
+		forearm_r: 280,
+		thigh_l:  295,
+		thigh_r:  295,
+		calf_l:   25,
+		calf_r:   25,
 	};
 
 	const bodyPoints: { key: string; label: string; x: number; y: number; side: 'left' | 'right' }[] = [
-		{ key: 'neck',    label: 'Cuello',  x: 100, y: 27,  side: 'right' },
-		{ key: 'chest',   label: 'Pecho',   x: 100, y: 56,  side: 'right' },
-		{ key: 'bicep_l', label: 'Brazo',   x: 69,  y: 64,  side: 'left'  },
-		{ key: 'waist',   label: 'Cintura', x: 100, y: 84,  side: 'right' },
-		{ key: 'hips',    label: 'Cadera',  x: 100, y: 102, side: 'right' },
-		{ key: 'thigh_l', label: 'Muslo',   x: 89,  y: 148, side: 'left'  },
-		{ key: 'calf_l',  label: 'Gemelo',  x: 88,  y: 172, side: 'left'  },
+		{ key: 'neck',      label: 'Cuello',     x: 100, y: 27,  side: 'right' },
+		{ key: 'chest',     label: 'Pecho',     x: 100, y: 56,  side: 'right' },
+		{ key: 'bicep_l',   label: 'Brazo',     x: 69,  y: 64,  side: 'left'  },
+		{ key: 'forearm_l', label: 'Antebrazo', x: 62,  y: 88,  side: 'left'  },
+		{ key: 'waist',     label: 'Cintura',   x: 100, y: 84,  side: 'right' },
+		{ key: 'navel',     label: 'Ombligo',   x: 100, y: 93,  side: 'right' },
+		{ key: 'hips',      label: 'Cadera',    x: 100, y: 102, side: 'right' },
+		{ key: 'thigh_l',   label: 'Muslo',     x: 89,  y: 148, side: 'left'  },
+		{ key: 'calf_l',    label: 'Gemelo',    x: 88,  y: 172, side: 'left'  },
 	];
 
 	/** Form: only positive numbers are sent */
@@ -344,7 +349,7 @@
 			<div class="modal-title">Registrar medidas</div>
 			<div class="modal-sub">Introduce los valores actuales</div>
 
-			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem 0.75rem; margin-bottom:1.25rem; max-height:50dvh; overflow-y:auto;">
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem 0.75rem; margin-bottom:6rem; max-height:50dvh; overflow-y:auto;">
 				{#each MEASUREMENT_FIELDS as f}
 					{@const hue = HUES[f.key] ?? 160}
 					<div class="form-field">
