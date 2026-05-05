@@ -311,12 +311,8 @@
 		</div>
 	{/if}
 
-	<!-- Floating add button -->
-	<button class="fab" aria-label="Añadir comida" title="Añadir comida" onclick={() => goto(`/add?date=${today}`)}>
-		<span class="fab-icon">➕</span>
-	</button>
 
-	{#if loading}
+{#if loading}
 		<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">Cargando...</p>
 	{:else if summary}
 
