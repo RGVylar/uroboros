@@ -40,16 +40,27 @@
 		{ key: 'calf_l',    label: 'Gemelo',    x: 88,  y: 172, side: 'left'  },
 	];
 
-	/** Form: only positive numbers are sent */
 	let form: Record<string, number> = $state(
 		Object.fromEntries(MEASUREMENT_FIELDS.map((f) => [f.key, 0]))
 	);
+
+	function prefillForm() {
+		for (const f of MEASUREMENT_FIELDS) {
+			const current = currentFor(f.key);
+			form[f.key] = current ?? 0;
+		}
+	}
 
 	async function load() {
 		logs = await api.get<BodyMeasurementLog[]>('/measurements');
 	}
 
 	$effect(() => { load(); });
+
+	// Pre-rellenar el form cada vez que se abre el modal
+	$effect(() => {
+		if (showAdd) prefillForm();
+	});
 
 	async function addEntry() {
 		const measurements: Record<string, number> = {};
@@ -63,7 +74,6 @@
 			measurements,
 			logged_at: new Date().toISOString()
 		});
-		for (const f of MEASUREMENT_FIELDS) form[f.key] = 0;
 		saving = false;
 		showAdd = false;
 		load();
