@@ -3,6 +3,7 @@
 MEASUREMENT_KEYS: frozenset[str] = frozenset(
     {
         "neck",
+        "shoulders",
         "chest",
         "waist",
         "navel",

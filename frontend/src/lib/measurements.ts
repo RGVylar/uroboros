@@ -1,6 +1,7 @@
 /** Keys must match backend `MEASUREMENT_KEYS` / `app.measurement_keys`. */
 export const MEASUREMENT_FIELDS: { key: string; label: string }[] = [
 	{ key: 'neck', label: 'Cuello' },
+	{ key: 'shoulders', label: 'Hombros' },
 	{ key: 'chest', label: 'Pecho' },
 	{ key: 'waist', label: 'Cintura' },
 	{ key: 'navel', label: 'Ombligo' },
@@ -18,6 +19,7 @@ export const MEASUREMENT_FIELDS: { key: string; label: string }[] = [
 /** Distinct colors per series (works on dark UI). */
 export const MEASUREMENT_COLORS: Record<string, string> = {
 	neck: '#22c55e',
+	shoulders: '#f59e0b',
 	chest: '#3b82f6',
 	waist: '#a855f7',
 	navel: '#f472b6',

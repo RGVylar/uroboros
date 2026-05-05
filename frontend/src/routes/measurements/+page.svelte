@@ -13,8 +13,9 @@
 
 	// Hue per measurement key for oklch colors
 	const HUES: Record<string, number> = {
-		neck:     190,
-		chest:    220,
+		neck:      190,
+		shoulders: 45,
+		chest:     220,
 		waist:    160,
 		navel:    330,
 		hips:     340,
@@ -30,6 +31,7 @@
 
 	const bodyPoints: { key: string; label: string; x: number; y: number; side: 'left' | 'right' }[] = [
 		{ key: 'neck',      label: 'Cuello',     x: 100, y: 27,  side: 'right' },
+		{ key: 'shoulders', label: 'Hombros',   x: 100, y: 40,  side: 'right' },
 		{ key: 'chest',     label: 'Pecho',     x: 100, y: 56,  side: 'right' },
 		{ key: 'bicep_l',   label: 'Brazo',     x: 69,  y: 64,  side: 'left'  },
 		{ key: 'forearm_l', label: 'Antebrazo', x: 62,  y: 88,  side: 'left'  },
