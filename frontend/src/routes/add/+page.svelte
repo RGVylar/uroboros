@@ -111,7 +111,9 @@
 	}
 	let selected: Product | null = $state(null);
 	let grams = $state(100);
-	let alsoFor: number | null = $state(null);
+	// null = solo yo | 'also' = los dos | 'only' = solo pareja
+	type ShareMode = null | 'also' | 'only';
+	let shareMode: ShareMode = $state(null);
 	let mealType: MealType = $state(guessMealType());
 
 	function guessMealType(): MealType {
@@ -169,7 +171,8 @@
 				recipe_id: recipe.id,
 				meal_type: mealType,
 				consumed_at: consumedAt(selectedDate),
-				also_for_user_id: alsoFor,
+				also_for_user_id: shareMode === 'also' ? partner?.id : null,
+			only_for_user_id: shareMode === 'only' ? partner?.id : null,
 			});
 			goto('/');
 		} catch (e: unknown) {
@@ -287,7 +290,8 @@
 				grams,
 				meal_type: mealType,
 				consumed_at: consumedAt(selectedDate),
-				also_for_user_id: alsoFor
+				also_for_user_id: shareMode === 'also' ? partner?.id : null,
+				only_for_user_id: shareMode === 'only' ? partner?.id : null,
 			});
 			saveLastGrams(selected.id, grams);
 			goto('/');
@@ -424,24 +428,37 @@
 		/>
 	</div>
 
-	<!-- Partner share -->
+	<!-- Partner share (3 estados) -->
 	{#if users.length > 1 && partner}
 		<button
 			type="button"
-			onclick={() => { alsoFor = alsoFor === null ? (partner?.id ?? null) : null; }}
-			aria-pressed={alsoFor !== null}
+			onclick={() => {
+				if (shareMode === null) shareMode = 'also';
+				else if (shareMode === 'also') shareMode = 'only';
+				else shareMode = null;
+			}}
 			class="share-card"
-			class:share-card-active={alsoFor !== null}
+			class:share-card-active={shareMode !== null}
 			style="margin-bottom:1rem;"
 		>
-			<div class="share-badge-icon" class:share-badge-icon-active={alsoFor !== null}>2×</div>
-			<div style="flex:1; min-width:0; text-align:left;">
-				<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
-				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Registrar en las dos cuentas</div>
+			<div class="share-badge-icon" class:share-badge-icon-active={shareMode !== null}>
+				{shareMode === 'only' ? '→' : '2×'}
 			</div>
-			<!-- Toggle switch -->
-			<div class="toggle-track" class:toggle-track-on={alsoFor !== null}>
-				<div class="toggle-thumb" class:toggle-thumb-on={alsoFor !== null}></div>
+			<div style="flex:1; min-width:0; text-align:left;">
+				{#if shareMode === null}
+					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Toca para registrar en las dos cuentas</div>
+				{:else if shareMode === 'also'}
+					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Se registrará en las dos cuentas</div>
+				{:else}
+					<div style="font-size:0.8125rem; font-weight:700;">Solo para {partner.name}</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Tú no lo registras</div>
+				{/if}
+			</div>
+			<!-- Toggle de 3 posiciones -->
+			<div class="toggle-track" class:toggle-track-on={shareMode !== null} style={shareMode === 'only' ? 'background:oklch(55% 0.18 45 / 0.35); border-color:oklch(65% 0.17 45 / 0.5);' : ''}>
+				<div class="toggle-thumb" style="left:{shareMode === null ? '2px' : shareMode === 'also' ? '18px' : '18px'};" class:toggle-thumb-on={shareMode !== null}></div>
 			</div>
 		</button>
 	{/if}
@@ -449,7 +466,15 @@
 	{#if error}<p class="add-error">{error}</p>{/if}
 
 	<button class="btn-submit" onclick={logEntry} disabled={saving}>
-		{saving ? 'Guardando...' : alsoFor !== null ? 'Registrar · 2×' : 'Registrar'}
+		{#if saving}
+			Guardando...
+		{:else if shareMode === 'also'}
+			Registrar · 2×
+		{:else if shareMode === 'only'}
+			Registrar solo para {partner?.name}
+		{:else}
+			Registrar
+		{/if}
 	</button>
 
 <!-- ═══════════════════════════════════════════════════════

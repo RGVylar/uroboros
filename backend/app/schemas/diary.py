@@ -23,7 +23,8 @@ class DiaryEntryCreate(BaseModel):
     grams: float = Field(gt=0)
     consumed_at: datetime
     meal_type: MealTypeLiteral = "snack"
-    also_for_user_id: int | None = None
+    also_for_user_id: int | None = None   # registrar para los dos
+    only_for_user_id: int | None = None   # registrar SOLO para la pareja
 
 
 class DiaryEntryUpdate(BaseModel):

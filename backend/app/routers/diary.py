@@ -90,10 +90,10 @@ def create_entry(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
 
     meal_type = MealType(payload.meal_type)
-    created = [_build_entry(user.id, product, payload.grams, payload.consumed_at, meal_type)]
 
-    if payload.also_for_user_id and payload.also_for_user_id != user.id:
-        other = db.get(User, payload.also_for_user_id)
+    # Modo "solo para la pareja": no se crea entrada para el usuario actual
+    if payload.only_for_user_id and payload.only_for_user_id != user.id:
+        other = db.get(User, payload.only_for_user_id)
         if not other:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
         if not _can_log_for_user(db, user.id, other.id):
@@ -101,7 +101,19 @@ def create_entry(
                 status.HTTP_403_FORBIDDEN,
                 "No tienes permiso para registrar comida en el diario de este usuario",
             )
-        created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
+        created = [_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type)]
+    else:
+        created = [_build_entry(user.id, product, payload.grams, payload.consumed_at, meal_type)]
+        if payload.also_for_user_id and payload.also_for_user_id != user.id:
+            other = db.get(User, payload.also_for_user_id)
+            if not other:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
+            if not _can_log_for_user(db, user.id, other.id):
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    "No tienes permiso para registrar comida en el diario de este usuario",
+                )
+            created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
 
     db.add_all(created)
     db.commit()
