@@ -440,7 +440,7 @@
 				class:share-badge-icon-also={shareMode === 'also'}
 				class:share-badge-icon-only={shareMode === 'only'}
 			>
-				{#if shareMode === null}👤{:else if shareMode === 'also'}👥{:else}→{/if}
+				{#if shareMode === null}👤{:else if shareMode === 'also'}👥{:else}<span style="font-size:0.625rem;">👤→</span>{/if}
 			</div>
 			<div style="flex:1; min-width:0; text-align:left;">
 				{#if shareMode === null}
