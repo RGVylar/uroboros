@@ -117,6 +117,37 @@
 
 	let partner = $derived(users.find(u => u.id !== auth.user?.id) ?? null);
 
+	// Adjust macro targets for the day based on exercise calories burned
+	let effectiveGoals = $derived((() => {
+		if (!goals || !summary) return goals;
+		const burned = summary.calories_burned ?? 0;
+		const mode = goals.macro_adjust_mode ?? 'off';
+		if (burned <= 0 || mode === 'off') return goals;
+
+		if (mode === 'proportional') {
+			const ratio = (goals.kcal + burned) / goals.kcal;
+			return {
+				...goals,
+				kcal:    goals.kcal + burned,
+				protein: Math.round(goals.protein * ratio * 10) / 10,
+				carbs:   Math.round(goals.carbs   * ratio * 10) / 10,
+				fat:     Math.round(goals.fat     * ratio * 10) / 10,
+			};
+		}
+
+		if (mode === 'performance') {
+			const extraCarbs = burned / 4;
+			return {
+				...goals,
+				kcal:  goals.kcal + burned,
+				carbs: Math.round((goals.carbs + extraCarbs) * 10) / 10,
+				// protein and fat stay fixed
+			};
+		}
+
+		return goals;
+	})());
+
 	function startDelete(entry: DiaryEntry) {
 		if (partner) {
 			deletingEntry = entry;
@@ -316,19 +347,19 @@
 
 			<!-- Hero calories card -->
 			<div class="card" style="margin-bottom:0.75rem; margin-top:0.75rem;">
-				{#if goals}
+				{#if effectiveGoals}
 					<CalorieRing
 						consumed={summary.totals.calories}
-						goal={goals.kcal}
+						goal={effectiveGoals.kcal}
 						burned={summary.calories_burned}
 						net={summary.net_calories}
 						size={175}
 					/>
 					<div style="height:1rem;"></div>
 					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
-						<MacroBar label="Prot"  value={summary.totals.protein} goal={goals.protein} color="var(--prot)" />
-						<MacroBar label="Carb"  value={summary.totals.carbs}   goal={goals.carbs}   color="var(--carb)" />
-						<MacroBar label="Grasa" value={summary.totals.fat}     goal={goals.fat}     color="var(--fat)" />
+						<MacroBar label="Prot"  value={summary.totals.protein} goal={effectiveGoals.protein} color="var(--prot)" />
+						<MacroBar label="Carb"  value={summary.totals.carbs}   goal={effectiveGoals.carbs}   color="var(--carb)" />
+						<MacroBar label="Grasa" value={summary.totals.fat}     goal={effectiveGoals.fat}     color="var(--fat)" />
 					</div>
 				{:else}
 					<div style="display:flex; justify-content:space-between; align-items:center;">

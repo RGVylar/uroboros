@@ -419,31 +419,6 @@
 		</div>
 	</div>
 
-	<!-- Allergy warning -->
-	{#if allergenWarnings.mine.length > 0 || allergenWarnings.partner.length > 0}
-		<div class="allergy-banner">
-			<div class="allergy-banner-icon">⚠️</div>
-			<div class="allergy-banner-body">
-				<div class="allergy-banner-title">Alérgeno detectado</div>
-				{#if allergenWarnings.mine.length > 0}
-					<div class="allergy-banner-row">
-						<span class="allergy-banner-who">Tú:</span>
-						{#each allergenWarnings.mine as a}
-							<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
-						{/each}
-					</div>
-				{/if}
-				{#if allergenWarnings.partner.length > 0 && partner}
-					<div class="allergy-banner-row">
-						<span class="allergy-banner-who">{partner.name}:</span>
-						{#each allergenWarnings.partner as a}
-							<span class="allergy-tag allergy-tag-partner">{allergenLabel(a)}</span>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		</div>
-	{/if}
 
 	<!-- Macro preview card -->
 	<div class="glass-card" style="margin-bottom:0.875rem;">
@@ -558,6 +533,32 @@
 					onclick={() => shareMode = 'also'} aria-label="Los dos">👥</button>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
 					onclick={() => shareMode = 'only'} aria-label="Solo {partner.name}">👤→</button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Allergy warning -->
+	{#if allergenWarnings.mine.length > 0 || allergenWarnings.partner.length > 0}
+		<div class="allergy-banner">
+			<div class="allergy-banner-icon">⚠️</div>
+			<div class="allergy-banner-body">
+				<div class="allergy-banner-title">Alérgeno detectado</div>
+				{#if allergenWarnings.mine.length > 0}
+					<div class="allergy-banner-row">
+						<span class="allergy-banner-who">Tú:</span>
+						{#each allergenWarnings.mine as a}
+							<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
+						{/each}
+					</div>
+				{/if}
+				{#if allergenWarnings.partner.length > 0 && partner}
+					<div class="allergy-banner-row">
+						<span class="allergy-banner-who">{partner.name}:</span>
+						{#each allergenWarnings.partner as a}
+							<span class="allergy-tag allergy-tag-partner">{allergenLabel(a)}</span>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}

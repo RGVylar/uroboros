@@ -87,6 +87,7 @@ export interface Goals {
 	track_creatine: boolean;
 	cheat_days_enabled: boolean;
 	inventory_enabled: boolean;
+	macro_adjust_mode: 'off' | 'proportional' | 'performance';
 }
 
 export interface InventoryItem {

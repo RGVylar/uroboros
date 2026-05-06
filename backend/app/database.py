@@ -77,6 +77,7 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "friendships", "shared_inventory_requester", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "shared_inventory_receiver", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "can_add_food_requester", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "user_goals", "macro_adjust_mode", "VARCHAR(20) NOT NULL DEFAULT 'off'")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]

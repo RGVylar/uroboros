@@ -14,6 +14,7 @@ class GoalsIn(BaseModel):
     track_creatine: bool = False
     cheat_days_enabled: bool = False
     inventory_enabled: bool = False
+    macro_adjust_mode: str = "off"
 
 
 class GoalsOut(GoalsIn):

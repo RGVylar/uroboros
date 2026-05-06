@@ -67,12 +67,25 @@
 	async function toggleInventory() {
 		savingInventory = true;
 		try {
-			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false };
+			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false, macro_adjust_mode: 'off' as const };
 			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
 		} catch {
 			// ignore
 		} finally {
 			savingInventory = false;
+		}
+	}
+
+	let savingMacroMode = $state(false);
+	async function setMacroAdjustMode(mode: 'off' | 'proportional' | 'performance') {
+		if (!goals || goals.macro_adjust_mode === mode) return;
+		savingMacroMode = true;
+		try {
+			goals = await api.put<Goals>('/goals', { ...goals, macro_adjust_mode: mode });
+		} catch {
+			// ignore
+		} finally {
+			savingMacroMode = false;
 		}
 	}
 
@@ -132,6 +145,47 @@
 				>
 					<span class="toggle-knob" style="left:{goals.cheat_days_enabled ? '18px' : '2px'};"></span>
 				</button>
+			{/if}
+		</div>
+		<div class="row-divider"></div>
+		<!-- Macro adjust mode -->
+		<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.625rem;">
+			<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
+				<div class="icon-box">⚡</div>
+				<div class="row-content">
+					<div class="row-label">Ajuste por ejercicio</div>
+					<div class="row-detail">Cómo subir objetivos al quemar calorías</div>
+				</div>
+			</div>
+			{#if goals}
+				<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.375rem; width:100%; padding-left:2.75rem;">
+					{#each [
+						{ value: 'off',          label: 'Fijo',           note: 'Sin ajuste' },
+						{ value: 'proportional', label: 'Proporcional',   note: 'Sube todo' },
+						{ value: 'performance',  label: 'Rendimiento',    note: 'Solo carbs' },
+					] as opt}
+						<button
+							onclick={() => setMacroAdjustMode(opt.value as 'off' | 'proportional' | 'performance')}
+							disabled={savingMacroMode}
+							style="
+								padding:0.5rem 0.25rem;
+								border-radius:0.625rem;
+								border:1px solid {goals.macro_adjust_mode === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'};
+								background:{goals.macro_adjust_mode === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'};
+								color:{goals.macro_adjust_mode === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'};
+								font-size:0.6875rem;
+								font-weight:{goals.macro_adjust_mode === opt.value ? '700' : '400'};
+								text-align:center;
+								cursor:pointer;
+								transition:all 0.15s;
+								line-height:1.3;
+							"
+						>
+							{opt.label}<br>
+							<span style="font-size:0.5625rem; opacity:0.7;">{opt.note}</span>
+						</button>
+					{/each}
+				</div>
 			{/if}
 		</div>
 	</div>
