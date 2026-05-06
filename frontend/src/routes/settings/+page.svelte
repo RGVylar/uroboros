@@ -13,6 +13,9 @@
 	let showDeleteModal = $state(false);
 	let deletingAccount = $state(false);
 	let deleteConfirmText = $state('');
+	let allergies: Array<{id: number, ingredient: string}> = $state([]);
+	let newAllergyInput = $state('');
+	let addingAllergy = $state(false);
 
 	async function deleteAccount() {
 		if (deleteConfirmText !== 'ELIMINAR') return;
@@ -31,7 +34,37 @@
 		goals = await api.get<Goals>('/goals').catch(() => null);
 	}
 
+	async function loadAllergies() {
+		allergies = await api.get<Array<{id: number, ingredient: string}>>('/allergies').catch(() => []);
+	}
+
+	async function addAllergy() {
+		if (!newAllergyInput.trim()) return;
+		addingAllergy = true;
+		try {
+			const newAllergy = await api.post<{id: number, ingredient: string}>('/allergies', {
+				ingredient: newAllergyInput.trim()
+			});
+			allergies.push(newAllergy);
+			newAllergyInput = '';
+		} catch {
+			// ignore
+		} finally {
+			addingAllergy = false;
+		}
+	}
+
+	async function removeAllergy(id: number) {
+		try {
+			await api.del(`/allergies/${id}`);
+			allergies = allergies.filter(a => a.id !== id);
+		} catch {
+			// ignore
+		}
+	}
+
 	loadGoals();
+	loadAllergies();
 
 	async function toggleCreatine() {
 		if (!goals) return;
@@ -147,6 +180,61 @@
 			</div>
 			<span class="chevron">›</span>
 		</button>
+	</div>
+</div>
+
+<!-- ── Group: Salud ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Salud</div>
+	<div class="settings-group">
+		<!-- Alergias -->
+		<div class="settings-row" style="flex-direction:column; align-items:stretch; gap:0.5rem; cursor:default;">
+			<div style="display:flex; align-items:center; gap:0.75rem;">
+				<div class="icon-box">⚠️</div>
+				<div class="row-content">
+					<div class="row-label">Alergias e intolerancias</div>
+					<div class="row-detail">Alertas al añadir productos</div>
+				</div>
+			</div>
+			<div style="display:flex; gap:0.5rem; margin-left:2.75rem; margin-top:0.25rem;">
+				<input
+					type="text"
+					bind:value={newAllergyInput}
+					placeholder="p.ej. leche, cacahuetes"
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							addAllergy();
+						}
+					}}
+					style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:0.5rem; color:#fff; font-family:inherit; font-size:0.8125rem; outline:none;"
+				/>
+				<button
+					onclick={addAllergy}
+					disabled={addingAllergy || !newAllergyInput.trim()}
+					style="padding:0.5rem 0.75rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:{newAllergyInput.trim() ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.05)'}; color:{newAllergyInput.trim() ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:{newAllergyInput.trim() ? 'pointer' : 'not-allowed'}; transition:background 0.2s; flex-shrink:0;"
+				>
+					+
+				</button>
+			</div>
+			{#if allergies.length > 0}
+				<div style="margin-left:2.75rem; margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+					{#each allergies as allergy (allergy.id)}
+						<div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:99px; padding:0.35rem 0.75rem;">
+							<span style="font-size:0.75rem; color:#fff;">{allergy.ingredient}</span>
+							<button
+								onclick={() => removeAllergy(allergy.id)}
+								style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:1rem; padding:0; margin-left:0.25rem; line-height:1; transition:color 0.2s;"
+								onmouseover={(e) => e.currentTarget.style.color = '#fff'}
+								onmouseout={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+							>
+								×
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
 

@@ -108,6 +108,30 @@
 	function selectProduct(product: Product) {
 		selected = product;
 		grams = getLastGrams(product.id);
+
+		// Check for allergens
+		matchedAllergens = [];
+		showAllergyWarning = false;
+
+		// Get product from results to check if it has ingredients field
+		const productWithIngredients = results.find(p => p.id === product.id) || product;
+		if ('ingredients' in productWithIngredients && Array.isArray((productWithIngredients as any).ingredients)) {
+			const ingredients = (productWithIngredients as any).ingredients as string[];
+			matchedAllergens = allergies
+				.filter(a => ingredients.some(ing => ing.toLowerCase().includes(a.ingredient.toLowerCase())))
+				.map(a => a.ingredient);
+			if (matchedAllergens.length > 0) {
+				showAllergyWarning = true;
+			}
+		}
+	}
+
+	async function loadAllergies() {
+		try {
+			allergies = await api.get<Array<{id: number, ingredient: string}>>('/allergies').catch(() => []);
+		} catch {
+			allergies = [];
+		}
 	}
 	let selected: Product | null = $state(null);
 	let grams = $state(100);
@@ -128,6 +152,11 @@
 	let error = $state('');
 	let showManual = $state(false);
 	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
+
+	// Allergies state
+	let allergies: Array<{id: number, ingredient: string}> = $state([]);
+	let matchedAllergens: string[] = $state([]);
+	let showAllergyWarning = $state(false);
 
 	// manual product fields
 	let manualName = $state('');
@@ -186,6 +215,7 @@
 		api.get<User[]>('/users').then(u => users = u).catch(() => {});
 		loadRecommendations();
 		loadFrequent();
+		loadAllergies();
 	});
 
 	async function searchByName() {
@@ -356,6 +386,19 @@
 			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected.name}</div>
 		</div>
 	</div>
+
+	<!-- Allergy warning -->
+	{#if showAllergyWarning && matchedAllergens.length > 0}
+		<div style="background:oklch(50% 0.22 25 / 0.15); border:1px solid oklch(50% 0.22 25 / 0.3); border-radius:12px; padding:0.75rem; margin-bottom:0.875rem; display:flex; gap:0.5rem; align-items:flex-start;">
+			<div style="font-size:1.25rem; flex-shrink:0;">⚠️</div>
+			<div style="flex:1; min-width:0;">
+				<div style="font-size:0.8125rem; font-weight:600; color:oklch(75% 0.2 25); margin-bottom:0.25rem;">Contiene alérgeno</div>
+				<div style="font-size:0.75rem; color:oklch(70% 0.15 25);">
+					Este producto contiene: <strong>{matchedAllergens.join(', ')}</strong>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Macro preview card -->
 	<div class="glass-card" style="margin-bottom:0.875rem;">

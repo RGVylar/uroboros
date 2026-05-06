@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
+from app.models.allergy import UserAllergy
 from app.models.body_measurement import BodyMeasurementLog
 from app.models.cheat_day import CheatDayLog
 from app.models.creatine import CreatineLog
@@ -62,6 +63,7 @@ def delete_account(
     uid = user.id
 
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == uid))
+    db.execute(delete(UserAllergy).where(UserAllergy.user_id == uid))
     db.execute(delete(WaterLog).where(WaterLog.user_id == uid))
     db.execute(delete(CheatDayLog).where(CheatDayLog.user_id == uid))
     db.execute(delete(CreatineLog).where(CreatineLog.user_id == uid))
