@@ -35,6 +35,7 @@ class ProductOut(ProductBase):
     edited_at: datetime | None
     created_at: datetime
     ingredients_text: str | None = None
+    allergens: list[str] | None = None
 
     class Config:
         from_attributes = True

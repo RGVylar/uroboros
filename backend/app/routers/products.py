@@ -79,6 +79,7 @@ async def get_or_fetch_by_barcode(
         carbs_per_100g=off.carbs,
         fat_per_100g=off.fat,
         ingredients_text=off.ingredients_text or None,
+        allergens=off.allergens or None,
         source=ProductSource.openfoodfacts,
     )
     db.add(product)
@@ -183,6 +184,7 @@ async def search_products(
             carbs_per_100g=off.carbs,
             fat_per_100g=off.fat,
             ingredients_text=off.ingredients_text or None,
+            allergens=off.allergens or None,
             source=ProductSource.openfoodfacts,
         )
         db.add(p)

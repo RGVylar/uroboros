@@ -130,28 +130,31 @@
 	let myAllergies: AllergyInfo[] = $state([]);
 	let partnerAllergies: AllergyInfo[] = $state([]);
 
-	// Raw ingredients text for the selected product (from OFacts, stored in DB)
-	let selectedIngredientsText: string = $state('');
-
-	function checkAllergens(ingredientsText: string, list: AllergyInfo[]): string[] {
-		if (!ingredientsText) return [];
-		const text = ingredientsText.toLowerCase();
+	function checkAllergens(product: Product, list: AllergyInfo[]): string[] {
+		if (!list.length) return [];
+		const userKeys = new Set(list.map(a => a.ingredient.toLowerCase()));
+		const productAllergens: string[] = product.allergens ?? [];
+		// Primary: match via structured allergens field from OFF
+		const fromAllergens = productAllergens.filter(a => userKeys.has(a.toLowerCase()));
+		if (fromAllergens.length > 0) return fromAllergens;
+		// Fallback: keyword search in ingredients_text for legacy/manual products
+		const text = (product.ingredients_text ?? '').toLowerCase();
+		if (!text) return [];
 		return list
 			.filter(a => text.includes(a.ingredient.toLowerCase()))
 			.map(a => a.ingredient);
 	}
 
 	let allergenWarnings = $derived((() => {
-		const mine    = shareMode !== 'only' ? checkAllergens(selectedIngredientsText, myAllergies)      : [];
-		const partner = shareMode !== null   ? checkAllergens(selectedIngredientsText, partnerAllergies) : [];
-		return { mine, partner };
+		if (!selected) return { mine: [], partner: [] };
+		const mine    = shareMode !== 'only' ? checkAllergens(selected, myAllergies)      : [];
+		const part    = shareMode !== null   ? checkAllergens(selected, partnerAllergies) : [];
+		return { mine, partner: part };
 	})());
 
 	function selectProduct(product: Product) {
 		selected = product;
 		grams = getLastGrams(product.id);
-		// ingredients_text is stored in the DB and returned in ProductOut
-		selectedIngredientsText = (product as any).ingredients_text ?? '';
 	}
 
 	async function loadAllergies() {

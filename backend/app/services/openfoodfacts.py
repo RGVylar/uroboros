@@ -12,7 +12,7 @@ class OFFNotFound(Exception):
 
 
 class OFFProduct:
-    __slots__ = ("barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients_text")
+    __slots__ = ("barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients_text", "allergens")
 
     def __init__(
         self,
@@ -24,6 +24,7 @@ class OFFProduct:
         carbs: float,
         fat: float,
         ingredients_text: str | None = None,
+        allergens: list[str] | None = None,
     ) -> None:
         self.barcode = barcode
         self.name = name
@@ -33,6 +34,26 @@ class OFFProduct:
         self.carbs = carbs
         self.fat = fat
         self.ingredients_text = ingredients_text or ""
+        self.allergens = allergens or []
+
+
+def _parse_allergens(allergens_tags: object) -> list[str]:
+    """Normalize OFF allergens_tags to plain English keys.
+    Input:  ['en:milk', 'en:nuts', 'fr:alcool']
+    Output: ['milk', 'nuts', 'alcool']
+    """
+    if not isinstance(allergens_tags, list):
+        return []
+    result = []
+    seen: set[str] = set()
+    for tag in allergens_tags:
+        if not isinstance(tag, str):
+            continue
+        key = tag.split(":")[-1] if ":" in tag else tag
+        if key and key not in seen:
+            result.append(key)
+            seen.add(key)
+    return result
 
 
 def _f(x: object) -> float:
@@ -57,7 +78,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
             "action": "process",
             "json": 1,
             "page_size": limit,
-            "fields": "code,product_name,brands,nutriments,ingredients_text",
+            "fields": "code,product_name,brands,nutriments,ingredients_text,allergens_tags",
         })
     if r.status_code != 200:
         return []
@@ -76,6 +97,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
                 carbs=_f(n.get("carbohydrates_100g")),
                 fat=_f(n.get("fat_100g")),
                 ingredients_text=p.get("ingredients_text") or "",
+                allergens=_parse_allergens(p.get("allergens_tags")),
             ))
         except (KeyError, TypeError):
             continue
@@ -85,7 +107,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
 async def fetch_by_barcode(barcode: str) -> OFFProduct:
     url = f"{settings.off_base_url}/api/v2/product/{barcode}.json"
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=HEADERS, params={"fields": "code,product_name,brands,nutriments,ingredients_text"})
+        r = await client.get(url, headers=HEADERS, params={"fields": "code,product_name,brands,nutriments,ingredients_text,allergens_tags"})
     if r.status_code != 200:
         raise OFFNotFound(barcode)
     data = r.json()
@@ -103,4 +125,5 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
         carbs=_f(n.get("carbohydrates_100g")),
         fat=_f(n.get("fat_100g")),
         ingredients_text=p.get("ingredients_text") or "",
+        allergens=_parse_allergens(p.get("allergens_tags")),
     )

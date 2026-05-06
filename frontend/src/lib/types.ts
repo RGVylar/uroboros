@@ -23,6 +23,8 @@ export interface Product {
 	edited_by: number | null;
 	edited_at: string | null;
 	created_at: string;
+	ingredients_text: string | null;
+	allergens: string[] | null;
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
