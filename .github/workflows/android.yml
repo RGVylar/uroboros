@@ -93,4 +93,4 @@ jobs:
           APK="frontend/android/app/build/outputs/apk/debug/app-debug.apk"
           FILENAME="uroboros-debug-$(date +%Y%m%d-%H%M).apk"
           curl --fail --show-error -u "sGJbnegkQ4SapJo:" -T "$APK" \
-            "https://files.mugrelore.com/public.php/webdav/${FILENAME}"
+            "https://files.mugrelore.com/public.php/dav/files/sGJbnegkQ4SapJo/${FILENAME}"
