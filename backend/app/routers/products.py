@@ -63,6 +63,18 @@ async def get_or_fetch_by_barcode(
     Open Food Facts and persist."""
     existing = db.scalar(select(Product).where(Product.barcode == barcode))
     if existing:
+        # Lazy-refresh allergens for old cached products that predate the allergens column
+        if existing.allergens is None and existing.source == ProductSource.openfoodfacts:
+            try:
+                off = await fetch_by_barcode(barcode)
+                if off.allergens:
+                    existing.allergens = off.allergens
+                    if off.ingredients_text and not existing.ingredients_text:
+                        existing.ingredients_text = off.ingredients_text
+                    db.commit()
+                    db.refresh(existing)
+            except Exception:
+                pass
         return existing
 
     try:
@@ -172,6 +184,11 @@ async def search_products(
         if off.barcode:
             existing = db.scalar(select(Product).where(Product.barcode == off.barcode))
             if existing:
+                # Lazy-refresh allergens for cached products that predate the allergens column
+                if existing.allergens is None and off.allergens:
+                    existing.allergens = off.allergens
+                    if off.ingredients_text and not existing.ingredients_text:
+                        existing.ingredients_text = off.ingredients_text
                 if existing.id not in local_ids:
                     existing_off.append(existing)
                 continue
@@ -190,7 +207,7 @@ async def search_products(
         db.add(p)
         new_off.append(p)
 
-    if new_off:
+    if new_off or existing_off:
         db.commit()
         for p in new_off:
             db.refresh(p)
