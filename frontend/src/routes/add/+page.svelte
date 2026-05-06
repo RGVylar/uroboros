@@ -105,34 +105,6 @@
 		localStorage.setItem(`last_grams_${productId}`, String(g));
 	}
 
-	function selectProduct(product: Product) {
-		selected = product;
-		grams = getLastGrams(product.id);
-
-		// Check for allergens
-		matchedAllergens = [];
-		showAllergyWarning = false;
-
-		// Get product from results to check if it has ingredients field
-		const productWithIngredients = results.find(p => p.id === product.id) || product;
-		if ('ingredients' in productWithIngredients && Array.isArray((productWithIngredients as any).ingredients)) {
-			const ingredients = (productWithIngredients as any).ingredients as string[];
-			matchedAllergens = allergies
-				.filter(a => ingredients.some(ing => ing.toLowerCase().includes(a.ingredient.toLowerCase())))
-				.map(a => a.ingredient);
-			if (matchedAllergens.length > 0) {
-				showAllergyWarning = true;
-			}
-		}
-	}
-
-	async function loadAllergies() {
-		try {
-			allergies = await api.get<Array<{id: number, ingredient: string}>>('/allergies').catch(() => []);
-		} catch {
-			allergies = [];
-		}
-	}
 	let selected: Product | null = $state(null);
 	let grams = $state(100);
 	// null = solo yo | 'also' = los dos | 'only' = solo pareja
@@ -153,10 +125,67 @@
 	let showManual = $state(false);
 	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
 
-	// Allergies state
-	let allergies: Array<{id: number, ingredient: string}> = $state([]);
-	let matchedAllergens: string[] = $state([]);
-	let showAllergyWarning = $state(false);
+	// ── Allergies ──────────────────────────────────────────────────────────────
+	type AllergyInfo = { id: number; ingredient: string };
+	let myAllergies: AllergyInfo[] = $state([]);
+	let partnerAllergies: AllergyInfo[] = $state([]);
+
+	// Ingredients for the selected product (if available from OFacts)
+	let selectedIngredients: string[] = $state([]);
+
+	// Checks a product name + brand text against an allergy ingredient
+	function nameMatchesAllergen(product: Product, allergen: string): boolean {
+		const text = `${product.name} ${product.brand ?? ''}`.toLowerCase();
+		return text.includes(allergen.toLowerCase());
+	}
+
+	function computeAllergenWarnings(
+		product: Product | null,
+		ingredients: string[],
+		mine: AllergyInfo[],
+		theirs: AllergyInfo[],
+		mode: ShareMode,
+	): { mine: string[]; partner: string[] } {
+		if (!product) return { mine: [], partner: [] };
+
+		function check(list: AllergyInfo[]): string[] {
+			return list
+				.filter(a => {
+					// prefer ingredient text if available, fall back to name matching
+					if (ingredients.length > 0)
+						return ingredients.some(ing => ing.toLowerCase().includes(a.ingredient.toLowerCase()));
+					return nameMatchesAllergen(product, a.ingredient);
+				})
+				.map(a => a.ingredient);
+		}
+
+		const myHits = mode !== 'only' ? check(mine) : [];         // 'only' = no me registro a mí
+		const partnerHits = mode !== null ? check(theirs) : [];     // null = no registro a pareja
+		return { mine: myHits, partner: partnerHits };
+	}
+
+	let allergenWarnings = $derived(
+		computeAllergenWarnings(selected, selectedIngredients, myAllergies, partnerAllergies, shareMode)
+	);
+
+	function selectProduct(product: Product) {
+		selected = product;
+		grams = getLastGrams(product.id);
+
+		// Extract ingredients if the result came with OFacts data
+		const rich = results.find(p => p.id === product.id) || product;
+		selectedIngredients = ('ingredients' in rich && Array.isArray((rich as any).ingredients))
+			? (rich as any).ingredients as string[]
+			: [];
+	}
+
+	async function loadAllergies() {
+		myAllergies = await api.get<AllergyInfo[]>('/allergies').catch(() => []);
+	}
+
+	async function loadPartnerAllergies(partnerId: number) {
+		partnerAllergies = await api.get<AllergyInfo[]>(`/allergies?user_id=${partnerId}`).catch(() => []);
+	}
 
 	// manual product fields
 	let manualName = $state('');
@@ -212,7 +241,11 @@
 	}
 
 	$effect(() => {
-		api.get<User[]>('/users').then(u => users = u).catch(() => {});
+		api.get<User[]>('/users').then(u => {
+			users = u;
+			const p = u.find(x => x.id !== auth.user?.id);
+			if (p) loadPartnerAllergies(p.id);
+		}).catch(() => {});
 		loadRecommendations();
 		loadFrequent();
 		loadAllergies();
@@ -388,14 +421,27 @@
 	</div>
 
 	<!-- Allergy warning -->
-	{#if showAllergyWarning && matchedAllergens.length > 0}
-		<div style="background:oklch(50% 0.22 25 / 0.15); border:1px solid oklch(50% 0.22 25 / 0.3); border-radius:12px; padding:0.75rem; margin-bottom:0.875rem; display:flex; gap:0.5rem; align-items:flex-start;">
-			<div style="font-size:1.25rem; flex-shrink:0;">⚠️</div>
-			<div style="flex:1; min-width:0;">
-				<div style="font-size:0.8125rem; font-weight:600; color:oklch(75% 0.2 25); margin-bottom:0.25rem;">Contiene alérgeno</div>
-				<div style="font-size:0.75rem; color:oklch(70% 0.15 25);">
-					Este producto contiene: <strong>{matchedAllergens.join(', ')}</strong>
-				</div>
+	{#if allergenWarnings.mine.length > 0 || allergenWarnings.partner.length > 0}
+		<div class="allergy-banner">
+			<div class="allergy-banner-icon">⚠️</div>
+			<div class="allergy-banner-body">
+				<div class="allergy-banner-title">Alérgeno detectado</div>
+				{#if allergenWarnings.mine.length > 0}
+					<div class="allergy-banner-row">
+						<span class="allergy-banner-who">Tú:</span>
+						{#each allergenWarnings.mine as a}
+							<span class="allergy-tag allergy-tag-mine">{a}</span>
+						{/each}
+					</div>
+				{/if}
+				{#if allergenWarnings.partner.length > 0 && partner}
+					<div class="allergy-banner-row">
+						<span class="allergy-banner-who">{partner.name}:</span>
+						{#each allergenWarnings.partner as a}
+							<span class="allergy-tag allergy-tag-partner">{a}</span>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -785,6 +831,66 @@
 {/if}
 
 <style>
+	/* ── Allergy banner ── */
+	.allergy-banner {
+		display: flex;
+		gap: 0.625rem;
+		align-items: flex-start;
+		background: oklch(35% 0.15 40 / 0.25);
+		border: 1px solid oklch(60% 0.2 40 / 0.4);
+		border-radius: 16px;
+		padding: 0.75rem 0.875rem;
+		margin-bottom: 0.875rem;
+		animation: banner-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	@keyframes banner-in {
+		from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+		to   { opacity: 1; transform: translateY(0) scale(1); }
+	}
+	.allergy-banner-icon {
+		font-size: 1.125rem;
+		flex-shrink: 0;
+		margin-top: 0.05rem;
+	}
+	.allergy-banner-body { flex: 1; min-width: 0; }
+	.allergy-banner-title {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: oklch(82% 0.18 45);
+		letter-spacing: 0.02em;
+		margin-bottom: 0.375rem;
+	}
+	.allergy-banner-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin-bottom: 0.25rem;
+	}
+	.allergy-banner-row:last-child { margin-bottom: 0; }
+	.allergy-banner-who {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.45);
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+	.allergy-tag {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		border-radius: 99px;
+		padding: 0.15rem 0.5rem;
+	}
+	.allergy-tag-mine {
+		background: oklch(45% 0.2 25 / 0.35);
+		border: 1px solid oklch(60% 0.2 25 / 0.45);
+		color: oklch(88% 0.15 25);
+	}
+	.allergy-tag-partner {
+		background: oklch(45% 0.18 280 / 0.3);
+		border: 1px solid oklch(60% 0.18 280 / 0.4);
+		color: oklch(88% 0.12 280);
+	}
+
 	/* ── Page headers ── */
 	.add-header {
 		display: flex;

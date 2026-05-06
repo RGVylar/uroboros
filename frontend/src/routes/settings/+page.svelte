@@ -188,52 +188,38 @@
 	<div class="group-label">Salud</div>
 	<div class="settings-group">
 		<!-- Alergias -->
-		<div class="settings-row" style="flex-direction:column; align-items:stretch; gap:0.5rem; cursor:default;">
-			<div style="display:flex; align-items:center; gap:0.75rem;">
-				<div class="icon-box">⚠️</div>
+		<div class="settings-row" style="flex-direction:column; align-items:stretch; cursor:default; padding-bottom:0.875rem;">
+			<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+				<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
 				<div class="row-content">
 					<div class="row-label">Alergias e intolerancias</div>
-					<div class="row-detail">Alertas al añadir productos</div>
+					<div class="row-detail">{allergies.length > 0 ? `${allergies.length} registrada${allergies.length > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
 				</div>
 			</div>
-			<div style="display:flex; gap:0.5rem; margin-left:2.75rem; margin-top:0.25rem;">
+			{#if allergies.length > 0}
+				<div style="display:flex; flex-wrap:wrap; gap:0.4rem; padding-left:2.75rem; margin-bottom:0.625rem;">
+					{#each allergies as a (a.id)}
+						<button onclick={() => removeAllergy(a.id)} class="allergy-chip">
+							{a.ingredient}<span class="allergy-chip-x">×</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
+			<div style="display:flex; gap:0.5rem; padding-left:2.75rem;">
 				<input
 					type="text"
 					bind:value={newAllergyInput}
-					placeholder="p.ej. leche, cacahuetes"
-					onkeydown={(e) => {
-						if (e.key === 'Enter') {
-							e.preventDefault();
-							addAllergy();
-						}
-					}}
-					style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:0.5rem; color:#fff; font-family:inherit; font-size:0.8125rem; outline:none;"
+					placeholder="Añadir (ej: leche, gluten…)"
+					onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAllergy(); } }}
+					class="allergy-input"
 				/>
 				<button
 					onclick={addAllergy}
 					disabled={addingAllergy || !newAllergyInput.trim()}
-					style="padding:0.5rem 0.75rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:{newAllergyInput.trim() ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.05)'}; color:{newAllergyInput.trim() ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:{newAllergyInput.trim() ? 'pointer' : 'not-allowed'}; transition:background 0.2s; flex-shrink:0;"
-				>
-					+
-				</button>
+					class="allergy-add-btn"
+					class:allergy-add-btn-active={!!newAllergyInput.trim()}
+				>＋</button>
 			</div>
-			{#if allergies.length > 0}
-				<div style="margin-left:2.75rem; margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
-					{#each allergies as allergy (allergy.id)}
-						<div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:99px; padding:0.35rem 0.75rem;">
-							<span style="font-size:0.75rem; color:#fff;">{allergy.ingredient}</span>
-							<button
-								onclick={() => removeAllergy(allergy.id)}
-								style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:1rem; padding:0; margin-left:0.25rem; line-height:1; transition:color 0.2s;"
-								onmouseover={(e) => e.currentTarget.style.color = '#fff'}
-								onmouseout={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-							>
-								×
-							</button>
-						</div>
-					{/each}
-				</div>
-			{/if}
 		</div>
 	</div>
 </div>
@@ -387,6 +373,72 @@
 <div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>
 
 <style>
+	/* ── Allergy chips ── */
+	.allergy-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		background: oklch(35% 0.15 40 / 0.22);
+		border: 1px solid oklch(60% 0.2 40 / 0.35);
+		border-radius: 99px;
+		padding: 0.3rem 0.625rem;
+		color: oklch(88% 0.15 45);
+		font-size: 0.75rem;
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.allergy-chip:hover {
+		background: oklch(40% 0.18 25 / 0.35);
+		border-color: oklch(65% 0.22 25 / 0.5);
+	}
+	.allergy-chip-x {
+		font-size: 0.875rem;
+		color: oklch(70% 0.15 40);
+		line-height: 1;
+		margin-top: -0.05rem;
+	}
+	.allergy-input {
+		flex: 1;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 10px;
+		padding: 0.5rem 0.625rem;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.8125rem;
+		outline: none;
+		transition: border-color 0.15s;
+	}
+	.allergy-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
+	.allergy-input::placeholder { color: rgba(255,255,255,0.3); }
+	.allergy-add-btn {
+		width: 36px;
+		height: 36px;
+		border-radius: 10px;
+		border: 1px solid rgba(255,255,255,0.08);
+		background: rgba(255,255,255,0.05);
+		color: rgba(255,255,255,0.3);
+		font-size: 1.125rem;
+		font-family: inherit;
+		cursor: not-allowed;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background 0.2s, border-color 0.2s, color 0.2s;
+	}
+	.allergy-add-btn-active {
+		background: oklch(75% 0.18 165 / 0.25);
+		border-color: oklch(80% 0.17 165 / 0.4);
+		color: oklch(88% 0.15 165);
+		cursor: pointer;
+	}
+	.allergy-add-btn-active:hover {
+		background: oklch(75% 0.18 165 / 0.38);
+	}
+
 	.group-label {
 		font-size: 0.625rem;
 		letter-spacing: 0.12em;
