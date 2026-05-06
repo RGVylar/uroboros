@@ -220,6 +220,7 @@
 					class:allergy-add-btn-active={!!newAllergyInput.trim()}
 				>＋</button>
 			</div>
+			<p class="allergy-disclaimer">⚠️ Sistema orientativo basado en los ingredientes de OpenFoodFacts. Verifica siempre el etiquetado del producto.</p>
 		</div>
 	</div>
 </div>
@@ -437,6 +438,13 @@
 	}
 	.allergy-add-btn-active:hover {
 		background: oklch(75% 0.18 165 / 0.38);
+	}
+	.allergy-disclaimer {
+		margin: 0.625rem 0 0;
+		padding: 0 0 0 2.75rem;
+		font-size: 0.625rem;
+		line-height: 1.5;
+		color: rgba(255,255,255,0.3);
 	}
 
 	.group-label {
