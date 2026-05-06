@@ -193,7 +193,8 @@
 	let logPendingRecipe: Recipe | null = $state(null);
 	let logMealType: MealType = $state(guessMealType());
 	let logging = $state(false);
-	let alsoFor: number | null = $state(null);
+	type ShareMode = null | 'also' | 'only';
+	let shareMode: ShareMode = $state(null);
 	let partner: { id: number; name: string } | null = $state(null);
 
 	function guessMealType(): MealType {
@@ -207,7 +208,7 @@
 	function logRecipe(recipe: Recipe) {
 		logMealType = guessMealType();
 		logPendingRecipe = recipe;
-		alsoFor = null;
+		shareMode = null;
 	}
 
 	async function confirmLog() {
@@ -221,7 +222,8 @@
 					grams: ing.grams,
 					meal_type: logMealType,
 					consumed_at: new Date().toISOString(),
-					also_for_user_id: alsoFor || undefined,
+					also_for_user_id: shareMode === 'also' ? partner?.id : null,
+					only_for_user_id: shareMode === 'only' ? partner?.id : null,
 				});
 			}
 			logPendingRecipe = null;
@@ -562,30 +564,54 @@
 		</div>
 
 		{#if partner}
-			<button
-				type="button"
-				onclick={() => { alsoFor = alsoFor === null ? partner.id : null; }}
-				aria-pressed={alsoFor !== null}
+			<div
 				class="share-card"
-				class:share-card-active={alsoFor !== null}
+				class:share-card-also={shareMode === 'also'}
+				class:share-card-only={shareMode === 'only'}
 				style="margin-bottom:1rem;"
 			>
-				<div class="share-badge-icon" class:share-badge-icon-active={alsoFor !== null}>2×</div>
+				<div class="share-badge-icon"
+					class:share-badge-icon-also={shareMode === 'also'}
+					class:share-badge-icon-only={shareMode === 'only'}
+				>
+					{#if shareMode === null}👤{:else if shareMode === 'also'}👥{:else}<span style="font-size:0.625rem;">👤→</span>{/if}
+				</div>
 				<div style="flex:1; min-width:0; text-align:left;">
-					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Registrar en las dos cuentas</div>
+					{#if shareMode === null}
+						<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">Sin compartir</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">Solo tu cuenta</div>
+					{:else if shareMode === 'also'}
+						<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Se registra en las dos cuentas</div>
+					{:else}
+						<div style="font-size:0.8125rem; font-weight:700; color:oklch(80% 0.18 45);">Solo para {partner.name}</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Tú no lo registras</div>
+					{/if}
 				</div>
-				<!-- Toggle switch -->
-				<div class="toggle-track" class:toggle-track-on={alsoFor !== null}>
-					<div class="toggle-thumb" class:toggle-thumb-on={alsoFor !== null}></div>
+				<!-- Segmented pill con sliding thumb -->
+				<div class="seg-pill">
+					<div class="seg-pill-thumb" style="
+						left: {shareMode === null ? '3px' : shareMode === 'also' ? '33px' : '63px'};
+						background: {shareMode === 'only'
+							? 'linear-gradient(135deg, oklch(85% 0.18 45), oklch(68% 0.22 40))'
+							: shareMode === 'also'
+								? 'linear-gradient(135deg, oklch(82% 0.18 160), oklch(68% 0.2 170))'
+								: 'rgba(255,255,255,0.12)'};
+					"></div>
+					<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
+						onclick={() => shareMode = null} aria-label="Solo yo">👤</button>
+					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
+						onclick={() => shareMode = 'also'} aria-label="Los dos">👥</button>
+					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
+						onclick={() => shareMode = 'only'} aria-label="Solo {partner.name}">👤→</button>
 				</div>
-			</button>
+			</div>
 		{/if}
 
 		<div style="display:flex; gap:0.5rem;">
 			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
 			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging} style="flex:2;">
-				{logging ? 'Registrando...' : 'Registrar'}
+				{#if logging}Registrando...{:else if shareMode === 'also'}Registrar · 👥{:else if shareMode === 'only'}Registrar solo para {partner?.name}{:else}Registrar{/if}
 			</button>
 		</div>
 	</Modal>
@@ -745,7 +771,7 @@
 	}
 	.icon-btn-danger:hover { background: oklch(65% 0.22 25 / 0.25); }
 
-	/* ── Partner share toggle ── */
+	/* ── Partner share card ── */
 	.share-card {
 		display: flex;
 		align-items: center;
@@ -755,62 +781,53 @@
 		border: 1px solid rgba(255,255,255,0.09);
 		border-radius: 20px;
 		padding: 0.875rem;
-		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
+		transition: background 0.25s, border-color 0.25s;
 	}
-	.share-card:hover { background: rgba(255,255,255,0.08); }
-	.share-card-active {
-		background: oklch(75% 0.18 165 / 0.1);
+	.share-card-also {
+		background: oklch(75% 0.18 165 / 0.08);
 		border-color: oklch(80% 0.17 165 / 0.3);
 	}
+	.share-card-only {
+		background: oklch(65% 0.2 45 / 0.08);
+		border-color: oklch(70% 0.2 45 / 0.3);
+	}
 	.share-badge-icon {
-		width: 40px;
-		height: 40px;
+		width: 40px; height: 40px;
 		border-radius: 12px;
 		background: rgba(255,255,255,0.06);
-		color: oklch(85% 0.15 160);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-weight: 800;
-		font-size: 0.875rem;
-		letter-spacing: -0.03em;
-		flex-shrink: 0;
-		transition: background 0.2s, color 0.2s;
+		border: 1px solid rgba(255,255,255,0.08);
+		display: flex; align-items: center; justify-content: center;
+		font-size: 1.125rem; flex-shrink: 0;
+		transition: background 0.25s, border-color 0.25s;
 	}
-	.share-badge-icon-active {
-		background: linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170));
-		color: #041010;
+	.share-badge-icon-also {
+		background: oklch(75% 0.18 165 / 0.18);
+		border-color: oklch(80% 0.17 165 / 0.4);
 	}
-
-	/* ── Toggle switch ── */
-	.toggle-track {
-		width: 44px;
-		height: 26px;
-		border-radius: 99px;
-		background: rgba(255,255,255,0.08);
+	.share-badge-icon-only {
+		background: oklch(65% 0.2 45 / 0.18);
+		border-color: oklch(70% 0.2 45 / 0.4);
+	}
+	/* ── Segmented pill con sliding thumb ── */
+	.seg-pill {
+		position: relative; display: flex;
+		background: rgba(255,255,255,0.06);
 		border: 1px solid rgba(255,255,255,0.1);
-		position: relative;
-		transition: background 0.2s, border-color 0.2s;
-		flex-shrink: 0;
+		border-radius: 99px; padding: 3px; gap: 2px; flex-shrink: 0;
 	}
-	.toggle-track-on {
-		background: oklch(75% 0.18 165 / 0.3);
-		border-color: oklch(80% 0.17 165 / 0.5);
+	.seg-pill-thumb {
+		position: absolute; top: 3px;
+		width: 28px; height: 28px; border-radius: 99px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+		transition: left 0.28s cubic-bezier(0.34,1.56,0.64,1), background 0.22s ease;
+		pointer-events: none; z-index: 1;
 	}
-	.toggle-thumb {
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: #d0d4d8;
-		box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-		transition: left 0.2s, background 0.2s;
+	.seg-pill-btn {
+		width: 28px; height: 28px; border-radius: 99px;
+		border: none; background: transparent; cursor: pointer;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 0.8125rem; position: relative; z-index: 2;
+		opacity: 0.3; transition: opacity 0.18s; padding: 0; line-height: 1; color: #fff;
 	}
-	.toggle-thumb-on {
-		left: 20px;
-		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
-	}
+	.seg-pill-active { opacity: 1; }
 </style>
