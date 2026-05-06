@@ -37,10 +37,14 @@ class OFFProduct:
         self.allergens = allergens or []
 
 
+_ALLERGEN_SKIP = {"none", "unknown", ""}
+
+
 def _parse_allergens(allergens_tags: object) -> list[str]:
     """Normalize OFF allergens_tags to plain English keys.
-    Input:  ['en:milk', 'en:nuts', 'fr:alcool']
+    Input:  ['en:milk', 'en:nuts', 'fr:alcool', 'en:none']
     Output: ['milk', 'nuts', 'alcool']
+    Strips language prefixes and filters out 'none'/'unknown' sentinel values.
     """
     if not isinstance(allergens_tags, list):
         return []
@@ -50,7 +54,7 @@ def _parse_allergens(allergens_tags: object) -> list[str]:
         if not isinstance(tag, str):
             continue
         key = tag.split(":")[-1] if ":" in tag else tag
-        if key and key not in seen:
+        if key and key not in seen and key not in _ALLERGEN_SKIP:
             result.append(key)
             seen.add(key)
     return result

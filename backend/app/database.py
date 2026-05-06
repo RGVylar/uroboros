@@ -34,6 +34,7 @@ def _get_engine():
     from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
     from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
     from app.models.supplement import UserSupplement, SupplementLog
+    from app.models.allergy import UserAllergy
 
     if settings.demo_mode:
         from app.security import hash_password
@@ -202,9 +203,51 @@ def _get_engine():
                     fat_per_100g=3.6,
                     source=ProductSource.manual,
                 ),
+                # Products with allergens for testing allergen detection
+                Product(
+                    name="Chocolate con leche",
+                    brand="Milka",
+                    calories_per_100g=535,
+                    protein_per_100g=7.5,
+                    carbs_per_100g=57,
+                    fat_per_100g=30,
+                    source=ProductSource.openfoodfacts,
+                    allergens=["milk", "gluten", "nuts", "soybeans"],
+                    ingredients_text="Azúcar, manteca de cacao, leche desnatada en polvo, cacao pasta, leche en polvo, suero de leche en polvo, avellanas, leche entera en polvo, emulgente (lecitina de soja), aromas.",
+                ),
+                Product(
+                    name="Pan de molde",
+                    brand="Bimbo",
+                    calories_per_100g=265,
+                    protein_per_100g=8,
+                    carbs_per_100g=46,
+                    fat_per_100g=5,
+                    source=ProductSource.openfoodfacts,
+                    allergens=["gluten", "milk", "soybeans"],
+                    ingredients_text="Harina de trigo, agua, azúcar, aceite vegetal, levadura, sal, emulgentes (E471, lecitina de soja), conservante (E282), harina de soja.",
+                ),
+                Product(
+                    name="Yogur natural",
+                    brand="Danone",
+                    calories_per_100g=61,
+                    protein_per_100g=3.8,
+                    carbs_per_100g=4.7,
+                    fat_per_100g=3.1,
+                    source=ProductSource.openfoodfacts,
+                    allergens=["milk"],
+                    ingredients_text="Leche entera pasteurizada, fermentos lácticos.",
+                ),
             ]
             db.add_all(demo_products)
             db.commit()
+
+            # Seed a demo allergy for user1 (milk) so allergen warnings show in demo
+            existing_allergy = db.scalar(
+                select(UserAllergy).where(UserAllergy.user_id == user1.id)
+            )
+            if not existing_allergy:
+                db.add(UserAllergy(user_id=user1.id, ingredient="milk"))
+                db.commit()
 
             # Seed predefined exercises (only if none exist yet)
             from sqlalchemy import select as sa_select, func
