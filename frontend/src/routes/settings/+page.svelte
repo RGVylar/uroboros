@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -13,9 +13,7 @@
 	let showDeleteModal = $state(false);
 	let deletingAccount = $state(false);
 	let deleteConfirmText = $state('');
-	let allergies: Array<{id: number, ingredient: string}> = $state([]);
-	let newAllergyInput = $state('');
-	let addingAllergy = $state(false);
+	let allergyCount = $state(0);
 
 	async function deleteAccount() {
 		if (deleteConfirmText !== 'ELIMINAR') return;
@@ -34,37 +32,13 @@
 		goals = await api.get<Goals>('/goals').catch(() => null);
 	}
 
-	async function loadAllergies() {
-		allergies = await api.get<Array<{id: number, ingredient: string}>>('/allergies').catch(() => []);
-	}
-
-	async function addAllergy() {
-		if (!newAllergyInput.trim()) return;
-		addingAllergy = true;
-		try {
-			const newAllergy = await api.post<{id: number, ingredient: string}>('/allergies', {
-				ingredient: newAllergyInput.trim()
-			});
-			allergies.push(newAllergy);
-			newAllergyInput = '';
-		} catch {
-			// ignore
-		} finally {
-			addingAllergy = false;
-		}
-	}
-
-	async function removeAllergy(id: number) {
-		try {
-			await api.del(`/allergies/${id}`);
-			allergies = allergies.filter(a => a.id !== id);
-		} catch {
-			// ignore
-		}
+	async function loadAllergyCount() {
+		const rows = await api.get<Array<{id: number, ingredient: string}>>('/allergies').catch(() => []);
+		allergyCount = rows.length;
 	}
 
 	loadGoals();
-	loadAllergies();
+	loadAllergyCount();
 
 	async function toggleCreatine() {
 		if (!goals) return;
@@ -188,43 +162,16 @@
 	<div class="group-label">Salud</div>
 	<div class="settings-group">
 		<!-- Alergias -->
-		<div class="settings-row" style="flex-direction:column; align-items:stretch; cursor:default; padding-bottom:0.875rem;">
-			<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
-				<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
-				<div class="row-content">
-					<div class="row-label">Alergias e intolerancias</div>
-					<div class="row-detail">{allergies.length > 0 ? `${allergies.length} registrada${allergies.length > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
-				</div>
+		<button class="settings-row" onclick={() => goto('/allergies')}>
+			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
+			<div class="row-content">
+				<div class="row-label">Alergias e intolerancias</div>
+				<div class="row-detail">{allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
 			</div>
-			{#if allergies.length > 0}
-				<div style="display:flex; flex-wrap:wrap; gap:0.4rem; padding-left:2.75rem; margin-bottom:0.625rem;">
-					{#each allergies as a (a.id)}
-						<button onclick={() => removeAllergy(a.id)} class="allergy-chip">
-							{a.ingredient}<span class="allergy-chip-x">×</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
-			<div style="display:flex; gap:0.5rem; padding-left:2.75rem;">
-				<input
-					type="text"
-					bind:value={newAllergyInput}
-					placeholder="Añadir (ej: leche, gluten…)"
-					onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAllergy(); } }}
-					class="allergy-input"
-				/>
-				<button
-					onclick={addAllergy}
-					disabled={addingAllergy || !newAllergyInput.trim()}
-					class="allergy-add-btn"
-					class:allergy-add-btn-active={!!newAllergyInput.trim()}
-				>＋</button>
-			</div>
-			<p class="allergy-disclaimer">⚠️ Sistema orientativo basado en los ingredientes de OpenFoodFacts. Verifica siempre el etiquetado del producto.</p>
-		</div>
+			<span class="chevron">›</span>
+		</button>
 	</div>
 </div>
-
 <!-- ── Group: Datos ── -->
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Datos</div>
@@ -374,79 +321,7 @@
 <div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>
 
 <style>
-	/* ── Allergy chips ── */
-	.allergy-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.375rem;
-		background: oklch(35% 0.15 40 / 0.22);
-		border: 1px solid oklch(60% 0.2 40 / 0.35);
-		border-radius: 99px;
-		padding: 0.3rem 0.625rem;
-		color: oklch(88% 0.15 45);
-		font-size: 0.75rem;
-		font-weight: 600;
-		font-family: inherit;
-		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
-	}
-	.allergy-chip:hover {
-		background: oklch(40% 0.18 25 / 0.35);
-		border-color: oklch(65% 0.22 25 / 0.5);
-	}
-	.allergy-chip-x {
-		font-size: 0.875rem;
-		color: oklch(70% 0.15 40);
-		line-height: 1;
-		margin-top: -0.05rem;
-	}
-	.allergy-input {
-		flex: 1;
-		background: rgba(255,255,255,0.06);
-		border: 1px solid rgba(255,255,255,0.1);
-		border-radius: 10px;
-		padding: 0.5rem 0.625rem;
-		color: #fff;
-		font-family: inherit;
-		font-size: 0.8125rem;
-		outline: none;
-		transition: border-color 0.15s;
-	}
-	.allergy-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
-	.allergy-input::placeholder { color: rgba(255,255,255,0.3); }
-	.allergy-add-btn {
-		width: 36px;
-		height: 36px;
-		border-radius: 10px;
-		border: 1px solid rgba(255,255,255,0.08);
-		background: rgba(255,255,255,0.05);
-		color: rgba(255,255,255,0.3);
-		font-size: 1.125rem;
-		font-family: inherit;
-		cursor: not-allowed;
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: background 0.2s, border-color 0.2s, color 0.2s;
-	}
-	.allergy-add-btn-active {
-		background: oklch(75% 0.18 165 / 0.25);
-		border-color: oklch(80% 0.17 165 / 0.4);
-		color: oklch(88% 0.15 165);
-		cursor: pointer;
-	}
-	.allergy-add-btn-active:hover {
-		background: oklch(75% 0.18 165 / 0.38);
-	}
-	.allergy-disclaimer {
-		margin: 0.625rem 0 0;
-		padding: 0 0 0 2.75rem;
-		font-size: 0.625rem;
-		line-height: 1.5;
-		color: rgba(255,255,255,0.3);
-	}
-
+	
 	.group-label {
 		font-size: 0.625rem;
 		letter-spacing: 0.12em;
