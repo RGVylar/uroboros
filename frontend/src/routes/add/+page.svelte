@@ -130,6 +130,27 @@
 	let myAllergies: AllergyInfo[] = $state([]);
 	let partnerAllergies: AllergyInfo[] = $state([]);
 
+	const ALLERGEN_LABELS: Record<string, string> = {
+		gluten:           'Gluten',
+		milk:             'Leche',
+		eggs:             'Huevos',
+		peanuts:          'Cacahuetes',
+		nuts:             'Frutos secos',
+		soybeans:         'Soja',
+		fish:             'Pescado',
+		crustaceans:      'Marisco',
+		celery:           'Apio',
+		mustard:          'Mostaza',
+		'sesame-seeds':   'Sésamo',
+		'sulphur-dioxide':'Sulfitos',
+		mollusks:         'Moluscos',
+		lupin:            'Altramuces',
+	};
+
+	function allergenLabel(key: string): string {
+		return ALLERGEN_LABELS[key] ?? key;
+	}
+
 	function checkAllergens(product: Product, list: AllergyInfo[]): string[] {
 		if (!list.length) return [];
 		const userKeys = new Set(list.map(a => a.ingredient.toLowerCase()));
@@ -408,7 +429,7 @@
 					<div class="allergy-banner-row">
 						<span class="allergy-banner-who">Tú:</span>
 						{#each allergenWarnings.mine as a}
-							<span class="allergy-tag allergy-tag-mine">{a}</span>
+							<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
 						{/each}
 					</div>
 				{/if}
@@ -416,7 +437,7 @@
 					<div class="allergy-banner-row">
 						<span class="allergy-banner-who">{partner.name}:</span>
 						{#each allergenWarnings.partner as a}
-							<span class="allergy-tag allergy-tag-partner">{a}</span>
+							<span class="allergy-tag allergy-tag-partner">{allergenLabel(a)}</span>
 						{/each}
 					</div>
 				{/if}
