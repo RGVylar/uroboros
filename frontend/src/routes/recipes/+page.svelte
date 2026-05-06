@@ -214,12 +214,13 @@
 		partnerAllergies = await api.get<AllergyInfo[]>(`/allergies?user_id=${partnerId}`).catch(() => []);
 	}
 
-	// Check recipe ingredients (by product name) against an allergen list
+	// Check recipe ingredients using stored ingredients_text from OFacts (no name fallback)
 	function recipeAllergenHits(recipe: Recipe | null, list: AllergyInfo[]): string[] {
 		if (!recipe || list.length === 0) return [];
 		const found = new Set<string>();
 		for (const ing of recipe.ingredients) {
-			const text = `${ing.product?.name ?? ''} ${ing.product?.brand ?? ''}`.toLowerCase();
+			const text = ((ing.product as any)?.ingredients_text ?? '').toLowerCase();
+			if (!text) continue; // no ingredients data — skip, don't guess
 			for (const a of list) {
 				if (text.includes(a.ingredient.toLowerCase())) found.add(a.ingredient);
 			}

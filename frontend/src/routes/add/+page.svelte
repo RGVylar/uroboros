@@ -130,53 +130,28 @@
 	let myAllergies: AllergyInfo[] = $state([]);
 	let partnerAllergies: AllergyInfo[] = $state([]);
 
-	// Ingredients for the selected product (if available from OFacts)
-	let selectedIngredients: string[] = $state([]);
+	// Raw ingredients text for the selected product (from OFacts, stored in DB)
+	let selectedIngredientsText: string = $state('');
 
-	// Checks a product name + brand text against an allergy ingredient
-	function nameMatchesAllergen(product: Product, allergen: string): boolean {
-		const text = `${product.name} ${product.brand ?? ''}`.toLowerCase();
-		return text.includes(allergen.toLowerCase());
+	function checkAllergens(ingredientsText: string, list: AllergyInfo[]): string[] {
+		if (!ingredientsText) return [];
+		const text = ingredientsText.toLowerCase();
+		return list
+			.filter(a => text.includes(a.ingredient.toLowerCase()))
+			.map(a => a.ingredient);
 	}
 
-	function computeAllergenWarnings(
-		product: Product | null,
-		ingredients: string[],
-		mine: AllergyInfo[],
-		theirs: AllergyInfo[],
-		mode: ShareMode,
-	): { mine: string[]; partner: string[] } {
-		if (!product) return { mine: [], partner: [] };
-
-		function check(list: AllergyInfo[]): string[] {
-			return list
-				.filter(a => {
-					// prefer ingredient text if available, fall back to name matching
-					if (ingredients.length > 0)
-						return ingredients.some(ing => ing.toLowerCase().includes(a.ingredient.toLowerCase()));
-					return nameMatchesAllergen(product, a.ingredient);
-				})
-				.map(a => a.ingredient);
-		}
-
-		const myHits = mode !== 'only' ? check(mine) : [];         // 'only' = no me registro a mí
-		const partnerHits = mode !== null ? check(theirs) : [];     // null = no registro a pareja
-		return { mine: myHits, partner: partnerHits };
-	}
-
-	let allergenWarnings = $derived(
-		computeAllergenWarnings(selected, selectedIngredients, myAllergies, partnerAllergies, shareMode)
-	);
+	let allergenWarnings = $derived((() => {
+		const mine    = shareMode !== 'only' ? checkAllergens(selectedIngredientsText, myAllergies)      : [];
+		const partner = shareMode !== null   ? checkAllergens(selectedIngredientsText, partnerAllergies) : [];
+		return { mine, partner };
+	})());
 
 	function selectProduct(product: Product) {
 		selected = product;
 		grams = getLastGrams(product.id);
-
-		// Extract ingredients if the result came with OFacts data
-		const rich = results.find(p => p.id === product.id) || product;
-		selectedIngredients = ('ingredients' in rich && Array.isArray((rich as any).ingredients))
-			? (rich as any).ingredients as string[]
-			: [];
+		// ingredients_text is stored in the DB and returned in ProductOut
+		selectedIngredientsText = (product as any).ingredients_text ?? '';
 	}
 
 	async function loadAllergies() {

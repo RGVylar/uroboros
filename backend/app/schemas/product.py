@@ -34,6 +34,7 @@ class ProductOut(ProductBase):
     edited_by: int | None
     edited_at: datetime | None
     created_at: datetime
+    ingredients_text: str | None = None
 
     class Config:
         from_attributes = True

@@ -12,7 +12,7 @@ class OFFNotFound(Exception):
 
 
 class OFFProduct:
-    __slots__ = ("barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients")
+    __slots__ = ("barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients_text")
 
     def __init__(
         self,
@@ -23,7 +23,7 @@ class OFFProduct:
         protein: float,
         carbs: float,
         fat: float,
-        ingredients: list[str] | None = None,
+        ingredients_text: str | None = None,
     ) -> None:
         self.barcode = barcode
         self.name = name
@@ -32,7 +32,7 @@ class OFFProduct:
         self.protein = protein
         self.carbs = carbs
         self.fat = fat
-        self.ingredients = ingredients or []
+        self.ingredients_text = ingredients_text or ""
 
 
 def _f(x: object) -> float:
@@ -45,34 +45,6 @@ def _f(x: object) -> float:
 HEADERS = {
     "User-Agent": "Uroboros/0.2 (self-hosted macro tracker; https://github.com/RGVylar/uroboros)"
 }
-
-
-def _extract_allergens(ingredients_text: str | None) -> list[str]:
-    """Extract common allergens from ingredients text."""
-    common_allergens = [
-        "milk", "dairy", "lactose", "cheese", "butter", "cream",
-        "eggs", "egg", "mayonnaise",
-        "peanuts", "peanut",
-        "nuts", "almond", "walnut", "hazelnut", "pecan", "cashew", "pistachio",
-        "fish", "shellfish", "crustacean", "shrimp", "prawn", "crab", "lobster",
-        "soy", "soybean",
-        "wheat", "gluten", "barley", "rye", "oat",
-        "sesame",
-        "mustard",
-        "celery",
-        "sulfites", "sulfite",
-        "pork", "beef", "chicken", "turkey", "lamb",
-    ]
-
-    if not ingredients_text:
-        return []
-
-    found = []
-    ingredients_lower = ingredients_text.lower()
-    for allergen in common_allergens:
-        if allergen in ingredients_lower:
-            found.append(allergen)
-    return found
 
 
 async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
@@ -95,7 +67,6 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
         try:
             n = p.get("nutriments", {}) or {}
             name = p.get("product_name") or "Unknown"
-            ingredients = _extract_allergens(p.get("ingredients_text"))
             products.append(OFFProduct(
                 barcode=p.get("code") or "",
                 name=name.strip() or "Unknown",
@@ -104,7 +75,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
                 protein=_f(n.get("proteins_100g")),
                 carbs=_f(n.get("carbohydrates_100g")),
                 fat=_f(n.get("fat_100g")),
-                ingredients=ingredients,
+                ingredients_text=p.get("ingredients_text") or "",
             ))
         except (KeyError, TypeError):
             continue
@@ -123,7 +94,6 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
     p = data["product"]
     n = p.get("nutriments", {}) or {}
     name = p.get("product_name") or "Unknown"
-    ingredients = _extract_allergens(p.get("ingredients_text"))
     return OFFProduct(
         barcode=p.get("code") or barcode,
         name=name.strip() or "Unknown",
@@ -132,5 +102,5 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
         protein=_f(n.get("proteins_100g")),
         carbs=_f(n.get("carbohydrates_100g")),
         fat=_f(n.get("fat_100g")),
-        ingredients=ingredients,
+        ingredients_text=p.get("ingredients_text") or "",
     )
