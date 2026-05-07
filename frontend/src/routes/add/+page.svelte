@@ -173,6 +173,16 @@
 		return { mine, partner: part };
 	})());
 
+	// Show a "no allergen info" notice when the product has no allergen data
+	// and the user (or partner) has allergies registered, but no warning was triggered
+	let noAllergenInfo = $derived(
+		selected !== null &&
+		selected.allergens === null &&
+		(myAllergies.length > 0 || partnerAllergies.length > 0) &&
+		allergenWarnings.mine.length === 0 &&
+		allergenWarnings.partner.length === 0
+	);
+
 	function selectProduct(product: Product) {
 		selected = product;
 		grams = getLastGrams(product.id);
@@ -537,6 +547,14 @@
 		</div>
 	{/if}
 
+	<!-- No allergen info notice -->
+	{#if noAllergenInfo}
+		<div class="allergen-unknown-notice">
+			<span style="font-size:1rem; flex-shrink:0;">ℹ️</span>
+			<span>No tenemos información sobre alérgenos de este producto. Revisa el envase antes de consumirlo.</span>
+		</div>
+	{/if}
+
 	<!-- Allergy warning -->
 	{#if allergenWarnings.mine.length > 0 || allergenWarnings.partner.length > 0}
 		<div class="allergy-banner">
@@ -831,6 +849,21 @@
 {/if}
 
 <style>
+	/* ── No allergen info notice ── */
+	.allergen-unknown-notice {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 0.75rem;
+		padding: 0.625rem 0.875rem;
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.45);
+		line-height: 1.4;
+		margin-bottom: 0.75rem;
+	}
+
 	/* ── Allergy banner ── */
 	.allergy-banner {
 		display: flex;
