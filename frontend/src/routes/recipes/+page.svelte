@@ -214,15 +214,43 @@
 		partnerAllergies = await api.get<AllergyInfo[]>(`/allergies?user_id=${partnerId}`).catch(() => []);
 	}
 
-	// Check recipe ingredients using stored ingredients_text from OFacts (no name fallback)
+	const ALLERGEN_LABELS: Record<string, string> = {
+		gluten:           'Gluten',
+		milk:             'Leche',
+		eggs:             'Huevos',
+		peanuts:          'Cacahuetes',
+		nuts:             'Frutos secos',
+		soybeans:         'Soja',
+		fish:             'Pescado',
+		crustaceans:      'Marisco',
+		celery:           'Apio',
+		mustard:          'Mostaza',
+		'sesame-seeds':   'Sésamo',
+		'sulphur-dioxide':'Sulfitos',
+		mollusks:         'Moluscos',
+		lupin:            'Altramuces',
+	};
+	function allergenLabel(key: string): string {
+		return ALLERGEN_LABELS[key] ?? key;
+	}
+
+	// Check recipe ingredients for allergen hits.
+	// Primary: use structured allergens[] field from OFF.
+	// Fallback: keyword search in ingredients_text for manual/legacy products.
 	function recipeAllergenHits(recipe: Recipe | null, list: AllergyInfo[]): string[] {
 		if (!recipe || list.length === 0) return [];
+		const userKeys = new Set(list.map(a => a.ingredient.toLowerCase()));
 		const found = new Set<string>();
 		for (const ing of recipe.ingredients) {
-			const text = ((ing.product as any)?.ingredients_text ?? '').toLowerCase();
-			if (!text) continue; // no ingredients data — skip, don't guess
-			for (const a of list) {
-				if (text.includes(a.ingredient.toLowerCase())) found.add(a.ingredient);
+			const productAllergens: string[] = ing.product.allergens ?? [];
+			if (productAllergens.length > 0) {
+				productAllergens.forEach(a => { if (userKeys.has(a.toLowerCase())) found.add(a); });
+			} else {
+				// fallback: text search in ingredients_text
+				const text = (ing.product.ingredients_text ?? '').toLowerCase();
+				if (text) {
+					list.forEach(a => { if (text.includes(a.ingredient.toLowerCase())) found.add(a.ingredient); });
+				}
 			}
 		}
 		return [...found];
@@ -655,7 +683,7 @@
 						<div class="allergy-banner-row">
 							<span class="allergy-banner-who">Tú:</span>
 							{#each recipeAllergenWarnings.mine as a}
-								<span class="allergy-tag allergy-tag-mine">{a}</span>
+								<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
 							{/each}
 						</div>
 					{/if}
@@ -663,7 +691,7 @@
 						<div class="allergy-banner-row">
 							<span class="allergy-banner-who">{partner.name}:</span>
 							{#each recipeAllergenWarnings.partner as a}
-								<span class="allergy-tag allergy-tag-partner">{a}</span>
+								<span class="allergy-tag allergy-tag-partner">{allergenLabel(a)}</span>
 							{/each}
 						</div>
 					{/if}

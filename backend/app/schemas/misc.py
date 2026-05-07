@@ -127,6 +127,8 @@ class ProductOutMinimal(BaseModel):
     protein_per_100g: float
     carbs_per_100g: float
     fat_per_100g: float
+    allergens: list[str] | None = None
+    ingredients_text: str | None = None
 
     class Config:
         from_attributes = True

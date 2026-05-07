@@ -174,13 +174,18 @@
 	})());
 
 	// Show a "no allergen info" notice when the product has no allergen data
-	// and the user (or partner) has allergies registered, but no warning was triggered
+	// and whoever is actually eating it has allergies registered, but no warning triggered.
+	// If shareMode === 'only', I'm not eating it — only check partner.
+	// If shareMode === null, only I'm eating it — only check mine.
 	let noAllergenInfo = $derived(
 		selected !== null &&
 		selected.allergens === null &&
-		(myAllergies.length > 0 || partnerAllergies.length > 0) &&
 		allergenWarnings.mine.length === 0 &&
-		allergenWarnings.partner.length === 0
+		allergenWarnings.partner.length === 0 &&
+		(
+			(shareMode !== 'only'  && myAllergies.length > 0) ||
+			(shareMode !== null    && partnerAllergies.length > 0)
+		)
 	);
 
 	function selectProduct(product: Product) {
