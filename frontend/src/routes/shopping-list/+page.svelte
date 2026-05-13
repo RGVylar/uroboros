@@ -1,12 +1,67 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
+	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
 	import type { Product, Recipe, ShoppingListItem } from '$lib/types';
 	import { Modal } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	let isNative = Capacitor.isNativePlatform();
+
+	// ── Web barcode scanner ───────────────────────────────────────────────────
+	let scanning = $state(false);
+	let scanError = $state('');
+	let videoEl: HTMLVideoElement | undefined = $state();
+	let stream: MediaStream | null = null;
+	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
+
+	async function startWebScan() {
+		scanError = '';
+		scanning = true;
+		try {
+			const { BrowserMultiFormatReader } = await import('@zxing/browser');
+			zxingReader = new BrowserMultiFormatReader();
+			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+			if (videoEl) {
+				videoEl.srcObject = stream;
+				videoEl.play();
+				zxingReader.decodeFromVideoElement(videoEl, (result) => {
+					if (result) {
+						stopWebScan();
+						searchByBarcode(result.getText());
+					}
+				});
+			}
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanning = false;
+		}
+	}
+
+	function stopWebScan() {
+		scanning = false;
+		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+		if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+	}
+
+	async function scanNative() {
+		try {
+			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+			const { supported } = await BarcodeScanner.isSupported();
+			if (!supported) { scanError = 'Escáner no soportado en este dispositivo'; return; }
+			const granted = await BarcodeScanner.requestPermissions();
+			if (granted.camera !== 'granted') { scanError = 'Permiso de cámara denegado'; return; }
+			const { barcodes } = await BarcodeScanner.scan();
+			if (barcodes.length > 0) searchByBarcode(barcodes[0].rawValue);
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'Error del escáner';
+		}
+	}
+
+	onDestroy(() => stopWebScan());
 
 	let items: ShoppingListItem[] = $state([]);
 	let loading = $state(true);
@@ -198,37 +253,69 @@
 		</div>
 
 		{#if addMode === 'product'}
-			<BarcodeScanner
-				bind:bind_query={query}
-				placeholder="Buscar producto..."
-				onScan={searchByBarcode}
-				onSearch={searchProducts}
-			/>
+			<!-- Search + barcode (igual que /add) -->
+			<div class="sl-search-glass">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color:rgba(255,255,255,0.4); flex-shrink:0; margin-right:0.375rem;">
+					<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+					<path d="M16.5 16.5l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				</svg>
+				<input
+					bind:value={query}
+					placeholder="Buscar producto..."
+					class="sl-search-input"
+					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }}
+				/>
+				<button
+					onclick={isNative ? scanNative : startWebScan}
+					class="sl-barcode-btn"
+					aria-label="Escanear código de barras"
+					disabled={scanning}
+				>
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+						<path d="M4 6v12M7 6v12M10 6v12M13 6v12M17 6v12M20 6v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+					</svg>
+				</button>
+			</div>
+
+			{#if scanning}
+				<div style="margin-bottom:0.75rem; position:relative;">
+					<!-- svelte-ignore a11y_media_has_caption -->
+					<video bind:this={videoEl} style="width:100%; border-radius:16px; background:#000;" playsinline></video>
+					<button onclick={stopWebScan} style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="Detener escáner">✕</button>
+				</div>
+			{/if}
+
+			{#if scanError}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">{scanError}</p>{/if}
+
 			{#if searchResults.length > 0}
-				<div class="glass-card" style="padding:0.375rem; margin-bottom:0.5rem;">
+				<div style="border-radius:12px; overflow:hidden; margin-bottom:0.5rem; border:1px solid rgba(255,255,255,0.08);">
 					{#each searchResults as p (p.id)}
-						<button onclick={() => selectProduct(p)} style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:none; border:none; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; color:#fff; font-family:inherit; display:block;">
+						<button onclick={() => selectProduct(p)} style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border:none; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; color:#fff; font-family:inherit; display:block;">
 							<div style="font-weight:600; font-size:0.8125rem;">{p.name}</div>
 							{#if p.brand}<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45);">{p.brand}</div>{/if}
 						</button>
 					{/each}
 				</div>
 			{/if}
+
 			{#if selectedProduct}
-				<div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:0.5rem 0.75rem; margin-bottom:0.5rem; font-size:0.8125rem; color:#fff; font-weight:600;">{selectedProduct.name}</div>
-				<div class="form-group" style="margin-bottom:0.5rem;">
-					<label style="font-size:0.6875rem; color:rgba(255,255,255,0.55);">Cantidad (g, opcional)</label>
-					<input type="number" bind:value={addQty} min="1" step="1" />
+				<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:0.625rem 0.75rem; margin-bottom:0.5rem;">
+					<div style="font-weight:700; font-size:0.8125rem; color:#fff;">{selectedProduct.name}</div>
+					{#if selectedProduct.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{selectedProduct.brand}</div>{/if}
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
+					<label for="sl-qty" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Cantidad (g, opcional)</label>
+					<input id="sl-qty" type="number" bind:value={addQty} min="1" step="1" class="sl-field" />
 				</div>
 			{/if}
 		{:else}
-			<div class="form-group" style="margin-bottom:0.5rem;">
-				<label style="font-size:0.6875rem; color:rgba(255,255,255,0.55);">Nombre del artículo</label>
-				<input bind:value={freeText} placeholder="Pan de molde, detergente..." />
+			<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
+				<label for="sl-text" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Nombre del artículo</label>
+				<input id="sl-text" bind:value={freeText} placeholder="Pan de molde, detergente..." class="sl-field" />
 			</div>
 		{/if}
 
-		{#if error}<p class="error">{error}</p>{/if}
+		{#if error}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
 			<button onclick={() => openRecipeModal()} style="padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); cursor:pointer; font-family:inherit; font-size:0.75rem; white-space:nowrap;">🍳 Desde receta</button>
@@ -334,4 +421,59 @@
 		border-radius: 20px;
 		padding: 1rem;
 	}
+
+	/* ── Search glass (igual que /add) ── */
+	.sl-search-glass {
+		display: flex;
+		align-items: center;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 16px;
+		padding: 0 0.5rem 0 0.875rem;
+		margin-bottom: 0.5rem;
+	}
+	.sl-search-input {
+		flex: 1;
+		background: none;
+		border: none;
+		outline: none;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.8125rem;
+		padding: 0.75rem 0.25rem;
+	}
+	.sl-search-input::placeholder { color: rgba(255,255,255,0.35); }
+	.sl-barcode-btn {
+		width: 38px;
+		height: 38px;
+		border-radius: 12px;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		color: oklch(85% 0.15 160);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition: background 0.15s;
+		padding: 0;
+	}
+	.sl-barcode-btn:hover { background: rgba(255,255,255,0.1); }
+	.sl-barcode-btn:disabled { opacity: 0.5; cursor: default; }
+
+	/* ── Form inputs ── */
+	.sl-field {
+		width: 100%;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 10px;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.875rem;
+		padding: 0.5rem 0.625rem;
+		outline: none;
+		box-sizing: border-box;
+	}
+	.sl-field::placeholder { color: rgba(255,255,255,0.3); }
+	.sl-field:focus { border-color: rgba(255,255,255,0.25); }
 </style>
