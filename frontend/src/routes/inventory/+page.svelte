@@ -1,14 +1,50 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
 	import type { CostSummary, InventoryItem, Product } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	let isNative = Capacitor.isNativePlatform();
+
+	// ── Web barcode scanner ───────────────────────────────────────────────────
+	let scanning = $state(false);
+	let scanError = $state('');
+	let videoEl: HTMLVideoElement | undefined = $state();
+	let stream: MediaStream | null = null;
+	let zxingReader: import('@zxing/browser').BrowserMultiFormatReader | null = null;
+
+	async function startWebScan() {
+		scanError = '';
+		scanning = true;
+		try {
+			const { BrowserMultiFormatReader } = await import('@zxing/browser');
+			zxingReader = new BrowserMultiFormatReader();
+			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+			if (videoEl) {
+				videoEl.srcObject = stream;
+				videoEl.play();
+				zxingReader.decodeFromVideoElement(videoEl, (result) => {
+					if (result) {
+						stopWebScan();
+						searchByBarcode(result.getText());
+					}
+				});
+			}
+		} catch (e: unknown) {
+			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanning = false;
+		}
+	}
+
+	function stopWebScan() {
+		scanning = false;
+		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+		if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+	}
 
 	async function scanNative() {
 		try {
@@ -23,6 +59,8 @@
 			scanError = e instanceof Error ? e.message : 'Error del escáner';
 		}
 	}
+
+	onDestroy(() => stopWebScan());
 
 	async function searchByBarcode(code: string) {
 		searching = true;
@@ -215,48 +253,75 @@
 <div class="glass-card" style="margin-bottom:0.875rem;">
 	<div style="font-weight:700; font-size:0.875rem; margin-bottom:0.75rem; color:#fff;">Añadir al inventario</div>
 
-	<BarcodeScanner
-		bind:bind_query={query}
-		placeholder="Buscar arroz, pollo..."
-		onScan={searchByBarcode}
-		onSearch={searchProducts}
-	/>
+	<!-- Search + barcode (igual que /add) -->
+	<div class="inv-search-glass">
+		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color:rgba(255,255,255,0.4); flex-shrink:0; margin-right:0.375rem;">
+			<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+			<path d="M16.5 16.5l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+		</svg>
+		<input
+			bind:value={query}
+			placeholder="Buscar arroz, pollo..."
+			class="inv-search-input"
+			onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }}
+		/>
+		<button
+			onclick={isNative ? scanNative : startWebScan}
+			class="inv-barcode-btn"
+			aria-label="Escanear código de barras"
+			disabled={scanning}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+				<path d="M4 6v12M7 6v12M10 6v12M13 6v12M17 6v12M20 6v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+			</svg>
+		</button>
+	</div>
+
+	<!-- Inline camera scanner -->
+	{#if scanning}
+		<div style="margin-bottom:0.75rem; position:relative;">
+			<!-- svelte-ignore a11y_media_has_caption -->
+			<video bind:this={videoEl} style="width:100%; border-radius:16px; background:#000;" playsinline></video>
+			<button onclick={stopWebScan} style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="Detener escáner">✕</button>
+		</div>
+	{/if}
+
+	{#if scanError}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">{scanError}</p>{/if}
 
 	{#if searchResults.length > 0}
-		<div style="border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:0.5rem;">
+		<div style="border-radius:12px; overflow:hidden; margin-bottom:0.5rem; border:1px solid rgba(255,255,255,0.08);">
 			{#each searchResults as p (p.id)}
-				<button onclick={() => selectProduct(p)}
-					style="width:100%; text-align:left; padding:0.6rem 0.75rem; background:var(--surface); border:none; border-bottom:1px solid var(--border); cursor:pointer; display:block;">
-					<div style="font-weight:600; font-size:0.9rem;">{p.name}</div>
-					{#if p.brand}<div style="font-size:0.75rem; color:var(--text-muted);">{p.brand}</div>{/if}
-					<div style="font-size:0.75rem; color:var(--text-muted);">{p.calories_per_100g} kcal/100g</div>
+				<button onclick={() => selectProduct(p)} style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border:none; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; font-family:inherit;">
+					<div style="font-weight:600; font-size:0.8125rem; color:#fff;">{p.name}</div>
+					{#if p.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45);">{p.brand}</div>{/if}
+					<div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">{p.calories_per_100g} kcal/100g</div>
 				</button>
 			{/each}
 		</div>
 	{/if}
 
 	{#if selectedProduct}
-		<div style="background:var(--surface2); border-radius:8px; padding:0.5rem 0.75rem; margin-bottom:0.75rem; font-size:0.85rem;">
-			<strong>{selectedProduct.name}</strong>
-			{#if selectedProduct.brand}<span style="color:var(--text-muted);"> · {selectedProduct.brand}</span>{/if}
+		<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:0.625rem 0.75rem; margin-bottom:0.75rem;">
+			<div style="font-weight:700; font-size:0.8125rem; color:#fff;">{selectedProduct.name}</div>
+			{#if selectedProduct.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{selectedProduct.brand} · {selectedProduct.calories_per_100g} kcal/100g</div>{/if}
 		</div>
 
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem;">
-			<div class="form-group" style="margin:0;">
-				<label for="inv-qty">Cantidad (g)</label>
-				<input id="inv-qty" type="number" bind:value={addQty} min="1" step="1" />
+			<div style="display:flex; flex-direction:column; gap:0.25rem;">
+				<label for="inv-qty" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Cantidad (g)</label>
+				<input id="inv-qty" type="number" bind:value={addQty} min="1" step="1" class="inv-field" />
 			</div>
-			<div class="form-group" style="margin:0;">
-				<label for="inv-price">€ / 100g (opcional)</label>
-				<input id="inv-price" type="number" bind:value={addPrice} min="0" step="0.01" placeholder="0.00" />
+			<div style="display:flex; flex-direction:column; gap:0.25rem;">
+				<label for="inv-price" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">€ / 100g <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
+				<input id="inv-price" type="number" bind:value={addPrice} min="0" step="0.01" placeholder="0.00" class="inv-field" />
 			</div>
 		</div>
 
-		{#if error}<p class="error">{error}</p>{/if}
+		{#if error}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem;">
-			<button class="btn-secondary" onclick={() => { selectedProduct = null; query = ''; }} style="flex:1;">Cancelar</button>
-			<button onclick={addItem} disabled={saving} style="flex:2; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:inherit; padding:0.75rem;">
+			<button onclick={() => { selectedProduct = null; query = ''; searchResults = []; }} style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer;">Cancelar</button>
+			<button onclick={addItem} disabled={saving} style="flex:2; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:inherit; padding:0.75rem; font-size:0.8125rem;">
 				{saving ? 'Guardando...' : 'Añadir al inventario'}
 			</button>
 		</div>
@@ -358,4 +423,59 @@
 		border-radius: 20px;
 		padding: 1rem;
 	}
+
+	/* ── Search glass (igual que /add) ── */
+	.inv-search-glass {
+		display: flex;
+		align-items: center;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 16px;
+		padding: 0 0.5rem 0 0.875rem;
+		margin-bottom: 0.5rem;
+	}
+	.inv-search-input {
+		flex: 1;
+		background: none;
+		border: none;
+		outline: none;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.8125rem;
+		padding: 0.75rem 0.25rem;
+	}
+	.inv-search-input::placeholder { color: rgba(255,255,255,0.35); }
+	.inv-barcode-btn {
+		width: 38px;
+		height: 38px;
+		border-radius: 12px;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		color: oklch(85% 0.15 160);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition: background 0.15s;
+		padding: 0;
+	}
+	.inv-barcode-btn:hover { background: rgba(255,255,255,0.1); }
+	.inv-barcode-btn:disabled { opacity: 0.5; cursor: default; }
+
+	/* ── Form inputs ── */
+	.inv-field {
+		width: 100%;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 10px;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.875rem;
+		padding: 0.5rem 0.625rem;
+		outline: none;
+		box-sizing: border-box;
+	}
+	.inv-field::placeholder { color: rgba(255,255,255,0.3); }
+	.inv-field:focus { border-color: rgba(255,255,255,0.25); }
 </style>
