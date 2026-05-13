@@ -125,6 +125,51 @@
 	let showManual = $state(false);
 	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
 
+	// ── Editar producto ─────────────────────────────────────────────────────────
+	let showEdit = $state(false);
+	let editName = $state('');
+	let editBrand = $state('');
+	let editCal = $state(0);
+	let editProt = $state(0);
+	let editCarbs = $state(0);
+	let editFat = $state(0);
+	let editSaving = $state(false);
+	let editError = $state('');
+
+	function startEdit() {
+		if (!selected) return;
+		editName = selected.name;
+		editBrand = selected.brand ?? '';
+		editCal = selected.calories_per_100g;
+		editProt = selected.protein_per_100g;
+		editCarbs = selected.carbs_per_100g;
+		editFat = selected.fat_per_100g;
+		editError = '';
+		showEdit = true;
+	}
+
+	async function saveEdit() {
+		if (!selected) return;
+		editSaving = true;
+		editError = '';
+		try {
+			const updated = await api.patch<Product>(`/products/${selected.id}`, {
+				name: editName,
+				brand: editBrand || null,
+				calories_per_100g: editCal,
+				protein_per_100g: editProt,
+				carbs_per_100g: editCarbs,
+				fat_per_100g: editFat,
+			});
+			selected = updated;
+			showEdit = false;
+		} catch (e: unknown) {
+			editError = e instanceof Error ? e.message : 'Error al guardar';
+		} finally {
+			editSaving = false;
+		}
+	}
+
 	// ── Allergies ──────────────────────────────────────────────────────────────
 	type AllergyInfo = { id: number; ingredient: string };
 	let myAllergies: AllergyInfo[] = $state([]);
@@ -420,7 +465,7 @@
 <!-- ═══════════════════════════════════════════════════════
      DETAIL VIEW — producto seleccionado
 ═══════════════════════════════════════════════════════ -->
-{#if selected && !showManual}
+{#if selected && !showManual && !showEdit}
 	<!-- Header -->
 	<div class="add-header">
 		<button class="glass-btn" onclick={() => (selected = null)} aria-label="Volver">
@@ -432,6 +477,12 @@
 			<div class="header-eyebrow">Detalle</div>
 			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected.name}</div>
 		</div>
+		<button class="glass-btn" onclick={startEdit} aria-label="Editar producto" title="Corregir datos del producto">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+				<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
 	</div>
 
 
@@ -598,6 +649,61 @@
 		{:else}
 			Registrar
 		{/if}
+	</button>
+
+<!-- ═══════════════════════════════════════════════════════
+     EDIT PRODUCT FORM
+═══════════════════════════════════════════════════════ -->
+{:else if showEdit}
+	<div class="add-header">
+		<button class="glass-btn" onclick={() => (showEdit = false)} aria-label="Volver">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<div style="flex:1; min-width:0;">
+			<div class="header-eyebrow">Editar</div>
+			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected?.name}</div>
+		</div>
+	</div>
+
+	<p style="font-size:0.75rem; color:rgba(255,255,255,0.45); margin:0 0 0.875rem; line-height:1.4;">
+		Corrige los valores si la información de la base de datos no es exacta. Los cambios se guardarán para todos.
+	</p>
+
+	<div class="glass-card" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
+		<div class="manual-field">
+			<label for="e-name">Nombre</label>
+			<input id="e-name" bind:value={editName} required class="field-input" />
+		</div>
+		<div class="manual-field">
+			<label for="e-brand">Marca <span style="color:rgba(255,255,255,0.4);">(opcional)</span></label>
+			<input id="e-brand" bind:value={editBrand} class="field-input" />
+		</div>
+		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+			<div class="manual-field">
+				<label for="e-cal">Kcal / 100g</label>
+				<input id="e-cal" type="number" bind:value={editCal} min="0" step="0.1" class="field-input" />
+			</div>
+			<div class="manual-field">
+				<label for="e-prot">Prot / 100g</label>
+				<input id="e-prot" type="number" bind:value={editProt} min="0" step="0.1" class="field-input" />
+			</div>
+			<div class="manual-field">
+				<label for="e-carbs">Carb / 100g</label>
+				<input id="e-carbs" type="number" bind:value={editCarbs} min="0" step="0.1" class="field-input" />
+			</div>
+			<div class="manual-field">
+				<label for="e-fat">Grasa / 100g</label>
+				<input id="e-fat" type="number" bind:value={editFat} min="0" step="0.1" class="field-input" />
+			</div>
+		</div>
+	</div>
+
+	{#if editError}<p class="add-error">{editError}</p>{/if}
+
+	<button class="btn-submit" onclick={saveEdit} disabled={editSaving}>
+		{editSaving ? 'Guardando…' : 'Guardar cambios'}
 	</button>
 
 <!-- ═══════════════════════════════════════════════════════
