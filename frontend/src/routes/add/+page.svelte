@@ -460,6 +460,35 @@
 		{ label: 'Carb', key: 'carbs_per_100g' as const, hue: 275 },
 		{ label: 'Grasa', key: 'fat_per_100g' as const, hue: 25 },
 	];
+
+	// ── Orden y agrupación de "Mis alimentos" ────────────────────────────────
+	let sortOrder = $state<'frequency' | 'alpha'>('frequency');
+
+	// Lista plana de productos frecuentes, con el orden elegido
+	let sortedFrequentProducts = $derived((() => {
+		const prods = frequent.map(f => f.product);
+		if (sortOrder === 'alpha') {
+			return [...prods].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+		}
+		return prods; // ya viene ordenado por frecuencia del backend
+	})());
+
+	// Agrupado por primera letra (solo en modo alpha)
+	type LetterGroup = { letter: string; products: typeof sortedFrequentProducts };
+	let frequentByLetter = $derived((() => {
+		if (sortOrder !== 'alpha') return [] as LetterGroup[];
+		const groups: LetterGroup[] = [];
+		for (const p of sortedFrequentProducts) {
+			const letter = p.name[0].toUpperCase();
+			const last = groups[groups.length - 1];
+			if (last && last.letter === letter) {
+				last.products.push(p);
+			} else {
+				groups.push({ letter, products: [p] });
+			}
+		}
+		return groups;
+	})());
 </script>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -881,79 +910,131 @@
 		{/if}
 	{/if}
 
-	<!-- Sin query: frecuentes primero, luego sugerencias según chip -->
+	<!-- Sin query: contenido según chip activo -->
 	{#if !query}
-		<!-- Historial de uso (siempre visible) -->
-		{#if loadingFrequent}
-			<div class="loading-row">Cargando historial...</div>
-		{:else if frequentRecipes.length > 0 || frequent.length > 0}
-			<div class="section-header">
-				<div>
-					<div class="section-title">Mis alimentos</div>
-					<div class="section-sub">Los que más usas</div>
+
+		<!-- ── SUGERENCIAS ── -->
+		{#if activeFilter === 'suggestions'}
+			{#if loadingRecs}
+				<div class="loading-row">Cargando sugerencias...</div>
+			{:else if recommendations.length > 0}
+				<div class="section-header">
+					<div>
+						<div class="section-title">Sugerencias para ahora</div>
+						<div class="section-sub">Basado en tus calorías restantes</div>
+					</div>
 				</div>
-			</div>
-			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-				<!-- Recetas frecuentes primero -->
-				{#each frequentRecipes as f (f.recipe.id)}
-					{@const totalKcal = f.recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
-					<button class="product-row" onclick={() => logRecipe(f.recipe)} disabled={saving}>
-						<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
-						<div style="flex:1; min-width:0; text-align:left;">
-							<div class="product-name">{f.recipe.name}</div>
-							<div class="product-brand">{f.recipe.ingredients.length} ingredientes</div>
-						</div>
-						<div style="text-align:right; flex-shrink:0;">
-							<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
-							<div class="product-per" style="color:oklch(75% 0.15 160);">receta</div>
-						</div>
-					</button>
-				{/each}
-				<!-- Productos frecuentes -->
-				{#each frequent as f (f.product.id)}
-					<button class="product-row" onclick={() => selectProduct(f.product)}>
-						<div class="product-avatar" style="
-							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(f.product.name)} / 0.35), oklch(60% 0.12 {hashHue(f.product.name)} / 0.15));
-						">{productGlyph(f.product.name)}</div>
-						<div style="flex:1; min-width:0; text-align:left;">
-							<div class="product-name">{f.product.name}</div>
-							<div class="product-brand">{f.product.brand ?? '—'}</div>
-						</div>
-						<div style="text-align:right; flex-shrink:0;">
-							<div class="product-kcal">{f.product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-							<div class="product-per">/100{isDrink(f.product) ? 'ml' : 'g'}</div>
-						</div>
-					</button>
-				{/each}
-			</div>
+				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+					{#each recommendations as rec (rec.product.id)}
+						<button class="product-row" onclick={() => selectProduct(rec.product)}>
+							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(rec.product.name)} / 0.35), oklch(60% 0.12 {hashHue(rec.product.name)} / 0.15));">{productGlyph(rec.product.name)}</div>
+							<div style="flex:1; min-width:0; text-align:left;">
+								<div class="product-name">{rec.product.name}</div>
+								<div class="product-brand">{rec.reason}</div>
+							</div>
+							<div style="text-align:right; flex-shrink:0;">
+								<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
+								<div class="product-per">{rec.suggested_grams}g sugerido</div>
+							</div>
+						</button>
+					{/each}
+				</div>
+			{:else}
+				<div class="loading-row" style="color:rgba(255,255,255,0.35);">Sin sugerencias por ahora</div>
+			{/if}
 		{/if}
 
-		<!-- Sugerencias IA (solo si chip activo = suggestions) -->
-		{#if activeFilter === 'suggestions' && !loadingRecs && recommendations.length > 0}
-			<div class="section-header">
-				<div>
-					<div class="section-title">Sugerencias para ahora</div>
-					<div class="section-sub">Basado en tus calorías restantes</div>
+		<!-- ── RECIENTES / FAVORITOS ── -->
+		{#if activeFilter === 'recent' || activeFilter === 'favorites'}
+			{#if loadingFrequent}
+				<div class="loading-row">Cargando historial...</div>
+			{:else if frequentRecipes.length === 0 && frequent.length === 0}
+				<div class="loading-row" style="color:rgba(255,255,255,0.35);">Aún no tienes alimentos recientes</div>
+			{:else}
+				<!-- Header con toggle de orden -->
+				<div class="section-header">
+					<div>
+						<div class="section-title">Mis alimentos</div>
+						<div class="section-sub">{activeFilter === 'favorites' ? 'Los que más usas' : 'Por frecuencia de uso'}</div>
+					</div>
+					<div style="display:flex; gap:0.25rem; background:rgba(255,255,255,0.05); border-radius:99px; padding:3px; border:1px solid rgba(255,255,255,0.08);">
+						<button
+							onclick={() => sortOrder = 'frequency'}
+							style="padding:0.25rem 0.625rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-size:0.6875rem; font-weight:700; background:{sortOrder==='frequency' ? 'rgba(255,255,255,0.12)' : 'transparent'}; color:{sortOrder==='frequency' ? '#fff' : 'rgba(255,255,255,0.45)'};">
+							🕒
+						</button>
+						<button
+							onclick={() => sortOrder = 'alpha'}
+							style="padding:0.25rem 0.625rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-size:0.6875rem; font-weight:700; background:{sortOrder==='alpha' ? 'rgba(255,255,255,0.12)' : 'transparent'}; color:{sortOrder==='alpha' ? '#fff' : 'rgba(255,255,255,0.45)'};">
+							A-Z
+						</button>
+					</div>
 				</div>
-			</div>
-			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-				{#each recommendations as rec (rec.product.id)}
-					<button class="product-row" onclick={() => selectProduct(rec.product)}>
-						<div class="product-avatar" style="
-							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(rec.product.name)} / 0.35), oklch(60% 0.12 {hashHue(rec.product.name)} / 0.15));
-						">{productGlyph(rec.product.name)}</div>
-						<div style="flex:1; min-width:0; text-align:left;">
-							<div class="product-name">{rec.product.name}</div>
-							<div class="product-brand">{rec.reason}</div>
-						</div>
-						<div style="text-align:right; flex-shrink:0;">
-							<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
-							<div class="product-per">{rec.suggested_grams}g sugerido</div>
-						</div>
-					</button>
-				{/each}
-			</div>
+
+				<!-- Recetas frecuentes (sin agrupación, siempre primero) -->
+				{#if frequentRecipes.length > 0}
+					<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
+						{#each frequentRecipes as f (f.recipe.id)}
+							{@const totalKcal = f.recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
+							<button class="product-row" onclick={() => logRecipe(f.recipe)} disabled={saving}>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
+								<div style="flex:1; min-width:0; text-align:left;">
+									<div class="product-name">{f.recipe.name}</div>
+									<div class="product-brand">{f.recipe.ingredients.length} ingredientes</div>
+								</div>
+								<div style="text-align:right; flex-shrink:0;">
+									<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
+									<div class="product-per" style="color:oklch(75% 0.15 160);">receta</div>
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- Productos frecuentes -->
+				{#if sortOrder === 'frequency'}
+					<!-- Sin agrupar, orden por frecuencia -->
+					<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+						{#each sortedFrequentProducts as product (product.id)}
+							<button class="product-row" onclick={() => selectProduct(product)}>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+								<div style="flex:1; min-width:0; text-align:left;">
+									<div class="product-name">{product.name}</div>
+									<div class="product-brand">{product.brand ?? '—'}</div>
+								</div>
+								<div style="text-align:right; flex-shrink:0;">
+									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+									<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+								</div>
+							</button>
+						{/each}
+					</div>
+				{:else}
+					<!-- Agrupado por letra -->
+					<div style="margin-bottom:1.25rem;">
+						{#each frequentByLetter as group (group.letter)}
+							<div class="letter-divider">{group.letter}</div>
+							<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
+								{#each group.products as product (product.id)}
+									<button class="product-row" onclick={() => selectProduct(product)}>
+										<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+										<div style="flex:1; min-width:0; text-align:left;">
+											<div class="product-name">{product.name}</div>
+											<div class="product-brand">{product.brand ?? '—'}</div>
+										</div>
+										<div style="text-align:right; flex-shrink:0;">
+											<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+											<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+										</div>
+									</button>
+								{/each}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			{/if}
 		{/if}
+
 	{/if}
 
 	{#if error}<p class="add-error">{error}</p>{/if}
@@ -1127,6 +1208,18 @@
 	.barcode-btn:hover { background: rgba(255,255,255,0.1); }
 
 	/* ── Filter chips ── */
+	/* ── Letter divider ── */
+	.letter-divider {
+		font-size: 0.625rem;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: rgba(255,255,255,0.35);
+		padding: 0.5rem 0.25rem 0.3rem;
+		border-bottom: 1px solid rgba(255,255,255,0.06);
+		margin-bottom: 0.375rem;
+	}
+
 	.filter-chip {
 		padding: 0.4rem 0.75rem;
 		border-radius: 99px;
