@@ -48,7 +48,7 @@
 	let goals: Goals | null = $state(null);
 
 	// Trend chart state
-	type TrendEntry = { date: string; calories: number; protein: number; carbs: number; fat: number };
+	type TrendEntry = { date: string; calories: number; protein: number; carbs: number; fat: number; calories_burned: number };
 	type TrendMacro = 'calories' | 'protein' | 'carbs' | 'fat';
 	let trendDays: 7 | 30 = $state(7);
 	let trendMacro: TrendMacro = $state('calories');
@@ -92,12 +92,13 @@
 				api.get<DaySummary>(`/diary/day?day=${date}`)
 					.then(s => ({
 						date,
-						calories: s.totals.calories,
-						protein:  s.totals.protein,
-						carbs:    s.totals.carbs,
-						fat:      s.totals.fat,
+						calories:        s.totals.calories,
+						protein:         s.totals.protein,
+						carbs:           s.totals.carbs,
+						fat:             s.totals.fat,
+						calories_burned: s.calories_burned ?? 0,
 					}))
-					.catch(() => ({ date, calories: 0, protein: 0, carbs: 0, fat: 0 }))
+					.catch(() => ({ date, calories: 0, protein: 0, carbs: 0, fat: 0, calories_burned: 0 }))
 			)
 		);
 		loadingTrend = false;
@@ -191,6 +192,14 @@
 		return (val / maxVal) * CHART_BAR_H * 0.9;
 	}
 
+	// Compute effective calorie goal for a given day's burned calories
+	function effectiveKcalGoal(burned: number): number {
+		if (!goals) return 0;
+		const mode = goals.macro_adjust_mode ?? 'off';
+		if (burned <= 0 || mode === 'off') return goals.kcal;
+		return goals.kcal + burned; // both proportional and performance add burned to kcal target
+	}
+
 	function chartGoalVal(): number | null {
 		if (trendMacro === 'calories' && goals?.kcal) return goals.kcal;
 		if (trendMacro === 'protein' && goals?.protein) return goals.protein;
@@ -208,6 +217,12 @@
 	let trendNonZero = $derived(trendValues.filter(v => v > 0));
 	let trendAvg = $derived(trendNonZero.length ? Math.round(trendNonZero.reduce((a, b) => a + b, 0) / trendNonZero.length) : 0);
 	let trendPeak = $derived(Math.round(Math.max(...trendValues, 0)));
+	// Average effective kcal goal across the trend period (accounts for exercise days)
+	let avgEffectiveKcalGoal = $derived(
+		goals?.kcal && trendData.length > 0
+			? Math.round(trendData.reduce((sum, d) => sum + effectiveKcalGoal(d.calories_burned), 0) / trendData.length)
+			: (goals?.kcal ?? 0)
+	);
 
 	function showDateLabel(i: number, n: number): string {
 		const date = trendData[i]?.date;
@@ -237,7 +252,9 @@
 		return cells;
 	});
 	let isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
-	let adherenceDays = $derived(trendData.filter(d => goals?.kcal ? Math.abs(d.calories - goals.kcal) < 250 : false).length);
+	let adherenceDays = $derived(trendData.filter(d =>
+		goals?.kcal ? Math.abs(d.calories - effectiveKcalGoal(d.calories_burned)) < 250 : false
+	).length);
 </script>
 
 <!-- ── Header ── -->
@@ -268,7 +285,7 @@
 		</div>
 		{#if goals?.kcal}
 			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
-				{trendAvg < goals.kcal ? '↓' : '↑'} {Math.abs(trendAvg - goals.kcal)} vs objetivo
+				{trendAvg < avgEffectiveKcalGoal ? '↓' : '↑'} {Math.abs(trendAvg - avgEffectiveKcalGoal)} vs objetivo
 			</div>
 		{/if}
 	</div>
