@@ -1,4 +1,4 @@
-"""Web Push via VAPID — wraps pywebpush internals directly to avoid from_string issues."""
+"""Web Push via VAPID — pywebpush 2.x + py-vapid 1.9.x."""
 
 import base64
 import json
@@ -6,6 +6,7 @@ import logging
 import time
 from urllib.parse import urlparse
 
+import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
@@ -19,8 +20,8 @@ VAPID_PUBLIC_KEY = settings.vapid_public_key
 
 
 def _make_vapid() -> Vapid | None:
-    """Build a Vapid instance directly from the raw base64url private key scalar,
-    bypassing py_vapid's from_string() which has format compatibility issues."""
+    """Build a Vapid instance from the raw base64url private key scalar,
+    bypassing from_string() which mishandles PEM in py-vapid 1.9.x."""
     key_b64 = settings.vapid_private_key
     if not key_b64:
         return None
@@ -30,7 +31,7 @@ def _make_vapid() -> Vapid | None:
     priv_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
     v = Vapid()
     v._private_key = priv_key
-    v._public_key = priv_key.public_key()  # public_key property reads _public_key, no setter exists
+    v._public_key = priv_key.public_key()  # public_key property has no setter
     return v
 
 
@@ -52,26 +53,30 @@ def send_push(
         logger.warning("VAPID_PRIVATE_KEY not configured — skipping push")
         return False
 
-    data = json.dumps({"title": title, "body": body, "url": url, "icon": icon})
+    payload = json.dumps({"title": title, "body": body, "url": url, "icon": icon})
     try:
         wp = WebPusher(
             subscription_info={"endpoint": endpoint, "keys": {"p256dh": p256dh, "auth": auth}}
         )
-        # encode() returns the transport headers (CaseInsensitiveDict) and stores
-        # the encrypted body in wp.encoded
-        headers = wp.encode(data, content_encoding="aes128gcm")
+        # encode() returns CaseInsensitiveDict; encrypted bytes are in ["body"]
+        encoded = wp.encode(payload, content_encoding="aes128gcm")
+        encrypted = encoded["body"]
 
-        # sign() expects a claims dict and returns {"Authorization": "vapid t=...,k=..."}
         parsed = urlparse(endpoint)
         audience = f"{parsed.scheme}://{parsed.netloc}"
-        vapid_headers = _vapid.sign({
+        headers = {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "aes128gcm",
+            "TTL": "86400",
+        }
+        # sign() returns {"Authorization": "vapid t=...,k=..."}
+        headers.update(_vapid.sign({
             "sub": settings.vapid_email,
             "aud": audience,
             "exp": int(time.time()) + 86400,
-        })
-        headers.update(vapid_headers)
+        }))
 
-        response = wp.send(wp.encoded, headers=headers, ttl=86400)
+        response = requests.post(endpoint, data=encrypted, headers=headers, timeout=30)
 
         if response.status_code == 410:
             raise WebPushException("Gone", response=response)
