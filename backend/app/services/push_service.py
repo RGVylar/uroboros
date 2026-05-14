@@ -3,6 +3,8 @@
 import base64
 import json
 import logging
+import time
+from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -27,7 +29,7 @@ def _make_vapid() -> Vapid | None:
     private_value = int.from_bytes(key_bytes, "big")
     priv_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
     v = Vapid()
-    v._private_key = priv_key  # public_key is a computed property — don't set it
+    v._private_key = priv_key  # public_key is a computed property derived from _private_key
     return v
 
 
@@ -54,10 +56,21 @@ def send_push(
         wp = WebPusher(
             subscription_info={"endpoint": endpoint, "keys": {"p256dh": p256dh, "auth": auth}}
         )
-        encoded = wp.encode(data, content_encoding="aes128gcm")
-        # Sign modifies encoded.headers in-place with the Authorization header
-        _vapid.sign(encoded.headers, endpoint, {"sub": settings.vapid_email})
-        response = wp.send(encoded, headers={}, ttl=86400)
+        # encode() returns the transport headers (CaseInsensitiveDict) and stores
+        # the encrypted body in wp.encoded
+        headers = wp.encode(data, content_encoding="aes128gcm")
+
+        # sign() expects a claims dict and returns {"Authorization": "vapid t=...,k=..."}
+        parsed = urlparse(endpoint)
+        audience = f"{parsed.scheme}://{parsed.netloc}"
+        vapid_headers = _vapid.sign({
+            "sub": settings.vapid_email,
+            "aud": audience,
+            "exp": int(time.time()) + 86400,
+        })
+        headers.update(vapid_headers)
+
+        response = wp.send(wp.encoded, headers=headers, ttl=86400)
 
         if response.status_code == 410:
             raise WebPushException("Gone", response=response)
