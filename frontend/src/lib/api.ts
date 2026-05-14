@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { auth } from '$lib/stores/auth.svelte';
+import { connectivity } from '$lib/stores/connectivity.svelte';
 
 // In native app, API calls go to the remote server.
 // In web, they go through Caddy's reverse proxy at /api.
@@ -12,7 +13,17 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	const token = auth.token;
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 
-	const res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...opts.headers } });
+	let res: Response;
+	try {
+		res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...opts.headers } });
+	} catch {
+		// Network-level failure (server unreachable, no internet, etc.)
+		connectivity.recordFailure();
+		throw new Error('Sin conexión con el servidor');
+	}
+
+	// Got a response — server is reachable
+	connectivity.recordSuccess();
 
 	if (res.status === 401) {
 		auth.logout();

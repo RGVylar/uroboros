@@ -8,6 +8,7 @@
 	import '../app.css';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
+	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { page } from '$app/state';
 
 	let { children } = $props();
@@ -95,6 +96,16 @@
 	</div>
 {/if}
 
+<!-- Banner sin conexión ⚽ -->
+{#if connectivity.isOffline}
+	<div class="offline-banner" role="alert" aria-live="assertive">
+		<span class="offline-icon">⚽</span>
+		<span class="offline-text">
+			Sin conexión con el servidor — probablemente es el fútbol
+		</span>
+	</div>
+{/if}
+
 <!-- Nav móvil (pill flotante) — oculta en escritorio vía CSS -->
 {#if auth.isLoggedIn}
 	<nav class="bottom" aria-label="Navegación principal">
@@ -150,6 +161,48 @@
 {/if}
 
 <style>
+	/* ── Banner sin conexión ── */
+	.offline-banner {
+		position: fixed;
+		bottom: 80px; /* por encima del bottom-nav en móvil */
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.55rem 1.1rem;
+		border-radius: 99px;
+		background: oklch(22% 0.02 260 / 0.92);
+		backdrop-filter: blur(10px);
+		border: 1px solid oklch(50% 0.03 260 / 0.4);
+		box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+		white-space: nowrap;
+		animation: banner-in 0.3s ease;
+	}
+	@keyframes banner-in {
+		from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+		to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+	}
+	.offline-icon {
+		font-size: 1.1rem;
+		animation: spin-ball 2s linear infinite;
+	}
+	@keyframes spin-ball {
+		0%   { transform: rotate(0deg);   }
+		100% { transform: rotate(360deg); }
+	}
+	.offline-text {
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: oklch(88% 0.04 260);
+		letter-spacing: 0.01em;
+	}
+	/* En escritorio el banner sube por encima del bottom-nav (que está oculto) */
+	@media (min-width: 900px) {
+		.offline-banner { bottom: 1.5rem; }
+	}
+
 	/* ── Badge móvil ── */
 	.nav-badge {
 		position: absolute;
