@@ -27,8 +27,7 @@ def _make_vapid() -> Vapid | None:
     private_value = int.from_bytes(key_bytes, "big")
     priv_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
     v = Vapid()
-    v.private_key = priv_key
-    v.public_key = priv_key.public_key()
+    v._private_key = priv_key  # public_key is a computed property — don't set it
     return v
 
 
