@@ -6,6 +6,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
+	import { cacheSet, cacheGet } from '$lib/cache';
 	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct, FrequentRecipe } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
@@ -32,6 +33,7 @@
 	let frequent: FrequentProduct[] = $state([]);
 	let frequentRecipes: FrequentRecipe[] = $state([]);
 	let loadingFrequent = $state(false);
+	let frequentFromCache = $state(false);
 
 	// Favorites state
 	let favorites: Product[] = $state([]);
@@ -46,8 +48,15 @@
 			]);
 			favorites = prods;
 			favoriteIds = new Set(ids);
+			// Persistir para uso offline
+			if (prods.length > 0) cacheSet('favorite_products', prods);
 		} catch {
-			// silencioso — favoritos no críticos
+			// Offline — intentar caché
+			const cached = cacheGet<Product[]>('favorite_products');
+			if (cached) {
+				favorites = cached.data;
+				favoriteIds = new Set(cached.data.map(p => p.id));
+			}
 		}
 	}
 
@@ -318,11 +327,24 @@
 
 	async function loadFrequent() {
 		loadingFrequent = true;
+		frequentFromCache = false;
 		try {
-			[frequent, frequentRecipes] = await Promise.all([
-				api.get<FrequentProduct[]>('/products/frequent?limit=15').catch(() => []),
+			const [f, r] = await Promise.all([
+				api.get<FrequentProduct[]>('/products/frequent?limit=15'),
 				api.get<FrequentRecipe[]>('/recipes/frequent?limit=5').catch(() => []),
 			]);
+			frequent = f;
+			frequentRecipes = r;
+			// Persistir para uso offline
+			if (f.length > 0) cacheSet('frequent_products', f);
+		} catch {
+			// Offline — intentar caché
+			const cached = cacheGet<FrequentProduct[]>('frequent_products');
+			if (cached) {
+				frequent = cached.data;
+				frequentFromCache = true;
+			}
+			frequentRecipes = [];
 		} finally {
 			loadingFrequent = false;
 		}
@@ -945,7 +967,7 @@
 	<!-- Quick filter chips -->
 	<div style="display:flex; gap:0.5rem; margin-bottom:1.125rem; flex-wrap:wrap;">
 		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>⚡ Sugerencias</button>
-		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>🕒 Recientes</button>
+		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>🕒 Recientes{#if frequentFromCache}<span class="chip-offline-dot" title="Guardado sin conexión">·</span>{/if}</button>
 		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>⭐ Favoritos</button>
 		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">✏️ Manual</button>
 	</div>
@@ -1066,6 +1088,9 @@
 			{:else if frequentRecipes.length === 0 && frequent.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">Aún no tienes alimentos recientes</div>
 			{:else}
+				{#if frequentFromCache}
+					<div class="offline-cache-notice">📦 Mostrando alimentos guardados · sin conexión</div>
+				{/if}
 				<!-- Header con toggle de orden -->
 				<div class="section-header">
 					<div>
@@ -1705,6 +1730,25 @@
 		color: rgba(255,255,255,0.45);
 		font-size: 0.8rem;
 		padding: 1.5rem 0;
+	}
+	.chip-offline-dot {
+		display: inline-block;
+		margin-left: 0.3rem;
+		color: oklch(80% 0.18 55);
+		font-weight: 900;
+		font-size: 1rem;
+		line-height: 1;
+		vertical-align: middle;
+	}
+	.offline-cache-notice {
+		font-size: 0.72rem;
+		color: oklch(75% 0.14 55);
+		background: oklch(75% 0.14 55 / 0.08);
+		border: 1px solid oklch(75% 0.14 55 / 0.2);
+		border-radius: 8px;
+		padding: 0.4rem 0.75rem;
+		margin-bottom: 0.75rem;
+		text-align: center;
 	}
 	.load-more-btn {
 		width: 100%;
