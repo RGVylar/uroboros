@@ -29,7 +29,8 @@ def _make_vapid() -> Vapid | None:
     private_value = int.from_bytes(key_bytes, "big")
     priv_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
     v = Vapid()
-    v._private_key = priv_key  # public_key is a computed property derived from _private_key
+    v._private_key = priv_key
+    v._public_key = priv_key.public_key()  # public_key property reads _public_key, no setter exists
     return v
 
 
