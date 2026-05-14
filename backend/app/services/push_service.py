@@ -18,14 +18,14 @@ VAPID_EMAIL = settings.vapid_email
 
 
 def _private_key_pem(key_b64url: str) -> str:
-    """Convert base64url raw EC private key scalar to PEM (what pywebpush expects)."""
+    """Convert base64url raw EC private key scalar to PKCS8 PEM (what pywebpush expects)."""
     padding = "=" * (4 - len(key_b64url) % 4)
     key_bytes = base64.urlsafe_b64decode(key_b64url + padding)
     private_value = int.from_bytes(key_bytes, "big")
     private_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
     return private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode()
 
