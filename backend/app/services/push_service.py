@@ -1,37 +1,38 @@
-"""Web Push via VAPID — wraps pywebpush."""
+"""Web Push via VAPID — wraps pywebpush internals directly to avoid from_string issues."""
 
 import base64
 import json
 import logging
 
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from pywebpush import WebPushException, webpush
+from py_vapid import Vapid
+from pywebpush import WebPusher, WebPushException
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 VAPID_PUBLIC_KEY = settings.vapid_public_key
-VAPID_EMAIL = settings.vapid_email
 
 
-def _private_key_pem(key_b64url: str) -> str:
-    """Convert base64url raw EC private key scalar to PKCS8 PEM (what pywebpush expects)."""
-    padding = "=" * (4 - len(key_b64url) % 4)
-    key_bytes = base64.urlsafe_b64decode(key_b64url + padding)
+def _make_vapid() -> Vapid | None:
+    """Build a Vapid instance directly from the raw base64url private key scalar,
+    bypassing py_vapid's from_string() which has format compatibility issues."""
+    key_b64 = settings.vapid_private_key
+    if not key_b64:
+        return None
+    padding = "=" * (4 - len(key_b64) % 4)
+    key_bytes = base64.urlsafe_b64decode(key_b64 + padding)
     private_value = int.from_bytes(key_bytes, "big")
-    private_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
-    return private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).decode()
+    priv_key = ec.derive_private_key(private_value, ec.SECP256R1(), default_backend())
+    v = Vapid()
+    v.private_key = priv_key
+    v.public_key = priv_key.public_key()
+    return v
 
 
-# Convert once at import time
-_VAPID_PRIVATE_PEM: str = _private_key_pem(settings.vapid_private_key) if settings.vapid_private_key else ""
+_vapid: Vapid | None = _make_vapid()
 
 
 def send_push(
@@ -45,26 +46,32 @@ def send_push(
     icon: str = "/icon-192.png",
 ) -> bool:
     """Send a Web Push notification. Returns True on success."""
-    if not _VAPID_PRIVATE_PEM:
+    if not _vapid:
         logger.warning("VAPID_PRIVATE_KEY not configured — skipping push")
         return False
 
+    data = json.dumps({"title": title, "body": body, "url": url, "icon": icon})
     try:
-        webpush(
-            subscription_info={
-                "endpoint": endpoint,
-                "keys": {"p256dh": p256dh, "auth": auth},
-            },
-            data=json.dumps({"title": title, "body": body, "url": url, "icon": icon}),
-            vapid_private_key=_VAPID_PRIVATE_PEM,
-            vapid_claims={"sub": VAPID_EMAIL},
+        wp = WebPusher(
+            subscription_info={"endpoint": endpoint, "keys": {"p256dh": p256dh, "auth": auth}}
         )
+        encoded = wp.encode(data, content_encoding="aes128gcm")
+        # Sign modifies encoded.headers in-place with the Authorization header
+        _vapid.sign(encoded.headers, endpoint, {"sub": settings.vapid_email})
+        response = wp.send(encoded, headers={}, ttl=86400)
+
+        if response.status_code == 410:
+            raise WebPushException("Gone", response=response)
+        if not response.ok:
+            logger.error("Push failed %s — %s", response.status_code, response.text[:300])
+            return False
         return True
+
     except WebPushException as e:
         if e.response is not None and e.response.status_code == 410:
             raise
-        body_text = e.response.text if e.response is not None else "no response"
-        logger.error("Push failed %s — %s", e, body_text)
+        body_text = e.response.text[:300] if e.response is not None else "no response"
+        logger.error("Push failed: %s — %s", e, body_text)
         return False
 
 
