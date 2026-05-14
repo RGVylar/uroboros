@@ -31,6 +31,52 @@
 	let frequentRecipes: FrequentRecipe[] = $state([]);
 	let loadingFrequent = $state(false);
 
+	// Favorites state
+	let favorites: Product[] = $state([]);
+	let favoriteIds = $state(new Set<number>());
+	let favoriteToggling = $state(false);
+
+	async function loadFavorites() {
+		try {
+			const [prods, ids] = await Promise.all([
+				api.get<Product[]>('/favorites'),
+				api.get<number[]>('/favorites/ids'),
+			]);
+			favorites = prods;
+			favoriteIds = new Set(ids);
+		} catch {
+			// silencioso — favoritos no críticos
+		}
+	}
+
+	async function toggleFavorite(productId: number) {
+		if (favoriteToggling) return;
+		favoriteToggling = true;
+		const isFav = favoriteIds.has(productId);
+		// Optimistic update
+		const next = new Set(favoriteIds);
+		if (isFav) {
+			next.delete(productId);
+			favorites = favorites.filter(p => p.id !== productId);
+		} else {
+			next.add(productId);
+			if (selected) favorites = [selected, ...favorites];
+		}
+		favoriteIds = next;
+		try {
+			if (isFav) {
+				await api.del(`/favorites/${productId}`);
+			} else {
+				await api.post(`/favorites/${productId}`, {});
+			}
+		} catch {
+			// Revert on error
+			await loadFavorites();
+		} finally {
+			favoriteToggling = false;
+		}
+	}
+
 	// Web barcode scanner state
 	let scanning = $state(false);
 	let videoEl: HTMLVideoElement | undefined = $state();
@@ -308,6 +354,7 @@
 		loadRecommendations();
 		loadFrequent();
 		loadAllergies();
+		loadFavorites();
 	});
 
 	async function searchByName() {
@@ -506,6 +553,18 @@
 			<div class="header-eyebrow">Detalle</div>
 			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected.name}</div>
 		</div>
+		<button
+			class="glass-btn"
+			onclick={() => toggleFavorite(selected!.id)}
+			aria-label={favoriteIds.has(selected.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+			title={favoriteIds.has(selected.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+			disabled={favoriteToggling}
+			style="color: {favoriteIds.has(selected.id) ? 'oklch(85% 0.22 55)' : 'rgba(255,255,255,0.5)'} !important;"
+		>
+			<svg width="17" height="17" viewBox="0 0 24 24" fill={favoriteIds.has(selected.id) ? 'currentColor' : 'none'}>
+				<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
 		<button class="glass-btn" onclick={startEdit} aria-label="Editar producto" title="Corregir datos del producto">
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
 				<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -944,8 +1003,49 @@
 			{/if}
 		{/if}
 
-		<!-- ── RECIENTES / FAVORITOS ── -->
-		{#if activeFilter === 'recent' || activeFilter === 'favorites'}
+		<!-- ── FAVORITOS ── -->
+		{#if activeFilter === 'favorites'}
+			{#if favorites.length === 0}
+				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
+					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⭐</div>
+					<div>Aún no tienes favoritos</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Pulsa la estrella en cualquier producto para guardarlo aquí</div>
+				</div>
+			{:else}
+				<div class="section-header">
+					<div>
+						<div class="section-title">Favoritos</div>
+						<div class="section-sub">{favorites.length} producto{favorites.length !== 1 ? 's' : ''}</div>
+					</div>
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+					{#each favorites as product (product.id)}
+						<div class="fav-row-wrap">
+							<button class="product-row" onclick={() => selectProduct(product)}>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+								<div style="flex:1; min-width:0; text-align:left;">
+									<div class="product-name">{product.name}</div>
+									<div class="product-brand">{product.brand ?? '—'}</div>
+								</div>
+								<div style="text-align:right; flex-shrink:0;">
+									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+									<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+								</div>
+							</button>
+							<button
+								class="fav-star-btn"
+								onclick={() => toggleFavorite(product.id)}
+								aria-label="Quitar de favoritos"
+								disabled={favoriteToggling}
+							>★</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<!-- ── RECIENTES ── -->
+		{#if activeFilter === 'recent'}
 			{#if loadingFrequent}
 				<div class="loading-row">Cargando historial...</div>
 			{:else if frequentRecipes.length === 0 && frequent.length === 0}
@@ -955,7 +1055,7 @@
 				<div class="section-header">
 					<div>
 						<div class="section-title">Mis alimentos</div>
-						<div class="section-sub">{activeFilter === 'favorites' ? 'Los que más usas' : 'Por frecuencia de uso'}</div>
+						<div class="section-sub">Por frecuencia de uso</div>
 					</div>
 					<div style="display:flex; gap:0.25rem; background:rgba(255,255,255,0.05); border-radius:99px; padding:3px; border:1px solid rgba(255,255,255,0.08);">
 						<button
@@ -1035,7 +1135,7 @@
 			{/if}
 		{/if}
 
-	{/if}
+	{/if} <!-- /!query -->
 
 	{#if error}<p class="add-error">{error}</p>{/if}
 {/if}
@@ -1543,6 +1643,37 @@
 	.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 	.btn-submit:not(:disabled):hover { transform: translateY(-1px); }
 	.btn-submit:not(:disabled):active { transform: translateY(0); }
+
+	/* ── Favorite row wrapper ── */
+	.fav-row-wrap {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.fav-row-wrap .product-row {
+		flex: 1;
+		min-width: 0;
+	}
+
+	/* ── Favorite star button (inline in list) ── */
+	.fav-star-btn {
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.875rem;
+		flex-shrink: 0;
+		transition: transform 0.15s, background 0.15s;
+		padding: 0;
+		background: oklch(85% 0.22 55 / 0.12);
+		color: oklch(85% 0.22 55);
+	}
+	.fav-star-btn:hover { transform: scale(1.15); background: oklch(85% 0.22 55 / 0.2); }
+	.fav-star-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 	/* ── Misc ── */
 	.add-error {

@@ -85,6 +85,12 @@
 
 		<!-- Contenido principal -->
 		<div class="main-content">
+			{#if connectivity.isOffline}
+				<div class="offline-strip" role="alert" aria-live="assertive">
+					<span>⚽</span>
+					<span>Sin conexión — probablemente es el fútbol</span>
+				</div>
+			{/if}
 			<div class="container page">
 				{@render children()}
 			</div>
@@ -93,16 +99,6 @@
 {:else}
 	<div class="container page">
 		{@render children()}
-	</div>
-{/if}
-
-<!-- Banner sin conexión ⚽ -->
-{#if connectivity.isOffline}
-	<div class="offline-banner" role="alert" aria-live="assertive">
-		<span class="offline-icon">⚽</span>
-		<span class="offline-text">
-			Sin conexión con el servidor — probablemente es el fútbol
-		</span>
 	</div>
 {/if}
 
@@ -161,46 +157,24 @@
 {/if}
 
 <style>
-	/* ── Banner sin conexión ── */
-	.offline-banner {
-		position: fixed;
-		bottom: 80px; /* por encima del bottom-nav en móvil */
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 9999;
+	/* ── Strip sin conexión (dentro del main-content, no flotante) ── */
+	.offline-strip {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.55rem 1.1rem;
-		border-radius: 99px;
-		background: oklch(22% 0.02 260 / 0.92);
-		backdrop-filter: blur(10px);
-		border: 1px solid oklch(50% 0.03 260 / 0.4);
-		box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-		white-space: nowrap;
-		animation: banner-in 0.3s ease;
-	}
-	@keyframes banner-in {
-		from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-		to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-	}
-	.offline-icon {
-		font-size: 1.1rem;
-		animation: spin-ball 2s linear infinite;
-	}
-	@keyframes spin-ball {
-		0%   { transform: rotate(0deg);   }
-		100% { transform: rotate(360deg); }
-	}
-	.offline-text {
-		font-size: 0.82rem;
+		justify-content: center;
+		gap: 0.4rem;
+		padding: 0.3rem 1rem;
+		background: oklch(28% 0.04 260 / 0.85);
+		border-bottom: 1px solid oklch(45% 0.06 260 / 0.4);
+		font-size: 0.72rem;
 		font-weight: 600;
-		color: oklch(88% 0.04 260);
+		color: oklch(80% 0.05 260);
 		letter-spacing: 0.01em;
+		animation: strip-in 0.25s ease;
 	}
-	/* En escritorio el banner sube por encima del bottom-nav (que está oculto) */
-	@media (min-width: 900px) {
-		.offline-banner { bottom: 1.5rem; }
+	@keyframes strip-in {
+		from { opacity: 0; transform: translateY(-6px); }
+		to   { opacity: 1; transform: translateY(0); }
 	}
 
 	/* ── Badge móvil ── */

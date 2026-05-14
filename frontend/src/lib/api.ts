@@ -22,7 +22,13 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 		throw new Error('Sin conexión con el servidor');
 	}
 
-	// Got a response — server is reachable
+	// 502/503/504 = gateway errors (proxy up, backend down) → treat as offline
+	if (res.status === 502 || res.status === 503 || res.status === 504) {
+		connectivity.recordFailure();
+		throw new Error('Sin conexión con el servidor');
+	}
+
+	// Got a meaningful response — server is reachable
 	connectivity.recordSuccess();
 
 	if (res.status === 401) {

@@ -14,6 +14,7 @@ from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventor
 from app.models.supplement import UserSupplement, SupplementLog
 from app.models.password_reset import PasswordResetToken
 from app.models.allergy import UserAllergy
+from app.models.favorite import UserFavorite
 
 __all__ = [
     "User",
@@ -41,4 +42,5 @@ __all__ = [
     "SupplementLog",
     "PasswordResetToken",
     "UserAllergy",
+    "UserFavorite",
 ]
