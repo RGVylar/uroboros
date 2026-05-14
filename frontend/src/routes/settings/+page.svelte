@@ -3,8 +3,73 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
+	import { pushStore } from '$lib/stores/push.svelte';
 	import type { Goals } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
+
+	// ── Notification prefs ─────────────────────────────────────────────────────
+	interface NotifPrefs {
+		enabled: boolean;
+		quiet_start: number; quiet_end: number;
+		breakfast_on: boolean; breakfast_time: string;
+		lunch_on: boolean; lunch_time: string;
+		dinner_on: boolean; dinner_time: string;
+		streak_on: boolean; streak_time: string; streak_min_days: number;
+		summary_on: boolean; summary_time: string;
+		water_on: boolean; water_time: string;
+		timezone: string;
+	}
+
+	// Common IANA timezones for the selector
+	const TIMEZONES = [
+		{ value: 'Europe/Madrid',      label: 'Madrid / España' },
+		{ value: 'Europe/London',      label: 'Londres' },
+		{ value: 'Europe/Paris',       label: 'París / Europa Central' },
+		{ value: 'America/Mexico_City',label: 'Ciudad de México' },
+		{ value: 'America/Bogota',     label: 'Bogotá / Lima / Quito' },
+		{ value: 'America/Caracas',    label: 'Caracas' },
+		{ value: 'America/Santiago',   label: 'Santiago de Chile' },
+		{ value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires' },
+		{ value: 'America/Sao_Paulo',  label: 'São Paulo / Brasil' },
+		{ value: 'America/New_York',   label: 'Nueva York' },
+		{ value: 'America/Los_Angeles',label: 'Los Ángeles' },
+		{ value: 'UTC',                label: 'UTC' },
+	];
+	let prefs: NotifPrefs | null = $state(null);
+	let savingPrefs = $state(false);
+	let testSent = $state(false);
+
+	async function loadPrefs() {
+		prefs = await api.get<NotifPrefs>('/push/prefs').catch(() => null);
+	}
+	loadPrefs();
+
+	async function savePrefs(patch: Partial<NotifPrefs>) {
+		if (!prefs) return;
+		prefs = { ...prefs, ...patch };
+		savingPrefs = true;
+		try {
+			prefs = await api.put<NotifPrefs>('/push/prefs', patch);
+		} catch { /* ignore */ } finally {
+			savingPrefs = false;
+		}
+	}
+
+	async function enableNotifs() {
+		const ok = await pushStore.subscribe();
+		if (ok) await savePrefs({ enabled: true });
+	}
+
+	async function disableNotifs() {
+		await savePrefs({ enabled: false });
+		await pushStore.unsubscribe();
+	}
+
+	async function sendTestNotif() {
+		await pushStore.sendTest();
+		testSent = true;
+		setTimeout(() => testSent = false, 3000);
+	}
 
 	let goals: Goals | null = $state(null);
 	let savingCreatine = $state(false);
@@ -305,6 +370,161 @@
 	</div>
 </div>
 
+<!-- ── Group: Notificaciones ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Notificaciones</div>
+	<div class="settings-group">
+		{#if !pushStore.isSupported}
+			<div class="settings-row" style="cursor:default; opacity:0.5;">
+				<div class="icon-box">🔔</div>
+				<div class="row-content">
+					<div class="row-label">No disponible</div>
+					<div class="row-sub">Tu navegador no soporta notificaciones push</div>
+				</div>
+			</div>
+		{:else if pushStore.permission === 'denied'}
+			<div class="settings-row" style="cursor:default;">
+				<div class="icon-box">🔕</div>
+				<div class="row-content">
+					<div class="row-label">Bloqueadas por el navegador</div>
+					<div class="row-sub">Actívalas en los ajustes del navegador</div>
+				</div>
+			</div>
+		{:else}
+			<!-- Master toggle -->
+			<div class="settings-row" style="cursor:default;">
+				<div class="icon-box">🔔</div>
+				<div class="row-content">
+					<div class="row-label">Activar notificaciones</div>
+					<div class="row-sub">
+						{prefs?.enabled ? 'Activadas · Solo cuando tiene sentido' : 'Desactivadas'}
+					</div>
+				</div>
+				<button
+					class="toggle-btn"
+					class:toggle-on={prefs?.enabled}
+					onclick={() => prefs?.enabled ? disableNotifs() : enableNotifs()}
+					disabled={savingPrefs}
+					aria-label="Toggle notificaciones"
+				>
+					<span class="toggle-thumb"></span>
+				</button>
+			</div>
+
+			{#if prefs?.enabled}
+				<!-- Meal reminders -->
+				<div class="notif-subsection">
+					<div class="notif-sub-label">Recordatorios de comida</div>
+					{#each [
+						{ key: 'breakfast', label: 'Desayuno', emoji: '🍳', on: prefs.breakfast_on, time: prefs.breakfast_time },
+						{ key: 'lunch',     label: 'Almuerzo', emoji: '🥗', on: prefs.lunch_on,     time: prefs.lunch_time     },
+						{ key: 'dinner',    label: 'Cena',     emoji: '🍽️', on: prefs.dinner_on,    time: prefs.dinner_time    },
+					] as meal}
+						<div class="notif-row">
+							<span class="notif-emoji">{meal.emoji}</span>
+							<span class="notif-meal-label">{meal.label}</span>
+							<input
+								type="time"
+								class="time-input"
+								value={meal.time}
+								disabled={!meal.on}
+								onchange={(e) => savePrefs({ [`${meal.key}_time`]: (e.target as HTMLInputElement).value } as Partial<NotifPrefs>)}
+							/>
+							<button
+								class="toggle-btn toggle-sm"
+								class:toggle-on={meal.on}
+								onclick={() => savePrefs({ [`${meal.key}_on`]: !meal.on } as Partial<NotifPrefs>)}
+								aria-label="Toggle {meal.label}"
+							><span class="toggle-thumb"></span></button>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Streak alert -->
+				<div class="notif-subsection">
+					<div class="notif-sub-label">Racha</div>
+					<div class="notif-row">
+						<span class="notif-emoji">🔥</span>
+						<span class="notif-meal-label">Racha en peligro</span>
+						<input type="time" class="time-input" value={prefs.streak_time} disabled={!prefs.streak_on}
+							onchange={(e) => savePrefs({ streak_time: (e.target as HTMLInputElement).value })} />
+						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.streak_on}
+							onclick={() => savePrefs({ streak_on: !prefs.streak_on })}
+							aria-label="Toggle racha"><span class="toggle-thumb"></span></button>
+					</div>
+					<div class="notif-row">
+						<span class="notif-emoji">🏆</span>
+						<span class="notif-meal-label">Hitos de racha</span>
+						<span class="notif-hint">3, 7, 14, 30... días</span>
+						<span class="notif-always">Siempre</span>
+					</div>
+				</div>
+
+				<!-- Summary + water -->
+				<div class="notif-subsection">
+					<div class="notif-sub-label">Resumen y agua</div>
+					<div class="notif-row">
+						<span class="notif-emoji">📊</span>
+						<span class="notif-meal-label">Resumen del día</span>
+						<input type="time" class="time-input" value={prefs.summary_time} disabled={!prefs.summary_on}
+							onchange={(e) => savePrefs({ summary_time: (e.target as HTMLInputElement).value })} />
+						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.summary_on}
+							onclick={() => savePrefs({ summary_on: !prefs.summary_on })}
+							aria-label="Toggle resumen"><span class="toggle-thumb"></span></button>
+					</div>
+					<div class="notif-row">
+						<span class="notif-emoji">💧</span>
+						<span class="notif-meal-label">Recordatorio agua</span>
+						<input type="time" class="time-input" value={prefs.water_time} disabled={!prefs.water_on}
+							onchange={(e) => savePrefs({ water_time: (e.target as HTMLInputElement).value })} />
+						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.water_on}
+							onclick={() => savePrefs({ water_on: !prefs.water_on })}
+							aria-label="Toggle agua"><span class="toggle-thumb"></span></button>
+					</div>
+				</div>
+
+				<!-- Quiet hours + Timezone -->
+				<div class="notif-subsection">
+					<div class="notif-sub-label">Horas de silencio</div>
+					<div class="notif-row" style="gap:0.5rem;">
+						<span class="notif-emoji">🌙</span>
+						<span class="notif-meal-label">Sin molestar de</span>
+						<input type="number" min="0" max="23" class="hour-input" value={prefs.quiet_start}
+							onchange={(e) => savePrefs({ quiet_start: Number((e.target as HTMLInputElement).value) })} />
+						<span style="color:var(--text-muted); font-size:0.8rem;">a</span>
+						<input type="number" min="0" max="23" class="hour-input" value={prefs.quiet_end}
+							onchange={(e) => savePrefs({ quiet_end: Number((e.target as HTMLInputElement).value) })} />
+						<span style="color:var(--text-muted); font-size:0.75rem;">h</span>
+					</div>
+					<div class="notif-row" style="gap:0.5rem; margin-top:0.25rem;">
+						<span class="notif-emoji">🌍</span>
+						<span class="notif-meal-label">Zona horaria</span>
+						<select
+							class="tz-select"
+							value={prefs.timezone}
+							onchange={(e) => savePrefs({ timezone: (e.target as HTMLSelectElement).value })}
+						>
+							{#each TIMEZONES as tz}
+								<option value={tz.value}>{tz.label}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+
+				<!-- Test button -->
+				<button class="settings-row" onclick={sendTestNotif} style="border-top:1px solid rgba(255,255,255,0.06);">
+					<div class="icon-box">📨</div>
+					<div class="row-content">
+						<div class="row-label">{testSent ? '✅ Enviada' : 'Enviar notificación de prueba'}</div>
+						<div class="row-sub">Comprueba que todo funciona</div>
+					</div>
+					<div class="row-arrow">›</div>
+				</button>
+			{/if}
+		{/if}
+	</div>
+</div>
+
 <!-- ── Group: Cuenta ── -->
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Cuenta</div>
@@ -439,6 +659,16 @@
 		font-size: 0.875rem;
 		flex-shrink: 0;
 	}
+	.row-sub {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.45);
+		margin-top: 0.125rem;
+	}
+	.row-arrow {
+		color: rgba(255,255,255,0.3);
+		font-size: 0.875rem;
+		flex-shrink: 0;
+	}
 	.toggle-btn {
 		position: relative;
 		width: 40px;
@@ -461,4 +691,95 @@
 		transition: left 0.2s;
 		display: block;
 	}
+	/* Toggle-thumb variant (CSS-driven, no inline style needed) */
+	.toggle-thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+		box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+		transition: left 0.2s;
+		display: block;
+	}
+	.toggle-on .toggle-thumb { left: 18px; }
+	.toggle-btn:not(.toggle-on) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+	.toggle-btn.toggle-on { background: var(--primary); border-color: var(--primary); }
+	.toggle-sm { width: 34px; height: 20px; }
+	.toggle-sm .toggle-thumb { width: 14px; height: 14px; top: 2px; }
+	.toggle-sm.toggle-on .toggle-thumb { left: 16px; }
+
+	/* Notification rows */
+	.notif-subsection {
+		border-top: 1px solid rgba(255,255,255,0.06);
+		padding: 0.625rem 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.notif-sub-label {
+		font-size: 0.65rem;
+		font-weight: 700;
+		color: oklch(55% 0.05 260);
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		margin-bottom: 0.1rem;
+	}
+	.notif-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.notif-emoji { font-size: 1rem; flex-shrink: 0; width: 1.25rem; text-align: center; }
+	.notif-meal-label { flex: 1; font-size: 0.8rem; color: rgba(255,255,255,0.85); min-width: 0; }
+	.notif-hint { font-size: 0.7rem; color: oklch(55% 0.05 260); }
+	.notif-always {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: oklch(65% 0.15 160);
+		background: oklch(65% 0.15 160 / 0.1);
+		border: 1px solid oklch(65% 0.15 160 / 0.2);
+		border-radius: 99px;
+		padding: 0.1rem 0.4rem;
+	}
+	.time-input {
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.12);
+		border-radius: 8px;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.75rem;
+		padding: 0.2rem 0.4rem;
+		width: 5.5rem;
+		flex-shrink: 0;
+	}
+	.time-input:disabled { opacity: 0.35; }
+	.time-input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
+	.hour-input {
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.12);
+		border-radius: 8px;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.8rem;
+		padding: 0.2rem 0.4rem;
+		width: 3rem;
+		text-align: center;
+		flex-shrink: 0;
+	}
+	.tz-select {
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.12);
+		border-radius: 8px;
+		color: #fff;
+		font-family: inherit;
+		font-size: 0.75rem;
+		padding: 0.2rem 0.4rem;
+		flex: 1;
+		min-width: 0;
+		cursor: pointer;
+	}
+	.tz-select option { background: #1a1f2e; color: #fff; }
 </style>

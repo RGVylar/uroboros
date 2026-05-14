@@ -1,9 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, cheat_days, creatine, diary, exercises, exercise_sessions, favorites, friends, goals, inventory, measurements, products, recipes, shopping_list, supplements, users, water, weight, allergies
+from app.routers import (
+    auth, cheat_days, creatine, diary, exercises, exercise_sessions,
+    favorites, friends, goals, inventory, measurements, products,
+    push, recipes, shopping_list, supplements, users, water, weight, allergies,
+)
+from app.services.notification_scheduler import start_scheduler, stop_scheduler
 
-app = FastAPI(title="Uroboros", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
+app = FastAPI(title="Uroboros", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,3 +54,4 @@ app.include_router(shopping_list.router, prefix=api_prefix)
 app.include_router(supplements.router, prefix=api_prefix)
 app.include_router(allergies.router, prefix=api_prefix)
 app.include_router(favorites.router, prefix=api_prefix)
+app.include_router(push.router, prefix=api_prefix)

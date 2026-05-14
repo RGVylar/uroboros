@@ -24,6 +24,8 @@ from app.schemas.diary import (
     MealSection,
 )
 from app.schemas.misc import DiaryRecipeCreate
+from app.services.streak_service import calculate_streak, milestone_hit
+from app.services.notification_scheduler import send_milestone_push
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
@@ -115,10 +117,23 @@ def create_entry(
                 )
             created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
 
+    # Calculate streak BEFORE commit to detect milestone
+    old_streak = calculate_streak(db, user.id)
+
     db.add_all(created)
     db.commit()
     for e in created:
         db.refresh(e)
+
+    # Check for streak milestone and send push if hit
+    new_streak = calculate_streak(db, user.id)
+    hit = milestone_hit(old_streak, new_streak)
+    if hit:
+        try:
+            send_milestone_push(db, user.id, hit)
+        except Exception:
+            pass  # non-critical
+
     return created
 
 
@@ -292,30 +307,7 @@ def get_streak(
     user: User = Depends(get_current_user),
 ) -> dict:
     """Count consecutive days with at least one diary entry (or a used cheat day), going back from today."""
-    streak = 0
-    day = datetime.now(timezone.utc).date()
-    while True:
-        start = datetime.combine(day, time.min, tzinfo=timezone.utc)
-        end = datetime.combine(day, time.max, tzinfo=timezone.utc)
-        has_entry = db.scalar(
-            select(DiaryEntry.id)
-            .where(DiaryEntry.user_id == user.id,
-                   DiaryEntry.consumed_at >= start,
-                   DiaryEntry.consumed_at <= end)
-            .limit(1)
-        )
-        if not has_entry:
-            # Check if this day was saved by a cheat day
-            is_cheat_day = db.scalar(
-                select(CheatDayLog.id)
-                .where(CheatDayLog.user_id == user.id,
-                       CheatDayLog.used_date == day)
-            )
-            if not is_cheat_day:
-                break
-        streak += 1
-        day -= timedelta(days=1)
-    return {"streak": streak}
+    return {"streak": calculate_streak(db, user.id)}
 
 
 @router.post("/copy-from-yesterday", status_code=status.HTTP_201_CREATED)

@@ -15,6 +15,9 @@ from app.models.supplement import UserSupplement, SupplementLog
 from app.models.password_reset import PasswordResetToken
 from app.models.allergy import UserAllergy
 from app.models.favorite import UserFavorite
+from app.models.push_subscription import PushSubscription
+from app.models.notification_prefs import NotificationPrefs
+from app.models.notification_log import NotificationLog
 
 __all__ = [
     "User",
@@ -43,4 +46,7 @@ __all__ = [
     "PasswordResetToken",
     "UserAllergy",
     "UserFavorite",
+    "PushSubscription",
+    "NotificationPrefs",
+    "NotificationLog",
 ]

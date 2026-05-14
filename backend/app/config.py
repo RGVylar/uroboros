@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "uroboros <noreply@mugrelore.com>"
     app_url: str = "https://comida.mugrelore.com"
+    vapid_private_key: str = ""
+    vapid_public_key: str = ""
+    vapid_email: str = "mailto:admin@uroboros.app"
 
 
 settings = Settings()

@@ -5,6 +5,8 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
+	import { pushStore } from '$lib/stores/push.svelte';
+	import NotifModal from '$lib/components/NotifModal.svelte';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
@@ -37,6 +39,22 @@
 	let newSuppName = $state('');
 	let addingSuppName = $state(false);
 	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
+
+	// ── Notification modal ─────────────────────────────────────────────────────
+	let showNotifModal = $state(false);
+
+	function maybeShowNotifModal() {
+		if (!pushStore.isSupported) return;
+		if (pushStore.isSubscribed) return;
+		if (pushStore.permission === 'denied') return;
+		// Don't show if snoozed
+		const snoozed = localStorage.getItem('uro_notif_snoozed');
+		if (snoozed && Date.now() < Number(snoozed)) return;
+		// Don't show if already asked and dismissed permanently
+		if (localStorage.getItem('uro_notif_asked') === 'permanent') return;
+		showNotifModal = true;
+		localStorage.setItem('uro_notif_asked', 'shown');
+	}
 	let suppCount = $derived(supplements.length);
 	let suppTaken = $derived(supplements.filter(s => s.taken).length);
 	let cheatDay: CheatDayToday | null = $state(null);
@@ -109,6 +127,11 @@
 			// Persist to cache for offline use
 			cacheSet(`diary_${today}`, s);
 			if (g) cacheSet('goals', g);
+			// Show notification modal once after user has their first entry
+			if (s.totals.calories > 0 && !sessionStorage.getItem('uro_notif_modal_shown')) {
+				sessionStorage.setItem('uro_notif_modal_shown', '1');
+				setTimeout(maybeShowNotifModal, 1200);
+			}
 		} catch {
 			// Network failed — try loading from cache
 			const cachedSummary = cacheGet<DaySummary>(`diary_${today}`);
@@ -809,6 +832,10 @@
 			onclick={(e) => { e.stopPropagation(); startDelete(entry); }}>✕</button>
 	</div>
 {/snippet}
+
+{#if showNotifModal}
+	<NotifModal onclose={() => showNotifModal = false} />
+{/if}
 
 <style>
 	.cache-notice {
