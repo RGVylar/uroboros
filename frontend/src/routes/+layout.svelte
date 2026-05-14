@@ -9,6 +9,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
+	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { page } from '$app/state';
 
 	let { children } = $props();
@@ -19,6 +20,16 @@
 		} else {
 			pendingFriends.stop();
 		}
+	});
+
+	// Drain offline write queue when connectivity is restored
+	let wasOffline = false;
+	$effect(() => {
+		const isOffline = connectivity.isOffline;
+		if (wasOffline && !isOffline && syncQueue.count > 0) {
+			syncQueue.drain();
+		}
+		wasOffline = isOffline;
 	});
 
 	// Móvil: 4 items + FAB en el centro

@@ -2,6 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { connectivity } from '$lib/stores/connectivity.svelte';
+	import { cacheSet, cacheGet } from '$lib/cache';
+	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
@@ -25,6 +28,7 @@
 	let streak = $state(0);
 	let users: User[] = $state([]);
 	let loading = $state(true);
+	let fromCache = $state(false);
 	let copyingYesterday = $state(false);
 	let creatine: CreatineToday | null = $state(null);
 	let togglingCreatine = $state(false);
@@ -64,6 +68,7 @@
 
 	async function load() {
 		loading = true;
+		fromCache = false;
 		try {
 			const isTodayVal = today === new Date().toISOString().slice(0, 10);
 			const streakPromise = isTodayVal
@@ -101,8 +106,20 @@
 			} else {
 				cheatDay = null;
 			}
+			// Persist to cache for offline use
+			cacheSet(`diary_${today}`, s);
+			if (g) cacheSet('goals', g);
 		} catch {
-			// handled
+			// Network failed — try loading from cache
+			const cachedSummary = cacheGet<DaySummary>(`diary_${today}`);
+			const cachedGoals = cacheGet<Goals>('goals');
+			if (cachedSummary) {
+				summary = cachedSummary.data;
+				fromCache = true;
+			}
+			if (cachedGoals) {
+				goals = cachedGoals.data;
+			}
 		} finally {
 			loading = false;
 		}
@@ -339,6 +356,22 @@
 {#if loading}
 		<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">Cargando...</p>
 	{:else if summary}
+
+		{#if fromCache}
+			<div class="cache-notice">
+				<span>📦</span>
+				<span>Datos guardados · sin conexión con el servidor</span>
+			</div>
+		{/if}
+		{#if syncQueue.count > 0}
+			<div class="cache-notice" style="border-color: oklch(75% 0.18 55 / 0.25); background: oklch(75% 0.18 55 / 0.06);">
+				<span>⏳</span>
+				<span style="color: oklch(82% 0.15 55);">
+					{syncQueue.count} {syncQueue.count === 1 ? 'entrada pendiente' : 'entradas pendientes'} de sincronizar
+					{#if syncQueue.isSyncing}· sincronizando…{/if}
+				</span>
+			</div>
+		{/if}
 
 		<div class="diary-body">
 
@@ -776,3 +809,19 @@
 			onclick={(e) => { e.stopPropagation(); startDelete(entry); }}>✕</button>
 	</div>
 {/snippet}
+
+<style>
+	.cache-notice {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		font-size: 0.72rem;
+		color: rgba(255,255,255,0.45);
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.07);
+		border-radius: 10px;
+		padding: 0.4rem 0.875rem;
+		margin-bottom: 0.5rem;
+	}
+</style>

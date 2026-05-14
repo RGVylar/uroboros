@@ -4,6 +4,8 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { connectivity } from '$lib/stores/connectivity.svelte';
+	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct, FrequentRecipe } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
@@ -453,15 +455,28 @@
 		if (!selected) return;
 		saving = true;
 		error = '';
+		const payload = {
+			product_id: selected.id,
+			grams,
+			meal_type: mealType,
+			consumed_at: consumedAt(selectedDate),
+			also_for_user_id: shareMode === 'also' ? partner?.id : null,
+			only_for_user_id: shareMode === 'only' ? partner?.id : null,
+		};
 		try {
-			await api.post<DiaryEntry[]>('/diary', {
-				product_id: selected.id,
-				grams,
-				meal_type: mealType,
-				consumed_at: consumedAt(selectedDate),
-				also_for_user_id: shareMode === 'also' ? partner?.id : null,
-				only_for_user_id: shareMode === 'only' ? partner?.id : null,
-			});
+			if (connectivity.isOffline) {
+				// Queue for later sync
+				syncQueue.enqueue({
+					method: 'POST',
+					path: '/diary',
+					body: payload,
+					label: `${selected.name} · ${grams}g`,
+				});
+				saveLastGrams(selected.id, grams);
+				goto('/?pending=1');
+				return;
+			}
+			await api.post<DiaryEntry[]>('/diary', payload);
 			saveLastGrams(selected.id, grams);
 			goto('/');
 		} catch (e: unknown) {
