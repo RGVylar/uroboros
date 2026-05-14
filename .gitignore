@@ -1,2 +1,4 @@
 /.claude
 /handoff
+backend/backend.err
+backend/backend.log
