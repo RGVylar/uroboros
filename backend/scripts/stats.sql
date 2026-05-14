@@ -47,12 +47,12 @@ LIMIT 10;
 \echo '══════════════════ CRECIMIENTO SEMANAL (8 semanas) ══════════════'
 
 SELECT
-    DATE_TRUNC('week', created_at)::date  AS semana,
-    COUNT(*)                              AS nuevos_usuarios,
-    SUM(COUNT(*)) OVER (ORDER BY DATE_TRUNC('week', created_at)) AS acumulado
+    DATE_TRUNC('week', created_at)::date                                    AS semana,
+    COUNT(*)                                                                AS nuevos_usuarios,
+    SUM(COUNT(*)) OVER (ORDER BY DATE_TRUNC('week', created_at)::date)     AS acumulado
 FROM users
 WHERE created_at >= NOW() - INTERVAL '8 weeks'
-GROUP BY 1
+GROUP BY DATE_TRUNC('week', created_at)::date
 ORDER BY 1;
 
 -- ── 4. Actividad diaria (últimos 14 días) ────────────────────────────────────
@@ -145,7 +145,7 @@ WITH first_entry AS (
     FROM diary_entries
     GROUP BY user_id
 ),
-returning AS (
+came_back AS (
     SELECT f.user_id
     FROM first_entry f
     JOIN diary_entries d ON d.user_id = f.user_id
@@ -160,7 +160,7 @@ SELECT
         1
     )                                                               AS retencion_pct
 FROM first_entry f
-LEFT JOIN returning r ON r.user_id = f.user_id;
+LEFT JOIN came_back r ON r.user_id = f.user_id;
 
 -- ── 9. Push notifications ────────────────────────────────────────────────────
 \echo ''
