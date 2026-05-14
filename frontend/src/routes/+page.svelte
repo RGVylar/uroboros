@@ -7,6 +7,7 @@
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 
@@ -219,7 +220,7 @@
 			editingEntry = null;
 			load();
 		} catch {
-			// ignore
+			toast.error('No se pudo guardar el cambio');
 		} finally {
 			editSaving = false;
 		}
@@ -239,7 +240,7 @@
 			const res = await api.post<{ copied: number }>('/diary/copy-from-yesterday', {});
 			if (res.copied > 0) load();
 		} catch {
-			// ignore
+			toast.error('No se pudo copiar de ayer');
 		} finally {
 			copyingYesterday = false;
 		}
@@ -255,7 +256,7 @@
 				creatine = await api.post<CreatineToday>('/creatine/log', {});
 			}
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar la creatina');
 		} finally {
 			togglingCreatine = false;
 		}
@@ -268,7 +269,7 @@
 			} else {
 				supplements = await api.post<SupplementToday[]>(`/supplements/log/${suppId}`, {});
 			}
-		} catch { /* ignore */ }
+		} catch { toast.error('No se pudo actualizar el suplemento'); }
 	}
 
 	async function addSupp() {
@@ -278,7 +279,7 @@
 			await api.post<UserSupplement>('/supplements', { name: newSuppName.trim() });
 			newSuppName = '';
 			supplements = await api.get<SupplementToday[]>('/supplements/today');
-		} catch { /* ignore */ } finally {
+		} catch { toast.error('No se pudo añadir el suplemento'); } finally {
 			addingSuppName = false;
 		}
 	}
@@ -287,7 +288,7 @@
 		try {
 			await api.del(`/supplements/${suppId}`);
 			supplements = await api.get<SupplementToday[]>('/supplements/today');
-		} catch { /* ignore */ }
+		} catch { toast.error('No se pudo eliminar el suplemento'); }
 	}
 
 	async function toggleCheatDay() {
@@ -303,7 +304,7 @@
 				streak = st.streak;
 			}
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar el cheat day');
 		} finally {
 			togglingCheatDay = false;
 		}

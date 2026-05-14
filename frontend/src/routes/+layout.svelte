@@ -12,6 +12,7 @@
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { pushStore } from '$lib/stores/push.svelte';
 	import { page } from '$app/state';
+	import Toast from '$lib/components/Toast.svelte';
 
 	let { children } = $props();
 
@@ -116,6 +117,8 @@
 {/if}
 
 <!-- Nav móvil (pill flotante) — oculta en escritorio vía CSS -->
+<Toast />
+
 {#if auth.isLoggedIn}
 	<nav class="bottom" aria-label="Navegación principal">
 		{#each mobileNav as item}

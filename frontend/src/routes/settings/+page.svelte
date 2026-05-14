@@ -4,6 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { pushStore } from '$lib/stores/push.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import type { Goals } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -50,7 +51,7 @@
 		savingPrefs = true;
 		try {
 			prefs = await api.put<NotifPrefs>('/push/prefs', patch);
-		} catch { /* ignore */ } finally {
+		} catch { toast.error('No se pudo guardar la preferencia'); } finally {
 			savingPrefs = false;
 		}
 	}
@@ -90,6 +91,7 @@
 		} catch {
 			deletingAccount = false;
 			showDeleteModal = false;
+			toast.error('No se pudo eliminar la cuenta. Inténtalo de nuevo.');
 		}
 	}
 
@@ -111,7 +113,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, track_creatine: !goals.track_creatine });
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar la configuración');
 		} finally {
 			savingCreatine = false;
 		}
@@ -123,7 +125,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, cheat_days_enabled: !goals.cheat_days_enabled });
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar la configuración');
 		} finally {
 			savingCheatDays = false;
 		}
@@ -135,7 +137,7 @@
 			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false, macro_adjust_mode: 'off' as const };
 			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar la configuración');
 		} finally {
 			savingInventory = false;
 		}
@@ -148,7 +150,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, macro_adjust_mode: mode });
 		} catch {
-			// ignore
+			toast.error('No se pudo actualizar la configuración');
 		} finally {
 			savingMacroMode = false;
 		}
