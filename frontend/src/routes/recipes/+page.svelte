@@ -5,6 +5,7 @@
 	import type { Recipe, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 	import { Modal } from '$lib/components';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -328,6 +329,23 @@
 		return h;
 	}
 
+	async function copyRecipe(recipe: Recipe | SharedRecipe) {
+		const macros = totalMacros(recipe.ingredients.map(i => ({ product: i.product, grams: i.grams })));
+		const lines = [
+			`${recipeGlyph(recipe.name)} ${recipe.name}`,
+			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
+			...recipe.ingredients.map(i => `• ${i.product.name} – ${i.grams}g`),
+			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
+			`${macros.cal} kcal · P${macros.p}g · C${macros.c}g · G${macros.f}g`,
+		];
+		try {
+			await navigator.clipboard.writeText(lines.join('\n'));
+			toast.success('Receta copiada al portapapeles');
+		} catch {
+			toast.error('No se pudo copiar al portapapeles');
+		}
+	}
+
 	function recipeGlyph(name: string): string {
 		const n = name.toLowerCase();
 		if (/desayun|avena|porridge/.test(n)) return '🥣';
@@ -560,6 +578,7 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">Registrar</button>
+				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title="Copiar al portapapeles">📋</button>
 				<button class="icon-btn" onclick={() => startEdit(recipe)} title="Editar">✏️</button>
 				<button class="icon-btn" onclick={() => toggleShare(recipe)} title={recipe.is_shared ? 'Dejar de compartir' : 'Compartir'}>
 					{recipe.is_shared ? '🔗' : '🔒'}
@@ -599,8 +618,9 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">Registrar</button>
+				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title="Copiar al portapapeles">📋</button>
 				<button class="action-btn" style="padding:0 0.875rem; background:oklch(75% 0.18 295 / 0.2); color:oklch(85% 0.15 295); border:none; border-radius:10px; font-family:inherit; cursor:pointer; font-weight:700; font-size:0.75rem;"
-					onclick={() => copySharedRecipe(recipe.id)}>📋 Copiar</button>
+					onclick={() => copySharedRecipe(recipe.id)}>+ Guardar</button>
 			</div>
 		</div>
 	{/each}
