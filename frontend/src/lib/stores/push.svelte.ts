@@ -12,6 +12,12 @@
 import { api } from '$lib/api';
 import { browser } from '$app/environment';
 
+/** True when running inside a Capacitor native app (Android / iOS). */
+export const isNativeApp: boolean =
+	browser && typeof (window as unknown as { Capacitor?: { isNative?: boolean } }).Capacitor?.isNative === 'boolean'
+		? ((window as unknown as { Capacitor: { isNative: boolean } }).Capacitor.isNative ?? false)
+		: false;
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let _isSupported = $state(false);
