@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_public_key: str = ""
     vapid_email: str = "mailto:admin@uroboros.app"
+    # Firebase service-account JSON (single line, from Firebase Console → Project Settings → Service accounts)
+    firebase_credentials_json: str = ""
 
 
 settings = Settings()

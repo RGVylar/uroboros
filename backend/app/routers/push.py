@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.fcm_token import FcmToken
 from app.models.notification_log import NotificationLog
 from app.models.notification_prefs import NotificationPrefs
 from app.models.push_subscription import PushSubscription
@@ -27,6 +28,10 @@ class SubscribeIn(BaseModel):
     p256dh: str
     auth: str
     user_agent: str | None = None
+
+
+class FcmSubscribeIn(BaseModel):
+    token: str
 
 
 class PrefsOut(BaseModel):
@@ -70,6 +75,33 @@ class PrefsIn(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
+@router.post("/fcm-subscribe", status_code=status.HTTP_204_NO_CONTENT)
+def fcm_subscribe(
+    body: FcmSubscribeIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Register (or reassociate) an FCM device token for native Android push."""
+    existing = db.scalar(select(FcmToken).where(FcmToken.token == body.token))
+    if existing:
+        existing.user_id = user.id  # re-associate if account changed
+    else:
+        db.add(FcmToken(user_id=user.id, token=body.token))
+    db.commit()
+
+
+@router.delete("/fcm-subscribe", status_code=status.HTTP_204_NO_CONTENT)
+def fcm_unsubscribe(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Remove all FCM tokens for the current user."""
+    tokens = db.scalars(select(FcmToken).where(FcmToken.user_id == user.id)).all()
+    for tok in tokens:
+        db.delete(tok)
+    db.commit()
+
 
 @router.get("/vapid-public-key")
 def get_vapid_public_key() -> dict:
@@ -165,11 +197,6 @@ def send_test(
     subs = db.scalars(
         select(PushSubscription).where(PushSubscription.user_id == user.id)
     ).all()
-    if not subs:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No hay suscripciones activas para este usuario",
-        )
 
     # Rate limit: max 5 test notifications per day
     from sqlalchemy import func as sqlfunc
@@ -187,14 +214,23 @@ def send_test(
             detail=f"Límite de {_TEST_DAILY_LIMIT} notificaciones de prueba por día",
         )
 
-    for sub in subs:
-        push_service.send_push(
-            endpoint=sub.endpoint,
-            p256dh=sub.p256dh,
-            auth=sub.auth,
-            title="🔔 uroboros",
-            body="Las notificaciones están funcionando correctamente.",
-            url="/",
+    fcm_tokens = db.scalars(select(FcmToken).where(FcmToken.user_id == user.id)).all()
+
+    if not subs and not fcm_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No hay suscripciones activas para este usuario",
         )
+
+    notif_kwargs = dict(
+        title="🔔 uroboros",
+        body="Las notificaciones están funcionando correctamente.",
+        url="/",
+    )
+    for sub in subs:
+        push_service.send_push(endpoint=sub.endpoint, p256dh=sub.p256dh, auth=sub.auth, **notif_kwargs)
+    for tok in fcm_tokens:
+        push_service.send_fcm(token=tok.token, **notif_kwargs)
+
     db.add(NotificationLog(user_id=user.id, notif_type="test"))
     db.commit()

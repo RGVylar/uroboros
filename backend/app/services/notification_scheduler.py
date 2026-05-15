@@ -25,6 +25,7 @@ from app.models.diary import DiaryEntry
 from app.models.goals import UserGoals
 from app.models.notification_log import NotificationLog
 from app.models.notification_prefs import NotificationPrefs
+from app.models.fcm_token import FcmToken
 from app.models.push_subscription import PushSubscription
 from app.models.user import User
 from app.models.water import WaterLog
@@ -97,36 +98,68 @@ def _time_matches(target_hhmm: str, prefs: NotificationPrefs, window_minutes: in
 
 
 def _send_to_user(db: Session, user_id: int, **kwargs) -> None:
-    """Send push to ALL subscriptions of a user concurrently. Remove expired ones (410)."""
+    """Send push to ALL subscriptions (Web Push + FCM) of a user. Remove expired tokens."""
     subs = db.scalars(
         select(PushSubscription).where(PushSubscription.user_id == user_id)
     ).all()
-    if not subs:
+    fcm_tokens = db.scalars(
+        select(FcmToken).where(FcmToken.user_id == user_id)
+    ).all()
+
+    if not subs and not fcm_tokens:
         return
 
     expired_endpoints: list[str] = []
+    expired_fcm_tokens: list[str] = []
 
-    def _send_one(endpoint: str, p256dh: str, auth: str) -> str | None:
+    def _send_one_web(endpoint: str, p256dh: str, auth: str) -> str | None:
         try:
             push_service.send_push(endpoint=endpoint, p256dh=p256dh, auth=auth, **kwargs)
             return None
         except WebPushException:
             return endpoint  # expired — caller will delete
 
-    with ThreadPoolExecutor(max_workers=min(len(subs), 10)) as pool:
-        futures = {
-            pool.submit(_send_one, sub.endpoint, sub.p256dh, sub.auth): sub.endpoint
-            for sub in subs
-        }
+    def _send_one_fcm(token: str) -> str | None:
+        try:
+            push_service.send_fcm(token=token, **kwargs)
+            return None
+        except Exception:
+            return token  # invalid token — caller will delete
+
+    all_tasks = (
+        [(sub.endpoint, sub.p256dh, sub.auth, "web") for sub in subs] +
+        [(tok.token, None, None, "fcm") for tok in fcm_tokens]
+    )
+    max_workers = min(len(all_tasks), 10)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {}
+        for item in all_tasks:
+            if item[3] == "web":
+                endpoint, p256dh, auth, _ = item
+                futures[pool.submit(_send_one_web, endpoint, p256dh, auth)] = ("web", endpoint)
+            else:
+                token, _, _, _ = item
+                futures[pool.submit(_send_one_fcm, token)] = ("fcm", token)
+
         for future in as_completed(futures):
+            kind, identifier = futures[future]
             result = future.result()
             if result is not None:
-                expired_endpoints.append(result)
+                if kind == "web":
+                    expired_endpoints.append(result)
+                else:
+                    expired_fcm_tokens.append(result)
 
     if expired_endpoints:
         for sub in subs:
             if sub.endpoint in expired_endpoints:
                 db.delete(sub)
+        db.commit()
+    if expired_fcm_tokens:
+        for tok in fcm_tokens:
+            if tok.token in expired_fcm_tokens:
+                db.delete(tok)
         db.commit()
 
 

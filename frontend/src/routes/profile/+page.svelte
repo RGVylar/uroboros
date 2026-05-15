@@ -28,8 +28,8 @@
 				api.get<{ streak: number; active_days: number }>('/diary/streak').catch(() => ({ streak: 0, active_days: 0 })),
 			]);
 			goals = g;
-			streak = streakData.streak;
-			totalDays = streakData.active_days;
+			streak = streakData.streak ?? 0;
+			totalDays = streakData.active_days ?? 0;
 		} finally {
 			loading = false;
 		}

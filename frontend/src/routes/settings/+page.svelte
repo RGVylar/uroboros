@@ -3,7 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
-	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
+	import { pushStore } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import type { Goals } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
@@ -373,7 +373,6 @@
 </div>
 
 <!-- ── Group: Notificaciones ── -->
-{#if !isNativeApp}
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Notificaciones</div>
 	<div class="settings-group">
@@ -382,7 +381,7 @@
 				<div class="icon-box">🔔</div>
 				<div class="row-content">
 					<div class="row-label">No disponible</div>
-					<div class="row-sub">Abre la app en el navegador para activarlas</div>
+					<div class="row-sub">Tu navegador no soporta notificaciones push</div>
 				</div>
 			</div>
 		{:else if pushStore.permission === 'denied'}
@@ -527,7 +526,6 @@
 		{/if}
 	</div>
 </div>
-{/if}
 
 <!-- ── Group: Cuenta ── -->
 <div style="margin-bottom:1.125rem;">

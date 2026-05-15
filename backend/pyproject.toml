@@ -20,6 +20,7 @@ dependencies = [
     "resend>=2.0",
     "pywebpush>=2.0",
     "apscheduler>=3.10",
+    "firebase-admin>=6.0",
 ]
 
 [tool.setuptools.packages.find]

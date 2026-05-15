@@ -1,8 +1,8 @@
 /**
- * Web Push subscription management.
+ * Push notification management — Web Push (browser) + FCM (native Android via Capacitor).
  *
- * Usage:
- *   pushStore.isSupported      → browser supports push
+ * Unified interface regardless of platform:
+ *   pushStore.isSupported      → true if push is available on this platform
  *   pushStore.permission       → 'default' | 'granted' | 'denied'
  *   pushStore.isSubscribed     → active subscription registered with backend
  *   await pushStore.subscribe()    → request permission + subscribe
@@ -49,6 +49,24 @@ export const pushStore = {
 	/** Call once on app start (from +layout.svelte) after auth is confirmed. */
 	async init() {
 		if (!browser) return;
+
+		if (isNativeApp) {
+			// Native Android — use Capacitor Push Notifications
+			_isSupported = true;
+			try {
+				const { PushNotifications } = await import('@capacitor/push-notifications');
+				const result = await PushNotifications.checkPermissions();
+				_permission = result.receive === 'granted' ? 'granted'
+					: result.receive === 'denied' ? 'denied'
+					: 'default';
+				_isSubscribed = _permission === 'granted';
+			} catch {
+				_isSupported = false;
+			}
+			return;
+		}
+
+		// Web Push
 		_isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
 		if (!_isSupported) return;
 
@@ -66,7 +84,42 @@ export const pushStore = {
 
 	/** Request permission and register a push subscription with the backend. */
 	async subscribe(): Promise<boolean> {
-		if (!_isSupported || !_registration) return false;
+		if (!_isSupported) return false;
+
+		if (isNativeApp) {
+			try {
+				const { PushNotifications } = await import('@capacitor/push-notifications');
+				const result = await PushNotifications.requestPermissions();
+				if (result.receive !== 'granted') {
+					_permission = 'denied';
+					return false;
+				}
+				_permission = 'granted';
+
+				await PushNotifications.register();
+
+				return new Promise((resolve) => {
+					PushNotifications.addListener('registration', async (tokenData) => {
+						try {
+							await api.post('/push/fcm-subscribe', { token: tokenData.value });
+							_isSubscribed = true;
+							resolve(true);
+						} catch {
+							resolve(false);
+						}
+					});
+					PushNotifications.addListener('registrationError', () => resolve(false));
+					// Timeout fallback
+					setTimeout(() => resolve(false), 10_000);
+				});
+			} catch (e) {
+				console.error('[push] native subscribe failed', e);
+				return false;
+			}
+		}
+
+		// Web Push
+		if (!_registration) return false;
 
 		const permission = await Notification.requestPermission();
 		_permission = permission;
@@ -97,6 +150,17 @@ export const pushStore = {
 
 	/** Remove the subscription from browser and backend. */
 	async unsubscribe(): Promise<void> {
+		if (isNativeApp) {
+			try {
+				await api.del('/push/fcm-subscribe');
+				_isSubscribed = false;
+			} catch (e) {
+				console.error('[push] native unsubscribe failed', e);
+			}
+			return;
+		}
+
+		// Web Push
 		if (!_registration) return;
 		try {
 			const sub = await _registration.pushManager.getSubscription();

@@ -1,4 +1,4 @@
-"""Web Push via VAPID — pywebpush 2.x + py-vapid 1.9.x."""
+"""Push notifications: Web Push (VAPID) + Firebase Cloud Messaging (FCM)."""
 
 import base64
 import json
@@ -95,3 +95,63 @@ def send_push(
 
 def vapid_public_key() -> str:
     return VAPID_PUBLIC_KEY
+
+
+# ── Firebase Cloud Messaging ──────────────────────────────────────────────────
+
+def _init_firebase() -> bool:
+    """Initialize Firebase Admin SDK once from the credentials JSON env var."""
+    creds_json = settings.firebase_credentials_json
+    if not creds_json:
+        return False
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            cred = credentials.Certificate(json.loads(creds_json))
+            firebase_admin.initialize_app(cred)
+        return True
+    except Exception as e:
+        logger.error("Firebase init failed: %s", e)
+        return False
+
+
+_firebase_ready = _init_firebase()
+
+
+def send_fcm(
+    *,
+    token: str,
+    title: str,
+    body: str,
+    url: str = "/",
+    icon: str = "/icon-192.png",
+) -> bool:
+    """Send a push notification via FCM to a single device token. Returns True on success."""
+    if not _firebase_ready:
+        return False
+    try:
+        from firebase_admin import messaging
+        message = messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            data={"url": url},
+            android=messaging.AndroidConfig(
+                priority="high",
+                notification=messaging.AndroidNotification(
+                    icon="ic_launcher",
+                    color="#00E676",
+                    sound="default",
+                ),
+            ),
+            token=token,
+        )
+        messaging.send(message)
+        return True
+    except Exception as e:
+        # Token invalid/expired — caller should delete it
+        if "registration-token-not-registered" in str(e) or "invalid-registration-token" in str(e):
+            raise
+        logger.error("FCM send failed: %s", e)
+        return False

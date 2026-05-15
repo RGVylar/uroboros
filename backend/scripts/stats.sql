@@ -1,3 +1,4 @@
+-- urostats
 -- uroboros · dashboard stats
 -- Usage: psql $DATABASE_URL -f stats.sql
 -- or:    pct exec 200 -- bash -c "psql \$DATABASE_URL -f /opt/uroboros/backend/scripts/stats.sql"
