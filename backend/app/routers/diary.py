@@ -329,9 +329,9 @@ def get_active_days(
         from app.models.friendship import Friendship
         is_friend = db.scalar(
             select(Friendship).where(
-                ((Friendship.requester_id == current_user.id) & (Friendship.addressee_id == user_id) |
-                 (Friendship.requester_id == user_id) & (Friendship.addressee_id == current_user.id)),
-                Friendship.status == "accepted",
+                ((Friendship.requester_id == current_user.id) & (Friendship.receiver_id == user_id) |
+                 (Friendship.requester_id == user_id) & (Friendship.receiver_id == current_user.id)),
+                Friendship.status == FriendshipStatus.accepted,
             )
         )
         if not is_friend:
