@@ -54,6 +54,59 @@ def list_users(
     return list(db.scalars(stmt))
 
 
+@router.get("/{user_id}/profile")
+def get_friend_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Return public profile data for a friend."""
+    from datetime import date, timedelta
+    from sqlalchemy import func, cast, Date
+    from app.models.diary import DiaryEntry
+    from app.models.recipe import Recipe
+    from app.services.streak_service import calculate_streak
+
+    # Must be a friend
+    is_friend = db.scalar(
+        select(Friendship).where(
+            or_(
+                (Friendship.requester_id == current_user.id) & (Friendship.receiver_id == user_id),
+                (Friendship.requester_id == user_id) & (Friendship.receiver_id == current_user.id),
+            ),
+            Friendship.status == FriendshipStatus.accepted,
+        )
+    )
+    if not is_friend and user_id != current_user.id:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not a friend")
+
+    target = db.scalar(select(User).where(User.id == user_id))
+    if not target:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    streak = calculate_streak(db, user_id)
+    since = date.today() - timedelta(days=29)
+    active_days = db.scalar(
+        select(func.count(func.distinct(cast(DiaryEntry.consumed_at, Date)))).where(
+            DiaryEntry.user_id == user_id,
+            cast(DiaryEntry.consumed_at, Date) >= since,
+        )
+    ) or 0
+    recipe_count = db.scalar(
+        select(func.count()).select_from(Recipe).where(Recipe.user_id == user_id)
+    ) or 0
+
+    return {
+        "id": target.id,
+        "name": target.name,
+        "streak": streak,
+        "active_days": active_days,
+        "recipe_count": recipe_count,
+    }
+
+
 @router.delete("/me", status_code=204)
 def delete_account(
     db: Session = Depends(get_db),

@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Goals, DaySummary } from '$lib/types';
+	import type { Goals } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -23,30 +23,14 @@
 	async function load() {
 		loading = true;
 		try {
-			// Load goals and streak from diary
-			const [g, today] = await Promise.all([
+			const [g, streakData, activeDaysData] = await Promise.all([
 				api.get<Goals>('/goals').catch(() => null),
-				api.get<DaySummary>(`/diary/day?day=${new Date().toISOString().slice(0,10)}`).catch(() => null),
+				api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 })),
+				api.get<{ active_days: number }>('/diary/active-days?days=30').catch(() => ({ active_days: 0 })),
 			]);
 			goals = g;
-			streak = (g as any)?.streak ?? 0;
-
-			// Count active days in last 30
-			const dates: string[] = [];
-			const now = new Date();
-			for (let i = 0; i < 30; i++) {
-				const d = new Date(now);
-				d.setDate(d.getDate() - i);
-				dates.push(d.toISOString().slice(0, 10));
-			}
-			const results = await Promise.all(
-				dates.map(date =>
-					api.get<DaySummary>(`/diary/day?day=${date}`)
-						.then(s => s.totals.calories > 0 ? 1 : 0)
-						.catch(() => 0)
-				)
-			);
-			totalDays = results.reduce((a, b) => a + b, 0);
+			streak = streakData.streak;
+			totalDays = activeDaysData.active_days;
 		} finally {
 			loading = false;
 		}
