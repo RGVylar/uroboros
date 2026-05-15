@@ -23,14 +23,13 @@
 	async function load() {
 		loading = true;
 		try {
-			const [g, streakData, activeDaysData] = await Promise.all([
+			const [g, streakData] = await Promise.all([
 				api.get<Goals>('/goals').catch(() => null),
-				api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 })),
-				api.get<{ active_days: number }>('/diary/active-days?days=30').catch(() => ({ active_days: 0 })),
+				api.get<{ streak: number; active_days: number }>('/diary/streak').catch(() => ({ streak: 0, active_days: 0 })),
 			]);
 			goals = g;
 			streak = streakData.streak;
-			totalDays = activeDaysData.active_days;
+			totalDays = streakData.active_days;
 		} finally {
 			loading = false;
 		}

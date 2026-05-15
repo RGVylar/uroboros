@@ -306,46 +306,17 @@ def get_streak(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Count consecutive days with at least one diary entry (or a used cheat day), going back from today."""
-    return {"streak": calculate_streak(db, user.id)}
+    """Streak + active days for the last 30 days — both values the profile needs in one call."""
+    from sqlalchemy import func, cast, Date as SADate
 
-
-@router.get("/active-days")
-def get_active_days(
-    days: int = 30,
-    user_id: int | None = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> dict:
-    """Count distinct days with at least one diary entry in the last N days.
-    If user_id is provided and is a friend, return their count instead."""
-    from datetime import date, timedelta
-    from sqlalchemy import func, cast, Date
-    from app.models.diary import DiaryEntry
-
-    target_id = current_user.id
-    if user_id and user_id != current_user.id:
-        # Only allow friends
-        from app.models.friendship import Friendship
-        is_friend = db.scalar(
-            select(Friendship).where(
-                ((Friendship.requester_id == current_user.id) & (Friendship.receiver_id == user_id) |
-                 (Friendship.requester_id == user_id) & (Friendship.receiver_id == current_user.id)),
-                Friendship.status == FriendshipStatus.accepted,
-            )
-        )
-        if not is_friend:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a friend")
-        target_id = user_id
-
-    since = date.today() - timedelta(days=days - 1)
-    count = db.scalar(
-        select(func.count(func.distinct(cast(DiaryEntry.consumed_at, Date)))).where(
-            DiaryEntry.user_id == target_id,
-            cast(DiaryEntry.consumed_at, Date) >= since,
+    since = date.today() - timedelta(days=29)
+    active_days = db.scalar(
+        select(func.count(func.distinct(cast(DiaryEntry.consumed_at, SADate)))).where(
+            DiaryEntry.user_id == user.id,
+            cast(DiaryEntry.consumed_at, SADate) >= since,
         )
     ) or 0
-    return {"active_days": count, "out_of": days}
+    return {"streak": calculate_streak(db, user.id), "active_days": active_days}
 
 
 @router.post("/copy-from-yesterday", status_code=status.HTTP_201_CREATED)
