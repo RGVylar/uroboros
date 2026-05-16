@@ -13,7 +13,6 @@ from app.models.diary import DiaryEntry
 from app.models.exercise import ExerciseSession, ExerciseSessionEntry
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.goals import UserGoals
-from app.models.fcm_token import FcmToken
 from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.password_reset import PasswordResetToken
 from app.models.recipe import Recipe, RecipeIngredient
@@ -117,7 +116,6 @@ def delete_account(
     uid = user.id
 
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == uid))
-    db.execute(delete(FcmToken).where(FcmToken.user_id == uid))
     db.execute(delete(UserAllergy).where(UserAllergy.user_id == uid))
     db.execute(delete(WaterLog).where(WaterLog.user_id == uid))
     db.execute(delete(CheatDayLog).where(CheatDayLog.user_id == uid))

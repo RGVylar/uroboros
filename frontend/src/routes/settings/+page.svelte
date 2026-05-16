@@ -51,6 +51,8 @@
 		savingPrefs = true;
 		try {
 			prefs = await api.put<NotifPrefs>('/push/prefs', patch);
+			// Re-schedule local notifications on native whenever prefs change
+			await pushStore.reschedule();
 		} catch { toast.error('No se pudo guardar la preferencia'); } finally {
 			savingPrefs = false;
 		}

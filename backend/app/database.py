@@ -35,7 +35,6 @@ def _get_engine():
     from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
     from app.models.supplement import UserSupplement, SupplementLog
     from app.models.allergy import UserAllergy
-    from app.models.fcm_token import FcmToken
 
     if settings.demo_mode:
         from app.security import hash_password

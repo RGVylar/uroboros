@@ -1,22 +1,27 @@
 /**
- * Push notification management — Web Push (browser) + FCM (native Android via Capacitor).
+ * Push notification management — unified interface for browser (Web Push) and native app (local notifications).
  *
- * Unified interface regardless of platform:
- *   pushStore.isSupported      → true if push is available on this platform
- *   pushStore.permission       → 'default' | 'granted' | 'denied'
- *   pushStore.isSubscribed     → active subscription registered with backend
- *   await pushStore.subscribe()    → request permission + subscribe
- *   await pushStore.unsubscribe()  → remove subscription
+ *   pushStore.isSupported   → true if notifications available on this platform
+ *   pushStore.permission    → 'default' | 'granted' | 'denied'
+ *   pushStore.isSubscribed  → user has active notifications enabled
+ *   await pushStore.subscribe()    → request permission + activate
+ *   await pushStore.unsubscribe()  → disable notifications
+ *   await pushStore.sendTest()     → fire a test notification
+ *   await pushStore.reschedule()   → re-schedule local notifications after prefs change (native only)
  */
 
 import { api } from '$lib/api';
 import { browser } from '$app/environment';
+import {
+	scheduleNativeNotifications,
+	cancelNativeNotifications,
+	testNativeNotification,
+} from '$lib/services/nativeNotifications';
 
 /** True when running inside a Capacitor native app (Android / iOS). */
-export const isNativeApp: boolean =
-	browser && typeof (window as unknown as { Capacitor?: { isNative?: boolean } }).Capacitor?.isNative === 'boolean'
-		? ((window as unknown as { Capacitor: { isNative: boolean } }).Capacitor.isNative ?? false)
-		: false;
+export const isNativeApp: boolean = browser
+	? !!((window as unknown as Record<string, unknown>).Capacitor as { isNative?: boolean } | undefined)?.isNative
+	: false;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -25,7 +30,7 @@ let _permission = $state<NotificationPermission>('default');
 let _isSubscribed = $state(false);
 let _registration = $state<ServiceWorkerRegistration | null>(null);
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers (web push only) ───────────────────────────────────────────────────
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
 	const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -34,7 +39,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 	return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-async function getVapidPublicKey(): Promise<string> {
+async function getVapidKey(): Promise<string> {
 	const { key } = await api.get<{ key: string }>('/push/vapid-public-key');
 	return key;
 }
@@ -43,35 +48,36 @@ async function getVapidPublicKey(): Promise<string> {
 
 export const pushStore = {
 	get isSupported() { return _isSupported; },
-	get permission() { return _permission; },
+	get permission()  { return _permission;  },
 	get isSubscribed() { return _isSubscribed; },
 
-	/** Call once on app start (from +layout.svelte) after auth is confirmed. */
+	/** Call once on app start after auth is confirmed. */
 	async init() {
 		if (!browser) return;
 
 		if (isNativeApp) {
-			// Native Android — use Capacitor Push Notifications
 			_isSupported = true;
 			try {
-				const { PushNotifications } = await import('@capacitor/push-notifications');
-				const result = await PushNotifications.checkPermissions();
-				_permission = result.receive === 'granted' ? 'granted'
-					: result.receive === 'denied' ? 'denied'
-					: 'default';
+				const { LocalNotifications } = await import('@capacitor/local-notifications');
+				const perm = await LocalNotifications.checkPermissions();
+				_permission  = perm.display === 'granted' ? 'granted'
+				             : perm.display === 'denied'  ? 'denied'
+				             : 'default';
 				_isSubscribed = _permission === 'granted';
+
+				// Re-schedule on every app open (keeps recurring notifications alive)
+				if (_isSubscribed) await scheduleNativeNotifications();
 			} catch {
 				_isSupported = false;
 			}
 			return;
 		}
 
-		// Web Push
+		// ── Web Push ──
 		_isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
 		if (!_isSupported) return;
 
 		_permission = Notification.permission;
-
 		try {
 			const reg = await navigator.serviceWorker.ready;
 			_registration = reg;
@@ -82,85 +88,57 @@ export const pushStore = {
 		}
 	},
 
-	/** Request permission and register a push subscription with the backend. */
+	/** Request permission and activate push notifications. */
 	async subscribe(): Promise<boolean> {
 		if (!_isSupported) return false;
 
 		if (isNativeApp) {
-			try {
-				const { PushNotifications } = await import('@capacitor/push-notifications');
-				const result = await PushNotifications.requestPermissions();
-				if (result.receive !== 'granted') {
-					_permission = 'denied';
-					return false;
-				}
-				_permission = 'granted';
-
-				await PushNotifications.register();
-
-				return new Promise((resolve) => {
-					PushNotifications.addListener('registration', async (tokenData) => {
-						try {
-							await api.post('/push/fcm-subscribe', { token: tokenData.value });
-							_isSubscribed = true;
-							resolve(true);
-						} catch {
-							resolve(false);
-						}
-					});
-					PushNotifications.addListener('registrationError', () => resolve(false));
-					// Timeout fallback
-					setTimeout(() => resolve(false), 10_000);
-				});
-			} catch (e) {
-				console.error('[push] native subscribe failed', e);
-				return false;
+			const ok = await scheduleNativeNotifications();
+			if (ok) {
+				_permission   = 'granted';
+				_isSubscribed = true;
+			} else {
+				_permission = 'denied';
 			}
+			return ok;
 		}
 
-		// Web Push
+		// ── Web Push ──
 		if (!_registration) return false;
-
 		const permission = await Notification.requestPermission();
 		_permission = permission;
 		if (permission !== 'granted') return false;
 
 		try {
-			const vapidKey = await getVapidPublicKey();
+			const vapidKey = await getVapidKey();
 			const sub = await _registration.pushManager.subscribe({
 				userVisibleOnly: true,
 				applicationServerKey: urlBase64ToUint8Array(vapidKey),
 			});
-
 			const json = sub.toJSON();
 			await api.post('/push/subscribe', {
 				endpoint: sub.endpoint,
-				p256dh: json.keys?.p256dh ?? '',
-				auth: json.keys?.auth ?? '',
+				p256dh:   json.keys?.p256dh ?? '',
+				auth:     json.keys?.auth   ?? '',
 				user_agent: navigator.userAgent.slice(0, 255),
 			});
-
 			_isSubscribed = true;
 			return true;
 		} catch (e) {
-			console.error('[push] subscribe failed', e);
+			console.error('[push] web subscribe failed', e);
 			return false;
 		}
 	},
 
-	/** Remove the subscription from browser and backend. */
+	/** Disable and remove all push subscriptions. */
 	async unsubscribe(): Promise<void> {
 		if (isNativeApp) {
-			try {
-				await api.del('/push/fcm-subscribe');
-				_isSubscribed = false;
-			} catch (e) {
-				console.error('[push] native unsubscribe failed', e);
-			}
+			await cancelNativeNotifications();
+			_isSubscribed = false;
 			return;
 		}
 
-		// Web Push
+		// ── Web Push ──
 		if (!_registration) return;
 		try {
 			const sub = await _registration.pushManager.getSubscription();
@@ -170,12 +148,23 @@ export const pushStore = {
 			}
 			_isSubscribed = false;
 		} catch (e) {
-			console.error('[push] unsubscribe failed', e);
+			console.error('[push] web unsubscribe failed', e);
 		}
 	},
 
-	/** Send a test notification (requires existing subscription). */
+	/** Re-schedule local notifications after prefs change (native only, no-op on web). */
+	async reschedule(): Promise<void> {
+		if (isNativeApp && _isSubscribed) {
+			await scheduleNativeNotifications();
+		}
+	},
+
+	/** Send a test notification. */
 	async sendTest(): Promise<void> {
+		if (isNativeApp) {
+			await testNativeNotification();
+			return;
+		}
 		await api.post('/push/test', {});
 	},
 };
