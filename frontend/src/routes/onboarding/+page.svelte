@@ -2,10 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import Aurora from '$lib/components/uro/Aurora.svelte';
+	import GlassCard from '$lib/components/uro/GlassCard.svelte';
+	import Slider from '$lib/components/uro/Slider.svelte';
 
 	let step = $state(0);
 
-	// ── Objective & body data ─────────────────────────────────────────────────
+	// ── Objetivo y cuerpo ─────────────────────────────────────────────────
 	let objective: 'lose' | 'maintain' | 'gain' = $state('maintain');
 	let bodyWeight = $state(70);
 	let bodyHeight = $state(170);
@@ -15,19 +18,19 @@
 	let saving = $state(false);
 
 	const objectives = [
-		{ key: 'lose'     as const, emoji: '🔥', label: 'Perder peso',   sub: 'Déficit calórico controlado',  kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30 },
-		{ key: 'maintain' as const, emoji: '⚖️', label: 'Mantenerme',    sub: 'Equilibrio y bienestar',       kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30 },
-		{ key: 'gain'     as const, emoji: '💪', label: 'Ganar músculo', sub: 'Superávit para crecer',        kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25 },
+		{ key: 'lose'     as const, emoji: '🔥', label: 'Perder peso',   sub: 'Déficit controlado',         kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
+		{ key: 'maintain' as const, emoji: '⚖️', label: 'Mantenerme',    sub: 'Equilibrio',                 kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hue: 165 },
+		{ key: 'gain'     as const, emoji: '💪', label: 'Ganar músculo', sub: 'Superávit para crecer',      kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hue: 220 },
 	];
 
 	const activities = [
-		{ key: 'sedentary', label: 'Sedentario',    sub: 'Sin ejercicio', factor: 1.2 },
-		{ key: 'light',     label: 'Ligero',        sub: '1–3 días/sem',  factor: 1.375 },
-		{ key: 'moderate',  label: 'Moderado',      sub: '3–5 días/sem',  factor: 1.55 },
-		{ key: 'active',    label: 'Activo',        sub: '6–7 días/sem',  factor: 1.725 },
+		{ key: 'sedentary', label: 'Sedentario', sub: 'Sin ejercicio', factor: 1.2 },
+		{ key: 'light',     label: 'Ligero',     sub: '1–3 días/sem',  factor: 1.375 },
+		{ key: 'moderate',  label: 'Moderado',   sub: '3–5 días/sem',  factor: 1.55 },
+		{ key: 'active',    label: 'Activo',     sub: '6–7 días/sem',  factor: 1.725 },
 	];
 
-	// Calculate TDEE from current inputs
+	// TDEE en vivo (Mifflin–St Jeor)
 	let calculated = $derived((() => {
 		const bmr = bodySex === 'male'
 			? 10 * bodyWeight + 6.25 * bodyHeight - 5 * bodyAge + 5
@@ -37,6 +40,7 @@
 		const obj = objectives.find(o => o.key === objective)!;
 		const kcal = Math.max(1200, tdee + obj.kcalDelta);
 		return {
+			tdee,
 			kcal,
 			protein: Math.round((kcal * obj.pPct) / 4),
 			carbs:   Math.round((kcal * obj.cPct) / 4),
@@ -44,19 +48,18 @@
 		};
 	})());
 
-	const TOTAL_STEPS = 7; // 0-6
+	let objMeta = $derived(objectives.find(o => o.key === objective)!);
+
+	const TOTAL_STEPS = 7;
 
 	async function next() {
-		if (step < TOTAL_STEPS - 1) {
-			step++;
-		} else {
-			await finish();
-		}
+		if (step < TOTAL_STEPS - 1) step++;
+		else await finish();
 	}
-
-	async function skip() {
-		await finish();
+	function back() {
+		if (step > 0) step--;
 	}
+	async function skip() { await finish(); }
 
 	async function finish() {
 		saving = true;
@@ -70,7 +73,7 @@
 				track_creatine: false,
 			});
 		} catch {
-			// If goals fail (e.g. first time), silently continue
+			// silently continue
 		} finally {
 			saving = false;
 		}
@@ -78,609 +81,389 @@
 	}
 </script>
 
+<Aurora />
+
 <div class="ob-shell">
 
 	<!-- Top bar: dots + skip -->
 	<div class="ob-topbar">
 		<div class="ob-dots">
 			{#each Array(TOTAL_STEPS) as _, i}
-				<div class="ob-dot" class:ob-dot-active={i === step} class:ob-dot-done={i < step}></div>
+				<div
+					class="ob-dot"
+					class:active={i === step}
+					class:done={i < step}
+				></div>
 			{/each}
 		</div>
 		<button class="ob-skip" onclick={skip} disabled={saving}>Saltar</button>
 	</div>
 
-	<!-- ─── SLIDES ──────────────────────────────────────────────── -->
+	<!-- Slide -->
 	<div class="ob-content">
 
-		<!-- Step 0: Search -->
+		<!-- Step 0: Welcome -->
 		{#if step === 0}
-			<div class="ob-art">
-				<div class="ob-card-art">
-					<div class="ob-search-bar">
-						<span>🔍</span>
-						<span class="ob-search-text">Avena integral</span>
-					</div>
-					{#each ['Avena integral · 370 kcal', 'Avena bio · 362 kcal', 'Barras avena · 464 kcal'] as item, i}
-						<div class="ob-result-row" class:ob-result-row-active={i === 0}>{item}</div>
-					{/each}
-				</div>
+			<div class="center">
+				<div class="logo">U</div>
+				<h1 class="serif big">Bienvenido a <em>uroboros</em></h1>
+				<p class="sub">Vamos a ajustar tus calorías y macros en 6 pasos rápidos. Podrás cambiarlo todo más adelante.</p>
 			</div>
-			<h1 class="ob-title">Registra con un toque</h1>
-			<p class="ob-sub">Busca por nombre o escanea el código de barras. Avena, pollo, plátano — en menos de 2 segundos.</p>
 
-		<!-- Step 1: Pair -->
+		<!-- Step 1: Objetivo -->
 		{:else if step === 1}
-			<div class="ob-art">
-				<div class="ob-pair-wrap">
-					<div class="ob-avatar ob-avatar-left">
-						{auth.user?.name?.[0]?.toUpperCase() ?? 'T'}
-					</div>
-					<div class="ob-avatar ob-avatar-right">❤️</div>
-					<div class="ob-pair-badge">2×</div>
-				</div>
-			</div>
-			<h1 class="ob-title">Compartes con tu pareja</h1>
-			<p class="ob-sub">Registra una comida para los dos a la vez. Dos cuentas sincronizadas, sin esfuerzo doble.</p>
-
-		<!-- Step 2: Streak -->
-		{:else if step === 2}
-			<div class="ob-art">
-				<div class="ob-bars">
-					{#each [1,2,3,4,5,6,7] as d}
-						<div class="ob-bar" class:ob-bar-filled={d <= 5}>
-							{#if d <= 5}🔥{/if}
-						</div>
-					{/each}
-				</div>
-			</div>
-			<h1 class="ob-title">Progreso, no perfección</h1>
-			<p class="ob-sub">Rachas, cheat days y objetivos ajustables. Hecho para durar semanas, no solo días.</p>
-
-		<!-- Step 3: Features ocultas -->
-		{:else if step === 3}
-			<div class="ob-art ob-art-sm" style="margin-bottom:1.25rem;">
-				<span style="font-size:3rem;">✨</span>
-			</div>
-			<h1 class="ob-title" style="margin-bottom:0.5rem;">Más que un contador</h1>
-			<p class="ob-sub" style="margin-bottom:1.5rem;">Todo lo que necesitas para cuidarte, en un solo sitio.</p>
-			<div class="ob-feat-grid">
-				{#each [
-					{ emoji: '🍳', label: 'Recetas',      sub: 'Crea y comparte tus platos' },
-					{ emoji: '💊', label: 'Suplementos',  sub: 'Proteína, vitaminas, creatina' },
-					{ emoji: '💪', label: 'Ejercicios',   sub: 'Registra tus entrenos' },
-					{ emoji: '⚖️', label: 'Peso',         sub: 'Curva de evolución' },
-					{ emoji: '📏', label: 'Medidas',      sub: 'Cintura, brazos, pecho…' },
-					{ emoji: '💧', label: 'Agua',         sub: 'Hidratación diaria' },
-				] as feat}
-					<div class="ob-feat-card">
-						<span class="ob-feat-emoji">{feat.emoji}</span>
-						<span class="ob-feat-label">{feat.label}</span>
-						<span class="ob-feat-sub">{feat.sub}</span>
-					</div>
-				{/each}
-			</div>
-
-		<!-- Step 4: Objective picker -->
-		{:else if step === 4}
-			<div class="ob-art ob-art-sm">
-				<span style="font-size: 3.5rem;">🎯</span>
-			</div>
-			<h1 class="ob-title">¿Qué quieres conseguir?</h1>
-			<p class="ob-sub" style="margin-bottom: 1.5rem;">Elige tu objetivo y personalizamos todo para ti.</p>
-			<div class="ob-obj-grid">
-				{#each objectives as obj}
+			<h1 class="serif">¿Cuál es tu objetivo?</h1>
+			<p class="sub">Ajustaremos calorías y macros en base a esto.</p>
+			<div class="stack">
+				{#each objectives as o}
+					{@const active = objective === o.key}
 					<button
-						class="ob-obj-card"
-						class:ob-obj-card-active={objective === obj.key}
-						onclick={() => objective = obj.key}
+						class="opt-card"
+						class:active
+						style:--hue={o.hue}
+						onclick={() => objective = o.key}
 					>
-						<span class="ob-obj-emoji">{obj.emoji}</span>
-						<span class="ob-obj-label">{obj.label}</span>
-						<span class="ob-obj-sub">{obj.sub}</span>
+						<div class="opt-icon">{o.emoji}</div>
+						<div class="opt-texts">
+							<div class="opt-label">{o.label}</div>
+							<div class="opt-sub">{o.sub}</div>
+						</div>
+						<div class="opt-check">{active ? '✓' : ''}</div>
 					</button>
 				{/each}
 			</div>
 
-		<!-- Step 5: Body data -->
+		<!-- Step 2: Cuerpo -->
+		{:else if step === 2}
+			<h1 class="serif">Cuéntanos sobre ti</h1>
+			<p class="sub">Lo usamos para calcular tu metabolismo basal.</p>
+
+			<div class="sex-grid">
+				{#each [{ k: 'male' as const, l: 'Hombre', e: '♂' }, { k: 'female' as const, l: 'Mujer', e: '♀' }] as s}
+					{@const a = bodySex === s.k}
+					<button class="sex-card" class:active={a} onclick={() => bodySex = s.k}>
+						<span class="sex-glyph">{s.e}</span>
+						<span class="sex-label">{s.l}</span>
+					</button>
+				{/each}
+			</div>
+
+			<Slider label="Peso" bind:value={bodyWeight} min={40} max={150} unit="kg"/>
+			<Slider label="Altura" bind:value={bodyHeight} min={140} max={210} unit="cm"/>
+			<Slider label="Edad" bind:value={bodyAge} min={14} max={90} unit="años"/>
+
+		<!-- Step 3: Actividad -->
+		{:else if step === 3}
+			<h1 class="serif">¿Cómo te mueves?</h1>
+			<p class="sub">Tu nivel de actividad semanal.</p>
+			<div class="act-grid">
+				{#each activities as a}
+					{@const active = bodyActivity === a.key}
+					<button class="act-card" class:active onclick={() => bodyActivity = a.key}>
+						<div class="act-factor">×{a.factor}</div>
+						<div class="act-label">{a.label}</div>
+						<div class="act-sub">{a.sub}</div>
+					</button>
+				{/each}
+			</div>
+
+		<!-- Step 4: Resumen -->
+		{:else if step === 4}
+			<h1 class="serif">Tu plan diario</h1>
+			<p class="sub">Calculado con Mifflin–St Jeor. Lo puedes ajustar después.</p>
+
+			<GlassCard padding={20}>
+				<div class="summary">
+					<div class="summary-pill">{objMeta.emoji} {objMeta.label}</div>
+					<div class="summary-kcal">{calculated.kcal}</div>
+					<div class="summary-tdee">kcal/día · TDEE {calculated.tdee}</div>
+				</div>
+			</GlassCard>
+
+			<div class="macro-grid">
+				{#each [
+					{ l:'Proteína', v: calculated.protein, hue: 220 },
+					{ l:'Carbs',    v: calculated.carbs,   hue: 275 },
+					{ l:'Grasa',    v: calculated.fat,     hue: 355 },
+				] as m}
+					<div class="macro-card" style:--hue={m.hue}>
+						<div class="macro-label">{m.l}</div>
+						<div class="macro-value">{m.v}<span>g</span></div>
+					</div>
+				{/each}
+			</div>
+
+		<!-- Step 5: Pareja -->
 		{:else if step === 5}
-			<h1 class="ob-title" style="margin-bottom:0.375rem;">Cuéntanos sobre ti</h1>
-			<p class="ob-sub" style="margin-bottom:1.25rem;">Para calcular tus calorías con precisión.</p>
-
-			<div class="ob-form-grid">
-				<div class="ob-field">
-					<label>Peso (kg)</label>
-					<input type="number" bind:value={bodyWeight} min="30" max="300" step="0.5" />
+			<div class="center">
+				<div class="pair-art">
+					<div class="pair-bubble pair-left">{auth.user?.name?.[0]?.toUpperCase() ?? 'T'}</div>
+					<div class="pair-bubble pair-right">?</div>
+					<div class="pair-badge">2×</div>
 				</div>
-				<div class="ob-field">
-					<label>Altura (cm)</label>
-					<input type="number" bind:value={bodyHeight} min="100" max="250" step="1" />
-				</div>
-				<div class="ob-field">
-					<label>Edad</label>
-					<input type="number" bind:value={bodyAge} min="10" max="99" step="1" />
-				</div>
-				<div class="ob-field">
-					<label>Sexo</label>
-					<div class="ob-sex-toggle">
-						<button class:ob-sex-active={bodySex === 'male'} onclick={() => bodySex = 'male'}>♂ Hombre</button>
-						<button class:ob-sex-active={bodySex === 'female'} onclick={() => bodySex = 'female'}>♀ Mujer</button>
-					</div>
-				</div>
+				<h1 class="serif">¿Comes con alguien?</h1>
+				<p class="sub">Empareja vuestras cuentas para registrar una comida para los dos a la vez.</p>
+				<button class="ghost-btn" onclick={() => { finish(); goto('/friends'); }}>＋ Invitar pareja</button>
+				<div class="hint">O hazlo más tarde desde Ajustes.</div>
 			</div>
 
-			<div class="ob-field" style="margin-top:0.75rem;">
-				<label>Actividad física</label>
-				<div class="ob-activity-grid">
-					{#each activities as act}
-						<button
-							class="ob-act-btn"
-							class:ob-act-btn-active={bodyActivity === act.key}
-							onclick={() => bodyActivity = act.key}
-						>
-							<span class="ob-act-label">{act.label}</span>
-							<span class="ob-act-sub">{act.sub}</span>
-						</button>
-					{/each}
-				</div>
-			</div>
-
-		<!-- Step 6: Result -->
+		<!-- Step 6: Listo -->
 		{:else if step === 6}
-			<div class="ob-art ob-art-sm">
-				<span style="font-size:3rem;">🎉</span>
+			<div class="center">
+				<div class="check-big">✓</div>
+				<h1 class="serif">Todo listo</h1>
+				<p class="sub">Empieza añadiendo tu primera comida desde el botón ＋. Te enseñaré el resto sobre la marcha.</p>
 			</div>
-			<h1 class="ob-title">Tu plan personalizado</h1>
-			<p class="ob-sub" style="margin-bottom:1.25rem;">Basado en tu perfil y objetivo. Puedes ajustarlo cuando quieras en Ajustes.</p>
-
-			<div class="ob-result-card">
-				<div class="ob-result-kcal">
-					<span class="ob-result-num">{calculated.kcal}</span>
-					<span class="ob-result-unit">kcal / día</span>
-				</div>
-				<div class="ob-result-macros">
-					<div class="ob-macro-pill" style="--hue:220">
-						<div class="ob-macro-pill-label">Proteína</div>
-						<div class="ob-macro-pill-val">{calculated.protein}g</div>
-					</div>
-					<div class="ob-macro-pill" style="--hue:275">
-						<div class="ob-macro-pill-label">Carbos</div>
-						<div class="ob-macro-pill-val">{calculated.carbs}g</div>
-					</div>
-					<div class="ob-macro-pill" style="--hue:25">
-						<div class="ob-macro-pill-label">Grasa</div>
-						<div class="ob-macro-pill-val">{calculated.fat}g</div>
-					</div>
-				</div>
-			</div>
-
-			<p style="font-size:0.7rem; color:rgba(255,255,255,0.35); text-align:center; margin-top:0.875rem; line-height:1.5;">
-				Objetivo: {objectives.find(o => o.key === objective)?.label} · Podrás cambiar esto en Ajustes → Objetivos
-			</p>
 		{/if}
+	</div>
 
-	</div><!-- /ob-content -->
-
-	<!-- CTA -->
-	<button class="ob-cta" onclick={next} disabled={saving}>
-		{#if saving}
-			Guardando…
-		{:else if step === TOTAL_STEPS - 1}
-			¡Empezar! 🚀
-		{:else if step >= 3}
-			Continuar
-		{:else}
-			Siguiente
+	<!-- Bottom CTAs -->
+	<div class="ob-actions">
+		{#if step > 0}
+			<button class="btn-back" onclick={back} disabled={saving}>Atrás</button>
 		{/if}
-	</button>
-
+		<button class="btn-next" onclick={next} disabled={saving}>
+			{saving ? 'Guardando…' : step === TOTAL_STEPS - 1 ? 'Entrar a uroboros' : 'Siguiente'}
+		</button>
+	</div>
 </div>
 
 <style>
-	/* ── Shell ── */
 	.ob-shell {
+		position: relative;
+		z-index: 1;
+		min-height: 100dvh;
+		max-width: 480px;
+		margin: 0 auto;
+		padding: 20px 20px 32px;
 		display: flex;
 		flex-direction: column;
-		min-height: 85dvh;
-		padding: 1.25rem 1.25rem max(2rem, calc(env(safe-area-inset-bottom, 0px) + 2rem));
+		color: #fff;
 	}
 
-	/* ── Top bar ── */
+	/* Top bar */
 	.ob-topbar {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.25rem;
+		margin-bottom: 8px;
 	}
-	.ob-dots { display: flex; gap: 0.3rem; }
+	.ob-dots { display: flex; gap: 4px; }
 	.ob-dot {
-		height: 4px;
-		width: 8px;
-		border-radius: 99px;
+		width: 6px; height: 4px; border-radius: 99px;
 		background: rgba(255,255,255,0.15);
-		transition: all 0.3s ease;
+		transition: all 0.3s;
 	}
-	.ob-dot-active { width: 22px; background: oklch(85% 0.17 160); }
-	.ob-dot-done   { background: oklch(75% 0.17 160 / 0.5); }
+	.ob-dot.active { width: 22px; background: oklch(85% 0.17 160); }
+	.ob-dot.done { background: oklch(85% 0.17 160); }
 	.ob-skip {
-		background: none;
-		border: none;
-		color: rgba(255,255,255,0.45);
-		font-size: 0.75rem;
-		cursor: pointer;
-		font-family: inherit;
-		padding: 0.25rem 0;
-		min-width: 40px;
-		text-align: right;
+		background: none; border: none;
+		color: rgba(255,255,255,0.5);
+		font-size: 12px; cursor: pointer; font-family: inherit;
 	}
+	.ob-skip:disabled { opacity: 0.5; }
 
-	/* ── Content area ── */
+	/* Content */
 	.ob-content {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		align-items: center;
-		text-align: center;
-		padding: 1.5rem 0 1rem;
+		padding: 12px 0;
 	}
+	.center { text-align: center; }
 
-	/* ── Art ── */
-	.ob-art {
-		margin-bottom: 2rem;
-		display: flex;
-		justify-content: center;
+	.serif {
+		font-family: 'Instrument Serif', 'Lora', Georgia, serif;
+		font-weight: 400;
+		font-size: 30px;
+		letter-spacing: -0.6px;
+		line-height: 1.1;
+		margin: 0 0 6px;
 	}
-	.ob-art-sm { margin-bottom: 1rem; }
-
-	/* Search art */
-	.ob-card-art {
-		width: 240px;
-		background: rgba(255,255,255,0.05);
-		backdrop-filter: blur(24px) saturate(160%);
-		border: 1px solid rgba(255,255,255,0.09);
-		border-radius: 20px;
-		padding: 1.25rem;
-	}
-	.ob-search-bar {
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-		margin-bottom: 0.875rem;
-		padding: 0.5rem 0.75rem;
-		background: rgba(255,255,255,0.04);
-		border-radius: 12px;
-		font-size: 0.875rem;
-	}
-	.ob-search-text { font-size: 0.6875rem; color: rgba(255,255,255,0.6); }
-	.ob-result-row {
-		padding: 0.625rem 0.75rem;
-		border-radius: 10px;
-		background: rgba(255,255,255,0.03);
-		margin-bottom: 0.375rem;
-		font-size: 0.6875rem;
+	.serif.big { font-size: 36px; letter-spacing: -0.8px; margin-bottom: 14px; }
+	.serif em { color: oklch(85% 0.17 160); font-style: italic; }
+	.sub {
+		font-size: 13px;
 		color: rgba(255,255,255,0.6);
+		line-height: 1.5;
+		max-width: 320px;
+		margin: 0 auto 18px;
 	}
-	.ob-result-row:last-child { margin-bottom: 0; }
-	.ob-result-row-active {
-		background: oklch(75% 0.18 165 / 0.15);
-		color: oklch(85% 0.15 160);
-		font-weight: 600;
+	.center .sub { margin-bottom: 18px; }
+
+	/* Welcome logo */
+	.logo {
+		width: 88px; height: 88px; border-radius: 24px;
+		margin: 0 auto 22px;
+		background: linear-gradient(135deg, oklch(82% 0.18 160), oklch(62% 0.2 210));
+		display: flex; align-items: center; justify-content: center;
+		font-weight: 800; color: #041010; font-size: 44px; letter-spacing: -2px;
+		box-shadow: 0 18px 50px oklch(75% 0.2 190 / 0.45);
 	}
 
-	/* Pair art */
-	.ob-pair-wrap {
-		position: relative;
-		width: 180px;
-		height: 120px;
+	/* Objective cards */
+	.stack { display: flex; flex-direction: column; gap: 10px; }
+	.opt-card {
+		display: flex; align-items: center; gap: 14px;
+		padding: 14px; border-radius: 18px;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.08);
+		color: #fff; cursor: pointer; font: inherit; text-align: left;
+		transition: all 0.15s;
 	}
-	.ob-avatar {
-		position: absolute;
-		top: 20px;
-		width: 80px;
-		height: 80px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 2rem;
-		font-weight: 800;
+	.opt-card.active {
+		background: linear-gradient(135deg, oklch(72% 0.16 var(--hue) / 0.22), rgba(255,255,255,0.04));
+		border-color: oklch(75% 0.18 var(--hue) / 0.55);
+		box-shadow:
+			0 12px 32px -10px oklch(72% 0.2 var(--hue) / 0.5),
+			inset 0 1px 0 rgba(255,255,255,0.08);
 	}
-	.ob-avatar-left {
-		left: 0;
+	.opt-icon {
+		width: 48px; height: 48px; border-radius: 14px;
+		display: flex; align-items: center; justify-content: center; font-size: 22px;
+		background: rgba(255,255,255,0.06);
+	}
+	.opt-card.active .opt-icon {
+		background: linear-gradient(135deg, oklch(80% 0.17 var(--hue)), oklch(60% 0.18 calc(var(--hue) + 20)));
+	}
+	.opt-texts { flex: 1; }
+	.opt-label { font-size: 14px; font-weight: 800; }
+	.opt-sub { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+	.opt-check {
+		width: 22px; height: 22px; border-radius: 50%;
+		display: flex; align-items: center; justify-content: center;
+		color: #041010; font-weight: 800; font-size: 12px;
+		border: 1.5px solid rgba(255,255,255,0.2);
+	}
+	.opt-card.active .opt-check {
+		background: oklch(80% 0.17 var(--hue));
+		border-color: transparent;
+	}
+
+	/* Body */
+	.sex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+	.sex-card {
+		padding: 14px 10px; border-radius: 16px;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.08);
+		color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px;
+		cursor: pointer; font: inherit;
+	}
+	.sex-card.active {
+		background: linear-gradient(135deg, oklch(72% 0.16 165 / 0.22), rgba(255,255,255,0.04));
+		border-color: oklch(75% 0.18 165 / 0.5);
+	}
+	.sex-glyph { font-size: 18px; }
+	.sex-label { font-size: 13px; font-weight: 700; }
+
+	/* Activity */
+	.act-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+	.act-card {
+		padding: 18px 12px; border-radius: 16px;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.08);
+		color: #fff; text-align: left; cursor: pointer; font: inherit;
+	}
+	.act-card.active {
+		background: linear-gradient(135deg, oklch(72% 0.16 165 / 0.22), rgba(255,255,255,0.04));
+		border-color: oklch(75% 0.18 165 / 0.5);
+	}
+	.act-factor { font-size: 11px; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 4px; }
+	.act-label { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+	.act-sub { font-size: 10px; color: rgba(255,255,255,0.5); }
+
+	/* Summary */
+	.summary { text-align: center; }
+	.summary-pill {
+		font-size: 10px; color: rgba(255,255,255,0.55);
+		text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 6px;
+	}
+	.summary-kcal {
+		font-size: 48px; font-weight: 800; color: #fff;
+		letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums;
+	}
+	.summary-tdee {
+		font-size: 11px; color: oklch(85% 0.16 160);
+		margin-top: 4px; font-weight: 600;
+	}
+	.macro-grid {
+		display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px;
+	}
+	.macro-card {
+		padding: 14px 12px; border-radius: 14px; text-align: center;
+		background: linear-gradient(180deg, oklch(72% 0.16 var(--hue) / 0.18), rgba(255,255,255,0.03));
+		border: 1px solid oklch(72% 0.16 var(--hue) / 0.3);
+	}
+	.macro-label {
+		font-size: 9px; color: oklch(80% 0.14 var(--hue));
+		font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+	}
+	.macro-value {
+		font-size: 22px; font-weight: 800; color: #fff;
+		margin-top: 2px; font-variant-numeric: tabular-nums;
+	}
+	.macro-value span { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 2px; }
+
+	/* Pair */
+	.pair-art {
+		position: relative; width: 200px; height: 120px; margin: 0 auto 28px;
+	}
+	.pair-bubble {
+		position: absolute; top: 20px;
+		width: 80px; height: 80px; border-radius: 50%;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 32px; font-weight: 800;
+	}
+	.pair-left {
+		left: 10px;
 		background: linear-gradient(135deg, oklch(80% 0.18 160), oklch(60% 0.2 220));
 		color: #041010;
 	}
-	.ob-avatar-right {
-		right: 0;
+	.pair-right {
+		right: 10px;
 		background: linear-gradient(135deg, oklch(75% 0.18 330), oklch(55% 0.2 290));
 		color: #fff;
 	}
-	.ob-pair-badge {
-		position: absolute;
-		left: 50%;
-		top: 44px;
-		transform: translateX(-50%);
-		width: 42px;
-		height: 42px;
-		border-radius: 12px;
+	.pair-badge {
+		position: absolute; left: 50%; top: 45px; transform: translateX(-50%);
+		width: 40px; height: 40px; border-radius: 12px;
 		background: linear-gradient(135deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.875rem;
-		font-weight: 800;
-		color: #041010;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 14px; font-weight: 800; color: #041010;
 		box-shadow: 0 6px 20px oklch(75% 0.2 165 / 0.5);
 	}
-
-	/* Streak bars art */
-	.ob-bars { display: flex; gap: 0.5rem; align-items: flex-end; }
-	.ob-bar {
-		width: 26px;
-		height: 32px;
-		border-radius: 10px;
-		background: rgba(255,255,255,0.06);
-		display: flex;
-		align-items: flex-end;
-		justify-content: center;
-		padding: 0.375rem;
-		font-size: 0.875rem;
-	}
-	.ob-bar-filled {
-		height: 70px;
-		background: linear-gradient(180deg, oklch(80% 0.19 45), oklch(65% 0.2 25));
-	}
-
-	/* ── Text ── */
-	.ob-title {
-		font-size: 2.25rem;
-		font-weight: 400;
-		letter-spacing: -0.05em;
-		color: #fff;
-		line-height: 1.1;
-		margin: 0 0 0.875rem;
-		font-family: 'Lora', 'Georgia', serif;
-	}
-	.ob-sub {
-		font-size: 0.875rem;
-		color: rgba(255,255,255,0.55);
-		line-height: 1.55;
-		max-width: 290px;
-		margin: 0 auto;
-	}
-
-	/* ── Feature grid ── */
-	.ob-feat-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		gap: 0.5rem;
-		width: 100%;
-	}
-	.ob-feat-card {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.2rem;
-		padding: 0.75rem 0.375rem;
-		border-radius: 16px;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.07);
-	}
-	.ob-feat-emoji { font-size: 1.5rem; }
-	.ob-feat-label {
-		font-size: 0.72rem;
-		font-weight: 700;
-		color: #fff;
-		margin-top: 0.1rem;
-	}
-	.ob-feat-sub {
-		font-size: 0.6rem;
-		color: rgba(255,255,255,0.4);
-		text-align: center;
-		line-height: 1.3;
-	}
-
-	/* ── Objective cards ── */
-	.ob-obj-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		gap: 0.5rem;
-		width: 100%;
-	}
-	.ob-obj-card {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.875rem 0.5rem;
-		border-radius: 18px;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.08);
-		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s, transform 0.15s;
-		font-family: inherit;
-		color: rgba(255,255,255,0.7);
-	}
-	.ob-obj-card:hover { background: rgba(255,255,255,0.09); }
-	.ob-obj-card-active {
+	.ghost-btn {
+		padding: 12px 22px; border-radius: 14px; cursor: pointer; font: inherit;
 		background: oklch(75% 0.18 165 / 0.15);
-		border-color: oklch(80% 0.17 165 / 0.5);
-		color: #fff;
-		transform: translateY(-2px);
-		box-shadow: 0 8px 24px oklch(75% 0.2 165 / 0.2);
+		border: 1px solid oklch(75% 0.18 165 / 0.4);
+		color: oklch(85% 0.17 160); font-weight: 700; font-size: 13px;
 	}
-	.ob-obj-emoji { font-size: 1.75rem; }
-	.ob-obj-label { font-size: 0.72rem; font-weight: 700; }
-	.ob-obj-sub { font-size: 0.6rem; color: rgba(255,255,255,0.4); line-height: 1.3; }
-	.ob-obj-card-active .ob-obj-sub { color: rgba(255,255,255,0.6); }
+	.hint { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 14px; }
 
-	/* ── Body form ── */
-	.ob-form-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.75rem;
-		width: 100%;
+	/* Listo */
+	.check-big {
+		width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 22px;
+		background: linear-gradient(135deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		display: flex; align-items: center; justify-content: center;
+		font-size: 46px; color: #041010;
+		box-shadow: 0 18px 50px oklch(75% 0.2 165 / 0.5);
 	}
-	.ob-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		text-align: left;
-	}
-	.ob-field label {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: rgba(255,255,255,0.5);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-	.ob-field input {
-		background: rgba(255,255,255,0.06);
+
+	/* Bottom actions */
+	.ob-actions { display: flex; gap: 10px; padding-top: 8px; }
+	.btn-back {
+		height: 54px; padding: 0 22px; border-radius: 18px;
 		border: 1px solid rgba(255,255,255,0.1);
-		border-radius: 12px;
-		color: #fff;
-		padding: 0.625rem 0.75rem;
-		font-size: 0.9375rem;
-		font-weight: 700;
-		font-family: inherit;
-		outline: none;
-		width: 100%;
-		box-sizing: border-box;
-		font-variant-numeric: tabular-nums;
+		background: rgba(255,255,255,0.04); color: #fff;
+		cursor: pointer; font: inherit; font-weight: 600; font-size: 14px;
 	}
-	.ob-field input:focus { border-color: oklch(75% 0.18 165 / 0.6); }
-	.ob-sex-toggle {
-		display: flex;
-		gap: 0.375rem;
-	}
-	.ob-sex-toggle button {
+	.btn-next {
 		flex: 1;
-		padding: 0.625rem 0.25rem;
-		border-radius: 12px;
-		border: 1px solid rgba(255,255,255,0.1);
-		background: rgba(255,255,255,0.05);
-		color: rgba(255,255,255,0.55);
-		font-size: 0.75rem;
-		font-weight: 700;
-		font-family: inherit;
-		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s, color 0.15s;
-	}
-	.ob-sex-active {
-		background: oklch(75% 0.18 165 / 0.18) !important;
-		border-color: oklch(80% 0.17 165 / 0.5) !important;
-		color: #fff !important;
-	}
-	.ob-activity-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.375rem;
-	}
-	.ob-act-btn {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		padding: 0.625rem 0.75rem;
-		border-radius: 12px;
-		border: 1px solid rgba(255,255,255,0.08);
-		background: rgba(255,255,255,0.04);
-		cursor: pointer;
-		font-family: inherit;
-		transition: background 0.15s, border-color 0.15s;
-		text-align: left;
-	}
-	.ob-act-btn:hover { background: rgba(255,255,255,0.08); }
-	.ob-act-btn-active {
-		background: oklch(75% 0.18 165 / 0.15);
-		border-color: oklch(80% 0.17 165 / 0.45);
-	}
-	.ob-act-label {
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: #fff;
-	}
-	.ob-act-sub {
-		font-size: 0.6rem;
-		color: rgba(255,255,255,0.4);
-		margin-top: 0.1rem;
-	}
-	.ob-act-btn-active .ob-act-sub { color: rgba(255,255,255,0.6); }
-
-	/* ── Result card ── */
-	.ob-result-card {
-		width: 100%;
-		background: rgba(255,255,255,0.05);
-		backdrop-filter: blur(24px) saturate(160%);
-		border: 1px solid rgba(255,255,255,0.09);
-		border-radius: 24px;
-		padding: 1.5rem 1.25rem;
-	}
-	.ob-result-kcal {
-		display: flex;
-		align-items: baseline;
-		justify-content: center;
-		gap: 0.4rem;
-		margin-bottom: 1.25rem;
-	}
-	.ob-result-num {
-		font-size: 3.5rem;
-		font-weight: 800;
-		color: oklch(85% 0.17 55);
-		letter-spacing: -0.06em;
-		font-variant-numeric: tabular-nums;
-		line-height: 1;
-	}
-	.ob-result-unit {
-		font-size: 0.875rem;
-		color: rgba(255,255,255,0.45);
-		font-weight: 500;
-	}
-	.ob-result-macros {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		gap: 0.5rem;
-	}
-	.ob-macro-pill {
-		padding: 0.625rem 0.5rem;
-		border-radius: 14px;
-		background: oklch(72% 0.18 var(--hue) / 0.1);
-		border: 1px solid oklch(72% 0.18 var(--hue) / 0.2);
-		text-align: center;
-	}
-	.ob-macro-pill-label {
-		font-size: 0.6rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: oklch(80% 0.15 var(--hue));
-		margin-bottom: 0.25rem;
-	}
-	.ob-macro-pill-val {
-		font-size: 1.125rem;
-		font-weight: 800;
-		color: #fff;
-		font-variant-numeric: tabular-nums;
-	}
-
-	/* ── CTA button ── */
-	.ob-cta {
-		height: 54px;
-		border-radius: 18px;
-		border: none;
-		cursor: pointer;
-		font-family: inherit;
+		height: 54px; border-radius: 18px; border: none;
 		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
-		color: #041010;
-		font-weight: 800;
-		font-size: 0.9375rem;
-		letter-spacing: -0.01em;
-		box-shadow:
-			0 10px 30px -8px oklch(75% 0.22 165 / 0.55),
-			inset 0 1px 0 rgba(255,255,255,0.4);
-		transition: opacity 0.15s, transform 0.15s;
+		color: #041010; cursor: pointer; font: inherit; font-weight: 800; font-size: 15px;
+		box-shadow: 0 10px 30px -8px oklch(75% 0.22 165 / 0.55);
 	}
-	.ob-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-	.ob-cta:not(:disabled):hover { transform: translateY(-1px); }
-	.ob-cta:not(:disabled):active { transform: translateY(0); }
+	.btn-next:disabled, .btn-back:disabled { opacity: 0.5; cursor: default; }
 </style>

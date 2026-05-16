@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600;700;800&display=swap');
+
 /* ═══════════════════════════════════════════════════════════
    UROBOROS — app.css (rediseño visual)
    Drop-in replacement. 0 cambios de marcado requeridos.
@@ -617,4 +619,43 @@ nav.bottom a.active {
 		animation-duration: 0.01ms !important;
 		transition-duration: 0.01ms !important;
 	}
+}
+
+/* ── Uroboros design tokens (lote 1) ─────────────────────────────────────── */
+
+:root {
+	/* Background */
+	--uro-bg:           #06070a;
+	--uro-bg-gradient:  radial-gradient(ellipse at 50% -10%, #0d1a1e 0%, #06080c 60%, #04050a 100%);
+
+	/* Glass */
+	--uro-glass-bg:     rgba(255, 255, 255, 0.07);
+	--uro-glass-border: rgba(255, 255, 255, 0.12);
+	--uro-glass-blur:   blur(24px) saturate(180%);
+
+	/* Radii */
+	--uro-r-sm: 12px;
+	--uro-r-md: 16px;
+	--uro-r-lg: 18px;
+	--uro-r-xl: 24px;
+
+	/* Accent hues (oklch) */
+	--uro-h-cal:   28;
+	--uro-h-prot: 220;
+	--uro-h-carb: 275;
+	--uro-h-fat:  355;
+	--uro-h-water: 200;
+	--uro-h-green: 165;
+
+	/* Primary gradient */
+	--uro-grad-primary: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+
+	/* Type */
+	--uro-font-sans:  'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+	--uro-font-serif: 'Instrument Serif', 'Lora', Georgia, serif;
+}
+
+.uro-serif {
+	font-family: var(--uro-font-serif);
+	font-weight: 400;
 }
