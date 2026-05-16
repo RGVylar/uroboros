@@ -10,6 +10,7 @@
  *   await pushStore.reschedule()   → re-schedule local notifications after prefs change (native only)
  */
 
+import { Capacitor } from '@capacitor/core';
 import { api } from '$lib/api';
 import { browser } from '$app/environment';
 import {
@@ -19,9 +20,7 @@ import {
 } from '$lib/services/nativeNotifications';
 
 /** True when running inside a Capacitor native app (Android / iOS). */
-export const isNativeApp: boolean = browser
-	? !!((window as unknown as Record<string, unknown>).Capacitor as { isNative?: boolean } | undefined)?.isNative
-	: false;
+export const isNativeApp: boolean = Capacitor.isNativePlatform();
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
