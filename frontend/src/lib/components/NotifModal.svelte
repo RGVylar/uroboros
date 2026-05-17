@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { pushStore } from '$lib/stores/push.svelte';
+	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
+	import { api } from '$lib/api';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -8,12 +9,24 @@
 
 	async function activate() {
 		loading = true;
-		const ok = await pushStore.subscribe();
-		loading = false;
-		if (!ok && Notification.permission === 'denied') {
-			denied = true;
-		} else {
-			onclose();
+		try {
+			const ok = await pushStore.subscribe();
+			if (ok) {
+				// Mark as enabled in server prefs so scheduleNativeNotifications()
+				// actually queues the daily alarms (default prefs have enabled=false).
+				await api.put('/push/prefs', { enabled: true }).catch(() => {});
+				onclose();
+				return;
+			}
+			// subscribe() returned false — permission was denied
+			const webDenied =
+				!isNativeApp &&
+				typeof Notification !== 'undefined' &&
+				Notification.permission === 'denied';
+			denied = isNativeApp || webDenied;
+			if (!denied) onclose(); // user dismissed the web dialog without blocking
+		} finally {
+			loading = false;
 		}
 	}
 
@@ -69,7 +82,11 @@
 
 	{#if denied}
 		<div class="denied-msg">
-			El navegador bloqueó los permisos. Ve a los ajustes del navegador para activarlos.
+			{#if isNativeApp}
+				Permiso denegado. Ve a Ajustes → Aplicaciones → Uroboros → Notificaciones para activarlas.
+			{:else}
+				El navegador bloqueó los permisos. Ve a los ajustes del navegador para activarlos.
+			{/if}
 		</div>
 	{/if}
 
