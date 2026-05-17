@@ -19,8 +19,26 @@ import {
 	testNativeNotification,
 } from '$lib/services/nativeNotifications';
 
-/** True when running inside a Capacitor native app (Android / iOS). */
-export const isNativeApp: boolean = Capacitor.isNativePlatform();
+/**
+ * True when running inside a Capacitor native app (Android / iOS).
+ * Checks both the official API and the legacy window bridge as a fallback.
+ */
+export const isNativeApp: boolean = (() => {
+	try {
+		if (Capacitor.isNativePlatform()) return true;
+	} catch { /* ignore */ }
+	// Fallback: check the raw bridge object (works in older Capacitor versions)
+	try {
+		const cap = (typeof window !== 'undefined') && (window as unknown as Record<string, unknown>)['Capacitor'];
+		if (cap && typeof (cap as Record<string, unknown>)['isNative'] === 'boolean') {
+			return (cap as Record<string, unknown>)['isNative'] as boolean;
+		}
+		if (cap && typeof (cap as Record<string, unknown>)['isNativePlatform'] === 'function') {
+			return ((cap as Record<string, unknown>)['isNativePlatform'] as () => boolean)();
+		}
+	} catch { /* ignore */ }
+	return false;
+})();
 
 // ── State ─────────────────────────────────────────────────────────────────────
 

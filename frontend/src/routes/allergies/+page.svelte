@@ -2,31 +2,32 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import Aurora from '$lib/components/uro/Aurora.svelte';
+	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	if (!auth.isLoggedIn) goto('/login');
 
 	const ALLERGENS = [
-		{ key: 'gluten',          label: 'Gluten',        emoji: '🌾', note: 'Trigo, cebada, centeno, avena' },
-		{ key: 'milk',            label: 'Leche',         emoji: '🥛', note: 'Lactosa y derivados lácteos' },
-		{ key: 'eggs',            label: 'Huevos',        emoji: '🥚', note: null },
-		{ key: 'peanuts',         label: 'Cacahuetes',    emoji: '🥜', note: null },
-		{ key: 'nuts',            label: 'Frutos secos',  emoji: '🌰', note: 'Almendras, avellanas, nueces…' },
-		{ key: 'soybeans',        label: 'Soja',          emoji: '🫘', note: null },
-		{ key: 'fish',            label: 'Pescado',       emoji: '🐟', note: null },
-		{ key: 'crustaceans',     label: 'Marisco',       emoji: '🦐', note: 'Crustáceos' },
-		{ key: 'celery',          label: 'Apio',          emoji: '🥬', note: null },
-		{ key: 'mustard',         label: 'Mostaza',       emoji: '🌿', note: null },
-		{ key: 'sesame-seeds',    label: 'Sésamo',        emoji: '🌱', note: null },
-		{ key: 'sulphur-dioxide', label: 'Sulfitos',      emoji: '🍷', note: 'Dióxido de azufre' },
-		{ key: 'mollusks',        label: 'Moluscos',      emoji: '🦑', note: null },
-		{ key: 'lupin',           label: 'Altramuces',    emoji: '🌻', note: null },
+		{ key: 'gluten',          label: 'Gluten',         emoji: '🌾', note: 'Trigo, cebada, centeno, avena' },
+		{ key: 'milk',            label: 'Leche',          emoji: '🥛', note: 'Lactosa y derivados lácteos' },
+		{ key: 'eggs',            label: 'Huevos',         emoji: '🥚', note: null },
+		{ key: 'peanuts',         label: 'Cacahuetes',     emoji: '🥜', note: null },
+		{ key: 'nuts',            label: 'Frutos secos',   emoji: '🌰', note: 'Almendras, avellanas, nueces…' },
+		{ key: 'soybeans',        label: 'Soja',           emoji: '🫘', note: null },
+		{ key: 'fish',            label: 'Pescado',        emoji: '🐟', note: null },
+		{ key: 'crustaceans',     label: 'Marisco',        emoji: '🦐', note: 'Crustáceos' },
+		{ key: 'celery',          label: 'Apio',           emoji: '🥬', note: null },
+		{ key: 'mustard',         label: 'Mostaza',        emoji: '🌿', note: null },
+		{ key: 'sesame-seeds',    label: 'Sésamo',         emoji: '🌱', note: null },
+		{ key: 'sulphur-dioxide', label: 'Sulfitos',       emoji: '🍷', note: 'Dióxido de azufre' },
+		{ key: 'mollusks',        label: 'Moluscos',       emoji: '🦑', note: null },
+		{ key: 'lupin',           label: 'Altramuces',     emoji: '🌻', note: null },
 	] as const;
 
 	type AllergenKey = typeof ALLERGENS[number]['key'];
 
-	// active = keys currently saved for this user
 	let active = $state(new Set<AllergenKey>());
 	let saving = $state(new Set<AllergenKey>());
-	let idMap = $state(new Map<AllergenKey, number>()); // key → allergy row id
+	let idMap = $state(new Map<AllergenKey, number>());
 	let loaded = $state(false);
 
 	async function load() {
@@ -68,7 +69,7 @@
 				idMap = new Map([...idMap, [key, row.id]]);
 			}
 		} catch {
-			// ignore — leave state unchanged
+			// ignore
 		} finally {
 			saving = new Set([...saving].filter(k => k !== key));
 		}
@@ -77,148 +78,176 @@
 	load();
 </script>
 
-<!-- ── Header ── -->
-<div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1.5rem;">
-	<button onclick={() => goto('/settings')} style="background:none; border:none; color:rgba(255,255,255,0.5); font-size:1.25rem; cursor:pointer; padding:0; line-height:1; flex-shrink:0;">‹</button>
-	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Alergias</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Activadas según la normativa UE</div>
-	</div>
-	{#if active.size > 0}
-		<div style="font-size:0.6875rem; color:oklch(80% 0.17 165); background:oklch(75% 0.18 165 / 0.12); border:1px solid oklch(75% 0.18 165 / 0.25); border-radius:99px; padding:0.25rem 0.625rem; flex-shrink:0;">
-			{active.size} activa{active.size > 1 ? 's' : ''}
+<Aurora />
+
+<div class="page">
+	<ScreenHeader
+		title="Alergias"
+		sub={active.size > 0 ? `${active.size} marcad${active.size === 1 ? 'a' : 'as'} · te avisaremos al añadir productos` : 'Te avisaremos si un producto contiene alguna'}
+		onBack={() => goto('/settings')}
+	/>
+
+	<!-- Info banner -->
+	<div class="banner">
+		<div class="banner-icon">⚠️</div>
+		<div class="banner-text">
+			<div class="banner-title">Detectaremos alérgenos automáticamente</div>
+			<div class="banner-sub">Al escanear o buscar productos en Open Food Facts.</div>
 		</div>
-	{/if}
-</div>
+	</div>
 
-<!-- ── List ── -->
-<div class="allergen-group">
-	{#each ALLERGENS as allergen, i (allergen.key)}
-		{#if i > 0}<div class="row-divider"></div>{/if}
-		<button
-			class="allergen-row"
-			class:is-active={active.has(allergen.key)}
-			onclick={() => toggle(allergen.key)}
-			disabled={saving.has(allergen.key)}
-		>
-			<div class="allergen-icon" class:icon-active={active.has(allergen.key)}>
-				{allergen.emoji}
-			</div>
-			<div class="allergen-content">
-				<div class="allergen-label">{allergen.label}</div>
-				{#if allergen.note}
-					<div class="allergen-note">{allergen.note}</div>
-				{/if}
-			</div>
-			<div class="allergen-check" class:check-active={active.has(allergen.key)}>
-				{#if saving.has(allergen.key)}
-					<div class="spinner"></div>
-				{:else if active.has(allergen.key)}
-					✓
-				{/if}
-			</div>
-		</button>
-	{/each}
-</div>
+	<!-- Grid -->
+	<div class="grid">
+		{#each ALLERGENS as a (a.key)}
+			{@const on = active.has(a.key)}
+			{@const isSaving = saving.has(a.key)}
+			<button
+				class="chip"
+				class:on
+				onclick={() => toggle(a.key)}
+				disabled={isSaving}
+			>
+				<div class="chip-icon" class:on>{a.emoji}</div>
+				<div class="chip-texts">
+					<div class="chip-label">{a.label}</div>
+					{#if a.note}<div class="chip-note">{a.note}</div>{/if}
+				</div>
+				<div class="chip-check" class:on>
+					{#if isSaving}
+						<div class="spinner"></div>
+					{:else if on}
+						✓
+					{/if}
+				</div>
+			</button>
+		{/each}
+	</div>
 
-<!-- ── Disclaimer ── -->
-<p style="font-size:0.625rem; color:rgba(255,255,255,0.28); line-height:1.5; margin-top:1.25rem; padding:0 0.25rem;">
-	⚠️ Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
-</p>
+	<p class="disclaimer">
+		⚠️ Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
+	</p>
+</div>
 
 <style>
-	.allergen-group {
-		background: rgba(255,255,255,0.05);
+	.page {
+		position: relative;
+		z-index: 1;
+		max-width: 560px;
+		margin: 0 auto;
+		padding: 8px 16px 120px;
+	}
+
+	/* Banner */
+	.banner {
+		display: flex; align-items: center; gap: 12px;
+		padding: 14px;
+		margin-bottom: 14px;
+		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.05);
 		backdrop-filter: blur(24px) saturate(160%);
 		-webkit-backdrop-filter: blur(24px) saturate(160%);
-		border: 1px solid rgba(255,255,255,0.09);
-		border-radius: 18px;
-		overflow: hidden;
+		border: 1px solid rgba(255, 255, 255, 0.09);
 	}
-	.allergen-row {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.875rem;
-		width: 100%;
-		background: none;
-		border: none;
+	.banner-icon {
+		width: 36px; height: 36px; border-radius: 12px;
+		background: linear-gradient(135deg, oklch(78% 0.18 45 / 0.3), oklch(60% 0.2 30 / 0.15));
+		border: 1px solid oklch(75% 0.18 45 / 0.35);
+		display: flex; align-items: center; justify-content: center;
+		font-size: 16px;
+		flex-shrink: 0;
+	}
+	.banner-text { flex: 1; min-width: 0; }
+	.banner-title { font-size: 12px; color: #fff; font-weight: 700; }
+	.banner-sub { font-size: 10px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; line-height: 1.4; }
+
+	/* Grid */
+	.grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+	@media (max-width: 380px) {
+		.grid { grid-template-columns: 1fr; }
+	}
+
+	.chip {
+		display: flex; align-items: center; gap: 10px;
+		padding: 12px;
+		border-radius: 14px;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.08);
 		color: #fff;
-		font-family: inherit;
+		font: inherit;
 		text-align: left;
 		cursor: pointer;
-		transition: background 0.15s;
+		position: relative;
+		transition: all 0.15s;
 	}
-	.allergen-row:hover:not(:disabled) {
-		background: rgba(255,255,255,0.04);
+	.chip:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+	.chip:disabled { cursor: default; }
+	.chip.on {
+		background: linear-gradient(135deg, oklch(75% 0.18 30 / 0.22), rgba(255, 255, 255, 0.04));
+		border-color: oklch(75% 0.18 30 / 0.5);
+		box-shadow: 0 8px 24px -8px oklch(72% 0.18 30 / 0.4);
 	}
-	.allergen-row:disabled {
-		cursor: default;
-	}
-	.allergen-icon {
-		width: 36px;
-		height: 36px;
-		border-radius: 10px;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.07);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 1rem;
+
+	.chip-icon {
+		width: 36px; height: 36px; border-radius: 11px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.07);
+		display: flex; align-items: center; justify-content: center;
+		font-size: 18px;
 		flex-shrink: 0;
-		transition: background 0.2s, border-color 0.2s;
+		filter: grayscale(0.4);
+		transition: all 0.15s;
 	}
-	.icon-active {
-		background: oklch(35% 0.15 40 / 0.3);
-		border-color: oklch(60% 0.2 40 / 0.35);
+	.chip-icon.on {
+		background: oklch(75% 0.18 30 / 0.18);
+		border-color: oklch(65% 0.2 40 / 0.35);
+		filter: none;
 	}
-	.allergen-content {
-		flex: 1;
-		min-width: 0;
+
+	.chip-texts { flex: 1; min-width: 0; }
+	.chip-label { font-size: 13px; font-weight: 700; }
+	.chip-note {
+		font-size: 9px;
+		color: rgba(255, 255, 255, 0.45);
+		margin-top: 1px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-	.allergen-label {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: #fff;
-	}
-	.allergen-note {
-		font-size: 0.6875rem;
-		color: rgba(255,255,255,0.4);
-		margin-top: 0.125rem;
-	}
-	.allergen-check {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		border: 1.5px solid rgba(255,255,255,0.15);
-		background: rgba(255,255,255,0.04);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
+
+	.chip-check {
+		width: 22px; height: 22px; border-radius: 50%;
+		border: 1.5px solid rgba(255, 255, 255, 0.18);
+		background: transparent;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 12px; font-weight: 800;
 		color: transparent;
 		flex-shrink: 0;
-		transition: background 0.2s, border-color 0.2s, color 0.2s;
+		transition: all 0.15s;
 	}
-	.check-active {
-		background: oklch(35% 0.15 40 / 0.35);
-		border-color: oklch(65% 0.2 40 / 0.6);
-		color: oklch(85% 0.18 45);
+	.chip-check.on {
+		background: oklch(78% 0.18 30);
+		border-color: transparent;
+		color: #1a0a05;
 	}
-	.row-divider {
-		height: 1px;
-		background: rgba(255,255,255,0.05);
-		margin: 0 0.875rem;
-	}
+
 	.spinner {
-		width: 12px;
-		height: 12px;
-		border: 1.5px solid rgba(255,255,255,0.2);
-		border-top-color: rgba(255,255,255,0.7);
+		width: 12px; height: 12px;
+		border: 1.5px solid rgba(255, 255, 255, 0.2);
+		border-top-color: rgba(255, 255, 255, 0.7);
 		border-radius: 50%;
 		animation: spin 0.6s linear infinite;
 	}
-	@keyframes spin {
-		to { transform: rotate(360deg); }
+	@keyframes spin { to { transform: rotate(360deg); } }
+
+	.disclaimer {
+		font-size: 10px;
+		color: rgba(255, 255, 255, 0.28);
+		line-height: 1.5;
+		margin-top: 18px;
+		padding: 0 4px;
 	}
 </style>

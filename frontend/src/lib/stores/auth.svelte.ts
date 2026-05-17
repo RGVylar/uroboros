@@ -5,9 +5,15 @@ function createAuth() {
 	let user = $state<User | null>(null);
 
 	if (typeof localStorage !== 'undefined') {
-		token = localStorage.getItem('token');
-		const saved = localStorage.getItem('user');
-		if (saved) user = JSON.parse(saved);
+		try {
+			const t = localStorage.getItem('token');
+			if (t && t !== 'undefined') token = t;
+			const saved = localStorage.getItem('user');
+			if (saved && saved !== 'undefined') user = JSON.parse(saved);
+		} catch {
+			localStorage.removeItem('token');
+			localStorage.removeItem('user');
+		}
 	}
 
 	return {

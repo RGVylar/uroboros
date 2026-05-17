@@ -378,7 +378,16 @@
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Notificaciones</div>
 	<div class="settings-group">
-		{#if !pushStore.isSupported && !isNativeApp}
+		{#if isNativeApp && !pushStore.isSupported}
+			<!-- Native app but plugin not ready yet — show spinner / wait for init -->
+			<div class="settings-row" style="cursor:default; opacity:0.6;">
+				<div class="icon-box">🔔</div>
+				<div class="row-content">
+					<div class="row-label">Notificaciones</div>
+					<div class="row-sub">Inicializando…</div>
+				</div>
+			</div>
+		{:else if !isNativeApp && !pushStore.isSupported}
 			<div class="settings-row" style="cursor:default; opacity:0.5;">
 				<div class="icon-box">🔔</div>
 				<div class="row-content">
