@@ -90,6 +90,10 @@ export interface Goals {
 	macro_adjust_mode: 'off' | 'proportional' | 'performance';
 }
 
+export type InventoryUnit = 'g' | 'ml' | 'unit';
+export type InventoryLocation = 'pantry' | 'fridge' | 'freezer';
+export type InventoryLogType = 'purchase' | 'consume' | 'adjust';
+
 export interface InventoryItem {
 	id: number;
 	user_id: number;
@@ -98,8 +102,33 @@ export interface InventoryItem {
 	product_brand: string | null;
 	calories_per_100g: number;
 	quantity_g: number;
+	quantity_base: number;
+	unit: InventoryUnit;
+	location: InventoryLocation;
 	price_per_100g: number | null;
 	updated_at: string;
+}
+
+export interface InventoryLog {
+	id: number;
+	user_id: number;
+	item_id: number | null;
+	product_id: number | null;
+	product_name: string | null;
+	quantity_change: number;
+	unit: InventoryUnit;
+	quantity_base_change: number;
+	log_type: InventoryLogType;
+	price_per_unit: number | null;
+	notes: string | null;
+	created_at: string;
+}
+
+export interface UnitConversion {
+	from_unit: InventoryUnit;
+	to_unit: InventoryUnit;
+	factor: number;
+	product_id: number | null;
 }
 
 export interface CostSummary {
@@ -115,6 +144,7 @@ export interface ShoppingListItem {
 	product_name: string | null;
 	product_brand: string | null;
 	quantity_g: number | null;
+	unit: InventoryUnit;
 	is_checked: boolean;
 	source: 'manual' | 'recipe';
 	created_at: string;

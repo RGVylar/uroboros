@@ -4,8 +4,9 @@
 	import { Capacitor } from '@capacitor/core';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Product, Recipe, ShoppingListItem } from '$lib/types';
+	import type { InventoryUnit, Product, Recipe, ShoppingListItem } from '$lib/types';
 	import { Modal } from '$lib/components';
+	import UnitSelector from '$lib/components/UnitSelector.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -72,6 +73,7 @@
 	let searching = $state(false);
 	let selectedProduct: Product | null = $state(null);
 	let addQty = $state<number | ''>(100);
+	let addUnit = $state<InventoryUnit>('g');
 	let freeText = $state('');
 	let addMode: 'product' | 'text' = $state('product');
 	let saving = $state(false);
@@ -139,9 +141,10 @@
 				await api.post('/shopping-list', {
 					product_id: selectedProduct.id,
 					quantity_g: addQty === '' ? null : addQty,
+					unit: addUnit,
 				});
 			} else if (addMode === 'text' && freeText.trim()) {
-				await api.post('/shopping-list', { name: freeText.trim() });
+				await api.post('/shopping-list', { name: freeText.trim(), unit: addUnit });
 			} else {
 				error = 'Selecciona un producto o escribe un nombre.';
 				return;
@@ -150,6 +153,7 @@
 			query = '';
 			freeText = '';
 			addQty = 100;
+			addUnit = 'g';
 			await load();
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
@@ -204,7 +208,8 @@
 
 	function qtyLabel(item: ShoppingListItem): string {
 		if (!item.quantity_g) return '';
-		return ` · ${item.quantity_g}g`;
+		const u = item.unit === 'unit' ? (item.quantity_g === 1 ? 'ud' : 'uds') : (item.unit ?? 'g');
+		return ` · ${item.quantity_g}${u}`;
 	}
 
 	let showAddForm = $state(false);
@@ -303,9 +308,14 @@
 					<div style="font-weight:700; font-size:0.8125rem; color:#fff;">{selectedProduct.name}</div>
 					{#if selectedProduct.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{selectedProduct.brand}</div>{/if}
 				</div>
-				<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
-					<label for="sl-qty" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Cantidad (g, opcional)</label>
-					<input id="sl-qty" type="number" bind:value={addQty} min="1" step="1" class="sl-field" />
+				<div style="display:grid; grid-template-columns:1fr 1.5fr; gap:0.5rem; margin-bottom:0.5rem;">
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<label for="sl-qty" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Cantidad ({addUnit === 'unit' ? 'uds' : addUnit})</label>
+						<input id="sl-qty" type="number" bind:value={addQty} min="0" step="any" class="sl-field" />
+					</div>
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<UnitSelector bind:unit={addUnit} label="Unidad" size="sm" />
+					</div>
 				</div>
 			{/if}
 		{:else}

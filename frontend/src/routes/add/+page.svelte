@@ -7,8 +7,18 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
-	import type { Product, User, DiaryEntry, MealType, RecommendedProduct, FrequentProduct, FrequentRecipe } from '$lib/types';
+	import type {
+		Product,
+		User,
+		DiaryEntry,
+		MealType,
+		RecommendedProduct,
+		FrequentProduct,
+		FrequentRecipe,
+		InventoryItem,
+	} from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -473,6 +483,37 @@
 		}
 	}
 
+	// ── Inventory consumption (optional, after diary entry) ────────────────
+	let inventoryMatch: InventoryItem | null = $state(null);
+	let consumePromptOpen = $state(false);
+	let showConsumeModal = $state(false);
+
+	async function findInventoryMatch(productId: number): Promise<InventoryItem | null> {
+		try {
+			const items = await api.get<InventoryItem[]>('/inventory');
+			return items.find((i) => i.product_id === productId && i.quantity_base > 0) ?? null;
+		} catch {
+			return null;
+		}
+	}
+
+	function dismissConsumePrompt() {
+		consumePromptOpen = false;
+		inventoryMatch = null;
+		goto('/');
+	}
+
+	function openConsumeModal() {
+		consumePromptOpen = false;
+		showConsumeModal = true;
+	}
+
+	function onConsumeModalClose() {
+		showConsumeModal = false;
+		inventoryMatch = null;
+		goto('/');
+	}
+
 	async function logEntry() {
 		if (!selected) return;
 		saving = true;
@@ -500,7 +541,15 @@
 			}
 			await api.post<DiaryEntry[]>('/diary', payload);
 			saveLastGrams(selected.id, grams);
-			goto('/');
+
+			// After successful diary entry, check inventory for this product
+			const match = await findInventoryMatch(selected.id);
+			if (match) {
+				inventoryMatch = match;
+				consumePromptOpen = true;
+			} else {
+				goto('/');
+			}
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -1180,6 +1229,49 @@
 	{#if error}<p class="add-error">{error}</p>{/if}
 {/if}
 
+<!-- ── Consume prompt (after diary entry, if item exists in inventory) ── -->
+{#if consumePromptOpen && inventoryMatch}
+	<div
+		class="consume-backdrop"
+		role="presentation"
+		onclick={dismissConsumePrompt}
+	></div>
+	<div class="consume-prompt" role="dialog" aria-modal="true">
+		<div class="consume-prompt-icon">📦</div>
+		<h2 class="consume-prompt-title">¿Consumir del inventario?</h2>
+		<p class="consume-prompt-sub">
+			Tienes <strong>{inventoryMatch.product_name}</strong> en tu inventario.
+		</p>
+		<div class="consume-prompt-stock">
+			{inventoryMatch.quantity_base.toLocaleString()}
+			{inventoryMatch.unit === 'unit'
+				? inventoryMatch.quantity_base === 1
+					? 'unidad'
+					: 'unidades'
+				: inventoryMatch.unit}
+			disponibles
+		</div>
+		<div class="consume-prompt-actions">
+			<button class="consume-prompt-no" onclick={dismissConsumePrompt}>
+				No, solo registrar
+			</button>
+			<button class="consume-prompt-yes" onclick={openConsumeModal}>
+				Sí, restar del stock
+			</button>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Consume modal (when user confirms "Sí, restar") ── -->
+{#if showConsumeModal && inventoryMatch}
+	<ConsumeFoodModal
+		item={inventoryMatch}
+		initialQuantity={inventoryMatch.unit === 'g' ? grams : 1}
+		initialUnit={inventoryMatch.unit}
+		onclose={onConsumeModalClose}
+	/>
+{/if}
+
 <style>
 	/* ── No allergen info notice ── */
 	.allergen-unknown-notice {
@@ -1766,4 +1858,71 @@
 	}
 	.load-more-btn:hover { background: rgba(255,255,255,0.09); }
 	.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	/* ── Consume prompt ── */
+	.consume-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.6);
+		backdrop-filter: blur(4px);
+		z-index: 90;
+	}
+	.consume-prompt {
+		position: fixed;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: min(420px, 100vw);
+		background: oklch(18% 0.03 260);
+		border: 1px solid oklch(35% 0.06 260 / 0.5);
+		border-bottom: none;
+		border-radius: 20px 20px 0 0;
+		padding: 1.5rem 1.5rem 2rem;
+		z-index: 91;
+		text-align: center;
+	}
+	.consume-prompt-icon {
+		font-size: 2rem;
+		margin-bottom: 0.5rem;
+	}
+	.consume-prompt-title {
+		font-size: 1rem;
+		font-weight: 800;
+		color: #fff;
+		margin: 0 0 0.25rem;
+	}
+	.consume-prompt-sub {
+		font-size: 0.8125rem;
+		color: rgba(255, 255, 255, 0.65);
+		margin: 0 0 1rem;
+	}
+	.consume-prompt-stock {
+		font-size: 0.75rem;
+		color: oklch(85% 0.17 160);
+		font-weight: 700;
+		margin-bottom: 1rem;
+	}
+	.consume-prompt-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.consume-prompt-actions button {
+		flex: 1;
+		padding: 0.75rem;
+		border-radius: 0.75rem;
+		font-family: inherit;
+		font-weight: 700;
+		font-size: 0.875rem;
+		cursor: pointer;
+	}
+	.consume-prompt-no {
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		color: rgba(255, 255, 255, 0.7);
+	}
+	.consume-prompt-yes {
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		border: none;
+		color: #041010;
+	}
 </style>

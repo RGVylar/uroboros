@@ -10,7 +10,14 @@ from app.models.friendship import Friendship, FriendshipStatus
 from app.models.creatine import CreatineLog
 from app.models.cheat_day import CheatDayLog
 from app.models.exercise import Exercise, ExerciseSession, ExerciseSessionEntry
-from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
+from app.models.inventory import (
+    InventoryItem,
+    ShoppingListItem,
+    SharedInventoryItem,
+    SharedShoppingListItem,
+    InventoryLog,
+    UnitConversion,
+)
 from app.models.supplement import UserSupplement, SupplementLog
 from app.models.password_reset import PasswordResetToken
 from app.models.allergy import UserAllergy
@@ -41,6 +48,8 @@ __all__ = [
     "ShoppingListItem",
     "SharedInventoryItem",
     "SharedShoppingListItem",
+    "InventoryLog",
+    "UnitConversion",
     "UserSupplement",
     "SupplementLog",
     "PasswordResetToken",
