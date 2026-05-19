@@ -568,6 +568,30 @@
 	</div>
 </div>
 
+<!-- ── Group: Legal ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Legal</div>
+	<div class="settings-group">
+		<button class="settings-row" onclick={() => goto('/privacy')}>
+			<div class="icon-box">🔒</div>
+			<div class="row-content">
+				<div class="row-label">Política de privacidad</div>
+				<div class="row-detail">Cómo tratamos tus datos</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => goto('/terms')}>
+			<div class="icon-box">📜</div>
+			<div class="row-content">
+				<div class="row-label">Términos del servicio</div>
+				<div class="row-detail">Condiciones de uso</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+	</div>
+</div>
+
 <!-- ── Modal eliminar cuenta ── -->
 {#if showDeleteModal}
 	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick={() => showDeleteModal = false}>
@@ -604,13 +628,6 @@
 		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:rgba(255,255,255,0.45); text-decoration:none; padding:0.35rem 0.875rem; border-radius:99px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
 		☕ Invítame una
 	</a>
-</div>
-
-<!-- Legal links -->
-<div style="text-align:center; margin-top:0.75rem; display:flex; justify-content:center; gap:0.875rem; font-size:0.6875rem;">
-	<a href="/privacy" style="color:rgba(255,255,255,0.45); text-decoration:none;">Privacidad</a>
-	<span style="color:rgba(255,255,255,0.2);">·</span>
-	<a href="/terms" style="color:rgba(255,255,255,0.45); text-decoration:none;">Términos</a>
 </div>
 
 <div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>

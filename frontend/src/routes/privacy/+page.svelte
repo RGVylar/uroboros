@@ -1,15 +1,36 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import Aurora from '$lib/components/uro/Aurora.svelte';
+
 	const lastUpdated = '1 de mayo de 2026';
 	const contactEmail = 'mugrelore@gmail.com';
 	const appName = 'uroboros';
 	const devName = 'Ramón González Vignau';
+
+	function goBack() {
+		if (typeof history !== 'undefined' && history.length > 1) {
+			history.back();
+		} else {
+			goto('/settings');
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>Política de Privacidad — uroboros</title>
 </svelte:head>
 
-<div style="max-width:680px; margin:0 auto; padding:2rem 1.25rem 6rem; color:#fff; font-family:inherit; line-height:1.7;">
+<Aurora />
+
+<div style="max-width:680px; margin:0 auto; padding:1rem 1.25rem 6rem; color:#fff; font-family:inherit; line-height:1.7; position:relative; z-index:1;">
+
+	<!-- Back button -->
+	<button
+		onclick={goBack}
+		style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.875rem; border-radius:99px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-family:inherit; font-size:0.8125rem; cursor:pointer; margin-bottom:1.25rem;"
+	>
+		← Atrás
+	</button>
 
 	<div style="margin-bottom:2rem;">
 		<div style="font-size:0.75rem; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">Legal</div>
