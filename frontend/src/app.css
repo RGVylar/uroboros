@@ -545,8 +545,7 @@ nav.bottom a.active {
 	height: 36px;
 	flex-shrink: 0;
 	display: block;
-	filter: drop-shadow(0 2px 6px oklch(75% 0.2 190 / 0.4));
-	box-shadow: 0 4px 14px -4px var(--primary-glow);
+	filter: drop-shadow(0 2px 8px oklch(75% 0.2 190 / 0.5));
 }
 .sidebar-brand-text {
 	display: flex;
