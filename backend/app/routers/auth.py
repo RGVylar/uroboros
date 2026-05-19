@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models import User
 from app.models.password_reset import PasswordResetToken
 from app.schemas.auth import TokenResponse, UserLogin, UserOut, UserRegister
@@ -27,7 +28,8 @@ class ResetPasswordRequest(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("3/hour")
+def register(request: Request, payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
@@ -43,7 +45,8 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> TokenRespo
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: UserLogin, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("5/15minutes")
+def login(request: Request, payload: UserLogin, db: Session = Depends(get_db)) -> TokenResponse:
     user = db.scalar(select(User).where(User.email == payload.email))
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
@@ -56,7 +59,8 @@ def me(user: User = Depends(get_current_user)) -> User:
 
 
 @router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> None:
+@limiter.limit("2/10minutes")
+def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> None:
     user = db.scalar(select(User).where(User.email == payload.email.lower().strip()))
     # Siempre responder 204 para no revelar si el email existe
     if not user:
