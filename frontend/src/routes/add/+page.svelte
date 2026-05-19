@@ -322,7 +322,52 @@
 	let manualFat = $state(0);
 
 	// Active chip filter
-	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'manual'>('suggestions');
+	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'inventory' | 'manual'>('suggestions');
+
+	// Inventory tab state
+	let inventoryItems: InventoryItem[] = $state([]);
+	let loadingInventory = $state(false);
+	let inventoryLoaded = $state(false);
+
+	async function loadInventoryTab() {
+		if (inventoryLoaded || loadingInventory) return;
+		loadingInventory = true;
+		try {
+			inventoryItems = await api.get<InventoryItem[]>('/inventory');
+			inventoryLoaded = true;
+		} catch {
+			inventoryItems = [];
+		} finally {
+			loadingInventory = false;
+		}
+	}
+
+	async function selectFromInventory(item: InventoryItem) {
+		// Inventory only stores partial product info; fetch the full product
+		// (with macros) so the kcal/protein/carbs/fat preview works.
+		try {
+			const product = await api.get<Product>(`/products/${item.product_id}`);
+			selectProduct(product);
+		} catch {
+			// Fallback: build a minimal product (macros will show as 0)
+			selectProduct({
+				id: item.product_id,
+				barcode: null,
+				name: item.product_name,
+				brand: item.product_brand,
+				calories_per_100g: item.calories_per_100g,
+				protein_per_100g: 0,
+				carbs_per_100g: 0,
+				fat_per_100g: 0,
+				source: 'manual',
+				edited_by: null,
+				edited_at: null,
+				created_at: '',
+				ingredients_text: null,
+				allergens: null,
+			});
+		}
+	}
 
 	async function loadRecommendations() {
 		loadingRecs = true;
@@ -1018,6 +1063,7 @@
 		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>⚡ Sugerencias</button>
 		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>🕒 Recientes{#if frequentFromCache}<span class="chip-offline-dot" title="Guardado sin conexión">·</span>{/if}</button>
 		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>⭐ Favoritos</button>
+		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}>📦 Inventario</button>
 		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">✏️ Manual</button>
 	</div>
 
@@ -1125,6 +1171,48 @@
 								disabled={favoriteToggling}
 							>★</button>
 						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<!-- ── INVENTARIO ── -->
+		{#if activeFilter === 'inventory'}
+			{#if loadingInventory}
+				<div class="loading-row">Cargando inventario...</div>
+			{:else if inventoryItems.length === 0}
+				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
+					<div style="font-size:2rem; margin-bottom:0.375rem;">📦</div>
+					<div>Tu inventario está vacío</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Añade alimentos en /inventario</div>
+				</div>
+			{:else}
+				<div class="section-header">
+					<div>
+						<div class="section-title">En casa</div>
+						<div class="section-sub">{inventoryItems.length} producto{inventoryItems.length !== 1 ? 's' : ''} en stock</div>
+					</div>
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+					{#each inventoryItems as item (item.id)}
+						<button
+							class="product-row"
+							onclick={() => selectFromInventory(item)}
+						>
+							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(item.product_name)} / 0.35), oklch(60% 0.12 {hashHue(item.product_name)} / 0.15));">
+								{item.location === 'fridge' ? '❄️' : item.location === 'freezer' ? '🧊' : '🏠'}
+							</div>
+							<div style="flex:1; min-width:0; text-align:left;">
+								<div class="product-name">{item.product_name}</div>
+								<div class="product-brand">
+									{item.product_brand ?? '—'} · <span style="color:oklch(85% 0.17 160); font-weight:700;">{item.quantity_base.toLocaleString()} {item.unit === 'unit' ? (item.quantity_base === 1 ? 'ud' : 'uds') : item.unit}</span>
+								</div>
+							</div>
+							<div style="text-align:right; flex-shrink:0;">
+								<div class="product-kcal">{item.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
+								<div class="product-per">/100g</div>
+							</div>
+						</button>
 					{/each}
 				</div>
 			{/if}
