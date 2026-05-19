@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 
-	const lastUpdated = '1 de mayo de 2026';
+	const lastUpdated = '19 de mayo de 2026';
 	const contactEmail = 'mugrelore@gmail.com';
 	const appName = 'uroboros';
 	const devName = 'Ramón González Vignau';
@@ -67,15 +67,19 @@
 	</section>
 
 	<section style="margin-bottom:2rem;">
-		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">3. Para qué usamos tus datos</h2>
-		<ul style="margin:0; padding-left:1.25rem; font-size:0.875rem; color:rgba(255,255,255,0.65); display:flex; flex-direction:column; gap:0.375rem;">
-			<li>Proporcionarte el servicio de seguimiento nutricional</li>
-			<li>Permitirte compartir datos con tu pareja o amigos (solo si tú lo activas)</li>
-			<li>Enviarte emails transaccionales (recuperación de contraseña)</li>
-			<li>Mejorar la experiencia de la app</li>
+		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">3. Para qué usamos tus datos y base jurídica</h2>
+		<p style="margin:0 0 0.75rem; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Tratamos tus datos para los siguientes fines, con la base jurídica correspondiente según el artículo 6 del RGPD:
+		</p>
+		<ul style="margin:0; padding-left:1.25rem; font-size:0.875rem; color:rgba(255,255,255,0.65); display:flex; flex-direction:column; gap:0.5rem;">
+			<li><strong style="color:#fff;">Servicio de seguimiento nutricional</strong> — <em>Ejecución del contrato</em> (art. 6.1.b): es la prestación que solicitas al registrarte.</li>
+			<li><strong style="color:#fff;">Compartir datos con tu pareja o amigos</strong> — <em>Consentimiento</em> (art. 6.1.a): solo se activa si tú lo solicitas explícitamente.</li>
+			<li><strong style="color:#fff;">Emails transaccionales</strong> (recuperación de contraseña) — <em>Ejecución del contrato</em> (art. 6.1.b).</li>
+			<li><strong style="color:#fff;">Recomendaciones automatizadas</strong> de alimentos basadas en tus objetivos — <em>Consentimiento</em> (art. 6.1.a) al usar la función. No producen efectos jurídicos ni te afectan significativamente; puedes ignorarlas o desactivarlas.</li>
+			<li><strong style="color:#fff;">Mejora del servicio</strong> — <em>Interés legítimo</em> (art. 6.1.f) en mantener la app funcional y segura.</li>
 		</ul>
 		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
-			No usamos tus datos para publicidad, ni los vendemos ni compartimos con terceros.
+			No usamos tus datos para publicidad, ni los vendemos ni compartimos con terceros. No realizamos perfilado con efectos jurídicos sobre ti.
 		</p>
 	</section>
 
@@ -111,7 +115,10 @@
 			<li><strong style="color:#fff;">Oposición:</strong> oponerte a cualquier tratamiento</li>
 		</ul>
 		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
-			Para ejercer cualquiera de estos derechos, escríbenos a <a href="mailto:{contactEmail}" style="color:oklch(85% 0.15 160);">{contactEmail}</a>.
+			Para ejercer cualquiera de estos derechos, escríbenos a <a href="mailto:{contactEmail}" style="color:oklch(85% 0.15 160);">{contactEmail}</a>. Responderemos en un plazo máximo de 1 mes.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			<strong style="color:#fff;">Derecho a reclamar:</strong> si consideras que tus datos no se están tratando correctamente, puedes presentar una reclamación ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer" style="color:oklch(85% 0.15 160);">www.aepd.es</a>) o ante la autoridad de control del Estado miembro de la UE donde residas.
 		</p>
 	</section>
 

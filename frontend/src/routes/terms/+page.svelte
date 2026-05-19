@@ -129,15 +129,18 @@
 	<section style="margin-bottom:2rem;">
 		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">9. Limitación de responsabilidad</h2>
 		<p style="margin:0 0 0.75rem; font-size:0.875rem; color:rgba(255,255,255,0.65);">
-			En la medida que lo permita la ley aplicable, {devName} <strong style="color:#fff;">no será responsable</strong> de:
+			En la medida que lo permita la ley aplicable, y salvo en casos de <strong style="color:#fff;">dolo o culpa grave</strong> imputable a {devName}, este no será responsable de:
 		</p>
 		<ul style="margin:0; padding-left:1.25rem; font-size:0.875rem; color:rgba(255,255,255,0.65); display:flex; flex-direction:column; gap:0.375rem;">
 			<li>Daños indirectos, lucro cesante o pérdida de datos derivados del uso de la app.</li>
 			<li>Problemas de salud relacionados con dietas seguidas a partir de la información de la app.</li>
 			<li>Reacciones alérgicas debidas a información incompleta o errónea de Open Food Facts.</li>
 			<li>Acciones de otros usuarios con los que decidas compartir tus datos.</li>
-			<li>Interrupciones del servicio o pérdida de datos por fallos técnicos.</li>
+			<li>Interrupciones del servicio o pérdida de datos por fallos técnicos ajenos a nuestra voluntad.</li>
 		</ul>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Esta limitación <strong style="color:#fff;">no restringe</strong> los derechos irrenunciables que la legislación de protección de consumidores otorga al usuario, especialmente los previstos en el Real Decreto Legislativo 1/2007 (TRLGDCU). Tampoco se aplica a daños causados por dolo, culpa grave, ni a la responsabilidad por daños personales o a la salud cuando la ley imperativa así lo determine.
+		</p>
 	</section>
 
 	<section style="margin-bottom:2rem;">
@@ -166,8 +169,17 @@
 
 	<section style="margin-bottom:2rem;">
 		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">13. Ley aplicable y jurisdicción</h2>
+		<p style="margin:0 0 0.75rem; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Estos términos se rigen por la <strong style="color:#fff;">legislación española</strong>, sin perjuicio de las normas imperativas de protección al consumidor del país de residencia del usuario dentro de la UE.
+		</p>
+		<p style="margin:0 0 0.75rem; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			<strong style="color:#fff;">Si eres consumidor:</strong> conforme al artículo 90.2 del TRLGDCU (RD Legislativo 1/2007) y al Reglamento (UE) 1215/2012, podrás presentar acciones contra nosotros ante los juzgados de tu domicilio, y nosotros solo podremos demandarte ante los juzgados del tuyo. Esta cláusula no limita ese derecho.
+		</p>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
-			Estos términos se rigen por la legislación española. Cualquier disputa derivada del uso de {appName} se someterá a los juzgados y tribunales del domicilio del consumidor cuando éste sea de la UE, o al fuero de Pontevedra (España) en los demás casos.
+			<strong style="color:#fff;">Si no eres consumidor</strong> (uso profesional o empresarial), las partes se someten expresamente a los juzgados y tribunales de Pontevedra (España), con renuncia a cualquier otro fuero que pudiera corresponderles.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Como consumidor también dispones de la <strong style="color:#fff;">plataforma de resolución de litigios en línea</strong> de la Comisión Europea: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" style="color:oklch(85% 0.15 160);">ec.europa.eu/consumers/odr</a>.
 		</p>
 	</section>
 
