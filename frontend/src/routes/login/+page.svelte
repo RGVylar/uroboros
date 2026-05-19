@@ -122,10 +122,10 @@
 	/* Brand */
 	.brand { text-align: center; margin-bottom: 32px; }
 	.logo {
-		width: 80px; height: 80px; border-radius: 22px;
+		width: 96px; height: 96px;
 		margin: 0 auto 14px;
 		display: block;
-		box-shadow: 0 14px 40px oklch(75% 0.2 190 / 0.45);
+		filter: drop-shadow(0 8px 24px oklch(75% 0.2 190 / 0.5));
 	}
 	.title {
 		font-family: 'Instrument Serif', 'Lora', Georgia, serif;
