@@ -543,15 +543,9 @@ nav.bottom a.active {
 .sidebar-logo {
 	width: 36px;
 	height: 36px;
-	border-radius: 10px;
-	background: linear-gradient(135deg, var(--primary), var(--primary-deep));
-	color: var(--primary-ink);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 800;
-	font-size: 1rem;
+	border-radius: 8px;
 	flex-shrink: 0;
+	display: block;
 	box-shadow: 0 4px 14px -4px var(--primary-glow);
 }
 .sidebar-brand-text {

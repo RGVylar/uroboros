@@ -71,7 +71,7 @@
 		<!-- Sidebar (solo visible en escritorio ≥900px) -->
 		<aside class="sidebar" aria-label="Navegación lateral">
 			<div class="sidebar-brand">
-				<div class="sidebar-logo">U</div>
+				<img src="/logo.png" alt="uroboros" class="sidebar-logo" />
 				<div class="sidebar-brand-text">
 					<span class="sidebar-app-name">uroboros</span>
 					<span class="sidebar-user-name">
