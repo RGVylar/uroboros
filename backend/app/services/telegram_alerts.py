@@ -52,12 +52,13 @@ async def send_error_alert(method: str, path: str, exc: Exception) -> None:
     await _send(text)
 
 
-async def send_new_user_alert(name: str, email: str) -> None:
+async def send_new_user_alert(name: str, email: str, user_count: int) -> None:
     """New user registered."""
     text = (
         f"👤 *[uroboros]* Nuevo usuario\n\n"
         f"*Nombre:* {name}\n"
-        f"*Email:* `{email}`\n\n"
+        f"*Email:* `{email}`\n"
+        f"*Total usuarios:* {user_count}\n\n"
         f"🕐 {_now()}"
     )
     await _send(text)
