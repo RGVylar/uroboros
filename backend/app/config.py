@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_public_key: str = ""
     vapid_email: str = "mailto:admin@uroboros.app"
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
 
 settings = Settings()
