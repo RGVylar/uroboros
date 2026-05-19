@@ -22,20 +22,15 @@
 
 ### 2. Terms of Service Faltante
 **Ubicación:** Frontend (nueva ruta `/terms`)  
-**Estado:** ❌ BLOQUEANTE  
+**Estado:** ✅ HECHO (2026-05-19)  
 **Acción:**
-- [ ] Crear página `frontend/src/routes/terms/+page.svelte`
-- [ ] Incluir:
-  - Definición de derechos del usuario
-  - Restricciones de uso
-  - Limitación de responsabilidad
-  - Renuncia de garantías
-  - Uso de datos (vinculado a Privacy Policy)
-- [ ] Enlazar desde Settings (pie de página)
-- [ ] Enlazar desde página de login (legal small print)
-- [ ] Legal review: ¿aplica GDPR en España?
+- [x] Crear página `frontend/src/routes/terms/+page.svelte`
+- [x] Incluir: derechos, uso aceptable, aviso médico, limitación de responsabilidad, jurisdicción ES
+- [x] Enlazar desde Settings (pie de página)
+- [x] Enlazar desde login (legal small print al crear cuenta + footer)
+- [ ] Legal review humana (recomendado, no bloqueante para internal testing)
 
-**Estimado:** 2-3 horas
+**Estimado:** 2-3 horas → **completado**
 
 ---
 

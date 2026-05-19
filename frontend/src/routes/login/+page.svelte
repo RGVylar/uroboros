@@ -85,8 +85,24 @@
 			<button type="submit" class="submit-btn" disabled={loading}>
 				{loading ? '...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
 			</button>
+
+			{#if mode === 'register'}
+				<p class="legal-fine">
+					Al crear una cuenta aceptas nuestros
+					<a href="/terms">términos</a>
+					y la
+					<a href="/privacy">política de privacidad</a>.
+				</p>
+			{/if}
 		</form>
 	</GlassCard>
+
+	<!-- Footer legal links -->
+	<div class="login-footer">
+		<a href="/privacy">Privacidad</a>
+		<span>·</span>
+		<a href="/terms">Términos</a>
+	</div>
 </div>
 
 <style>
@@ -214,4 +230,35 @@
 		margin-top: 6px;
 	}
 	.submit-btn:disabled { opacity: 0.5; cursor: default; }
+
+	.legal-fine {
+		font-size: 10.5px;
+		color: rgba(255, 255, 255, 0.45);
+		line-height: 1.5;
+		margin: 12px 4px 0;
+		text-align: center;
+	}
+	.legal-fine a {
+		color: oklch(85% 0.15 160);
+		text-decoration: none;
+	}
+	.legal-fine a:hover {
+		text-decoration: underline;
+	}
+
+	.login-footer {
+		display: flex;
+		justify-content: center;
+		gap: 14px;
+		margin-top: 20px;
+		font-size: 11px;
+		color: rgba(255, 255, 255, 0.35);
+	}
+	.login-footer a {
+		color: rgba(255, 255, 255, 0.6);
+		text-decoration: none;
+	}
+	.login-footer a:hover {
+		color: oklch(85% 0.15 160);
+	}
 </style>

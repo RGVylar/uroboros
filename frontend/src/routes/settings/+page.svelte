@@ -605,6 +605,14 @@
 		☕ Invítame una
 	</a>
 </div>
+
+<!-- Legal links -->
+<div style="text-align:center; margin-top:0.75rem; display:flex; justify-content:center; gap:0.875rem; font-size:0.6875rem;">
+	<a href="/privacy" style="color:rgba(255,255,255,0.45); text-decoration:none;">Privacidad</a>
+	<span style="color:rgba(255,255,255,0.2);">·</span>
+	<a href="/terms" style="color:rgba(255,255,255,0.45); text-decoration:none;">Términos</a>
+</div>
+
 <div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>
 
 <style>
