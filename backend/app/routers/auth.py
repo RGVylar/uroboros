@@ -14,6 +14,7 @@ from app.models import User
 from app.models.password_reset import PasswordResetToken
 from app.schemas.auth import TokenResponse, UserLogin, UserOut, UserRegister
 from app.security import create_access_token, hash_password, verify_password
+from app.services.telegram_alerts import send_new_user_alert
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,7 +30,7 @@ class ResetPasswordRequest(BaseModel):
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("3/hour")
-def register(request: Request, payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
+async def register(request: Request, payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
@@ -41,6 +42,7 @@ def register(request: Request, payload: UserRegister, db: Session = Depends(get_
     db.add(user)
     db.commit()
     db.refresh(user)
+    await send_new_user_alert(user.name, user.email)
     return TokenResponse(access_token=create_access_token(user.id), user=UserOut.model_validate(user))
 
 

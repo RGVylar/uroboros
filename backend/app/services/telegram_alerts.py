@@ -1,5 +1,5 @@
 """
-Sends error alerts to a Telegram chat when unhandled exceptions occur.
+Sends alerts to a Telegram chat for key app events and errors.
 Configure via TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
 """
 import traceback
@@ -12,14 +12,10 @@ from app.config import settings
 TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 
-async def send_alert(title: str, body: str) -> None:
-    """Fire-and-forget Telegram alert. Silently ignores send failures."""
+async def _send(text: str) -> None:
+    """Fire-and-forget. Silently ignores send failures."""
     if not settings.telegram_bot_token or not settings.telegram_chat_id:
         return
-
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    text = f"🔴 *[uroboros]* {title}\n\n{body}\n\n🕐 {now}"
-
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             await client.post(
@@ -31,14 +27,60 @@ async def send_alert(title: str, body: str) -> None:
                 },
             )
     except Exception:
-        pass  # Never let alerting break the app
+        pass
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+async def send_alert(title: str, body: str) -> None:
+    text = f"🔴 *[uroboros]* {title}\n\n{body}\n\n🕐 {_now()}"
+    await _send(text)
 
 
 async def send_error_alert(method: str, path: str, exc: Exception) -> None:
+    """500 — unhandled server exception."""
     tb_lines = traceback.format_exception(type(exc), exc, exc.__traceback__)
-    # Keep last 8 lines of traceback to stay within Telegram's 4096 char limit
     tb_short = "".join(tb_lines[-8:]).strip()
+    text = (
+        f"🔴 *[uroboros]* Error 500 — `{method} {path}`\n\n"
+        f"`{type(exc).__name__}: {exc}`\n\n"
+        f"```\n{tb_short}\n```\n\n"
+        f"🕐 {_now()}"
+    )
+    await _send(text)
 
-    title = f"Error 500 — {method} {path}"
-    body = f"`{type(exc).__name__}: {exc}`\n\n```\n{tb_short}\n```"
-    await send_alert(title, body)
+
+async def send_new_user_alert(name: str, email: str) -> None:
+    """New user registered."""
+    text = (
+        f"👤 *[uroboros]* Nuevo usuario\n\n"
+        f"*Nombre:* {name}\n"
+        f"*Email:* `{email}`\n\n"
+        f"🕐 {_now()}"
+    )
+    await _send(text)
+
+
+async def send_brute_force_alert(ip: str, endpoint: str) -> None:
+    """Rate limit exceeded on an auth endpoint."""
+    text = (
+        f"🚨 *[uroboros]* Brute force detectado\n\n"
+        f"*IP:* `{ip}`\n"
+        f"*Endpoint:* `{endpoint}`\n"
+        f"*Acción:* bloqueado con 429\n\n"
+        f"🕐 {_now()}"
+    )
+    await _send(text)
+
+
+async def send_unusual_4xx_alert(method: str, path: str, status: int, detail: str = "") -> None:
+    """Unexpected 4xx on auth endpoints (e.g. malformed requests)."""
+    text = (
+        f"⚠️ *[uroboros]* Error {status} inusual\n\n"
+        f"`{method} {path}`\n"
+        f"{detail}\n\n"
+        f"🕐 {_now()}"
+    )
+    await _send(text)

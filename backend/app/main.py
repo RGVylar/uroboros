@@ -14,7 +14,13 @@ from app.routers import (
     push, recipes, shopping_list, supplements, users, water, weight, allergies,
 )
 from app.services.notification_scheduler import start_scheduler, stop_scheduler
-from app.services.telegram_alerts import send_error_alert
+from app.services.telegram_alerts import (
+    send_brute_force_alert,
+    send_error_alert,
+    send_unusual_4xx_alert,
+)
+
+_AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"}
 
 
 @asynccontextmanager
@@ -27,14 +33,30 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Uroboros", version="0.1.0", lifespan=lifespan)
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    if request.url.path in _AUTH_PATHS:
+        ip = request.client.host if request.client else "unknown"
+        await send_brute_force_alert(ip, request.url.path)
+    return JSONResponse(status_code=429, content={"detail": "Demasiados intentos. Espera un momento."})
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     await send_error_alert(request.method, request.url.path, exc)
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+@app.middleware("http")
+async def monitor_unusual_4xx(request: Request, call_next):
+    response = await call_next(request)
+    # Alert on 422 (malformed request) in auth endpoints — likely automated scanning
+    if response.status_code == 422 and request.url.path in _AUTH_PATHS:
+        await send_unusual_4xx_alert(request.method, request.url.path, 422, "Petición con formato inválido")
+    return response
 
 app.add_middleware(
     CORSMiddleware,
