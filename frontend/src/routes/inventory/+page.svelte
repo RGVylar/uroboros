@@ -35,6 +35,16 @@
 	let saving = $state(false);
 	let showAddForm = $state(false);
 
+	// Manual product creation
+	let showManual = $state(false);
+	let manualName = $state('');
+	let manualBrand = $state('');
+	let manualCal = $state<number | ''>(0);
+	let manualProt = $state<number | ''>(0);
+	let manualCarbs = $state<number | ''>(0);
+	let manualFat = $state<number | ''>(0);
+	let creatingManual = $state(false);
+
 	// Edit state
 	let editingId: number | null = $state(null);
 	let editQty = $state(0);
@@ -108,6 +118,38 @@
 		selectedProduct = p;
 		searchResults = [];
 		query = p.name;
+	}
+
+	async function createManualProduct() {
+		if (!manualName.trim()) {
+			error = 'Falta el nombre';
+			return;
+		}
+		creatingManual = true;
+		error = '';
+		try {
+			const p = await api.post<Product>('/products', {
+				name: manualName.trim(),
+				brand: manualBrand.trim() || null,
+				calories_per_100g: manualCal === '' ? 0 : manualCal,
+				protein_per_100g: manualProt === '' ? 0 : manualProt,
+				carbs_per_100g: manualCarbs === '' ? 0 : manualCarbs,
+				fat_per_100g: manualFat === '' ? 0 : manualFat,
+			});
+			selectProduct(p);
+			showManual = false;
+			// reset manual fields
+			manualName = '';
+			manualBrand = '';
+			manualCal = 0;
+			manualProt = 0;
+			manualCarbs = 0;
+			manualFat = 0;
+		} catch (e: unknown) {
+			error = e instanceof Error ? e.message : 'No se pudo crear el producto';
+		} finally {
+			creatingManual = false;
+		}
 	}
 
 	// ── CRUD ─────────────────────────────────────────────────────────────────
@@ -327,18 +369,100 @@
 {#if showAddForm}
 	<div class="glass-card" style="margin-bottom:0.875rem;">
 		<div
-			style="font-weight:700; font-size:0.875rem; margin-bottom:0.75rem; color:#fff;"
+			style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;"
 		>
-			Añadir al inventario
+			<div style="font-weight:700; font-size:0.875rem; color:#fff;">
+				{showManual ? 'Nuevo producto' : 'Añadir al inventario'}
+			</div>
+			{#if !selectedProduct}
+				<button
+					onclick={() => {
+						showManual = !showManual;
+						if (showManual) {
+							searchResults = [];
+							query = '';
+						}
+					}}
+					style="padding:0.3125rem 0.625rem; border-radius:99px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.6875rem; font-weight:700; cursor:pointer;"
+				>
+					{showManual ? '← Buscar' : '✏️ Manual'}
+				</button>
+			{/if}
 		</div>
 
-		<!-- Search + barcode -->
-		<BarcodeScanner
-			bind:bind_query={query}
-			placeholder="Buscar arroz, pollo..."
-			onScan={searchByBarcode}
-			onSearch={searchProducts}
-		/>
+		{#if showManual}
+			<!-- Manual product creation form -->
+			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
+				<div style="display:flex; flex-direction:column; gap:0.25rem;">
+					<label
+						for="m-name"
+						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+					>Nombre *</label>
+					<input
+						id="m-name"
+						bind:value={manualName}
+						placeholder="Ej. Garbanzos cocidos"
+						class="inv-field"
+					/>
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.25rem;">
+					<label
+						for="m-brand"
+						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+					>Marca (opcional)</label>
+					<input
+						id="m-brand"
+						bind:value={manualBrand}
+						placeholder="Ej. Mercadona"
+						class="inv-field"
+					/>
+				</div>
+				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<label
+							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+						>Kcal / 100g</label>
+						<input type="number" bind:value={manualCal} min="0" step="any" class="inv-field" />
+					</div>
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<label
+							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+						>Proteína / 100g</label>
+						<input type="number" bind:value={manualProt} min="0" step="any" class="inv-field" />
+					</div>
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<label
+							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+						>Carbs / 100g</label>
+						<input type="number" bind:value={manualCarbs} min="0" step="any" class="inv-field" />
+					</div>
+					<div style="display:flex; flex-direction:column; gap:0.25rem;">
+						<label
+							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
+						>Grasa / 100g</label>
+						<input type="number" bind:value={manualFat} min="0" step="any" class="inv-field" />
+					</div>
+				</div>
+				{#if error}
+					<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0;">{error}</p>
+				{/if}
+				<button
+					onclick={createManualProduct}
+					disabled={creatingManual || !manualName.trim()}
+					style="margin-top:0.25rem; padding:0.75rem; border-radius:12px; border:none; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-family:inherit; font-weight:700; font-size:0.8125rem; cursor:pointer;"
+				>
+					{creatingManual ? 'Creando...' : '+ Crear producto'}
+				</button>
+			</div>
+		{:else}
+			<!-- Search + barcode -->
+			<BarcodeScanner
+				bind:bind_query={query}
+				placeholder="Buscar arroz, pollo..."
+				onScan={searchByBarcode}
+				onSearch={searchProducts}
+			/>
+		{/if}
 
 		{#if scanError}
 			<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">
