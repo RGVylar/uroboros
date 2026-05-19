@@ -38,7 +38,7 @@
 <div class="login-shell">
 	<!-- Logo + name -->
 	<div class="brand">
-		<div class="logo">U</div>
+		<img src="/logo.png" alt="uroboros" class="logo" />
 		<h1 class="title"><em>uroboros</em></h1>
 		<div class="tagline">Come mejor. Juntos.</div>
 	</div>
@@ -122,11 +122,9 @@
 	/* Brand */
 	.brand { text-align: center; margin-bottom: 32px; }
 	.logo {
-		width: 64px; height: 64px; border-radius: 20px;
+		width: 80px; height: 80px; border-radius: 22px;
 		margin: 0 auto 14px;
-		background: linear-gradient(135deg, oklch(82% 0.18 160), oklch(62% 0.2 210));
-		display: flex; align-items: center; justify-content: center;
-		font-weight: 800; color: #041010; font-size: 32px; letter-spacing: -2px;
+		display: block;
 		box-shadow: 0 14px 40px oklch(75% 0.2 190 / 0.45);
 	}
 	.title {
