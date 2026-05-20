@@ -137,10 +137,10 @@ def delete_account(
     db.execute(delete(ExerciseSession).where(ExerciseSession.user_id == uid))
 
     # Recetas
-    recipe_ids = db.scalars(select(Recipe.id).where(Recipe.user_id == uid)).all()
+    recipe_ids = db.scalars(select(Recipe.id).where(Recipe.owner_id == uid)).all()
     if recipe_ids:
         db.execute(delete(RecipeIngredient).where(RecipeIngredient.recipe_id.in_(recipe_ids)))
-    db.execute(delete(Recipe).where(Recipe.user_id == uid))
+    db.execute(delete(Recipe).where(Recipe.owner_id == uid))
 
     # Amistades
     db.execute(delete(Friendship).where(
