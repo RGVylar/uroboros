@@ -13,7 +13,7 @@ from app.models.diary import DiaryEntry
 from app.models.exercise import ExerciseSession, ExerciseSessionEntry
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.goals import UserGoals
-from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
+from app.models.inventory import InventoryItem, ShoppingListItem
 from app.models.password_reset import PasswordResetToken
 from app.models.recipe import Recipe, RecipeIngredient
 from app.models.supplement import UserSupplement, SupplementLog
@@ -125,8 +125,6 @@ def delete_account(
     db.execute(delete(DiaryEntry).where(DiaryEntry.user_id == uid))
     db.execute(delete(SupplementLog).where(SupplementLog.user_id == uid))
     db.execute(delete(UserSupplement).where(UserSupplement.user_id == uid))
-    db.execute(delete(SharedInventoryItem).where(SharedInventoryItem.user_id == uid))
-    db.execute(delete(SharedShoppingListItem).where(SharedShoppingListItem.user_id == uid))
     db.execute(delete(ShoppingListItem).where(ShoppingListItem.user_id == uid))
     db.execute(delete(InventoryItem).where(InventoryItem.user_id == uid))
 
