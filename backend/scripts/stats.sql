@@ -175,6 +175,50 @@ SELECT
     (SELECT COUNT(*) FROM notification_log
         WHERE sent_at >= NOW() - INTERVAL '7 days')                 AS notifs_7d;
 
+-- ── 10. Scoreboard de adherencia a objetivos (últimos 30 días) ──────────────
+\echo ''
+\echo '══════════════════ SCOREBOARD DE ADHERENCIA (30 días) ═══════════'
+\echo '  Puntuación: 100 = exactamente en objetivo · 0 = ±100% o más de desvío'
+
+WITH daily_totals AS (
+    SELECT
+        d.user_id,
+        d.consumed_at::date          AS dia,
+        SUM(d.calories)              AS kcal_dia,
+        SUM(d.protein)               AS prot_dia,
+        SUM(d.carbs)                 AS carbs_dia,
+        SUM(d.fat)                   AS fat_dia
+    FROM diary_entries d
+    WHERE d.consumed_at >= NOW() - INTERVAL '30 days'
+    GROUP BY d.user_id, d.consumed_at::date
+),
+scored AS (
+    SELECT
+        dt.user_id,
+        GREATEST(0, 100 - 100.0 * ABS(dt.kcal_dia  - g.kcal)    / NULLIF(g.kcal, 0))    AS s_kcal,
+        GREATEST(0, 100 - 100.0 * ABS(dt.prot_dia  - g.protein)  / NULLIF(g.protein, 0)) AS s_prot,
+        GREATEST(0, 100 - 100.0 * ABS(dt.carbs_dia - g.carbs)    / NULLIF(g.carbs, 0))   AS s_carbs,
+        GREATEST(0, 100 - 100.0 * ABS(dt.fat_dia   - g.fat)      / NULLIF(g.fat, 0))     AS s_fat,
+        dt.kcal_dia,
+        g.kcal AS kcal_objetivo
+    FROM daily_totals dt
+    JOIN user_goals g ON g.user_id = dt.user_id
+)
+SELECT
+    u.name,
+    COUNT(*)                                                                            AS dias_registrados,
+    ROUND(AVG((s_kcal + s_prot + s_carbs + s_fat) / 4)::numeric, 1)                   AS puntuacion,
+    ROUND(AVG(s_kcal)::numeric,  1)                                                    AS kcal_score,
+    ROUND(AVG(s_prot)::numeric,  1)                                                    AS prot_score,
+    ROUND(AVG(s_carbs)::numeric, 1)                                                    AS carbs_score,
+    ROUND(AVG(s_fat)::numeric,   1)                                                    AS grasa_score,
+    ROUND(AVG(kcal_dia)::numeric, 0)                                                   AS kcal_media_real,
+    ROUND(AVG(kcal_objetivo)::numeric, 0)                                              AS kcal_objetivo
+FROM scored s
+JOIN users u ON u.id = s.user_id
+GROUP BY u.id, u.name
+ORDER BY puntuacion DESC;
+
 \echo ''
 \echo '═══════════════════════════════════════════════════════════════'
 \echo 'Fin del informe.'
