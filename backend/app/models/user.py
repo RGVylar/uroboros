@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
-TRIAL_DAYS = 1  # TODO: cambiar a 14 antes de producción
+TRIAL_DAYS = 0  # TODO: cambiar a 14 antes de producción
 SubscriptionStatus = Literal["trial", "free", "premium"]
 
 
