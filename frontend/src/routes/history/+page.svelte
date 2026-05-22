@@ -585,8 +585,8 @@
 		<span>💪 Ejercicio</span>
 		{#if moodEnabled}<span>🫥 Estado del día</span>{/if}
 	</div>
-</div>
 {/if}
+</div>
 
 {/if}
 
