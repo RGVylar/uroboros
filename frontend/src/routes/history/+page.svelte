@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api';
-	import type { DaySummary, Goals } from '$lib/types';
+	import type { DaySummary, Goals, MoodEntry } from '$lib/types';
+	import { MOOD_WORST_EMOJI } from '$lib/types';
 	import { MealHeader } from '$lib/components';
 
 	function exportCSV(month?: boolean) {
@@ -43,6 +44,8 @@
 	let supplementDates: Set<string> = $state(new Set());
 	let exerciseDates: Set<string> = $state(new Set());
 	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
+	let moodEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
+	let moodDates: Map<string, number> = $state(new Map());
 
 	// Goals (for reference line)
 	let goals: Goals | null = $state(null);
@@ -117,9 +120,15 @@
 		const supplementPromise = suppEnabled
 			? api.get<string[]>(`/supplements/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
 			: Promise.resolve([]);
-		const [results, supplementDatesArr] = await Promise.all([
+		const from = formatDay(viewYear, viewMonth, 1);
+		const to = formatDay(viewYear, viewMonth, days);
+		const moodPromise = moodEnabled
+			? api.get<MoodEntry[]>(`/mood/range?date_from=${from}&date_to=${to}`).catch(() => [])
+			: Promise.resolve([]);
+		const [results, supplementDatesArr, moodEntries] = await Promise.all([
 			Promise.all(diaryPromises),
 			supplementPromise,
+			moodPromise,
 		]);
 		const newData: Record<string, number> = {};
 		const newExerciseDates = new Set<string>();
@@ -127,9 +136,14 @@
 			if (r.calories > 0) newData[r.date] = r.calories;
 			if (r.has_exercise) newExerciseDates.add(r.date);
 		}
+		const newMoodDates = new Map<string, number>();
+		for (const m of moodEntries) {
+			if (m.worst != null) newMoodDates.set(m.entry_date, m.worst);
+		}
 		monthData = newData;
 		supplementDates = new Set(supplementDatesArr);
 		exerciseDates = newExerciseDates;
+		moodDates = newMoodDates;
 		loadingMonth = false;
 	}
 
@@ -520,6 +534,7 @@
 						{@const isTodayCell = cell.date ? isToday(cell.date) : false}
 						{@const tookCreatine = suppEnabled && cell.date ? supplementDates.has(cell.date) : false}
 						{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
+						{@const moodLevel = moodEnabled && cell.date ? moodDates.get(cell.date) : undefined}
 						<button
 							onclick={() => cell.date && selectDay(cell.date)}
 							style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative; border:{isCalSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'}; background:{isCalSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'}; font-weight:{isTodayCell ? '700' : '400'}; color:{isTodayCell ? 'var(--primary)' : 'var(--text)'}; transition:border-color 0.15s;">
@@ -532,6 +547,9 @@
 							{/if}
 							{#if didExercise}
 								<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;">💪</span>
+							{/if}
+							{#if moodLevel != null}
+								<span style="position:absolute; bottom:1px; right:2px; font-size:0.55rem; line-height:1;">{MOOD_WORST_EMOJI[moodLevel]}</span>
 							{/if}
 						</button>
 					{/if}
@@ -550,6 +568,7 @@
 		{/each}
 		{#if suppEnabled}<span>💊 Suplementos</span>{/if}
 		<span>💪 Ejercicio</span>
+		{#if moodEnabled}<span>🫥 Estado del día</span>{/if}
 	</div>
 </div>
 
