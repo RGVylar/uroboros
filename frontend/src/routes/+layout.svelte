@@ -38,13 +38,13 @@
 	});
 
 	// Móvil: 4 items + FAB en el centro
-	type NavLink = { href: string; label: string };
+	type NavLink = { href: string; label: string; pro?: boolean };
 	type FabSlot = { fab: true };
 	type NavItem = NavLink | FabSlot;
 
 	const mobileNav: NavItem[] = [
 		{ href: '/', label: 'Diario' },
-		{ href: '/history', label: 'Historial' },
+		{ href: '/history', label: 'Historial', pro: true },
 		{ fab: true },
 		{ href: '/recipes', label: 'Recetas' },
 		{ href: '/settings', label: 'Ajustes' },
@@ -53,11 +53,11 @@
 	// Escritorio: todos los ítems en el sidebar (con emoji como icono)
 	const sidebarNav = [
 		{ href: '/', label: 'Diario', icon: '📋' },
-		{ href: '/history', label: 'Historial', icon: '📅' },
+		{ href: '/history', label: 'Historial', icon: '📅', pro: true },
 		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
-		{ href: '/exercises', label: 'Ejercicios', icon: '💪' },
+		{ href: '/exercises', label: 'Ejercicios', icon: '💪', pro: true },
 		{ href: '/weight', label: 'Peso', icon: '⚖️' },
-		{ href: '/measurements', label: 'Medidas', icon: '📏' },
+		{ href: '/measurements', label: 'Medidas', icon: '📏', pro: true },
 		{ href: '/friends', label: 'Amigos', icon: '👥' },
 		{ href: '/settings', label: 'Ajustes', icon: '⚙️' },
 	];
@@ -93,6 +93,8 @@
 						<span>{item.label}</span>
 						{#if item.href === '/friends' && pendingFriends.count > 0}
 							<span class="sidebar-badge" aria-label="{pendingFriends.count} solicitudes">{pendingFriends.count}</span>
+						{:else if item.pro && !subscription.is_premium}
+							<span class="pro-badge">PRO</span>
 						{/if}
 					</a>
 				{/each}
@@ -167,6 +169,8 @@
 						<span class="nav-badge" aria-label="{pendingFriends.count} solicitudes pendientes">
 							{pendingFriends.count}
 						</span>
+					{:else if link.pro && !subscription.is_premium}
+						<span class="pro-badge">PRO</span>
 					{/if}
 				</a>
 			{/if}
@@ -252,5 +256,28 @@
 		font-weight: 800;
 		padding: 0.1rem 0.4rem;
 		line-height: 1.4;
+	}
+
+	/* ── Badge PRO ── */
+	.pro-badge {
+		margin-left: auto;
+		background: linear-gradient(90deg, oklch(72% 0.2 170), oklch(80% 0.18 200));
+		color: #041010;
+		border-radius: 99px;
+		font-size: 0.52rem;
+		font-weight: 900;
+		padding: 0.1rem 0.4rem;
+		line-height: 1.4;
+		letter-spacing: 0.04em;
+		flex-shrink: 0;
+	}
+	/* En bottom nav el badge va posicionado arriba a la derecha */
+	.bottom a .pro-badge {
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		margin-left: 0;
+		font-size: 0.45rem;
+		padding: 0.05rem 0.3rem;
 	}
 </style>

@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -172,6 +174,14 @@
 		activeTab = 'today';
 	}
 </script>
+
+{#if !subscription.is_premium}
+	<PaywallCard
+		title="Sesiones de ejercicio"
+		description="Registra tus entrenos, quema calorías y llévalos al historial. Disponible en Premium."
+		onUpgrade={() => goto('/premium')}
+	/>
+{:else}
 
 <!-- ── Header ── -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
@@ -381,6 +391,8 @@
 			{sessionLoading ? 'Registrando...' : 'Registrar sesión'}
 		</button>
 	</div>
+{/if}
+
 {/if}
 
 <style>

@@ -3,6 +3,8 @@
 	import { api } from '$lib/api';
 	import { MEASUREMENT_FIELDS } from '$lib/measurements';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { BodyMeasurementLog } from '$lib/types';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -158,6 +160,14 @@
 		MEASUREMENT_FIELDS.filter(f => currentFor(f.key) !== null)
 	);
 </script>
+
+{#if !subscription.is_premium}
+	<PaywallCard
+		title="Medidas corporales"
+		description="Registra cintura, cadera, pecho y más. Visualiza tu evolución con gráficas y exporta a Excel."
+		onUpgrade={() => goto('/premium')}
+	/>
+{:else}
 
 <!-- Page header -->
 <div class="trk-header">
@@ -387,6 +397,8 @@
 			</button>
 		</div>
 	</div>
+{/if}
+
 {/if}
 
 <style>
