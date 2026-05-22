@@ -20,6 +20,7 @@
 		Modal,
 		EmptyState,
 	} from '$lib/components';
+	import TrialBanner from '$lib/components/uro/TrialBanner.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -376,6 +377,7 @@
 	<!-- redirect handled above -->
 {:else}
 	<DayNav bind:date={today} {streak} />
+	<TrialBanner />
 
 
 	{#if recipeSaveSuccess}

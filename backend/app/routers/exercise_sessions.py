@@ -9,7 +9,7 @@ from app.schemas.exercise_session import (
     ExerciseSessionEntryIn,
     ExerciseSessionEntryUpdate,
 )
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 
 router = APIRouter(prefix="/exercise-sessions", tags=["exercise-sessions"])
 
@@ -23,7 +23,7 @@ def _recalc_total(session: ExerciseSession) -> None:
 def get_session_by_day(
     day: date = Query(...),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     """Obtener sesión de ejercicio de un día específico. Devuelve null si no existe."""
     session = db.scalar(
@@ -38,7 +38,7 @@ def get_session_by_day(
 def add_entry_to_session(
     payload: ExerciseSessionEntryIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     """Agregar un ejercicio a la sesión del día (crea la sesión si no existe)."""
     exercise = db.get(Exercise, payload.exercise_id)
@@ -93,7 +93,7 @@ def update_entry_quantity(
     entry_id: int,
     payload: ExerciseSessionEntryUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     """Actualizar la cantidad de un ejercicio en la sesión."""
     entry = db.get(ExerciseSessionEntry, entry_id)
@@ -117,7 +117,7 @@ def update_entry_quantity(
 def delete_entry(
     entry_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     """Eliminar un ejercicio de la sesión. Si queda vacía, elimina la sesión."""
     entry = db.get(ExerciseSessionEntry, entry_id)
@@ -146,7 +146,7 @@ def delete_entry(
 def delete_session(
     day: date = Query(...),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     """Eliminar toda la sesión de ejercicio de un día."""
     session = db.scalar(

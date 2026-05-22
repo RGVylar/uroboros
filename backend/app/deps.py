@@ -20,3 +20,13 @@ def get_current_user(
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
     return user
+
+
+def require_premium(user: User = Depends(get_current_user)) -> User:
+    """Dependency that blocks access for free-tier users."""
+    if not user.is_premium_or_trial:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
+    return user

@@ -24,6 +24,16 @@ from app.schemas.auth import UserOut
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+@router.get("/me/subscription")
+def get_subscription(user: User = Depends(get_current_user)) -> dict:
+    """Return current user's subscription status for the frontend."""
+    return {
+        "status": user.effective_status,
+        "trial_days_left": user.trial_days_left,
+        "is_premium": user.is_premium_or_trial,
+    }
+
+
 @router.get("", response_model=list[UserOut])
 def list_users(
     db: Session = Depends(get_db),

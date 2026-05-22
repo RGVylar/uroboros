@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models.body_measurement import BodyMeasurementLog
 from app.models.creatine import CreatineLog
 from app.models.diary import DiaryEntry
@@ -68,7 +68,7 @@ def export_full_xlsx(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> StreamingResponse:
     """Export all user data as a single Excel file with one sheet per category."""
     uid = user.id

@@ -5,7 +5,7 @@ from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models.cheat_day import CheatDayLog
 from app.models.user import User
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ def _today_status(db: Session, user: User, log_date: date) -> CheatDayOut:
 @router.get("/today", response_model=CheatDayOut)
 def get_cheat_day_today(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> CheatDayOut:
     return _today_status(db, user, date.today())
 
@@ -39,7 +39,7 @@ def get_cheat_day_today(
 @router.post("/use", response_model=CheatDayOut)
 def use_cheat_day(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> CheatDayOut:
     today = date.today()
     existing = db.scalar(
@@ -57,7 +57,7 @@ def use_cheat_day(
 @router.delete("/today", response_model=CheatDayOut)
 def cancel_cheat_day(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> CheatDayOut:
     today = date.today()
     entry = db.scalar(
@@ -77,7 +77,7 @@ def get_cheat_days_month(
     year: int,
     month: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[str]:
     """Returns list of YYYY-MM-DD strings where cheat day was used in the given month."""
     rows = db.execute(

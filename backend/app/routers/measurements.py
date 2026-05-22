@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models import BodyMeasurementLog, User
 from app.schemas.misc import BodyMeasurementIn, BodyMeasurementOut
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/measurements", tags=["measurements"])
 def list_measurements(
     limit: int = Query(100, le=500),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[BodyMeasurementLog]:
     stmt = (
         select(BodyMeasurementLog)
@@ -29,7 +29,7 @@ def list_measurements(
 def add_measurement(
     payload: BodyMeasurementIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> BodyMeasurementLog:
     log = BodyMeasurementLog(
         user_id=user.id,
@@ -46,7 +46,7 @@ def add_measurement(
 def delete_measurement(
     log_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> None:
     log = db.get(BodyMeasurementLog, log_id)
     if not log or log.user_id != user.id:

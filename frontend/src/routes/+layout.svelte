@@ -11,6 +11,7 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { pushStore } from '$lib/stores/push.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
 
@@ -20,6 +21,7 @@
 		if (auth.isLoggedIn) {
 			pendingFriends.start();
 			pushStore.init();
+			subscription.load();
 		} else {
 			pendingFriends.stop();
 		}

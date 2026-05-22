@@ -5,6 +5,8 @@
 	import type { DaySummary, Goals, MoodEntry } from '$lib/types';
 	import { MOOD_WORST_EMOJI } from '$lib/types';
 	import { MealHeader } from '$lib/components';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -282,10 +284,12 @@
 		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Historial</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Últimos 7 días</div>
 	</div>
+	{#if subscription.is_premium}
 	<div style="display:flex; gap:0.3rem;">
 		<button class="csv-btn" onclick={() => exportZip(true)}>Exportar mes</button>
 		<button class="csv-btn" onclick={() => exportZip(false)}>Exportar todo</button>
 	</div>
+	{/if}
 </div>
 
 {#if loadingTrend}
@@ -505,6 +509,13 @@
 
 <!-- ── Calendar section ── -->
 <div style="margin-top:1.5rem;">
+{#if !subscription.is_premium}
+	<PaywallCard
+		title="Historial completo"
+		description="Consulta cualquier día pasado, el calendario mensual y las tendencias de 30 días."
+		onUpgrade={() => goto('/premium')}
+	/>
+{:else}
 	<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin-bottom:0.75rem;">Calendario</div>
 
 	<!-- Month navigation -->
@@ -575,6 +586,7 @@
 		{#if moodEnabled}<span>🫥 Estado del día</span>{/if}
 	</div>
 </div>
+{/if}
 
 {/if}
 

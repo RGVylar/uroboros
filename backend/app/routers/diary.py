@@ -192,6 +192,14 @@ def day_summary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> DaySummary:
+    # Free users can only see the last 7 days
+    if not user.is_premium_or_trial:
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=6)
+        if day < cutoff:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="premium_required",
+            )
     start = datetime.combine(day, time.min, tzinfo=timezone.utc)
     end = datetime.combine(day, time.max, tzinfo=timezone.utc)
     entries = list(

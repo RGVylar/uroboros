@@ -38,6 +38,8 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
         email=payload.email,
         password_hash=hash_password(payload.password),
         name=payload.name,
+        subscription_status="trial",
+        trial_started_at=datetime.now(timezone.utc),
     )
     db.add(user)
     db.commit()
