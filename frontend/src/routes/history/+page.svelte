@@ -6,26 +6,30 @@
 	import { MOOD_WORST_EMOJI } from '$lib/types';
 	import { MealHeader } from '$lib/components';
 
-	function exportCSV(month?: boolean) {
+	function download(url: string, filename: string) {
 		const token = auth.token;
-		let url = '/api/diary/export.csv';
-		if (month) {
-			const from = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-01`;
-			const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
-			const to = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-			url += `?date_from=${from}&date_to=${to}`;
-		}
 		fetch(url, { headers: { Authorization: `Bearer ${token}` } })
 			.then(r => r.blob())
 			.then(blob => {
 				const a = document.createElement('a');
 				a.href = URL.createObjectURL(blob);
-				a.download = month
-					? `uroboros_${viewYear}-${String(viewMonth + 1).padStart(2, '0')}.csv`
-					: 'uroboros_historial.csv';
+				a.download = filename;
 				a.click();
 				URL.revokeObjectURL(a.href);
 			});
+	}
+
+	function exportZip(month?: boolean) {
+		let url = '/api/export/full.zip';
+		let filename = 'uroboros_export.zip';
+		if (month) {
+			const from = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-01`;
+			const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
+			const to = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+			url += `?date_from=${from}&date_to=${to}`;
+			filename = `uroboros_${viewYear}-${String(viewMonth + 1).padStart(2, '0')}.zip`;
+		}
+		download(url, filename);
 	}
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -279,8 +283,8 @@
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Últimos 7 días</div>
 	</div>
 	<div style="display:flex; gap:0.3rem;">
-		<button class="csv-btn" onclick={() => exportCSV(true)}>CSV mes</button>
-		<button class="csv-btn" onclick={() => exportCSV(false)}>CSV todo</button>
+		<button class="csv-btn" onclick={() => exportZip(true)}>↓ mes</button>
+		<button class="csv-btn" onclick={() => exportZip(false)}>↓ todo</button>
 	</div>
 </div>
 
