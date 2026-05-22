@@ -283,8 +283,8 @@
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Últimos 7 días</div>
 	</div>
 	<div style="display:flex; gap:0.3rem;">
-		<button class="csv-btn" onclick={() => exportZip(true)}>↓ mes</button>
-		<button class="csv-btn" onclick={() => exportZip(false)}>↓ todo</button>
+		<button class="csv-btn" onclick={() => exportZip(true)}>Exportar mes</button>
+		<button class="csv-btn" onclick={() => exportZip(false)}>Exportar todo</button>
 	</div>
 </div>
 
