@@ -113,6 +113,33 @@
 		{/each}
 	</div>
 
+	<!-- Couple plan explainer (shown when couple is selected) -->
+	{#if selected === 'couple'}
+		<div class="couple-box">
+			<div class="couple-title">💑 Cómo funciona el plan pareja</div>
+			<div class="couple-rule">
+				<span class="couple-check">✓</span>
+				<span>Los dos tenéis <strong>Premium completo</strong> — historial, gráficas, medidas, ejercicio, exportar…</span>
+			</div>
+			<div class="couple-rule">
+				<span class="couple-check">✓</span>
+				<span><strong>Inventario compartido</strong> — gestiona la despensa, nevera y congelador juntos en tiempo real</span>
+			</div>
+			<div class="couple-rule">
+				<span class="couple-check">✓</span>
+				<span><strong>Lista de la compra</strong> sincronizada — uno añade, el otro lo ve al instante</span>
+			</div>
+			<div class="couple-rule">
+				<span class="couple-check">✓</span>
+				<span><strong>Recetas compartidas</strong> — cread y compartid vuestras recetas favoritas</span>
+			</div>
+			<div class="couple-divider"></div>
+			<div class="couple-note">
+				Si solo <strong>uno</strong> de los dos paga Premium individual, su pareja conectada accede igualmente al inventario, lista y recetas compartidas — pero no a su propio historial ilimitado ni gráficas personales.
+			</div>
+		</div>
+	{/if}
+
 	<!-- CTA -->
 	<button class="cta-btn" onclick={() => subscribe(selected)}>
 		Continuar con {plans.find(p => p.id === selected)?.label}
@@ -268,4 +295,44 @@
 		padding: 0.5rem;
 	}
 	.free-link:hover { color: rgba(255,255,255,0.6); }
+
+	/* ── Couple explainer ── */
+	.couple-box {
+		background: oklch(72% 0.2 170 / 0.08);
+		border: 1px solid oklch(72% 0.2 170 / 0.25);
+		border-radius: 16px;
+		padding: 1rem 1.125rem;
+		margin-bottom: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+	.couple-title {
+		font-size: 0.875rem;
+		font-weight: 800;
+		color: oklch(88% 0.19 160);
+		margin-bottom: 0.125rem;
+	}
+	.couple-rule {
+		display: flex;
+		gap: 0.625rem;
+		font-size: 0.8125rem;
+		color: rgba(255,255,255,0.8);
+		line-height: 1.4;
+	}
+	.couple-check {
+		color: oklch(85% 0.19 160);
+		font-weight: 800;
+		flex-shrink: 0;
+		margin-top: 0.05rem;
+	}
+	.couple-divider {
+		border-top: 1px solid rgba(255,255,255,0.08);
+		margin: 0.25rem 0;
+	}
+	.couple-note {
+		font-size: 0.75rem;
+		color: rgba(255,255,255,0.45);
+		line-height: 1.5;
+	}
 </style>
