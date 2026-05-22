@@ -20,14 +20,14 @@
 	}
 
 	function exportZip(month?: boolean) {
-		let url = '/api/export/full.zip';
-		let filename = 'uroboros_export.zip';
+		let url = '/api/export/full.xlsx';
+		let filename = 'uroboros_export.xlsx';
 		if (month) {
 			const from = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-01`;
 			const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
 			const to = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 			url += `?date_from=${from}&date_to=${to}`;
-			filename = `uroboros_${viewYear}-${String(viewMonth + 1).padStart(2, '0')}.zip`;
+			filename = `uroboros_${viewYear}-${String(viewMonth + 1).padStart(2, '0')}.xlsx`;
 		}
 		download(url, filename);
 	}

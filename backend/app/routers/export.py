@@ -1,11 +1,11 @@
-"""Full data export as a ZIP archive containing one CSV per data type."""
-import csv
+"""Full data export as a single Excel workbook with one sheet per data type."""
 import io
-import zipfile
 from datetime import date, datetime, time, timezone
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -25,18 +25,29 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 _LEVEL_LABEL = {1: "bajo", 2: "normal", 3: "bueno"}
 
+# Header style: dark green background, white bold text
+_HEADER_FILL = PatternFill("solid", fgColor="1A3A2A")
+_HEADER_FONT = Font(bold=True, color="FFFFFF", size=10)
+_HEADER_ALIGN = Alignment(horizontal="center", vertical="center")
 
-def _csv_bytes(rows: list, headers: list[str]) -> bytes:
-    """Return UTF-8-BOM encoded CSV bytes (Excel-friendly)."""
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(headers)
-    w.writerows(rows)
-    return buf.getvalue().encode("utf-8-sig")
+
+def _write_sheet(ws, headers: list[str], rows: list[list]) -> None:
+    """Write headers + rows to a worksheet with basic styling."""
+    ws.append(headers)
+    header_row = ws[1]
+    for cell in header_row:
+        cell.font = _HEADER_FONT
+        cell.fill = _HEADER_FILL
+        cell.alignment = _HEADER_ALIGN
+    for row in rows:
+        ws.append(row)
+    # Auto-width (approximate)
+    for col in ws.columns:
+        max_len = max((len(str(c.value or "")) for c in col), default=8)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 40)
 
 
 def _dt_filter(stmt, col, date_from, date_to):
-    """Apply datetime range filter to a statement column."""
     if date_from:
         stmt = stmt.where(col >= datetime.combine(date_from, time.min, tzinfo=timezone.utc))
     if date_to:
@@ -45,7 +56,6 @@ def _dt_filter(stmt, col, date_from, date_to):
 
 
 def _date_filter(stmt, col, date_from, date_to):
-    """Apply date (not datetime) range filter."""
     if date_from:
         stmt = stmt.where(col >= date_from)
     if date_to:
@@ -53,22 +63,22 @@ def _date_filter(stmt, col, date_from, date_to):
     return stmt
 
 
-@router.get("/full.zip")
-def export_full_zip(
+@router.get("/full.xlsx")
+def export_full_xlsx(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    """Export all user data as a ZIP file with one CSV per data type."""
+    """Export all user data as a single Excel file with one sheet per category."""
     uid = user.id
-    files: dict[str, bytes] = {}
+    wb = Workbook()
+    wb.remove(wb.active)  # remove default empty sheet
 
-    # ── diario.csv ────────────────────────────────────────────────────────────
+    # ── Diario ────────────────────────────────────────────────────────────────
     stmt = (
         select(DiaryEntry)
         .where(DiaryEntry.user_id == uid)
-        .options(joinedload(DiaryEntry.product))
         .order_by(DiaryEntry.consumed_at)
     )
     stmt = _dt_filter(stmt, DiaryEntry.consumed_at, date_from, date_to)
@@ -87,27 +97,27 @@ def export_full_zip(
             round(e.carbs, 1),
             round(e.fat, 1),
         ])
-    files["diario.csv"] = _csv_bytes(
-        diary_rows,
-        ["fecha", "hora", "comida", "producto", "marca", "gramos", "kcal", "proteina_g", "carbos_g", "grasa_g"],
-    )
+    ws = wb.create_sheet("Diario")
+    _write_sheet(ws, ["Fecha", "Hora", "Comida", "Producto", "Marca", "Gramos", "Kcal", "Proteína (g)", "Carbos (g)", "Grasa (g)"], diary_rows)
 
-    # ── agua.csv ──────────────────────────────────────────────────────────────
+    # ── Agua ──────────────────────────────────────────────────────────────────
     stmt = select(WaterLog).where(WaterLog.user_id == uid).order_by(WaterLog.logged_date)
     stmt = _date_filter(stmt, WaterLog.logged_date, date_from, date_to)
     agua_rows = [[w.logged_date.isoformat(), int(w.ml)] for w in db.scalars(stmt)]
-    files["agua.csv"] = _csv_bytes(agua_rows, ["fecha", "ml"])
+    ws = wb.create_sheet("Agua")
+    _write_sheet(ws, ["Fecha", "ml"], agua_rows)
 
-    # ── peso.csv ──────────────────────────────────────────────────────────────
+    # ── Peso ──────────────────────────────────────────────────────────────────
     stmt = select(WeightLog).where(WeightLog.user_id == uid).order_by(WeightLog.logged_at)
     stmt = _dt_filter(stmt, WeightLog.logged_at, date_from, date_to)
     peso_rows = [
         [w.logged_at.strftime("%Y-%m-%d"), w.logged_at.strftime("%H:%M"), round(w.weight, 2)]
         for w in db.scalars(stmt)
     ]
-    files["peso.csv"] = _csv_bytes(peso_rows, ["fecha", "hora", "kg"])
+    ws = wb.create_sheet("Peso")
+    _write_sheet(ws, ["Fecha", "Hora", "Kg"], peso_rows)
 
-    # ── medidas.csv ───────────────────────────────────────────────────────────
+    # ── Medidas ───────────────────────────────────────────────────────────────
     stmt = (
         select(BodyMeasurementLog)
         .where(BodyMeasurementLog.user_id == uid)
@@ -115,7 +125,6 @@ def export_full_zip(
     )
     stmt = _dt_filter(stmt, BodyMeasurementLog.logged_at, date_from, date_to)
     meas_list = list(db.scalars(stmt))
-    # Collect all measurement keys to build dynamic columns
     all_keys: list[str] = []
     for m in meas_list:
         for k in (m.measurements or {}).keys():
@@ -126,9 +135,10 @@ def export_full_zip(
         row = [m.logged_at.strftime("%Y-%m-%d"), m.logged_at.strftime("%H:%M")]
         row += [m.measurements.get(k, "") for k in all_keys]
         meas_rows.append(row)
-    files["medidas.csv"] = _csv_bytes(meas_rows, ["fecha", "hora"] + all_keys)
+    ws = wb.create_sheet("Medidas")
+    _write_sheet(ws, ["Fecha", "Hora"] + all_keys, meas_rows)
 
-    # ── ejercicio.csv ─────────────────────────────────────────────────────────
+    # ── Ejercicio ─────────────────────────────────────────────────────────────
     stmt = (
         select(ExerciseSession)
         .where(ExerciseSession.user_id == uid)
@@ -149,12 +159,10 @@ def export_full_zip(
                 round(entry.calories, 1),
                 round(session.total_calories, 1),
             ])
-    files["ejercicio.csv"] = _csv_bytes(
-        ejercicio_rows,
-        ["fecha", "ejercicio", "cantidad", "unidad", "kcal_quemadas", "total_dia_kcal"],
-    )
+    ws = wb.create_sheet("Ejercicio")
+    _write_sheet(ws, ["Fecha", "Ejercicio", "Cantidad", "Unidad", "Kcal quemadas", "Total día (kcal)"], ejercicio_rows)
 
-    # ── suplementos.csv ───────────────────────────────────────────────────────
+    # ── Suplementos ───────────────────────────────────────────────────────────
     stmt = (
         select(SupplementLog.logged_date, UserSupplement.name)
         .join(UserSupplement, SupplementLog.supplement_id == UserSupplement.id)
@@ -163,9 +171,10 @@ def export_full_zip(
     )
     stmt = _date_filter(stmt, SupplementLog.logged_date, date_from, date_to)
     supp_rows = [[row.logged_date.isoformat(), row.name] for row in db.execute(stmt)]
-    files["suplementos.csv"] = _csv_bytes(supp_rows, ["fecha", "suplemento"])
+    ws = wb.create_sheet("Suplementos")
+    _write_sheet(ws, ["Fecha", "Suplemento"], supp_rows)
 
-    # ── creatina.csv ──────────────────────────────────────────────────────────
+    # ── Creatina ──────────────────────────────────────────────────────────────
     stmt = (
         select(CreatineLog)
         .where(CreatineLog.user_id == uid)
@@ -173,9 +182,10 @@ def export_full_zip(
     )
     stmt = _date_filter(stmt, CreatineLog.logged_date, date_from, date_to)
     creatine_rows = [[c.logged_date.isoformat()] for c in db.scalars(stmt)]
-    files["creatina.csv"] = _csv_bytes(creatine_rows, ["fecha"])
+    ws = wb.create_sheet("Creatina")
+    _write_sheet(ws, ["Fecha"], creatine_rows)
 
-    # ── mood.csv ──────────────────────────────────────────────────────────────
+    # ── Mood ──────────────────────────────────────────────────────────────────
     stmt = (
         select(MoodEntry)
         .where(MoodEntry.user_id == uid)
@@ -192,24 +202,23 @@ def export_full_zip(
         ]
         for m in db.scalars(stmt)
     ]
-    files["mood.csv"] = _csv_bytes(mood_rows, ["fecha", "energia", "digestion", "animo", "notas"])
+    ws = wb.create_sheet("Estado del día")
+    _write_sheet(ws, ["Fecha", "Energía", "Digestión", "Ánimo", "Notas"], mood_rows)
 
-    # ── Build ZIP ─────────────────────────────────────────────────────────────
-    zip_buf = io.BytesIO()
-    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for name, data in files.items():
-            zf.writestr(name, data)
-    zip_buf.seek(0)
+    # ── Serialize ─────────────────────────────────────────────────────────────
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
 
     suffix = ""
     if date_from:
         suffix += f"_{date_from}"
     if date_to:
         suffix += f"_{date_to}"
-    filename = f"uroboros_export{suffix}.zip"
+    filename = f"uroboros_export{suffix}.xlsx"
 
     return StreamingResponse(
-        iter([zip_buf.getvalue()]),
-        media_type="application/zip",
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
