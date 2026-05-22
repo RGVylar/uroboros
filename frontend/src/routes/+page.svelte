@@ -8,8 +8,8 @@
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement } from '$lib/types';
-	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
+	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
 	import {
@@ -60,6 +60,8 @@
 	let suppTaken = $derived(supplements.filter(s => s.taken).length);
 	let cheatDay: CheatDayToday | null = $state(null);
 	let togglingCheatDay = $state(false);
+	let moodEntry: MoodEntry | null = $state(null);
+	let moodEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
 
 	// Edit state
 	let editingEntry: DiaryEntry | null = $state(null);
@@ -124,6 +126,12 @@
 				cheatDay = await api.get<CheatDayToday>('/cheat-days/today').catch(() => null);
 			} else {
 				cheatDay = null;
+			}
+			// Load mood entry if enabled
+			if (typeof localStorage !== 'undefined' && localStorage.getItem('mood_enabled') === 'true') {
+				moodEntry = await api.get<MoodEntry | null>(`/mood/day?day=${today}`).catch(() => null);
+			} else {
+				moodEntry = null;
 			}
 			// Persist to cache for offline use
 			cacheSet(`diary_${today}`, s);
@@ -510,6 +518,28 @@
 					{/if}
 				{/if}
 			</div>
+
+			<!-- Mood chip -->
+			{#if moodEnabled}
+				<a href="/mood?day={today}" class="mood-chip" style="text-decoration:none; display:block; margin-bottom:0.75rem;">
+					<div class="card" style="padding:0.75rem 1rem; display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
+						<div style="width:36px; height:36px; border-radius:12px; flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+							{moodEntry?.worst ? MOOD_WORST_EMOJI[moodEntry.worst] : '🫥'}
+						</div>
+						<div style="flex:1; min-width:0;">
+							<div style="font-weight:700; font-size:0.85rem; color:#fff;">Estado del día</div>
+							<div style="font-size:0.75rem; color:var(--text-muted);">
+								{#if moodEntry?.worst}
+									{moodEntry.energy ? '⚡' : ''}{moodEntry.digestion ? ' · digestión' : ''}{moodEntry.mood ? ' · ánimo' : ''} — toca para editar
+								{:else}
+									¿Cómo te has sentido hoy?
+								{/if}
+							</div>
+						</div>
+						<div style="font-size:0.75rem; color:var(--text-muted);">›</div>
+					</div>
+				</a>
+			{/if}
 
 			<!-- Cheat day -->
 			{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}

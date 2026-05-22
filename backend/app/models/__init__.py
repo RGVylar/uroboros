@@ -25,6 +25,7 @@ from app.models.favorite import UserFavorite
 from app.models.push_subscription import PushSubscription
 from app.models.notification_prefs import NotificationPrefs
 from app.models.notification_log import NotificationLog
+from app.models.mood import MoodEntry
 
 __all__ = [
     "User",
@@ -58,4 +59,5 @@ __all__ = [
     "PushSubscription",
     "NotificationPrefs",
     "NotificationLog",
+    "MoodEntry",
 ]

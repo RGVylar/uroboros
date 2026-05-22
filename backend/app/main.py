@@ -10,7 +10,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.limiter import limiter
 from app.routers import (
     auth, cheat_days, creatine, diary, exercises, exercise_sessions,
-    favorites, friends, goals, inventory, measurements, products,
+    favorites, friends, goals, inventory, measurements, mood, products,
     push, recipes, shopping_list, supplements, users, water, weight, allergies,
 )
 from app.services.notification_scheduler import start_scheduler, stop_scheduler
@@ -93,3 +93,4 @@ app.include_router(supplements.router, prefix=api_prefix)
 app.include_router(allergies.router, prefix=api_prefix)
 app.include_router(favorites.router, prefix=api_prefix)
 app.include_router(push.router, prefix=api_prefix)
+app.include_router(mood.router, prefix=api_prefix)

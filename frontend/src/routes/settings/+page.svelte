@@ -78,6 +78,7 @@
 	let savingCreatine = $state(false);
 	let savingCheatDays = $state(false);
 	let savingInventory = $state(false);
+	let moodEnabled = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
 	let showDeleteModal = $state(false);
 	let deletingAccount = $state(false);
 	let deleteConfirmText = $state('');
@@ -131,6 +132,11 @@
 		} finally {
 			savingCheatDays = false;
 		}
+	}
+
+	function toggleMood() {
+		moodEnabled = !moodEnabled;
+		localStorage.setItem('mood_enabled', moodEnabled ? 'true' : 'false');
 	}
 
 	async function toggleInventory() {
@@ -326,6 +332,23 @@
 			<span class="chevron">›</span>
 		</button>
 		<div class="row-divider"></div>
+		<!-- Estado del día toggle -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">🫥</div>
+			<div class="row-content">
+				<div class="row-label">Estado del día</div>
+				<div class="row-detail">{moodEnabled ? 'Activo' : 'Inactivo'} · Energía, digestión y ánimo</div>
+			</div>
+			<button
+				onclick={toggleMood}
+				class="toggle-btn"
+				style="background:{moodEnabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{moodEnabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+			>
+				<span class="toggle-knob" style="left:{moodEnabled ? '18px' : '2px'};"></span>
+			</button>
+		</div>
+		<div class="row-divider"></div>
+
 		<!-- Inventario toggle + nav -->
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🏠</div>

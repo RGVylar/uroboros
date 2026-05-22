@@ -283,3 +283,21 @@ export interface SupplementToday {
 
 // L M X J V S D
 export const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+// ── Mood ──────────────────────────────────────────────────────────────────────
+export type MoodLevel = 1 | 2 | 3; // 1=bad, 2=neutral, 3=good
+
+export interface MoodEntry {
+	entry_date: string;
+	energy: MoodLevel | null;
+	digestion: MoodLevel | null;
+	mood: MoodLevel | null;
+	notes: string | null;
+	worst: MoodLevel | null;
+}
+
+export const MOOD_ENERGY_EMOJI: Record<number, string> = { 1: '🪫', 2: '⚡', 3: '🔥' };
+export const MOOD_DIGESTION_EMOJI: Record<number, string> = { 1: '🤢', 2: '😐', 3: '✅' };
+export const MOOD_MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '🙂', 3: '😄' };
+export const MOOD_WORST_EMOJI: Record<number, string> = { 1: '😞', 2: '🙂', 3: '😄' };
+
