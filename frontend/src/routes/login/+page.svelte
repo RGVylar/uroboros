@@ -24,7 +24,7 @@
 				res = await api.post<TokenResponse>('/auth/login', { email, password });
 			}
 			auth.login(res.access_token, res.user);
-			goto(mode === 'register' ? '/goals?new=1' : '/');
+			goto(mode === 'register' ? '/onboarding' : '/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
