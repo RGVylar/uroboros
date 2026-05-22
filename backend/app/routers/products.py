@@ -231,12 +231,27 @@ def get_product(
     return product
 
 
+FREE_CUSTOM_PRODUCT_LIMIT = 15
+
+
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(
     payload: ProductCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Product:
+    # Free-tier limit: max 15 custom products per user
+    if not user.is_premium_or_trial:
+        from sqlalchemy import func as sqlfunc
+        custom_count = db.scalar(
+            select(sqlfunc.count(Product.id)).where(Product.edited_by == user.id)
+        ) or 0
+        if custom_count >= FREE_CUSTOM_PRODUCT_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="premium_required",
+            )
+
     if payload.barcode:
         existing = db.scalar(select(Product).where(Product.barcode == payload.barcode))
         if existing:

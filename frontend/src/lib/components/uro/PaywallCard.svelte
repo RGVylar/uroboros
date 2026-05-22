@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+
 	interface Props {
 		title: string;
 		description: string;
@@ -7,7 +9,7 @@
 		onUpgrade?: () => void;
 	}
 
-	let { title, description, cta = 'Desbloquear Premium', onUpgrade }: Props = $props();
+	let { title, description, cta = 'Desbloquear Premium', onUpgrade = () => goto('/premium') }: Props = $props();
 </script>
 
 <div class="paywall">

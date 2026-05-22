@@ -2,8 +2,10 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	if (!auth.isLoggedIn) goto('/login');
 
 	const ALLERGENS = [
@@ -87,6 +89,13 @@
 		onBack={() => goto('/settings')}
 	/>
 
+	{#if !subscription.is_premium}
+		<PaywallCard
+			title="Alertas de alérgenos"
+			description="Detectamos automáticamente gluten, lactosa, frutos secos y 11 alérgenos más al escanear productos."
+		/>
+	{:else}
+
 	<!-- Info banner -->
 	<div class="banner">
 		<div class="banner-icon">⚠️</div>
@@ -126,6 +135,8 @@
 	<p class="disclaimer">
 		⚠️ Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
 	</p>
+
+	{/if}
 </div>
 
 <style>

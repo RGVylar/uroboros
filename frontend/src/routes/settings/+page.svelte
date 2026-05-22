@@ -5,6 +5,7 @@
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 	import type { Goals } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -235,29 +236,31 @@
 			{#if goals}
 				<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.375rem; width:100%; padding-left:2.75rem;">
 					{#each [
-						{ value: 'off',          label: 'Fijo',           note: 'Sin ajuste' },
-						{ value: 'proportional', label: 'Proporcional',   note: 'Sube todo' },
-						{ value: 'performance',  label: 'Rendimiento',    note: 'Solo carbs' },
+						{ value: 'off',          label: 'Fijo',           note: 'Sin ajuste',  pro: false },
+						{ value: 'proportional', label: 'Proporcional',   note: 'Sube todo',   pro: true  },
+						{ value: 'performance',  label: 'Rendimiento',    note: 'Solo carbs',  pro: true  },
 					] as opt}
+						{@const locked = opt.pro && !subscription.is_premium}
 						<button
-							onclick={() => setMacroAdjustMode(opt.value as 'off' | 'proportional' | 'performance')}
-							disabled={savingMacroMode}
+							onclick={() => locked ? goto('/premium') : setMacroAdjustMode(opt.value as 'off' | 'proportional' | 'performance')}
+							disabled={savingMacroMode && !locked}
 							style="
 								padding:0.5rem 0.25rem;
 								border-radius:0.625rem;
 								border:1px solid {goals.macro_adjust_mode === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'};
 								background:{goals.macro_adjust_mode === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'};
-								color:{goals.macro_adjust_mode === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'};
+								color:{locked ? 'rgba(255,255,255,0.3)' : goals.macro_adjust_mode === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'};
 								font-size:0.6875rem;
 								font-weight:{goals.macro_adjust_mode === opt.value ? '700' : '400'};
 								text-align:center;
-								cursor:pointer;
+								cursor:{locked ? 'pointer' : 'pointer'};
 								transition:all 0.15s;
 								line-height:1.3;
+								position:relative;
 							"
 						>
 							{opt.label}<br>
-							<span style="font-size:0.5625rem; opacity:0.7;">{opt.note}</span>
+							<span style="font-size:0.5625rem; opacity:0.7;">{locked ? '🔒 PRO' : opt.note}</span>
 						</button>
 					{/each}
 				</div>
@@ -291,13 +294,17 @@
 	<div class="group-label">Salud</div>
 	<div class="settings-group">
 		<!-- Alergias -->
-		<button class="settings-row" onclick={() => goto('/allergies')}>
+		<button class="settings-row" onclick={() => subscription.is_premium ? goto('/allergies') : goto('/premium')}>
 			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
 			<div class="row-content">
 				<div class="row-label">Alergias e intolerancias</div>
-				<div class="row-detail">{allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
+				<div class="row-detail">{subscription.is_premium ? (allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos') : 'Disponible en Premium'}</div>
 			</div>
-			<span class="chevron">›</span>
+			{#if !subscription.is_premium}
+				<span class="pro-badge-row">PRO</span>
+			{:else}
+				<span class="chevron">›</span>
+			{/if}
 		</button>
 	</div>
 </div>
@@ -318,18 +325,18 @@
 			<div class="icon-box">📏</div>
 			<div class="row-content">
 				<div class="row-label">Medidas corporales</div>
-				<div class="row-detail">Contornos y gráfica por zona</div>
+				<div class="row-detail">{subscription.is_premium ? 'Contornos y gráfica por zona' : 'Disponible en Premium'}</div>
 			</div>
-			<span class="chevron">›</span>
+			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => goto('/exercises')}>
 			<div class="icon-box">💪</div>
 			<div class="row-content">
 				<div class="row-label">Ejercicios</div>
-				<div class="row-detail">Biblioteca y rutinas de entreno</div>
+				<div class="row-detail">{subscription.is_premium ? 'Biblioteca y rutinas de entreno' : 'Disponible en Premium'}</div>
 			</div>
-			<span class="chevron">›</span>
+			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
 		<div class="row-divider"></div>
 		<!-- Estado del día toggle -->
@@ -448,6 +455,17 @@
 			</div>
 
 			{#if prefs?.enabled}
+				{#if !subscription.is_premium}
+					<!-- Notifs avanzadas bloqueadas para free -->
+					<button class="settings-row" onclick={() => goto('/premium')} style="border-top:1px solid rgba(255,255,255,0.06);">
+						<div class="icon-box">⚙️</div>
+						<div class="row-content">
+							<div class="row-label">Recordatorios personalizables</div>
+							<div class="row-detail">Horarios por comida, racha, agua y horas de silencio</div>
+						</div>
+						<span class="pro-badge-row">PRO</span>
+					</button>
+				{:else}
 				<!-- Meal reminders -->
 				<div class="notif-subsection">
 					<div class="notif-sub-label">Recordatorios de comida</div>
@@ -556,6 +574,7 @@
 					</div>
 					<div class="row-arrow">›</div>
 				</button>
+				{/if}
 			{/if}
 		{/if}
 	</div>
@@ -843,4 +862,16 @@
 		cursor: pointer;
 	}
 	.tz-select option { background: #1a1f2e; color: #fff; }
+
+	/* PRO badge in settings rows */
+	.pro-badge-row {
+		font-size: 0.5625rem;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		padding: 0.2rem 0.5rem;
+		border-radius: 99px;
+		background: linear-gradient(90deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		flex-shrink: 0;
+	}
 </style>
