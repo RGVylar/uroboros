@@ -580,6 +580,47 @@
 	</div>
 </div>
 
+<!-- ── Group: Plan ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Plan</div>
+	<div class="settings-group">
+		<!-- Tier status -->
+		<button class="settings-row" onclick={() => goto('/premium')}>
+			<div class="icon-box" style="
+				background:{subscription.status === 'premium' ? 'oklch(75% 0.2 165 / 0.2)' : subscription.status === 'trial' ? 'oklch(72% 0.18 55 / 0.2)' : 'rgba(255,255,255,0.05)'};
+				border:1px solid {subscription.status === 'premium' ? 'oklch(75% 0.2 165 / 0.35)' : subscription.status === 'trial' ? 'oklch(72% 0.18 55 / 0.35)' : 'rgba(255,255,255,0.08)'};
+			">
+				{subscription.status === 'premium' ? '👑' : subscription.status === 'trial' ? '⏳' : '🔓'}
+			</div>
+			<div class="row-content">
+				<div class="row-label" style="color:{subscription.status === 'premium' ? 'oklch(85% 0.19 160)' : subscription.status === 'trial' ? 'oklch(85% 0.16 60)' : '#fff'};">
+					{subscription.status === 'premium' ? 'Premium activo' : subscription.status === 'trial' ? 'Prueba gratuita' : 'Versión gratuita'}
+				</div>
+				<div class="row-detail">
+					{#if subscription.status === 'trial' && subscription.trial_days_left !== null}
+						{subscription.trial_days_left === 0 ? 'Tu prueba termina hoy' : `${subscription.trial_days_left} día${subscription.trial_days_left === 1 ? '' : 's'} restante${subscription.trial_days_left === 1 ? '' : 's'}`}
+					{:else if subscription.status === 'premium'}
+						Todas las funciones desbloqueadas
+					{:else}
+						Actualiza para desbloquear todo
+					{/if}
+				</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<!-- Onboarding -->
+		<button class="settings-row" onclick={() => goto('/onboarding')}>
+			<div class="icon-box">🧭</div>
+			<div class="row-content">
+				<div class="row-label">Ver introducción</div>
+				<div class="row-detail">Repasa cómo funciona uroboros</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+	</div>
+</div>
+
 <!-- ── Group: Cuenta ── -->
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Cuenta</div>
