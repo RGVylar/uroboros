@@ -113,6 +113,25 @@
 		{/each}
 	</div>
 
+	<!-- Social perk — always visible -->
+	<div class="social-box">
+		<div class="social-header">
+			<span class="social-icon">💑</span>
+			<span class="social-title">Con cualquier plan, tu pareja también gana</span>
+		</div>
+		<div class="social-body">
+			Al conectaros en uroboros, si <strong>uno de los dos tiene Premium</strong>, el otro accede automáticamente a las funciones compartidas:
+		</div>
+		<div class="social-perks">
+			<div class="social-perk">🏠 Inventario doméstico compartido</div>
+			<div class="social-perk">🛒 Lista de la compra sincronizada</div>
+			<div class="social-perk">📖 Recetas compartidas</div>
+		</div>
+		<div class="social-note">
+			Para que <strong>cada uno tenga su propio historial ilimitado, gráficas y medidas personales</strong>, los dos necesitáis Premium — o usar el plan pareja.
+		</div>
+	</div>
+
 	<!-- Couple plan explainer (shown when couple is selected) -->
 	{#if selected === 'couple'}
 		<div class="couple-box">
@@ -135,7 +154,7 @@
 			</div>
 			<div class="couple-divider"></div>
 			<div class="couple-note">
-				Si solo <strong>uno</strong> de los dos paga Premium individual, su pareja conectada accede igualmente al inventario, lista y recetas compartidas — pero no a su propio historial ilimitado ni gráficas personales.
+				Con el plan pareja los dos tenéis Premium completo al precio más bajo por persona.
 			</div>
 		</div>
 	{/if}
@@ -295,6 +314,53 @@
 		padding: 0.5rem;
 	}
 	.free-link:hover { color: rgba(255,255,255,0.6); }
+
+	/* ── Social perk (always visible) ── */
+	.social-box {
+		background: oklch(72% 0.2 170 / 0.06);
+		border: 1px solid oklch(72% 0.2 170 / 0.2);
+		border-radius: 16px;
+		padding: 1rem 1.125rem;
+		margin-bottom: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+	.social-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.social-icon { font-size: 1.125rem; flex-shrink: 0; }
+	.social-title {
+		font-size: 0.875rem;
+		font-weight: 800;
+		color: oklch(88% 0.19 160);
+	}
+	.social-body {
+		font-size: 0.8125rem;
+		color: rgba(255,255,255,0.7);
+		line-height: 1.4;
+	}
+	.social-perks {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		padding-left: 0.25rem;
+	}
+	.social-perk {
+		font-size: 0.8125rem;
+		color: rgba(255,255,255,0.85);
+		font-weight: 600;
+	}
+	.social-note {
+		font-size: 0.75rem;
+		color: rgba(255,255,255,0.4);
+		line-height: 1.5;
+		border-top: 1px solid rgba(255,255,255,0.07);
+		padding-top: 0.5rem;
+		margin-top: 0.125rem;
+	}
 
 	/* ── Couple explainer ── */
 	.couple-box {
