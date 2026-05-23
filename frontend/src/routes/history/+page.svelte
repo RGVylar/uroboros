@@ -327,15 +327,16 @@
 <!-- ── Trend days selector ── -->
 <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
 	{#each [7, 30] as days}
+		{@const locked = days === 30 && !subscription.is_premium}
 		<button
-			onclick={() => trendDays = days}
+			onclick={() => locked ? goto('/premium') : (trendDays = days)}
 			style="
 				flex:1;
 				padding:0.4rem 0.5rem;
 				border-radius:6px;
 				border:1px solid {trendDays === days ? 'rgba(79,255,153,0.5)' : 'rgba(255,255,255,0.1)'};
 				background:{trendDays === days ? 'rgba(79,255,153,0.15)' : 'rgba(255,255,255,0.05)'};
-				color:{trendDays === days ? 'oklch(85% 0.17 160)' : 'rgba(255,255,255,0.5)'};
+				color:{locked ? 'rgba(255,255,255,0.3)' : trendDays === days ? 'oklch(85% 0.17 160)' : 'rgba(255,255,255,0.5)'};
 				font-size:0.65rem;
 				font-weight:600;
 				font-family:inherit;
@@ -344,7 +345,7 @@
 				text-align:center;
 			"
 		>
-			{days} días
+			{locked ? '🔒 30 días' : `${days} días`}
 		</button>
 	{/each}
 </div>

@@ -7,6 +7,8 @@
 	import type { InventoryUnit, Product, Recipe, ShoppingListItem } from '$lib/types';
 	import { Modal } from '$lib/components';
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -222,8 +224,17 @@
 		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Lista</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{checked.length}/{items.length} completados</div>
 	</div>
+	{#if subscription.is_premium}
 	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5rem 0.875rem; border-radius:99px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.75rem; font-family:inherit; white-space:nowrap;">+ Añadir</button>
+	{/if}
 </div>
+
+{#if !subscription.is_premium}
+	<PaywallCard
+		title="Lista de la compra"
+		description="Lista sincronizada con tu pareja. Genera automáticamente desde tus recetas y añade al inventario al volver."
+	/>
+{:else}
 
 <!-- ── Progress card ── -->
 {#if items.length > 0}
@@ -420,6 +431,8 @@
 			{/each}
 		{/if}
 	</Modal>
+{/if}
+
 {/if}
 
 <style>

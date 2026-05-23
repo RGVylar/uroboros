@@ -13,6 +13,8 @@
 	import LocationPicker from '$lib/components/LocationPicker.svelte';
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
+	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -274,13 +276,22 @@
 			{items.length} productos
 		</div>
 	</div>
+	{#if subscription.is_premium}
 	<button
 		onclick={() => (showAddForm = !showAddForm)}
 		style="padding:0.5rem 0.875rem; border-radius:99px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.75rem; font-family:inherit; white-space:nowrap;"
 	>
 		+ Añadir
 	</button>
+	{/if}
 </div>
+
+{#if !subscription.is_premium}
+	<PaywallCard
+		title="Inventario doméstico"
+		description="Controla tu despensa, nevera y congelador. Comparte el stock con tu pareja en tiempo real."
+	/>
+{:else}
 
 <!-- ── Cost summary ── -->
 {#if cost && (cost.today !== null || cost.this_week !== null || cost.this_month !== null)}
@@ -805,6 +816,8 @@
 
 <!-- Bottom spacing -->
 <div style="height:6rem;"></div>
+
+{/if}
 
 <style>
 	.glass-card {
