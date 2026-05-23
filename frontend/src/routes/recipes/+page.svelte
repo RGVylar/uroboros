@@ -375,14 +375,13 @@
 		<div class="header-eyebrow">Biblioteca</div>
 		<div class="header-title">Recetas</div>
 	</div>
-	{@const atLimit = !subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT}
 	<button
 		class="btn-new"
-		onclick={() => atLimit ? goto('/premium') : (showCreate = !showCreate)}
-		style={atLimit ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
-		title={atLimit ? `Límite de ${FREE_RECIPE_LIMIT} recetas en plan gratuito` : ''}
+		onclick={() => (!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? goto('/premium') : (showCreate = !showCreate)}
+		style={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
+		title={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `Límite de ${FREE_RECIPE_LIMIT} recetas en plan gratuito` : ''}
 	>
-		{atLimit ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : '＋ Nueva'}
+		{(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : '＋ Nueva'}
 	</button>
 </div>
 
