@@ -3,7 +3,7 @@ from sqlalchemy import func as sqlfunc, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models import DiaryEntry, Friendship, FriendshipStatus, Recipe, RecipeIngredient, User
 from app.schemas.misc import FrequentRecipeOut, RecipeIn, RecipeOut, SharedRecipeOut
 
@@ -99,6 +99,9 @@ def list_recipes(
     return list(db.scalars(stmt))
 
 
+FREE_RECIPE_LIMIT = 5
+
+
 # ── POST /recipes ─────────────────────────────────────────────────────────────
 @router.post("", response_model=RecipeOut, status_code=status.HTTP_201_CREATED)
 def create_recipe(
@@ -106,6 +109,16 @@ def create_recipe(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Recipe:
+    if not user.is_premium_or_trial:
+        count = db.scalar(
+            select(sqlfunc.count(Recipe.id)).where(Recipe.owner_id == user.id)
+        ) or 0
+        if count >= FREE_RECIPE_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="premium_required",
+            )
+
     recipe = Recipe(
         name=payload.name,
         owner_id=user.id,

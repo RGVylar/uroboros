@@ -6,8 +6,11 @@
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 	import { Modal } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { subscription } from '$lib/stores/subscription.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	const FREE_RECIPE_LIMIT = 5;
 
 	// ── Estado general ──────────────────────────────────────────────────────
 	let recipes: Recipe[] = $state([]);
@@ -150,7 +153,12 @@
 			recipeName = ''; ingredients = []; showCreate = false;
 			load();
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Error';
+			const msg = e instanceof Error ? e.message : '';
+			if (msg.includes('premium_required') || msg.includes('402')) {
+				error = `Plan gratuito: máximo ${FREE_RECIPE_LIMIT} recetas. Actualiza a Premium para recetas ilimitadas.`;
+			} else {
+				error = msg || 'Error';
+			}
 		}
 	}
 
@@ -367,7 +375,15 @@
 		<div class="header-eyebrow">Biblioteca</div>
 		<div class="header-title">Recetas</div>
 	</div>
-	<button class="btn-new" onclick={() => showCreate = !showCreate}>＋ Nueva</button>
+	{@const atLimit = !subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT}
+	<button
+		class="btn-new"
+		onclick={() => atLimit ? goto('/premium') : (showCreate = !showCreate)}
+		style={atLimit ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
+		title={atLimit ? `Límite de ${FREE_RECIPE_LIMIT} recetas en plan gratuito` : ''}
+	>
+		{atLimit ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : '＋ Nueva'}
+	</button>
 </div>
 
 <!-- Stats strip -->
