@@ -66,6 +66,9 @@
 		const p = page.url.pathname;
 		return href === '/' ? p === '/' : p === href || p.startsWith(href + '/');
 	}
+
+	const NO_NAV_ROUTES = ['/onboarding', '/premium'];
+	let hideNav = $derived(NO_NAV_ROUTES.some(r => page.url.pathname.startsWith(r)));
 </script>
 
 {#if auth.isLoggedIn}
@@ -123,7 +126,7 @@
 <!-- Nav móvil (pill flotante) — oculta en escritorio vía CSS -->
 <Toast />
 
-{#if auth.isLoggedIn}
+{#if auth.isLoggedIn && !hideNav}
 	<nav class="bottom" aria-label="Navegación principal">
 		{#each mobileNav as item}
 			{#if 'fab' in item}
