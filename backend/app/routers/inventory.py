@@ -172,7 +172,7 @@ def upsert_inventory(
             _log_change(
                 db,
                 user_id=user.id,
-                item_id=existing.id,
+                item_id=None,  # shared_inventory_items ≠ inventory_items FK
                 product_id=existing.product_id,
                 quantity_change=payload.quantity_base,
                 unit=payload.unit,
@@ -199,7 +199,7 @@ def upsert_inventory(
         _log_change(
             db,
             user_id=user.id,
-            item_id=item.id,
+            item_id=None,  # shared_inventory_items ≠ inventory_items FK
             product_id=item.product_id,
             quantity_change=payload.quantity_base,
             unit=payload.unit,
@@ -398,7 +398,7 @@ def consume_inventory_item(
         _log_change(
             db,
             user_id=user.id,
-            item_id=item.id,
+            item_id=None,  # shared_inventory_items ≠ inventory_items FK
             product_id=item.product_id,
             quantity_change=-payload.quantity,
             unit=payload.unit,
@@ -471,7 +471,7 @@ def adjust_inventory_item(
         _log_change(
             db,
             user_id=user.id,
-            item_id=item.id,
+            item_id=None,  # shared_inventory_items ≠ inventory_items FK
             product_id=item.product_id,
             quantity_change=payload.new_quantity,
             unit=payload.unit,
