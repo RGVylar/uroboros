@@ -110,6 +110,7 @@
 	async function searchProducts() {
 		if (!query.trim()) return;
 		searching = true;
+		barcodeNotFound = false;
 		try {
 			searchResults = await api.get<Product[]>(
 				`/products?q=${encodeURIComponent(query)}&limit=10&offset=0`
@@ -598,6 +599,8 @@
 						selectedProduct = null;
 						query = '';
 						searchResults = [];
+						barcodeNotFound = false;
+						lastScannedBarcode = '';
 					}}
 					style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer;"
 				>
