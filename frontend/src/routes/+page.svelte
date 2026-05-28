@@ -8,7 +8,7 @@
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -29,6 +29,7 @@
 	let goals: Goals | null = $state(null);
 	let water: WaterDay | null = $state(null);
 	let frequent: FrequentProduct[] = $state([]);
+	let frequentRecipes: FrequentRecipe[] = $state([]);
 	let streak = $state(0);
 	let users: User[] = $state([]);
 	let loading = $state(true);
@@ -96,11 +97,12 @@
 			const streakPromise = isTodayVal
 				? api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 }))
 				: Promise.resolve({ streak: 0 });
-			const [s, g, w, f, st, u] = await Promise.all([
+			const [s, g, w, f, fr, st, u] = await Promise.all([
 				api.get<DaySummary>(`/diary/day?day=${today}`),
 				api.get<Goals>('/goals').catch(() => null),
 				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => null),
 				api.get<FrequentProduct[]>('/products/frequent?limit=5').catch(() => []),
+				api.get<FrequentRecipe[]>('/recipes/frequent?limit=3').catch(() => []),
 				streakPromise,
 				api.get<User[]>('/users').catch(() => []),
 			]);
@@ -108,6 +110,7 @@
 			goals = g;
 			water = w;
 			frequent = f;
+			frequentRecipes = fr;
 			streak = st.streak;
 			users = u;
 			// Load creatine status only if tracking enabled and viewing today
@@ -613,27 +616,58 @@
 						{copyingYesterday ? 'Copiando...' : '↩ Igual que ayer'}
 					</button>
 				{/if}
-				{#if frequent.length > 0}
+				{#if frequentRecipes.length > 0 || frequent.length > 0}
 					<div style="margin-top:0.5rem;">
 						<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">Usados frecuentemente</div>
-						<div style="display:flex; flex-direction:column; gap:0.4rem;">
-							{#each frequent as freq (freq.product.id)}
-								<a href="/add?date={today}" style="text-decoration:none;">
-									<div class="card" style="cursor:pointer;">
-										<div style="display:flex; justify-content:space-between; align-items:start;">
-											<div style="flex:1;">
-												<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
-												{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
-												<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} veces</div>
-											</div>
-											<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
-												<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
+
+						{#if frequentRecipes.length > 0}
+							<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">🍳 Recetas</div>
+							<div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem;">
+								{#each frequentRecipes as freq (freq.recipe.id)}
+									{@const totalKcal = freq.recipe.ingredients.reduce((s, i) => s + (i.product.calories_per_100g * i.grams / 100), 0)}
+									<a href="/add?date={today}&recipe={freq.recipe.id}" style="text-decoration:none;">
+										<div class="card" style="cursor:pointer;">
+											<div style="display:flex; justify-content:space-between; align-items:center;">
+												<div style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:0;">
+													<span style="font-size:1.2rem; flex-shrink:0;">🍳</span>
+													<div style="min-width:0;">
+														<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.recipe.name}</div>
+														<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem;">Usada {freq.count} {freq.count === 1 ? 'vez' : 'veces'}</div>
+													</div>
+												</div>
+												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap; flex-shrink:0;">
+													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{Math.round(totalKcal)} kcal</div>
+												</div>
 											</div>
 										</div>
-									</div>
-								</a>
-							{/each}
-						</div>
+									</a>
+								{/each}
+							</div>
+						{/if}
+
+						{#if frequent.length > 0}
+							{#if frequentRecipes.length > 0}
+								<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">🥦 Alimentos</div>
+							{/if}
+							<div style="display:flex; flex-direction:column; gap:0.4rem;">
+								{#each frequent as freq (freq.product.id)}
+									<a href="/add?date={today}" style="text-decoration:none;">
+										<div class="card" style="cursor:pointer;">
+											<div style="display:flex; justify-content:space-between; align-items:start;">
+												<div style="flex:1;">
+													<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
+													{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
+													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} {freq.count === 1 ? 'vez' : 'veces'}</div>
+												</div>
+												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
+													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
+												</div>
+											</div>
+										</div>
+									</a>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			{:else}
