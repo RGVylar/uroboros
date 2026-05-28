@@ -89,14 +89,19 @@
 	});
 
 	// ── Barcode + Search ─────────────────────────────────────────────────────
+	let lastScannedBarcode = $state('');
+	let barcodeNotFound = $state(false);
+
 	async function searchByBarcode(code: string) {
 		searching = true;
 		scanError = '';
+		barcodeNotFound = false;
+		lastScannedBarcode = code.trim();
 		try {
 			const p = await api.get<Product>(`/products/barcode/${code.trim()}`);
 			selectProduct(p);
 		} catch {
-			scanError = 'Producto no encontrado para ese código de barras';
+			barcodeNotFound = true;
 		} finally {
 			searching = false;
 		}
@@ -388,6 +393,27 @@
 				onSearch={searchProducts}
 			/>
 		</div>
+		{#if barcodeNotFound}
+			<div style="margin-bottom:0.625rem; background:oklch(65% 0.22 25 / 0.08); border:1px solid oklch(65% 0.22 25 / 0.2); border-radius:16px; padding:0.875rem;">
+				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">Producto no encontrado</div>
+				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">El código <span style="font-variant-numeric:tabular-nums;">{lastScannedBarcode}</span> no está en la base de datos.</div>
+				<div style="display:flex; gap:0.5rem;">
+					<button
+						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; query = ''; }}
+						style="flex:1; padding:0.5rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;"
+					>
+						Escanear otro
+					</button>
+					<button
+						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; showManual = true; }}
+						style="flex:1; padding:0.5rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;"
+					>
+						✏️ Crear manual
+					</button>
+				</div>
+			</div>
+		{/if}
+
 		{#if searchResults.length > 0}
 			<div style="border-radius:12px; overflow:hidden; margin-bottom:0.5rem; border:1px solid rgba(255,255,255,0.08);">
 				{#each searchResults as p (p.id)}
