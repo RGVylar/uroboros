@@ -380,7 +380,7 @@
 {#if showAddForm}
 	<!-- BarcodeScanner fuera del glass-card para evitar conflicto con backdrop-filter -->
 	{#if !showManual && !selectedProduct}
-		<div style="margin-bottom:0.5rem;">
+		<div style="margin-bottom:0.625rem;">
 			<BarcodeScanner
 				bind:bind_query={query}
 				placeholder="Buscar arroz, pollo..."
