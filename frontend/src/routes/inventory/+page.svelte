@@ -378,12 +378,35 @@
 
 <!-- ── Add form ── -->
 {#if showAddForm}
+	<!-- BarcodeScanner fuera del glass-card para evitar conflicto con backdrop-filter -->
+	{#if !showManual && !selectedProduct}
+		<div style="margin-bottom:0.5rem;">
+			<BarcodeScanner
+				bind:bind_query={query}
+				placeholder="Buscar arroz, pollo..."
+				onScan={searchByBarcode}
+				onSearch={searchProducts}
+			/>
+		</div>
+		{#if searchResults.length > 0}
+			<div style="border-radius:12px; overflow:hidden; margin-bottom:0.5rem; border:1px solid rgba(255,255,255,0.08);">
+				{#each searchResults as p (p.id)}
+					<button onclick={() => selectProduct(p)} style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border:none; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; font-family:inherit;">
+						<div style="font-weight:600; font-size:0.8125rem; color:#fff;">{p.name}</div>
+						{#if p.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45);">{p.brand}</div>{/if}
+						<div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">{p.calories_per_100g} kcal/100g</div>
+					</button>
+				{/each}
+			</div>
+		{/if}
+	{/if}
+
 	<div class="glass-card" style="margin-bottom:0.875rem;">
 		<div
 			style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;"
 		>
 			<div style="font-weight:700; font-size:0.875rem; color:#fff;">
-				{showManual ? 'Nuevo producto' : 'Añadir al inventario'}
+				{showManual ? 'Nuevo producto' : selectedProduct ? selectedProduct.name : 'Añadir al inventario'}
 			</div>
 			{#if !selectedProduct}
 				<button
@@ -466,44 +489,7 @@
 				</button>
 			</div>
 		{:else}
-			<!-- Search + barcode -->
-			<BarcodeScanner
-				bind:bind_query={query}
-				placeholder="Buscar arroz, pollo..."
-				onScan={searchByBarcode}
-				onSearch={searchProducts}
-			/>
-		{/if}
-
-		{#if scanError}
-			<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">
-				{scanError}
-			</p>
-		{/if}
-
-		{#if searchResults.length > 0}
-			<div
-				style="border-radius:12px; overflow:hidden; margin-bottom:0.5rem; border:1px solid rgba(255,255,255,0.08);"
-			>
-				{#each searchResults as p (p.id)}
-					<button
-						onclick={() => selectProduct(p)}
-						style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border:none; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; font-family:inherit;"
-					>
-						<div style="font-weight:600; font-size:0.8125rem; color:#fff;">
-							{p.name}
-						</div>
-						{#if p.brand}
-							<div style="font-size:0.7rem; color:rgba(255,255,255,0.45);">
-								{p.brand}
-							</div>
-						{/if}
-						<div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">
-							{p.calories_per_100g} kcal/100g
-						</div>
-					</button>
-				{/each}
-			</div>
+			<!-- (search moved outside glass-card to avoid backdrop-filter conflict with camera) -->
 		{/if}
 
 		{#if selectedProduct}

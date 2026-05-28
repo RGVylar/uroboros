@@ -322,7 +322,26 @@
 	let manualFat = $state(0);
 
 	// Active chip filter
-	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'inventory' | 'manual'>('suggestions');
+	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'recipes' | 'inventory' | 'manual'>('suggestions');
+
+	// All recipes tab
+	let allRecipes: FrequentRecipe['recipe'][] = $state([]);
+	let loadingAllRecipes = $state(false);
+	let allRecipesLoaded = $state(false);
+
+	async function loadRecipesTab() {
+		if (allRecipesLoaded || loadingAllRecipes) return;
+		loadingAllRecipes = true;
+		try {
+			const data = await api.get<{ id: number; name: string; is_shared: boolean; ingredients: FrequentRecipe['recipe']['ingredients'] }[]>('/recipes');
+			allRecipes = data;
+			allRecipesLoaded = true;
+		} catch {
+			allRecipes = [];
+		} finally {
+			loadingAllRecipes = false;
+		}
+	}
 
 	// Inventory tab state
 	let inventoryItems: InventoryItem[] = $state([]);
@@ -1063,6 +1082,7 @@
 		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>⚡ Sugerencias</button>
 		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>🕒 Recientes{#if frequentFromCache}<span class="chip-offline-dot" title="Guardado sin conexión">·</span>{/if}</button>
 		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>⭐ Favoritos</button>
+		<button onclick={() => { activeFilter = 'recipes'; loadRecipesTab(); }}    class="filter-chip" class:filter-chip-active={activeFilter === 'recipes'}>🍳 Recetas</button>
 		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}>📦 Inventario</button>
 		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">✏️ Manual</button>
 	</div>
@@ -1171,6 +1191,42 @@
 								disabled={favoriteToggling}
 							>★</button>
 						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<!-- ── RECETAS ── -->
+		{#if activeFilter === 'recipes'}
+			{#if loadingAllRecipes}
+				<div class="loading-row">Cargando recetas...</div>
+			{:else if allRecipes.length === 0}
+				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
+					<div style="font-size:2rem; margin-bottom:0.375rem;">🍳</div>
+					<div>Aún no tienes recetas</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Créalas en la sección Recetas</div>
+				</div>
+			{:else}
+				<div class="section-header">
+					<div>
+						<div class="section-title">Tus recetas</div>
+						<div class="section-sub">{allRecipes.length} receta{allRecipes.length !== 1 ? 's' : ''}</div>
+					</div>
+				</div>
+				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+					{#each allRecipes as recipe (recipe.id)}
+						{@const totalKcal = recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
+						<button class="product-row" onclick={() => logRecipe(recipe)} disabled={saving}>
+							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
+							<div style="flex:1; min-width:0; text-align:left;">
+								<div class="product-name">{recipe.name}</div>
+								<div class="product-brand">{recipe.ingredients.length} ingredientes</div>
+							</div>
+							<div style="text-align:right; flex-shrink:0;">
+								<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
+								<div class="product-per" style="color:oklch(75% 0.15 160);">receta</div>
+							</div>
+						</button>
 					{/each}
 				</div>
 			{/if}
