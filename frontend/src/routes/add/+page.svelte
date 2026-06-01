@@ -25,6 +25,10 @@
 	const urlDate = $page.url.searchParams.get('date');
 	let selectedDate = $state(urlDate ?? new Date().toISOString().slice(0, 10));
 
+	// Quick recipe from URL param (?recipe=ID) — pre-selects a recipe for fast logging
+	const urlRecipeId = $page.url.searchParams.get('recipe');
+	let quickRecipe: FrequentRecipe['recipe'] | null = $state(null);
+
 	// Use current time for today's entries, noon for past dates
 	function consumedAt(dateStr: string): string {
 		const today = new Date().toISOString().slice(0, 10);
@@ -453,6 +457,12 @@
 		loadFrequent();
 		loadAllergies();
 		loadFavorites();
+		// Pre-load recipe from URL param
+		if (urlRecipeId) {
+			api.get<FrequentRecipe['recipe']>(`/recipes/${urlRecipeId}`)
+				.then(r => { quickRecipe = r; })
+				.catch(() => { quickRecipe = null; });
+		}
 	});
 
 	async function searchByName() {
@@ -1074,6 +1084,36 @@
 				style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"
 				aria-label="Detener escáner"
 			>✕</button>
+		</div>
+	{/if}
+
+	<!-- Quick recipe card (from ?recipe=ID URL param) -->
+	{#if quickRecipe}
+		{@const totalKcal = quickRecipe.ingredients.reduce((s, i) => s + (i.product?.calories_per_100g ?? 0) * i.grams / 100, 0)}
+		<div class="glass-card" style="margin-bottom:0.875rem;">
+			<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.875rem;">
+				<div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;">🍳</div>
+				<div style="flex:1; min-width:0;">
+					<div style="font-weight:700; font-size:0.9375rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{quickRecipe.name}</div>
+					<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.1rem;">
+						{quickRecipe.ingredients.length} ingrediente{quickRecipe.ingredients.length !== 1 ? 's' : ''} · <span style="color:oklch(85% 0.17 160); font-weight:600;">{Math.round(totalKcal)} kcal</span>
+					</div>
+				</div>
+				<button
+					onclick={() => { quickRecipe = null; }}
+					aria-label="Cerrar"
+					style="width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.5); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.8rem;"
+				>✕</button>
+			</div>
+			<div style="display:flex; gap:0.5rem;">
+				<button
+					onclick={() => logRecipe(quickRecipe!)}
+					disabled={saving}
+					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.875rem; cursor:pointer; font-family:inherit;"
+				>
+					{saving ? 'Añadiendo...' : '＋ Añadir al diario'}
+				</button>
+			</div>
 		</div>
 	{/if}
 
