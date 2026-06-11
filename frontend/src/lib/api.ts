@@ -8,18 +8,29 @@ const BASE = Capacitor.isNativePlatform()
 	? (import.meta.env.VITE_API_URL || 'https://comida.mugrelore.com/api')
 	: '/api';
 
+const REQUEST_TIMEOUT_MS = 6000;
+
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 	const token = auth.token;
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
 	let res: Response;
 	try {
-		res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...opts.headers } });
+		res = await fetch(`${BASE}${path}`, {
+			...opts,
+			headers: { ...headers, ...opts.headers },
+			signal: controller.signal
+		});
 	} catch {
-		// Network-level failure (server unreachable, no internet, etc.)
+		// Network-level failure (server unreachable, timeout, no internet, etc.)
 		connectivity.recordFailure();
 		throw new Error('Sin conexión con el servidor');
+	} finally {
+		clearTimeout(timer);
 	}
 
 	// 502/503/504 = gateway errors (proxy up, backend down) → treat as offline

@@ -19,6 +19,7 @@
 
 	$effect(() => {
 		if (auth.isLoggedIn) {
+			connectivity.ping();
 			pendingFriends.start();
 			pushStore.init();
 			subscription.load();
