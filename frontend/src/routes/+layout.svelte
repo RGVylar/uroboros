@@ -38,6 +38,17 @@
 		wasOffline = isOffline;
 	});
 
+	// App update detection via service worker controllerchange
+	let updateAvailable = $state(false);
+	$effect(() => {
+		if (!('serviceWorker' in navigator)) return;
+		// Only show banner on updates, not on first SW activation
+		const hadController = !!navigator.serviceWorker.controller;
+		navigator.serviceWorker.addEventListener('controllerchange', () => {
+			if (hadController) updateAvailable = true;
+		});
+	});
+
 	// Móvil: 4 items + FAB en el centro
 	type NavLink = { href: string; label: string; pro?: boolean };
 	type FabSlot = { fab: true };
@@ -107,6 +118,12 @@
 
 		<!-- Contenido principal -->
 		<div class="main-content">
+			{#if updateAvailable}
+				<div class="update-strip" role="alert">
+					<span>✨ Nueva versión disponible</span>
+					<button onclick={() => window.location.reload()}>Actualizar</button>
+				</div>
+			{/if}
 			{#if connectivity.isOffline}
 				<div class="offline-strip" role="alert" aria-live="assertive">
 					<span>⚽</span>
@@ -183,6 +200,37 @@
 {/if}
 
 <style>
+	/* ── Strip de actualización disponible ── */
+	.update-strip {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		padding: 0.35rem 1rem;
+		background: oklch(28% 0.06 160 / 0.9);
+		border-bottom: 1px solid oklch(55% 0.18 160 / 0.4);
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: oklch(88% 0.16 160);
+		letter-spacing: 0.01em;
+		animation: strip-in 0.25s ease;
+	}
+	.update-strip button {
+		padding: 0.2rem 0.65rem;
+		border-radius: 99px;
+		border: 1px solid oklch(72% 0.2 160 / 0.6);
+		background: oklch(72% 0.2 160 / 0.15);
+		color: oklch(88% 0.16 160);
+		font-size: 0.68rem;
+		font-weight: 700;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.15s;
+	}
+	.update-strip button:hover {
+		background: oklch(72% 0.2 160 / 0.3);
+	}
+
 	/* ── Strip sin conexión (dentro del main-content, no flotante) ── */
 	.offline-strip {
 		display: flex;
