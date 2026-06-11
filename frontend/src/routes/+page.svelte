@@ -239,10 +239,21 @@
 	}
 
 	async function addWater(ml: number) {
+		if (connectivity.isOffline) {
+			syncQueue.enqueue({ method: 'POST', path: '/water/log', body: { ml, logged_date: today }, label: `Agua +${ml}ml` });
+			if (water) water = { ...water, total_ml: water.total_ml + ml };
+			else water = { total_ml: ml, goal_ml: goals?.water_ml ?? 2000 };
+			return;
+		}
 		water = await api.post<WaterDay>('/water/log', { ml, logged_date: today });
 	}
 
 	async function removeWater() {
+		if (connectivity.isOffline) {
+			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: 'Agua ↩' });
+			toast.info('Se quitará al reconectar');
+			return;
+		}
 		water = await api.del<WaterDay>(`/water/log/last?day=${today}`);
 	}
 
@@ -262,6 +273,16 @@
 		if (togglingCreatine) return;
 		togglingCreatine = true;
 		try {
+			if (connectivity.isOffline) {
+				if (creatine?.taken) {
+					syncQueue.enqueue({ method: 'DELETE', path: '/creatine/today', label: 'Creatina — desmarcar' });
+					creatine = { ...creatine!, taken: false };
+				} else {
+					syncQueue.enqueue({ method: 'POST', path: '/creatine/log', body: {}, label: 'Creatina ✓' });
+					creatine = { taken: true, logged_date: today };
+				}
+				return;
+			}
 			if (creatine?.taken) {
 				creatine = await api.del<CreatineToday>('/creatine/today');
 			} else {
@@ -275,6 +296,15 @@
 	}
 
 	async function toggleSupp(suppId: number, taken: boolean) {
+		if (connectivity.isOffline) {
+			if (taken) {
+				syncQueue.enqueue({ method: 'DELETE', path: `/supplements/log/${suppId}`, label: 'Suplemento — desmarcar' });
+			} else {
+				syncQueue.enqueue({ method: 'POST', path: `/supplements/log/${suppId}`, body: {}, label: 'Suplemento ✓' });
+			}
+			supplements = supplements.map(s => s.supplement_id === suppId ? { ...s, taken: !taken } : s);
+			return;
+		}
 		try {
 			if (taken) {
 				supplements = await api.del<SupplementToday[]>(`/supplements/log/${suppId}`);
