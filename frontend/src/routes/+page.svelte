@@ -155,8 +155,17 @@
 	}
 
 	async function load() {
-		loading = true;
 		fromCache = false;
+		// Cache-first: paint instantly with cached data, then refresh in background
+		const cachedSummary0 = cacheGet<DaySummary>(`diary_${today}`);
+		const cachedGoals0 = cacheGet<Goals>('goals');
+		if (cachedSummary0) {
+			summary = cachedSummary0.data;
+			if (cachedGoals0) goals = cachedGoals0.data;
+			loading = false; // we already have something to show
+		} else {
+			loading = true;
+		}
 		try {
 			const isTodayVal = today === new Date().toISOString().slice(0, 10);
 			const streakPromise = isTodayVal
@@ -284,8 +293,14 @@
 			optimisticDeleteEntry(id);
 			return;
 		}
-		await api.del(url);
-		load();
+		// Online: update UI instantly, send request in background, revert on failure
+		optimisticDeleteEntry(id);
+		try {
+			await api.del(url);
+		} catch {
+			toast.error('No se pudo borrar');
+			load();
+		}
 	}
 
 	function startEdit(entry: DiaryEntry) {
@@ -304,9 +319,16 @@
 				editingEntry = null;
 				return;
 			}
-			await api.patch(`/diary/${editingEntry.id}`, { grams: editGrams, meal_type: editMealType });
+			// Online: update UI instantly, send request in background, revert on failure
+			const editId = editingEntry.id;
+			optimisticEditEntry(editId, editGrams, editMealType as MealType);
 			editingEntry = null;
-			load();
+			try {
+				await api.patch(`/diary/${editId}`, { grams: editGrams, meal_type: editMealType });
+			} catch {
+				toast.error('No se pudo guardar el cambio');
+				load();
+			}
 		} catch {
 			toast.error('No se pudo guardar el cambio');
 		} finally {
