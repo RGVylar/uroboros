@@ -8,29 +8,32 @@ const BASE = Capacitor.isNativePlatform()
 	? (import.meta.env.VITE_API_URL || 'https://comida.mugrelore.com/api')
 	: '/api';
 
+// AbortController timeout only on web — Capacitor's native fetch bridge on Android
+// adds significant latency when a signal is passed, so we skip it on native.
 const REQUEST_TIMEOUT_MS = 6000;
+const isNative = Capacitor.isNativePlatform();
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 	const token = auth.token;
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 
-	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+	const controller = isNative ? null : new AbortController();
+	const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
 
 	let res: Response;
 	try {
 		res = await fetch(`${BASE}${path}`, {
 			...opts,
 			headers: { ...headers, ...opts.headers },
-			signal: controller.signal
+			...(controller ? { signal: controller.signal } : {}),
 		});
 	} catch {
 		// Network-level failure (server unreachable, timeout, no internet, etc.)
 		connectivity.recordFailure();
 		throw new Error('Sin conexión con el servidor');
 	} finally {
-		clearTimeout(timer);
+		if (timer) clearTimeout(timer);
 	}
 
 	// 502/503/504 = gateway errors (proxy up, backend down) → treat as offline
