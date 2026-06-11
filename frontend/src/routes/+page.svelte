@@ -42,6 +42,71 @@
 	let newSuppName = $state('');
 	let addingSuppName = $state(false);
 	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
+	let lastWaterMl = $state(250); // tracks last addWater amount for offline undo
+
+	function optimisticDeleteEntry(id: number) {
+		if (!summary) return;
+		const entry = summary.entries.find(e => e.id === id);
+		if (!entry) return;
+		const sub = (t: typeof summary.totals) => ({
+			calories: t.calories - entry.calories,
+			protein:  t.protein  - entry.protein,
+			carbs:    t.carbs    - entry.carbs,
+			fat:      t.fat      - entry.fat,
+		});
+		summary = {
+			...summary,
+			totals:  sub(summary.totals),
+			entries: summary.entries.filter(e => e.id !== id),
+			meals:   summary.meals.map(m => {
+				if (!m.entries.some(e => e.id === id)) return m;
+				return { ...m, totals: sub(m.totals), entries: m.entries.filter(e => e.id !== id) };
+			}),
+		};
+	}
+
+	function optimisticEditEntry(id: number, newGrams: number, newMealType: MealType) {
+		if (!summary) return;
+		const entry = summary.entries.find(e => e.id === id);
+		if (!entry?.product) return;
+		const p = entry.product;
+		const f = newGrams / 100;
+		const updated: DiaryEntry = {
+			...entry,
+			grams:     newGrams,
+			meal_type: newMealType,
+			calories:  Math.round(p.calories_per_100g * f),
+			protein:   Math.round(p.protein_per_100g  * f * 10) / 10,
+			carbs:     Math.round(p.carbs_per_100g    * f * 10) / 10,
+			fat:       Math.round(p.fat_per_100g      * f * 10) / 10,
+		};
+		const diff = {
+			calories: updated.calories - entry.calories,
+			protein:  updated.protein  - entry.protein,
+			carbs:    updated.carbs    - entry.carbs,
+			fat:      updated.fat      - entry.fat,
+		};
+		const addDiff = (t: typeof summary.totals) => ({
+			calories: t.calories + diff.calories,
+			protein:  t.protein  + diff.protein,
+			carbs:    t.carbs    + diff.carbs,
+			fat:      t.fat      + diff.fat,
+		});
+		summary = {
+			...summary,
+			totals:  addDiff(summary.totals),
+			entries: summary.entries.map(e => e.id === id ? updated : e),
+			meals:   summary.meals.map(m => {
+				const has = m.entries.some(e => e.id === id);
+				if (!has) return m;
+				return {
+					...m,
+					totals:  addDiff(m.totals),
+					entries: m.entries.map(e => e.id === id ? updated : e),
+				};
+			}),
+		};
+	}
 
 	// ── Notification modal ─────────────────────────────────────────────────────
 	let showNotifModal = $state(false);
@@ -214,6 +279,11 @@
 		const url = alsoForPartner && partner
 			? `/diary/${id}?also_for_user_id=${partner.id}`
 			: `/diary/${id}`;
+		if (connectivity.isOffline) {
+			syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
+			optimisticDeleteEntry(id);
+			return;
+		}
 		await api.del(url);
 		load();
 	}
@@ -228,6 +298,12 @@
 		if (!editingEntry) return;
 		editSaving = true;
 		try {
+			if (connectivity.isOffline) {
+				syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editingEntry.id}`, body: { grams: editGrams, meal_type: editMealType }, label: `Editar ${editingEntry.product?.name ?? 'entrada'}` });
+				optimisticEditEntry(editingEntry.id, editGrams, editMealType as MealType);
+				editingEntry = null;
+				return;
+			}
 			await api.patch(`/diary/${editingEntry.id}`, { grams: editGrams, meal_type: editMealType });
 			editingEntry = null;
 			load();
@@ -239,6 +315,7 @@
 	}
 
 	async function addWater(ml: number) {
+		lastWaterMl = ml;
 		if (connectivity.isOffline) {
 			syncQueue.enqueue({ method: 'POST', path: '/water/log', body: { ml, logged_date: today }, label: `Agua +${ml}ml` });
 			if (water) water = { ...water, total_ml: water.total_ml + ml };
@@ -251,7 +328,7 @@
 	async function removeWater() {
 		if (connectivity.isOffline) {
 			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: 'Agua ↩' });
-			toast.info('Se quitará al reconectar');
+			if (water) water = { ...water, total_ml: Math.max(0, water.total_ml - lastWaterMl) };
 			return;
 		}
 		water = await api.del<WaterDay>(`/water/log/last?day=${today}`);
