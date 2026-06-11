@@ -340,8 +340,15 @@
 			const data = await api.get<{ id: number; name: string; is_shared: boolean; ingredients: FrequentRecipe['recipe']['ingredients'] }[]>('/recipes');
 			allRecipes = data;
 			allRecipesLoaded = true;
+			if (data.length > 0) cacheSet('all_recipes', data);
 		} catch {
-			allRecipes = [];
+			const cached = cacheGet<typeof allRecipes>('all_recipes');
+			if (cached) {
+				allRecipes = cached.data;
+				allRecipesLoaded = true;
+			} else {
+				allRecipes = [];
+			}
 		} finally {
 			loadingAllRecipes = false;
 		}
@@ -358,8 +365,15 @@
 		try {
 			inventoryItems = await api.get<InventoryItem[]>('/inventory');
 			inventoryLoaded = true;
+			if (inventoryItems.length > 0) cacheSet('inventory_items', inventoryItems);
 		} catch {
-			inventoryItems = [];
+			const cached = cacheGet<InventoryItem[]>('inventory_items');
+			if (cached) {
+				inventoryItems = cached.data;
+				inventoryLoaded = true;
+			} else {
+				inventoryItems = [];
+			}
 		} finally {
 			loadingInventory = false;
 		}
@@ -541,6 +555,27 @@
 
 	async function createManual() {
 		error = '';
+		if (connectivity.isOffline) {
+			// Create a local placeholder — product will be created on server when connection returns
+			selected = {
+				id: 0,
+				barcode: null,
+				name: manualName,
+				brand: manualBrand || null,
+				calories_per_100g: manualCal,
+				protein_per_100g: manualProt,
+				carbs_per_100g: manualCarbs,
+				fat_per_100g: manualFat,
+				source: 'manual',
+				edited_by: null,
+				edited_at: null,
+				created_at: '',
+				ingredients_text: null,
+				allergens: null,
+			};
+			showManual = false;
+			return;
+		}
 		try {
 			const p = await api.post<Product>('/products', {
 				name: manualName,
@@ -602,14 +637,36 @@
 		};
 		try {
 			if (connectivity.isOffline) {
-				// Queue for later sync
-				syncQueue.enqueue({
-					method: 'POST',
-					path: '/diary',
-					body: payload,
-					label: `${selected.name} · ${grams}g`,
-				});
-				saveLastGrams(selected.id, grams);
+				if (selected.id === 0) {
+					// Manual product created offline: queue create-product + add-to-diary as a chain
+					syncQueue.enqueueChained({
+						productBody: {
+							name: selected.name,
+							brand: selected.brand,
+							calories_per_100g: selected.calories_per_100g,
+							protein_per_100g: selected.protein_per_100g,
+							carbs_per_100g: selected.carbs_per_100g,
+							fat_per_100g: selected.fat_per_100g,
+						},
+						diaryBody: {
+							grams,
+							meal_type: mealType,
+							consumed_at: consumedAt(selectedDate),
+							also_for_user_id: shareMode === 'also' ? partner?.id : null,
+							only_for_user_id: shareMode === 'only' ? partner?.id : null,
+						},
+						label: `${selected.name} · ${grams}g`,
+					});
+				} else {
+					// Known product — queue diary entry directly
+					syncQueue.enqueue({
+						method: 'POST',
+						path: '/diary',
+						body: payload,
+						label: `${selected.name} · ${grams}g`,
+					});
+					saveLastGrams(selected.id, grams);
+				}
 				goto('/?pending=1');
 				return;
 			}

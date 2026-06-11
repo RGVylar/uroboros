@@ -15,6 +15,13 @@ export interface PendingWrite {
 	createdAt: number;
 	/** Human-readable label shown in the UI */
 	label?: string;
+	/**
+	 * Chained follow-up: after this write succeeds, POST chainedPath with chainedBody.
+	 * The response's `id` field is automatically injected as chainedBody.product_id.
+	 * Used for offline manual products: create product → add to diary.
+	 */
+	chainedPath?: string;
+	chainedBody?: Record<string, unknown>;
 }
 
 function load(): PendingWrite[] {
@@ -56,6 +63,26 @@ export const syncQueue = {
 		persist(_queue);
 	},
 
+	enqueueChained(opts: {
+		productBody: unknown;
+		diaryBody: Record<string, unknown>;
+		label?: string;
+	}) {
+		const entry: PendingWrite = {
+			id: crypto.randomUUID(),
+			method: 'POST',
+			path: '/products',
+			body: opts.productBody,
+			chainedPath: '/diary',
+			chainedBody: opts.diaryBody,
+			createdAt: Date.now(),
+			label: opts.label,
+		};
+		_queue = [..._queue, entry];
+		persist(_queue);
+		return entry.id;
+	},
+
 	/** Drain the queue — call when connectivity is restored. */
 	async drain(): Promise<{ succeeded: number; failed: number }> {
 		if (_syncing || _queue.length === 0) return { succeeded: 0, failed: 0 };
@@ -67,8 +94,9 @@ export const syncQueue = {
 		const snapshot = [..._queue];
 		for (const write of snapshot) {
 			try {
+				let res: unknown;
 				if (write.method === 'POST') {
-					await api.post(write.path, write.body ?? {});
+					res = await api.post(write.path, write.body ?? {});
 				} else if (write.method === 'DELETE') {
 					await api.del(write.path);
 				} else if (write.method === 'PATCH') {
@@ -76,6 +104,17 @@ export const syncQueue = {
 				} else if (write.method === 'PUT') {
 					await api.put(write.path, write.body ?? {});
 				}
+
+				// If there's a chained follow-up, execute it now
+				if (write.chainedPath && write.chainedBody) {
+					const chainedBody = { ...write.chainedBody };
+					// Inject the created resource's id (e.g. product_id from POST /products)
+					if (res && typeof res === 'object' && 'id' in res) {
+						chainedBody.product_id = (res as { id: number }).id;
+					}
+					await api.post(write.chainedPath, chainedBody);
+				}
+
 				// Success — remove from queue
 				_queue = _queue.filter(w => w.id !== write.id);
 				persist(_queue);
