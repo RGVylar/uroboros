@@ -14,6 +14,8 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
+	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
+	import { changelogShouldShow } from '$lib/changelog';
 
 	let { children } = $props();
 
@@ -36,6 +38,12 @@
 			syncQueue.drain();
 		}
 		wasOffline = isOffline;
+	});
+
+	// Changelog modal — show once per version after login
+	let showChangelog = $state(false);
+	$effect(() => {
+		if (auth.isLoggedIn) showChangelog = changelogShouldShow();
 	});
 
 	// App update detection via service worker controllerchange
@@ -143,6 +151,10 @@
 
 <!-- Nav móvil (pill flotante) — oculta en escritorio vía CSS -->
 <Toast />
+
+{#if showChangelog}
+	<ChangelogModal onclose={() => showChangelog = false} />
+{/if}
 
 {#if auth.isLoggedIn && !hideNav}
 	<nav class="bottom" aria-label="Navegación principal">
