@@ -280,7 +280,7 @@ def export_csv(
     writer.writerow(["date", "time", "meal_type", "product", "grams", "calories", "protein_g", "carbs_g", "fat_g"])
 
     for e in entries:
-        product = db.get(Product, e.product_id)
+        product = e.product
         dt = e.consumed_at
         writer.writerow([
             dt.strftime("%Y-%m-%d"),

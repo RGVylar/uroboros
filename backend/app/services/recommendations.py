@@ -63,10 +63,13 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
         )
     )
 
-    # Count frequency of each product
+    # Count frequency of each product (products already loaded via lazy="joined")
     product_frequency: dict[int, int] = {}
+    product_by_id: dict[int, Product] = {}
     for entry in past_entries:
         product_frequency[entry.product_id] = product_frequency.get(entry.product_id, 0) + 1
+        if entry.product_id not in product_by_id and entry.product:
+            product_by_id[entry.product_id] = entry.product
 
     # Get top products (excluding those already logged today)
     today_product_ids = {e.product_id for e in today_entries}
@@ -80,7 +83,7 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
         if product_id in today_product_ids:
             continue
 
-        product = db.get(Product, product_id)
+        product = product_by_id.get(product_id)
         if not product:
             continue
 
@@ -121,10 +124,13 @@ def get_frequently_used_products(db: Session, user: User, limit: int = 10) -> li
         )
     )
 
-    # Count frequency of each product
+    # Count frequency of each product (products already loaded via lazy="joined")
     product_frequency: dict[int, int] = {}
+    product_by_id: dict[int, Product] = {}
     for entry in entries:
         product_frequency[entry.product_id] = product_frequency.get(entry.product_id, 0) + 1
+        if entry.product_id not in product_by_id and entry.product:
+            product_by_id[entry.product_id] = entry.product
 
     # Get top products with their details
     frequently_used = []
@@ -133,7 +139,7 @@ def get_frequently_used_products(db: Session, user: User, limit: int = 10) -> li
         key=lambda pid: product_frequency[pid],
         reverse=True
     )[:limit]:
-        product = db.get(Product, product_id)
+        product = product_by_id.get(product_id)
         if product:
             frequently_used.append(
                 FrequentlyUsedProduct(product, product_frequency[product_id])

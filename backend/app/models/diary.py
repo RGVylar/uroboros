@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -47,3 +47,7 @@ class DiaryEntry(Base):
     )
 
     product: Mapped["Product"] = relationship(lazy="joined")  # noqa: F821
+
+    __table_args__ = (
+        Index("ix_diary_entries_user_consumed", "user_id", "consumed_at"),
+    )

@@ -301,6 +301,8 @@ def _get_engine():
         return create_engine(
             settings.database_url,
             pool_pre_ping=True,
+            pool_size=20,
+            max_overflow=40,
             connect_args={"client_encoding": "utf8"},
         )
 
