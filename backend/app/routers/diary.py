@@ -259,6 +259,94 @@ def day_summary(
     )
 
 
+@router.get("/days", response_model=list[DaySummary])
+def days_range(
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[DaySummary]:
+    """Batch summary for a date range — replaces N individual /diary/day calls."""
+    if not user.is_premium_or_trial:
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=6)
+        if date_from < cutoff:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="premium_required",
+            )
+
+    start = datetime.combine(date_from, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(date_to, time.max, tzinfo=timezone.utc)
+
+    entries = list(
+        db.scalars(
+            select(DiaryEntry)
+            .where(
+                DiaryEntry.user_id == user.id,
+                DiaryEntry.consumed_at >= start,
+                DiaryEntry.consumed_at <= end,
+            )
+            .order_by(DiaryEntry.consumed_at)
+        )
+    )
+
+    exercise_sessions = list(
+        db.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.user_id == user.id,
+                ExerciseSession.session_date >= date_from,
+                ExerciseSession.session_date <= date_to,
+            )
+        )
+    )
+    exercise_by_date = {s.session_date: s for s in exercise_sessions}
+
+    entries_by_date: dict[date, list[DiaryEntry]] = {}
+    for entry in entries:
+        day = entry.consumed_at.date()
+        entries_by_date.setdefault(day, []).append(entry)
+
+    all_days = sorted(set(entries_by_date.keys()) | set(exercise_by_date.keys()))
+    summaries = []
+    for day in all_days:
+        day_entries = entries_by_date.get(day, [])
+        totals = DayTotals(
+            calories=sum(e.calories for e in day_entries),
+            protein=sum(e.protein for e in day_entries),
+            carbs=sum(e.carbs for e in day_entries),
+            fat=sum(e.fat for e in day_entries),
+        )
+        entry_outs = [DiaryEntryOut.model_validate(e) for e in day_entries]
+        meals = []
+        for mt in MEAL_ORDER:
+            meal_entries = [e for e in entry_outs if e.meal_type == mt]
+            if meal_entries:
+                meals.append(MealSection(
+                    meal_type=mt,
+                    label=MEAL_LABELS[mt],
+                    totals=DayTotals(
+                        calories=sum(e.calories for e in meal_entries),
+                        protein=sum(e.protein for e in meal_entries),
+                        carbs=sum(e.carbs for e in meal_entries),
+                        fat=sum(e.fat for e in meal_entries),
+                    ),
+                    entries=meal_entries,
+                ))
+        exercise_session = exercise_by_date.get(day)
+        calories_burned = exercise_session.total_calories if exercise_session else 0.0
+        summaries.append(DaySummary(
+            date=day.isoformat(),
+            totals=totals,
+            meals=meals,
+            entries=entry_outs,
+            calories_burned=calories_burned,
+            net_calories=totals.calories - calories_burned,
+            has_exercise=exercise_session is not None,
+        ))
+
+    return summaries
+
+
 @router.get("/export.csv")
 def export_csv(
     date_from: date | None = Query(None),

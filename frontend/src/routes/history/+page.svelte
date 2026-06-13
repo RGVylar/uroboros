@@ -96,20 +96,21 @@
 			d.setDate(d.getDate() - i);
 			dates.push(d.toISOString().slice(0, 10));
 		}
-		trendData = await Promise.all(
-			dates.map(date =>
-				api.get<DaySummary>(`/diary/day?day=${date}`)
-					.then(s => ({
-						date,
-						calories:        s.totals.calories,
-						protein:         s.totals.protein,
-						carbs:           s.totals.carbs,
-						fat:             s.totals.fat,
-						calories_burned: s.calories_burned ?? 0,
-					}))
-					.catch(() => ({ date, calories: 0, protein: 0, carbs: 0, fat: 0, calories_burned: 0 }))
-			)
-		);
+		const dateFrom = dates[0];
+		const dateTo = dates[dates.length - 1];
+		const summaries = await api.get<DaySummary[]>(`/diary/days?date_from=${dateFrom}&date_to=${dateTo}`).catch(() => []);
+		const byDate = new Map(summaries.map(s => [s.date, s]));
+		trendData = dates.map(date => {
+			const s = byDate.get(date);
+			return {
+				date,
+				calories:        s?.totals.calories ?? 0,
+				protein:         s?.totals.protein ?? 0,
+				carbs:           s?.totals.carbs ?? 0,
+				fat:             s?.totals.fat ?? 0,
+				calories_burned: s?.calories_burned ?? 0,
+			};
+		});
 		loadingTrend = false;
 	}
 
@@ -117,30 +118,22 @@
 		loadingMonth = true;
 		monthData = {};
 		const days = getDaysInMonth(viewYear, viewMonth);
-		const diaryPromises = Array.from({ length: days }, (_, i) => {
-			const date = formatDay(viewYear, viewMonth, i + 1);
-			return api.get<DaySummary>(`/diary/day?day=${date}`)
-				.then(s => ({ date, calories: s.totals.calories, has_exercise: s.has_exercise }))
-				.catch(() => ({ date, calories: 0, has_exercise: false }));
-		});
-		const supplementPromise = suppEnabled
-			? api.get<string[]>(`/supplements/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
-			: Promise.resolve([]);
 		const from = formatDay(viewYear, viewMonth, 1);
 		const to = formatDay(viewYear, viewMonth, days);
-		const moodPromise = moodEnabled
-			? api.get<MoodEntry[]>(`/mood/range?date_from=${from}&date_to=${to}`).catch(() => [])
-			: Promise.resolve([]);
-		const [results, supplementDatesArr, moodEntries] = await Promise.all([
-			Promise.all(diaryPromises),
-			supplementPromise,
-			moodPromise,
+		const [daySummaries, supplementDatesArr, moodEntries] = await Promise.all([
+			api.get<DaySummary[]>(`/diary/days?date_from=${from}&date_to=${to}`).catch(() => []),
+			suppEnabled
+				? api.get<string[]>(`/supplements/month?year=${viewYear}&month=${viewMonth + 1}`).catch(() => [])
+				: Promise.resolve([]),
+			moodEnabled
+				? api.get<MoodEntry[]>(`/mood/range?date_from=${from}&date_to=${to}`).catch(() => [])
+				: Promise.resolve([]),
 		]);
 		const newData: Record<string, number> = {};
 		const newExerciseDates = new Set<string>();
-		for (const r of results) {
-			if (r.calories > 0) newData[r.date] = r.calories;
-			if (r.has_exercise) newExerciseDates.add(r.date);
+		for (const s of daySummaries) {
+			if (s.totals.calories > 0) newData[s.date] = s.totals.calories;
+			if (s.has_exercise) newExerciseDates.add(s.date);
 		}
 		const newMoodDates = new Map<string, number>();
 		for (const m of moodEntries) {
