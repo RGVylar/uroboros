@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android
 
 on:
   push:
@@ -53,18 +53,14 @@ jobs:
             dir="android/app/src/main/res/mipmap-$density"
             mkdir -p "$dir"
 
-            # Launcher icon (square)
             convert "static/logo.png" -resize "${size}x${size}" \
               -background none -gravity center -extent "${size}x${size}" \
               "$dir/ic_launcher.png"
 
-            # Round launcher icon
             convert "static/logo.png" -resize "${size}x${size}" \
               -background none -gravity center -extent "${size}x${size}" \
               "$dir/ic_launcher_round.png"
 
-            # Foreground layer (for adaptive icons, API 26+)
-            # Use 108dp canvas with logo at 72% to leave safe zone padding
             safe=$(echo "$size * 108 / 72" | bc)
             convert "static/logo.png" -resize "${size}x${size}" \
               -background none -gravity center -extent "${safe}x${safe}" \
@@ -75,19 +71,36 @@ jobs:
 
           echo "All icons generated"
 
-      - name: Build debug APK
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/uroboros-release.keystore
+
+      - name: Build release AAB
         working-directory: frontend/android
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/uroboros-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=$KEYSTORE_PATH \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
-      - name: Upload APK artifact
+      - name: Build debug APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: uroboros-debug
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: uroboros-release
+          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload to Nextcloud
+      - name: Upload debug APK to Nextcloud
         if: success()
         run: |
           APK="frontend/android/app/build/outputs/apk/debug/app-debug.apk"
