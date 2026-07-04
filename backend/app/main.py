@@ -7,7 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.limiter import limiter
+from app.limiter import client_ip, limiter
 from app.routers import (
     auth, cheat_days, creatine, diary, exercises, exercise_sessions,
     export, favorites, friends, goals, inventory, measurements, mood, products,
@@ -39,8 +39,7 @@ app.add_middleware(SlowAPIMiddleware)
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     if request.url.path in _AUTH_PATHS:
-        ip = request.client.host if request.client else "unknown"
-        await send_brute_force_alert(ip, request.url.path)
+        await send_brute_force_alert(client_ip(request), request.url.path)
     return JSONResponse(status_code=429, content={"detail": "Demasiados intentos. Espera un momento."})
 
 

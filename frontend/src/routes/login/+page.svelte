@@ -18,10 +18,11 @@
 		loading = true;
 		try {
 			let res: TokenResponse;
+			const trimmedEmail = email.trim();
 			if (mode === 'register') {
-				res = await api.post<TokenResponse>('/auth/register', { email, password, name });
+				res = await api.post<TokenResponse>('/auth/register', { email: trimmedEmail, password, name: name.trim() });
 			} else {
-				res = await api.post<TokenResponse>('/auth/login', { email, password });
+				res = await api.post<TokenResponse>('/auth/login', { email: trimmedEmail, password });
 			}
 			auth.login(res.access_token, res.user);
 			goto(mode === 'register' ? '/onboarding' : '/');

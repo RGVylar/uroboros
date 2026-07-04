@@ -105,7 +105,7 @@ def get_friend_profile(
         )
     ) or 0
     recipe_count = db.scalar(
-        select(func.count()).select_from(Recipe).where(Recipe.user_id == user_id)
+        select(func.count()).select_from(Recipe).where(Recipe.owner_id == user_id)
     ) or 0
 
     return {

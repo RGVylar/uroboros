@@ -51,7 +51,15 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	}
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
-		throw new Error(body.detail || res.statusText);
+		let message: string;
+		if (res.status === 422) {
+			message = 'Comprueba que el email y la contraseña tienen el formato correcto';
+		} else if (typeof body.detail === 'string') {
+			message = body.detail;
+		} else {
+			message = res.statusText || 'Error desconocido';
+		}
+		throw new Error(message);
 	}
 	if (res.status === 204) return undefined as T;
 	return res.json();
