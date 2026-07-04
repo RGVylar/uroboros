@@ -34,12 +34,14 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+    # New users start on the free tier. The 14-day trial will be re-enabled
+    # (at first use) once Google Play Billing is wired up — a trial countdown
+    # is pointless while there is nothing to buy at the end.
     user = User(
         email=payload.email,
         password_hash=hash_password(payload.password),
         name=payload.name,
-        subscription_status="trial",
-        trial_started_at=datetime.now(timezone.utc),
+        subscription_status="free",
     )
     db.add(user)
     db.commit()

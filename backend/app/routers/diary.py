@@ -29,6 +29,9 @@ from app.services.notification_scheduler import send_milestone_push
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
+# Free tier can browse the last N days of history; older days are premium.
+FREE_HISTORY_DAYS = 90
+
 
 def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
     if actor_id == target_user_id:
@@ -192,9 +195,9 @@ def day_summary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> DaySummary:
-    # Free users can only see the last 7 days
+    # Free users can only browse recent history
     if not user.is_premium_or_trial:
-        cutoff = datetime.now(timezone.utc).date() - timedelta(days=6)
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=FREE_HISTORY_DAYS - 1)
         if day < cutoff:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -268,7 +271,7 @@ def days_range(
 ) -> list[DaySummary]:
     """Batch summary for a date range — replaces N individual /diary/day calls."""
     if not user.is_premium_or_trial:
-        cutoff = datetime.now(timezone.utc).date() - timedelta(days=6)
+        cutoff = datetime.now(timezone.utc).date() - timedelta(days=FREE_HISTORY_DAYS - 1)
         if date_from < cutoff:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,

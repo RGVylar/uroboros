@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -31,12 +31,21 @@ class User(Base):
     subscription_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Launch-cohort users: full access for life, regardless of subscription.
+    grandfathered: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
 
     @property
     def effective_status(self) -> SubscriptionStatus:
-        """Resolves 'trial' expiry at runtime."""
-        if self.subscription_status == "premium":
+        """Resolves grandfathering and 'trial'/'premium' expiry at runtime."""
+        if self.grandfathered:
             return "premium"
+        if self.subscription_status == "premium":
+            # A real (paid) premium stays premium until its expiry, if any.
+            if self.subscription_expires_at is None or datetime.now(timezone.utc) < self.subscription_expires_at:
+                return "premium"
+            return "free"
         if self.subscription_status == "trial" and self.trial_started_at:
             expires = self.trial_started_at + timedelta(days=TRIAL_DAYS)
             if datetime.now(timezone.utc) < expires:
