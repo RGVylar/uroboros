@@ -4,3 +4,5 @@ backend/backend.err
 backend/backend.log
 backend/backend.log
 *.keystore
+/.claude
+/.claude
