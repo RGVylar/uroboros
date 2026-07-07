@@ -89,15 +89,20 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
 
         # Suggest portion size based on remaining calories
         # Try to stay under 1/3 of remaining calories
-        suggested_grams = int(
-            min(
-                300,  # Cap at 300g for practical portion sizes
-                max(
-                    50,  # Minimum 50g
-                    (remaining_calories / 3) * 100 / product.calories_per_100g
+        if product.calories_per_100g > 0:
+            suggested_grams = int(
+                min(
+                    300,  # Cap at 300g for practical portion sizes
+                    max(
+                        50,  # Minimum 50g
+                        (remaining_calories / 3) * 100 / product.calories_per_100g
+                    )
                 )
             )
-        )
+        else:
+            # Zero-calorie products (water, diet drinks): portion can't be
+            # derived from calories, use a standard serving
+            suggested_grams = 100
 
         freq = product_frequency[product_id]
         reason = f"Eaten {freq} times in past 30 days"
