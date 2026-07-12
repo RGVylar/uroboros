@@ -22,8 +22,19 @@ class ProductRecommendation:
         self.estimated_calories = product.calories_per_100g * suggested_grams / 100
 
 
-def get_recommendations(db: Session, user: User, today: date) -> list[ProductRecommendation]:
-    """Get intelligent food recommendations based on remaining calories and consumption history"""
+# Macro focus: attribute on Product / UserGoals / DiaryEntry, and Spanish label
+MACRO_FOCUS = {
+    "protein": ("protein_per_100g", "protein", "proteína"),
+    "carbs": ("carbs_per_100g", "carbs", "carbohidratos"),
+    "fat": ("fat_per_100g", "fat", "grasa"),
+}
+
+
+def get_recommendations(
+    db: Session, user: User, today: date, focus: str = "kcal"
+) -> list[ProductRecommendation]:
+    """Get intelligent food recommendations based on remaining calories (or a
+    remaining macro, when focus is protein/carbs/fat) and consumption history"""
 
     # Get user's goals
     goals = db.get(UserGoals, user.id)
@@ -50,6 +61,15 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
     if remaining_calories < 100:
         return []
 
+    remaining_macro = 0.0
+    if focus in MACRO_FOCUS:
+        per_100g_attr, goal_attr, _ = MACRO_FOCUS[focus]
+        consumed_macro = sum(getattr(e, goal_attr) for e in today_entries)
+        remaining_macro = max(0.0, getattr(goals, goal_attr) - consumed_macro)
+        # Macro goal already met: nothing useful to suggest
+        if remaining_macro < 5:
+            return []
+
     # Get user's most frequently consumed products in past 30 days
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     past_entries = list(
@@ -75,11 +95,30 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
     today_product_ids = {e.product_id for e in today_entries}
     recommendations = []
 
-    for product_id in sorted(
-        product_frequency.keys(),
-        key=lambda pid: product_frequency[pid],
-        reverse=True
-    )[:10]:  # Top 10 most frequent
+    if focus in MACRO_FOCUS:
+        per_100g_attr, _, label = MACRO_FOCUS[focus]
+        # Rank by macro density (grams of macro per 100 kcal), so the foods
+        # that best fill the remaining macro without spending calories win
+        def density(pid: int) -> float:
+            p = product_by_id.get(pid)
+            if not p:
+                return 0.0
+            macro = getattr(p, per_100g_attr)
+            return macro / max(p.calories_per_100g, 1.0)
+
+        candidate_ids = sorted(
+            product_frequency.keys(),
+            key=lambda pid: (density(pid), product_frequency[pid]),
+            reverse=True,
+        )
+    else:
+        candidate_ids = sorted(
+            product_frequency.keys(),
+            key=lambda pid: product_frequency[pid],
+            reverse=True,
+        )[:10]  # Top 10 most frequent
+
+    for product_id in candidate_ids:
         if product_id in today_product_ids:
             continue
 
@@ -87,25 +126,44 @@ def get_recommendations(db: Session, user: User, today: date) -> list[ProductRec
         if not product:
             continue
 
-        # Suggest portion size based on remaining calories
-        # Try to stay under 1/3 of remaining calories
-        if product.calories_per_100g > 0:
-            suggested_grams = int(
-                min(
-                    300,  # Cap at 300g for practical portion sizes
-                    max(
-                        50,  # Minimum 50g
-                        (remaining_calories / 3) * 100 / product.calories_per_100g
+        freq = product_frequency[product_id]
+
+        if focus in MACRO_FOCUS:
+            per_100g_attr, _, label = MACRO_FOCUS[focus]
+            macro_per_100g = getattr(product, per_100g_attr)
+            if macro_per_100g <= 0:
+                continue
+
+            # Portion that covers ~1/3 of the remaining macro...
+            suggested_grams = (remaining_macro / 3) * 100 / macro_per_100g
+            # ...without blowing past the remaining calories
+            if product.calories_per_100g > 0:
+                suggested_grams = min(
+                    suggested_grams,
+                    remaining_calories * 100 / product.calories_per_100g,
+                )
+            suggested_grams = int(min(300, max(50, suggested_grams)))
+
+            reason = f"{macro_per_100g:g} g {label}/100 g · comido {freq}×"
+        else:
+            # Suggest portion size based on remaining calories
+            # Try to stay under 1/3 of remaining calories
+            if product.calories_per_100g > 0:
+                suggested_grams = int(
+                    min(
+                        300,  # Cap at 300g for practical portion sizes
+                        max(
+                            50,  # Minimum 50g
+                            (remaining_calories / 3) * 100 / product.calories_per_100g
+                        )
                     )
                 )
-            )
-        else:
-            # Zero-calorie products (water, diet drinks): portion can't be
-            # derived from calories, use a standard serving
-            suggested_grams = 100
+            else:
+                # Zero-calorie products (water, diet drinks): portion can't be
+                # derived from calories, use a standard serving
+                suggested_grams = 100
 
-        freq = product_frequency[product_id]
-        reason = f"Eaten {freq} times in past 30 days"
+            reason = f"Comido {freq} veces en los últimos 30 días"
 
         recommendations.append(
             ProductRecommendation(product, suggested_grams, reason)

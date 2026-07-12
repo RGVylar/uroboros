@@ -249,6 +249,7 @@
 								border-radius:0.625rem;
 								border:1px solid {goals.macro_adjust_mode === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'};
 								background:{goals.macro_adjust_mode === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'};
+								box-shadow:none;
 								color:{locked ? 'rgba(255,255,255,0.3)' : goals.macro_adjust_mode === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'};
 								font-size:0.6875rem;
 								font-weight:{goals.macro_adjust_mode === opt.value ? '700' : '400'};
@@ -692,12 +693,12 @@
 			/>
 			<div style="display:flex; gap:0.75rem;">
 				<button onclick={() => showDeleteModal = false}
-					style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.875rem; cursor:pointer;">
+					style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.875rem; cursor:pointer; box-shadow:none;">
 					Cancelar
 				</button>
 				<button onclick={deleteAccount}
 					disabled={deleteConfirmText !== 'ELIMINAR' || deletingAccount}
-					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:{deleteConfirmText === 'ELIMINAR' ? 'oklch(50% 0.22 25)' : 'rgba(255,255,255,0.05)'}; color:{deleteConfirmText === 'ELIMINAR' ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.875rem; font-weight:700; cursor:{deleteConfirmText === 'ELIMINAR' ? 'pointer' : 'not-allowed'}; transition:background 0.2s;">
+					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:{deleteConfirmText === 'ELIMINAR' ? 'oklch(50% 0.22 25)' : 'rgba(255,255,255,0.05)'}; color:{deleteConfirmText === 'ELIMINAR' ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.875rem; font-weight:700; cursor:{deleteConfirmText === 'ELIMINAR' ? 'pointer' : 'not-allowed'}; transition:background 0.2s; box-shadow:none;">
 					{deletingAccount ? 'Eliminando...' : 'Eliminar'}
 				</button>
 			</div>
@@ -741,6 +742,7 @@
 		width: 100%;
 		background: none;
 		border: none;
+		box-shadow: none;
 		color: #fff;
 		font-family: inherit;
 		text-align: left;
@@ -796,6 +798,7 @@
 		height: 24px;
 		border-radius: 99px;
 		border: 1px solid;
+		box-shadow: none;
 		cursor: pointer;
 		flex-shrink: 0;
 		padding: 0;

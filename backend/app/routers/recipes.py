@@ -99,6 +99,23 @@ def list_recipes(
     return list(db.scalars(stmt))
 
 
+# ── GET /recipes/{recipe_id} ─────────────────────────────────────────────────
+@router.get("/{recipe_id}", response_model=RecipeOut)
+def get_recipe(
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Recipe:
+    recipe = _load_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    if recipe.owner_id != user.id and not (
+        recipe.is_shared and recipe.owner_id in _friend_ids(db, user.id)
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    return recipe
+
+
 FREE_RECIPE_LIMIT = 5
 
 

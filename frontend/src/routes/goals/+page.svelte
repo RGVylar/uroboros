@@ -142,7 +142,7 @@
 	<div class="card" style="margin-bottom:1rem;">
 		<button
 			onclick={() => { showTdee = !showTdee; tdeeResult = null; }}
-			style="width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; cursor:pointer; padding:0;"
+			style="width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; box-shadow:none; cursor:pointer; padding:0;"
 		>
 			<div style="display:flex; align-items:center; gap:0.6rem;">
 				<span style="font-size:1.2rem;">🧮</span>
@@ -193,7 +193,7 @@
 						{#each Object.entries(objectives) as [key, obj]}
 							<button
 								onclick={() => { tdeeObjective = key; tdeeResult = null; }}
-								style="padding:0.5rem 0.25rem; border-radius:8px; border:1px solid {tdeeObjective === key ? 'var(--primary)' : 'var(--border)'}; background:{tdeeObjective === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); cursor:pointer; font-size:0.78rem; text-align:center; line-height:1.3;">
+								style="padding:0.5rem 0.25rem; border-radius:8px; border:1px solid {tdeeObjective === key ? 'var(--primary)' : 'var(--border)'}; background:{tdeeObjective === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); box-shadow:none; cursor:pointer; font-size:0.78rem; text-align:center; line-height:1.3;">
 								<div style="font-size:1rem;">{obj.emoji}</div>
 								{obj.label}
 							</button>
@@ -247,7 +247,7 @@
 			{#each [['grams', 'Gramos'], ['percent', '% de calorías']] as [key, label]}
 				<button
 					onclick={() => switchMode(key as 'grams' | 'percent')}
-					style="padding:0.5rem; border-radius:8px; border:1px solid {macroMode === key ? 'var(--primary)' : 'var(--border)'}; background:{macroMode === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); cursor:pointer; font-size:0.82rem; font-weight:600;">
+					style="padding:0.5rem; border-radius:8px; border:1px solid {macroMode === key ? 'var(--primary)' : 'var(--border)'}; background:{macroMode === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); box-shadow:none; cursor:pointer; font-size:0.82rem; font-weight:600;">
 					{label}
 				</button>
 			{/each}

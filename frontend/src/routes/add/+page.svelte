@@ -42,6 +42,28 @@
 	// Recommendations state
 	let recommendations: RecommendedProduct[] = $state([]);
 	let loadingRecs = $state(false);
+	let recFocus = $state<'kcal' | 'protein' | 'carbs' | 'fat'>('kcal');
+
+	const recFocusOptions = [
+		{ value: 'kcal',    label: '🔥 Calorías' },
+		{ value: 'protein', label: '🥩 Proteína' },
+		{ value: 'carbs',   label: '🍚 Carbos' },
+		{ value: 'fat',     label: '🥑 Grasa' },
+	] as const;
+
+	const recFocusSubtitle: Record<typeof recFocus, string> = {
+		kcal:    'Basado en tus calorías restantes',
+		protein: 'Basado en tu proteína restante',
+		carbs:   'Basado en tus carbohidratos restantes',
+		fat:     'Basado en tu grasa restante',
+	};
+
+	function recMacroGrams(rec: RecommendedProduct): number {
+		const per100 = recFocus === 'protein' ? rec.product.protein_per_100g
+			: recFocus === 'carbs' ? rec.product.carbs_per_100g
+			: rec.product.fat_per_100g;
+		return Math.round((per100 * rec.suggested_grams) / 100);
+	}
 
 	// Frequent / history state
 	let frequent: FrequentProduct[] = $state([]);
@@ -409,12 +431,18 @@
 	async function loadRecommendations() {
 		loadingRecs = true;
 		try {
-			recommendations = await api.get<RecommendedProduct[]>('/products/recommendations');
+			recommendations = await api.get<RecommendedProduct[]>(`/products/recommendations?focus=${recFocus}`);
 		} catch (e: unknown) {
 			recommendations = [];
 		} finally {
 			loadingRecs = false;
 		}
+	}
+
+	function setRecFocus(focus: typeof recFocus) {
+		if (recFocus === focus) return;
+		recFocus = focus;
+		loadRecommendations();
 	}
 
 	async function loadFrequent() {
@@ -1223,13 +1251,23 @@
 
 		<!-- ── SUGERENCIAS ── -->
 		{#if activeFilter === 'suggestions'}
+			<!-- Macro focus selector -->
+			<div style="display:flex; gap:0.375rem; margin-bottom:0.875rem; flex-wrap:wrap;">
+				{#each recFocusOptions as opt}
+					<button
+						onclick={() => setRecFocus(opt.value)}
+						style="padding:0.3rem 0.7rem; border-radius:99px; font-size:0.6875rem; font-weight:{recFocus === opt.value ? '700' : '400'}; border:1px solid {recFocus === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'}; background:{recFocus === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'}; color:{recFocus === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'}; box-shadow:none; cursor:pointer; font-family:inherit; transition:all 0.15s;">
+						{opt.label}
+					</button>
+				{/each}
+			</div>
 			{#if loadingRecs}
 				<div class="loading-row">Cargando sugerencias...</div>
 			{:else if recommendations.length > 0}
 				<div class="section-header">
 					<div>
 						<div class="section-title">Sugerencias para ahora</div>
-						<div class="section-sub">Basado en tus calorías restantes</div>
+						<div class="section-sub">{recFocusSubtitle[recFocus]}</div>
 					</div>
 				</div>
 				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
@@ -1241,8 +1279,13 @@
 								<div class="product-brand">{rec.reason}</div>
 							</div>
 							<div style="text-align:right; flex-shrink:0;">
-								<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
-								<div class="product-per">{rec.suggested_grams}g sugerido</div>
+								{#if recFocus === 'kcal'}
+									<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
+									<div class="product-per">{rec.suggested_grams}g sugerido</div>
+								{:else}
+									<div class="product-kcal">{recMacroGrams(rec)}<span class="product-kcal-unit">g {recFocus === 'protein' ? 'prot' : recFocus === 'carbs' ? 'carbs' : 'grasa'}</span></div>
+									<div class="product-per">{rec.suggested_grams}g · {Math.round(rec.estimated_calories)} kcal</div>
+								{/if}
 							</div>
 						</button>
 					{/each}

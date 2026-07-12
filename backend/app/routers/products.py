@@ -18,13 +18,14 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/recommendations", response_model=list[RecommendedProduct])
 def get_product_recommendations(
     day: date | None = Query(None),
+    focus: str = Query("kcal", pattern="^(kcal|protein|carbs|fat)$"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     if day is None:
         day = datetime.now(timezone.utc).date()
 
-    recommendations = get_recommendations(db, user, day)
+    recommendations = get_recommendations(db, user, day, focus)
     return [
         {
             "product": ProductOut.model_validate(rec.product),
