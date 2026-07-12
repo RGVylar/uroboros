@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+﻿from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
@@ -95,3 +95,24 @@ def remove_allergy(
 
     db.execute(delete(UserAllergy).where(UserAllergy.id == allergy_id))
     db.commit()
+
+class AllergyBulkReplace(BaseModel):
+    ingredients: list[str]
+
+
+@router.put("", response_model=list[AllergyOut])
+def replace_allergies(
+    payload: AllergyBulkReplace,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[UserAllergy]:
+    """Replace the current user's full allergy set in one call."""
+    ingredients = sorted({i.strip().lower() for i in payload.ingredients if i.strip()})
+
+    db.execute(delete(UserAllergy).where(UserAllergy.user_id == user.id))
+    rows = [UserAllergy(user_id=user.id, ingredient=i) for i in ingredients]
+    db.add_all(rows)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+    return rows

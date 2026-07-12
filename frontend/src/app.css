@@ -225,12 +225,13 @@ button:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; filter: 
 .btn-ghost:hover { background: var(--surface2); color: var(--text); filter: none; }
 
 /* ═══════════════════ Layout ═══════════════════ */
+/* Sin z-index: un stacking context aquí atraparía los modales de las páginas
+   por debajo de la nav inferior (position:fixed, fuera del container) */
 .container {
 	max-width: 480px;
 	margin: 0 auto;
 	padding: 1rem;
 	position: relative;
-	z-index: 1;
 }
 
 .page { padding-bottom: 6rem; }
@@ -421,7 +422,8 @@ nav.bottom {
 	box-shadow:
 		0 1px 0 rgba(255,255,255,0.05) inset,
 		0 20px 50px -10px rgba(0,0,0,0.6);
-	z-index: 100;
+	/* Por debajo de cualquier modal/hoja de las páginas (mínimo z-index: 90) */
+	z-index: 50;
 	max-width: calc(100% - 1.6rem);
 	overflow: visible;
 }

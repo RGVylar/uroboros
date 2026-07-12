@@ -28,24 +28,25 @@
 	type AllergenKey = typeof ALLERGENS[number]['key'];
 
 	let active = $state(new Set<AllergenKey>());
-	let saving = $state(new Set<AllergenKey>());
-	let idMap = $state(new Map<AllergenKey, number>());
+	let initial = $state(new Set<AllergenKey>());
+	let saving = $state(false);
+	let saved = $state(false);
 	let loaded = $state(false);
+
+	let dirty = $derived(
+		active.size !== initial.size || [...active].some(k => !initial.has(k))
+	);
 
 	async function load() {
 		try {
 			const rows = await api.get<{ id: number; ingredient: string }[]>('/allergies');
 			const newActive = new Set<AllergenKey>();
-			const newIdMap = new Map<AllergenKey, number>();
 			for (const row of rows) {
 				const matched = ALLERGENS.find(a => a.key === row.ingredient);
-				if (matched) {
-					newActive.add(matched.key);
-					newIdMap.set(matched.key, row.id);
-				}
+				if (matched) newActive.add(matched.key);
 			}
 			active = newActive;
-			idMap = newIdMap;
+			initial = new Set(newActive);
 		} catch {
 			// ignore
 		} finally {
@@ -53,27 +54,27 @@
 		}
 	}
 
-	async function toggle(key: AllergenKey) {
-		if (saving.has(key)) return;
-		saving = new Set([...saving, key]);
+	function toggle(key: AllergenKey) {
+		saved = false;
+		if (active.has(key)) {
+			active = new Set([...active].filter(k => k !== key));
+		} else {
+			active = new Set([...active, key]);
+		}
+	}
+
+	async function save() {
+		if (!dirty || saving) return;
+		saving = true;
 		try {
-			if (active.has(key)) {
-				const id = idMap.get(key);
-				if (id !== undefined) {
-					await api.del(`/allergies/${id}`);
-					active = new Set([...active].filter(k => k !== key));
-					idMap.delete(key);
-					idMap = new Map(idMap);
-				}
-			} else {
-				const row = await api.post<{ id: number; ingredient: string }>('/allergies', { ingredient: key });
-				active = new Set([...active, key]);
-				idMap = new Map([...idMap, [key, row.id]]);
-			}
+			await api.put('/allergies', { ingredients: [...active] });
+			initial = new Set(active);
+			saved = true;
+			setTimeout(() => saved = false, 2000);
 		} catch {
 			// ignore
 		} finally {
-			saving = new Set([...saving].filter(k => k !== key));
+			saving = false;
 		}
 	}
 
@@ -109,12 +110,10 @@
 	<div class="grid">
 		{#each ALLERGENS as a (a.key)}
 			{@const on = active.has(a.key)}
-			{@const isSaving = saving.has(a.key)}
 			<button
 				class="chip"
 				class:on
 				onclick={() => toggle(a.key)}
-				disabled={isSaving}
 			>
 				<div class="chip-icon" class:on>{a.emoji}</div>
 				<div class="chip-texts">
@@ -122,15 +121,23 @@
 					{#if a.note}<div class="chip-note">{a.note}</div>{/if}
 				</div>
 				<div class="chip-check" class:on>
-					{#if isSaving}
-						<div class="spinner"></div>
-					{:else if on}
-						✓
-					{/if}
+					{#if on}✓{/if}
 				</div>
 			</button>
 		{/each}
 	</div>
+
+	<button class="btn-save" onclick={save} disabled={!dirty || saving}>
+		{#if saving}
+			Guardando...
+		{:else if saved}
+			Guardado!
+		{:else if dirty}
+			Guardar cambios
+		{:else}
+			Sin cambios
+		{/if}
+	</button>
 
 	<p class="disclaimer">
 		⚠️ Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
@@ -171,15 +178,22 @@
 	.banner-title { font-size: 12px; color: #fff; font-weight: 700; }
 	.banner-sub { font-size: 10px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; line-height: 1.4; }
 
-	/* Grid */
+	/* Grid — minmax(0,1fr): sin él, las notas con nowrap fuerzan el ancho
+	   mínimo de la columna y el grid desborda la pantalla */
 	.grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 10px;
 	}
 	@media (max-width: 380px) {
-		.grid { grid-template-columns: 1fr; }
+		.grid { grid-template-columns: minmax(0, 1fr); }
 	}
+
+	.btn-save {
+		width: 100%;
+		margin-top: 14px;
+	}
+	.btn-save:disabled { opacity: 0.4; }
 
 	.chip {
 		display: flex; align-items: center; gap: 10px;
@@ -244,15 +258,6 @@
 		border-color: transparent;
 		color: #1a0a05;
 	}
-
-	.spinner {
-		width: 12px; height: 12px;
-		border: 1.5px solid rgba(255, 255, 255, 0.2);
-		border-top-color: rgba(255, 255, 255, 0.7);
-		border-radius: 50%;
-		animation: spin 0.6s linear infinite;
-	}
-	@keyframes spin { to { transform: rotate(360deg); } }
 
 	.disclaimer {
 		font-size: 10px;

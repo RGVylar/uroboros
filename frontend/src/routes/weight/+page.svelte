@@ -48,8 +48,9 @@
 	let allChronological = $derived([...weights].reverse());
 
 	let chartData = $derived.by(() => {
-		const n = range === '7d' ? 7 : range === '1m' ? 30 : range === '3m' ? 90 : 365;
-		return allChronological.slice(-n);
+		const days = range === '7d' ? 7 : range === '1m' ? 30 : range === '3m' ? 90 : 365;
+		const cutoff = Date.now() - days * 86_400_000;
+		return allChronological.filter(w => new Date(w.logged_at).getTime() >= cutoff);
 	});
 
 	let chartMin = $derived(chartData.length ? Math.min(...chartData.map(w => w.weight)) - 0.5 : 0);
