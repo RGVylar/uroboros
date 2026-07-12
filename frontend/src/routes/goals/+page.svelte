@@ -19,6 +19,35 @@
 	let saved = $state(false);
 	let loading = $state(true);
 
+	// Macro input mode: grams directly, or % of calories
+	let macroMode: 'grams' | 'percent' = $state('grams');
+	let pPct = $state(30);
+	let cPct = $state(40);
+	let fPct = $state(30);
+
+	let pctSum = $derived(pPct + cPct + fPct);
+	let pGrams = $derived(Math.round((kcal * pPct) / 100 / 4));
+	let cGrams = $derived(Math.round((kcal * cPct) / 100 / 4));
+	let fGrams = $derived(Math.round((kcal * fPct) / 100 / 9));
+	let macroKcal = $derived(protein * 4 + carbs * 4 + fat * 9);
+
+	function switchMode(mode: 'grams' | 'percent') {
+		if (mode === macroMode) return;
+		if (mode === 'percent') {
+			// derive current percentages from grams
+			if (macroKcal > 0) {
+				pPct = Math.round((protein * 4 * 100) / macroKcal);
+				cPct = Math.round((carbs * 4 * 100) / macroKcal);
+				fPct = 100 - pPct - cPct;
+			}
+		} else {
+			protein = pGrams;
+			carbs = cGrams;
+			fat = fGrams;
+		}
+		macroMode = mode;
+	}
+
 	// TDEE calculator state
 	let showTdee = $state(false);
 	let tdeeWeight = $state(75);
@@ -60,6 +89,9 @@
 		protein = Math.round((tdeeResult.target * obj.pPct) / 4);
 		carbs   = Math.round((tdeeResult.target * obj.cPct) / 4);
 		fat     = Math.round((tdeeResult.target * obj.fPct) / 9);
+		pPct = Math.round(obj.pPct * 100);
+		cPct = Math.round(obj.cPct * 100);
+		fPct = 100 - pPct - cPct;
 		showTdee = false;
 	}
 
@@ -78,6 +110,11 @@
 	});
 
 	async function save() {
+		if (macroMode === 'percent') {
+			protein = pGrams;
+			carbs = cGrams;
+			fat = fGrams;
+		}
 		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, track_creatine });
 		if (isOnboarding) {
 			goto('/');
@@ -204,24 +241,73 @@
 			<label for="g-kcal">Calorías (kcal)</label>
 			<input id="g-kcal" type="number" bind:value={kcal} min="0" step="50" />
 		</div>
-		<div class="form-group">
-			<label for="g-prot">Proteína (g)</label>
-			<input id="g-prot" type="number" bind:value={protein} min="0" step="5" />
+
+		<!-- Macro input mode toggle -->
+		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin-bottom:1rem;">
+			{#each [['grams', 'Gramos'], ['percent', '% de calorías']] as [key, label]}
+				<button
+					onclick={() => switchMode(key as 'grams' | 'percent')}
+					style="padding:0.5rem; border-radius:8px; border:1px solid {macroMode === key ? 'var(--primary)' : 'var(--border)'}; background:{macroMode === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); cursor:pointer; font-size:0.82rem; font-weight:600;">
+					{label}
+				</button>
+			{/each}
 		</div>
-		<div class="form-group">
-			<label for="g-carb">Carbohidratos (g)</label>
-			<input id="g-carb" type="number" bind:value={carbs} min="0" step="5" />
-		</div>
-		<div class="form-group">
-			<label for="g-fat">Grasa (g)</label>
-			<input id="g-fat" type="number" bind:value={fat} min="0" step="5" />
-		</div>
+
+		{#if macroMode === 'grams'}
+			<div class="form-group">
+				<label for="g-prot">Proteína (g)</label>
+				<input id="g-prot" type="number" bind:value={protein} min="0" step="5" />
+			</div>
+			<div class="form-group">
+				<label for="g-carb">Carbohidratos (g)</label>
+				<input id="g-carb" type="number" bind:value={carbs} min="0" step="5" />
+			</div>
+			<div class="form-group">
+				<label for="g-fat">Grasa (g)</label>
+				<input id="g-fat" type="number" bind:value={fat} min="0" step="5" />
+			</div>
+			<p style="font-size:0.75rem; margin:-0.25rem 0 1rem; color:{Math.abs(macroKcal - kcal) > kcal * 0.05 ? 'var(--warning, #f0a840)' : 'var(--text-muted)'};">
+				Tus macros suman {macroKcal} kcal
+				{#if Math.abs(macroKcal - kcal) > kcal * 0.05}
+					· {macroKcal > kcal ? '+' : ''}{macroKcal - kcal} respecto a tu objetivo
+				{/if}
+			</p>
+		{:else}
+			<div class="form-group">
+				<label for="g-pct-prot">Proteína (%)</label>
+				<div style="display:flex; align-items:center; gap:0.6rem;">
+					<input id="g-pct-prot" type="number" bind:value={pPct} min="0" max="100" step="5" style="flex:1;" />
+					<span style="min-width:4rem; text-align:right; font-weight:700; color:var(--text);">{pGrams} g</span>
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="g-pct-carb">Carbohidratos (%)</label>
+				<div style="display:flex; align-items:center; gap:0.6rem;">
+					<input id="g-pct-carb" type="number" bind:value={cPct} min="0" max="100" step="5" style="flex:1;" />
+					<span style="min-width:4rem; text-align:right; font-weight:700; color:var(--text);">{cGrams} g</span>
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="g-pct-fat">Grasa (%)</label>
+				<div style="display:flex; align-items:center; gap:0.6rem;">
+					<input id="g-pct-fat" type="number" bind:value={fPct} min="0" max="100" step="5" style="flex:1;" />
+					<span style="min-width:4rem; text-align:right; font-weight:700; color:var(--text);">{fGrams} g</span>
+				</div>
+			</div>
+			<p style="font-size:0.75rem; margin:-0.25rem 0 1rem; color:{pctSum === 100 ? 'var(--text-muted)' : 'var(--warning, #f0a840)'};">
+				{#if pctSum === 100}
+					Reparto: {pctSum}% de {kcal} kcal
+				{:else}
+					Los porcentajes suman {pctSum}% — deben sumar 100%
+				{/if}
+			</p>
+		{/if}
 		<div class="form-group">
 			<label for="g-water">Agua (ml)</label>
 			<input id="g-water" type="number" bind:value={water_ml} min="0" step="250" />
 		</div>
 
-		<button onclick={save} style="width:100%;">
+		<button onclick={save} disabled={macroMode === 'percent' && pctSum !== 100} style="width:100%; opacity:{macroMode === 'percent' && pctSum !== 100 ? 0.5 : 1};">
 			{#if isOnboarding}
 				Empezar
 			{:else}
