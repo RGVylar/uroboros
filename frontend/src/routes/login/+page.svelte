@@ -27,7 +27,14 @@
 			auth.login(res.access_token, res.user);
 			goto(mode === 'register' ? '/onboarding' : '/');
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Error';
+			// La API devuelve mensajes técnicos en inglés ("Unauthorized"):
+			// al usuario le mostramos siempre un error claro en español.
+			const raw = e instanceof Error ? e.message : '';
+			error = /unauthorized|401|credential/i.test(raw)
+				? 'Email o contraseña incorrectos'
+				: mode === 'register' && raw
+					? raw
+					: 'No se pudo iniciar sesión. Inténtalo de nuevo.';
 		} finally {
 			loading = false;
 		}
@@ -48,8 +55,10 @@
 	<div class="tabs">
 		{#each [{ k: 'login' as const, l: 'Entrar' }, { k: 'register' as const, l: 'Crear cuenta' }] as t}
 			<button
+				type="button"
 				class="tab"
 				class:active={mode === t.k}
+				aria-pressed={mode === t.k}
 				onclick={() => mode = t.k}
 			>{t.l}</button>
 		{/each}

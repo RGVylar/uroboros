@@ -67,10 +67,12 @@
 
 	const hasAny = $derived(energy !== null || digestion !== null || mood !== null);
 
-	// Format date nicely
+	// Format date nicely — solo la primera letra en mayúscula
+	// (text-transform: capitalize producía "Lunes, 13 De Julio")
 	const dateLabel = $derived(() => {
 		const d = new Date(day + 'T12:00:00');
-		return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+		const raw = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+		return raw.charAt(0).toUpperCase() + raw.slice(1);
 	});
 </script>
 
@@ -101,6 +103,7 @@
 					<button
 						class="opt-btn"
 						class:selected={energy === opt.level}
+						aria-pressed={energy === opt.level}
 						onclick={() => energy = energy === opt.level ? null : opt.level}
 					>
 						<span class="opt-emoji">{opt.emoji}</span>
@@ -118,6 +121,7 @@
 					<button
 						class="opt-btn"
 						class:selected={digestion === opt.level}
+						aria-pressed={digestion === opt.level}
 						onclick={() => digestion = digestion === opt.level ? null : opt.level}
 					>
 						<span class="opt-emoji">{opt.emoji}</span>
@@ -135,6 +139,7 @@
 					<button
 						class="opt-btn"
 						class:selected={mood === opt.level}
+						aria-pressed={mood === opt.level}
 						onclick={() => mood = mood === opt.level ? null : opt.level}
 					>
 						<span class="opt-emoji">{opt.emoji}</span>
@@ -200,7 +205,6 @@
 	.date {
 		font-size: 17px;
 		font-weight: 700;
-		text-transform: capitalize;
 	}
 
 	.loading {

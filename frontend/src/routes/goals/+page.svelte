@@ -5,6 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Goals } from '$lib/types';
 	import { GlassHeader } from '$lib/components';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -39,6 +40,14 @@
 				pPct = Math.round((protein * 4 * 100) / macroKcal);
 				cPct = Math.round((carbs * 4 * 100) / macroKcal);
 				fPct = 100 - pPct - cPct;
+				// El modo % reparte sobre el objetivo de kcal; si los gramos actuales
+				// suman otra cosa, avisamos en vez de cambiarlos en silencio.
+				const newP = Math.round((kcal * pPct) / 100 / 4);
+				const newC = Math.round((kcal * cPct) / 100 / 4);
+				const newF = Math.round((kcal * fPct) / 100 / 9);
+				if (Math.abs(macroKcal - kcal) > 25) {
+					toast.info(`Reparto ajustado al 100% de ${kcal} kcal: P${newP}g · C${newC}g · G${newF}g`);
+				}
 			}
 		} else {
 			protein = pGrams;

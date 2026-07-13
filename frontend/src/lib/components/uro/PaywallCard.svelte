@@ -9,7 +9,7 @@
 		onUpgrade?: () => void;
 	}
 
-	let { title, description, cta = 'Desbloquear Premium', onUpgrade = () => goto('/premium') }: Props = $props();
+	let { title, description, cta = 'Ver Premium', onUpgrade = () => goto('/premium') }: Props = $props();
 </script>
 
 <div class="paywall">
@@ -19,7 +19,9 @@
 	<button class="upgrade-btn" onclick={onUpgrade}>
 		{cta}
 	</button>
-	<div class="hint">Prueba 14 días gratis · sin tarjeta</div>
+	<!-- Sin promesa de prueba: /premium aún es "Próximamente" y no se puede
+	     iniciar ningún trial. Reponer el hint cuando exista la compra real. -->
+	<div class="hint">Muy pronto · mientras tanto sigue gratis</div>
 </div>
 
 <style>

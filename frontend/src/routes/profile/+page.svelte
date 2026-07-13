@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Goals } from '$lib/types';
+	import type { Goals, Recipe, WeightLog, Friendship } from '$lib/types';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
@@ -12,27 +12,39 @@
 	let goals: Goals | null = $state(null);
 	let streak = $state(0);
 	let totalDays = $state(0);
+	let ownRecipes = $state(0);
+	let weightLogs = $state(0);
+	let friendCount = $state(0);
 	let loading = $state(true);
 
+	// Los logros se evalúan en cliente con los datos disponibles (no se
+	// persisten en el servidor), así que las condiciones son aproximadas
+	// pero deben reflejar el progreso real del usuario.
 	const ACHIEVEMENTS = [
-		{ id: 1, label: 'Primer log',  desc: 'Primera comida registrada', hue: 160 },
-		{ id: 2, label: '7 días',      desc: 'Racha de 7 días',           hue:  45 },
-		{ id: 3, label: 'Recetas',     desc: '3 recetas creadas',         hue: 295 },
-		{ id: 4, label: 'Peso',        desc: 'Primer registro de peso',   hue: 220 },
-		{ id: 5, label: 'Amigos',      desc: 'Primer amigo añadido',      hue: 330 },
-		{ id: 6, label: '30 días',     desc: 'Racha de 30 días',          hue:  25 },
+		{ id: 1, label: 'Primer log',  desc: 'Primera comida registrada', hue: 160, unlocked: () => totalDays >= 1 || streak >= 1 },
+		{ id: 2, label: '7 días',      desc: 'Racha de 7 días',           hue:  45, unlocked: () => streak >= 7 },
+		{ id: 3, label: 'Recetas',     desc: '3 recetas creadas',         hue: 295, unlocked: () => ownRecipes >= 3 },
+		{ id: 4, label: 'Peso',        desc: 'Primer registro de peso',   hue: 220, unlocked: () => weightLogs >= 1 },
+		{ id: 5, label: 'Amigos',      desc: 'Primer amigo añadido',      hue: 330, unlocked: () => friendCount >= 1 },
+		{ id: 6, label: '30 días',     desc: 'Racha de 30 días',          hue:  25, unlocked: () => streak >= 30 },
 	];
 
 	async function load() {
 		loading = true;
 		try {
-			const [g, streakData] = await Promise.all([
+			const [g, streakData, recipes, weights, friends] = await Promise.all([
 				api.get<Goals>('/goals').catch(() => null),
 				api.get<{ streak: number; active_days: number }>('/diary/streak').catch(() => ({ streak: 0, active_days: 0 })),
+				api.get<Recipe[]>('/recipes').catch(() => []),
+				api.get<WeightLog[]>('/weight').catch(() => []),
+				api.get<Friendship[]>('/friends').catch(() => []),
 			]);
 			goals = g;
 			streak = streakData.streak ?? 0;
 			totalDays = streakData.active_days ?? 0;
+			ownRecipes = recipes.filter(r => r.owner_id === auth.user?.id).length;
+			weightLogs = weights.length;
+			friendCount = friends.length;
 		} finally {
 			loading = false;
 		}
@@ -50,7 +62,7 @@
 	})());
 
 	const stats = $derived([
-		{ l: 'Racha',           v: streak > 0 ? String(streak) : '—',                       u: 'días',   hue:  45 },
+		{ l: 'Racha',           v: streak > 0 ? String(streak) : '—',                       u: streak === 1 ? 'día' : 'días', hue: 45 },
 		{ l: 'Activo este mes', v: String(totalDays),                                       u: '/30',    hue: 160 },
 		{ l: 'Meta kcal',       v: goals?.kcal    ? String(Math.round(goals.kcal))    : '—', u: 'kcal',   hue: 220 },
 		{ l: 'Proteína meta',   v: goals?.protein ? String(Math.round(goals.protein)) : '—', u: 'g/día',  hue: 295 },
@@ -97,7 +109,7 @@
 	<div class="section-title">Logros</div>
 	<div class="ach-grid">
 		{#each ACHIEVEMENTS as a}
-			{@const unlocked = a.id <= 4}
+			{@const unlocked = !loading && a.unlocked()}
 			<div class="ach" class:unlocked style:--hue={a.hue}>
 				<div class="ach-icon">{unlocked ? '🏆' : '🔒'}</div>
 				<div class="ach-label">{a.label}</div>

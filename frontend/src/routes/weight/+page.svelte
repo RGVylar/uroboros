@@ -32,7 +32,20 @@
 		load();
 	}
 
+	// Borrado en dos toques: el primer ✕ pide confirmación en la propia fila
+	// (antes un solo toque borraba sin confirmación ni deshacer).
+	let confirmingDelete: number | null = $state(null);
+	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+
 	async function deleteWeight(id: number) {
+		if (confirmingDelete !== id) {
+			confirmingDelete = id;
+			clearTimeout(confirmTimer);
+			confirmTimer = setTimeout(() => (confirmingDelete = null), 3000);
+			return;
+		}
+		clearTimeout(confirmTimer);
+		confirmingDelete = null;
 		await api.del(`/weight/${id}`);
 		load();
 	}
@@ -151,6 +164,15 @@
 		{/if}
 	</div>
 </div>
+{:else}
+<!-- Estado vacío: antes la pantalla quedaba completamente en blanco -->
+<div class="glass-card" style="text-align:center; padding:2.5rem 1.25rem;">
+	<div style="font-size:2rem; margin-bottom:0.625rem;">⚖️</div>
+	<div style="font-size:0.9375rem; font-weight:700; color:#fff;">Sin registros de peso</div>
+	<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.375rem; line-height:1.5;">
+		Registra tu peso de hoy con el botón <strong>+ Registrar</strong> y aquí verás tu evolución con gráfica.
+	</div>
+</div>
 {/if}
 
 <!-- Chart card -->
@@ -226,7 +248,11 @@
 				<div class="entry-val">{w.weight.toFixed(1)} kg</div>
 				<div class="entry-date">{fmt(w.logged_at)}</div>
 			</div>
-			<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label="Eliminar">✕</button>
+			{#if confirmingDelete === w.id}
+				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>¿Borrar?</button>
+			{:else}
+				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label="Eliminar registro de {w.weight.toFixed(1)} kg">✕</button>
+			{/if}
 		</div>
 	{/each}
 </div>
@@ -458,6 +484,14 @@
 		font-family: inherit;
 	}
 	.del-btn:hover { color: oklch(75% 0.2 25); }
+	.del-btn-confirm {
+		color: oklch(75% 0.2 25);
+		font-weight: 700;
+		border: 1px solid oklch(65% 0.22 25 / 0.4);
+		border-radius: 8px;
+		padding: 0.25rem 0.5rem;
+		background: oklch(65% 0.22 25 / 0.12);
+	}
 
 	/* ── Modal ── */
 	.modal-backdrop {
@@ -467,8 +501,6 @@
 		display: flex;
 		align-items: flex-end;
 		background: rgba(0,0,0,0.5);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
 	}
 	.modal-sheet {
 		width: 100%;

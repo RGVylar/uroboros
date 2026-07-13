@@ -221,6 +221,14 @@
 		return null;
 	}
 
+	// Etiqueta y unidad de la tarjeta "Media" según el macro seleccionado
+	const TREND_STAT_META = {
+		calories: { label: 'Media kcal',     unit: 'kcal' },
+		protein:  { label: 'Media proteína', unit: 'g' },
+		carbs:    { label: 'Media carbos',   unit: 'g' },
+		fat:      { label: 'Media grasa',    unit: 'g' },
+	} as const;
+
 	let trendValues = $derived(trendData.map(d => d[trendMacro]));
 	let trendMax = $derived.by(() => {
 		const dataMax = Math.max(...trendValues, 1);
@@ -291,16 +299,20 @@
 
 <!-- ── Summary stats ── -->
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem; margin-bottom:0.625rem;">
-	<!-- Media kcal -->
+	<!-- Media del macro seleccionado -->
 	<div class="glass-card">
-		<div class="stat-eyebrow">Media kcal</div>
+		<div class="stat-eyebrow">{TREND_STAT_META[trendMacro].label}</div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
 			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendAvg.toLocaleString('es-ES')}</div>
-			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
+			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">{TREND_STAT_META[trendMacro].unit}</div>
 		</div>
-		{#if goals?.kcal}
+		{#if trendMacro === 'calories' && goals?.kcal}
 			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
 				{trendAvg < avgEffectiveKcalGoal ? '↓' : '↑'} {Math.abs(trendAvg - avgEffectiveKcalGoal)} vs objetivo
+			</div>
+		{:else if trendMacro !== 'calories' && chartGoalVal()}
+			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
+				{trendAvg < chartGoalVal()! ? '↓' : '↑'} {Math.abs(trendAvg - chartGoalVal()!)} g vs objetivo
 			</div>
 		{/if}
 	</div>

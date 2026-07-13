@@ -6,6 +6,7 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import { CHANGELOG_VERSION } from '$lib/changelog';
 	import type { Goals } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -294,18 +295,14 @@
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Salud</div>
 	<div class="settings-group">
-		<!-- Alergias -->
-		<button class="settings-row" onclick={() => subscription.is_premium ? goto('/allergies') : goto('/premium')}>
+		<!-- Alergias (gratis: /premium promete que lo son y el backend no las restringe) -->
+		<button class="settings-row" onclick={() => goto('/allergies')}>
 			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
 			<div class="row-content">
 				<div class="row-label">Alergias e intolerancias</div>
-				<div class="row-detail">{subscription.is_premium ? (allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos') : 'Disponible en Premium'}</div>
+				<div class="row-detail">{allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
 			</div>
-			{#if !subscription.is_premium}
-				<span class="pro-badge-row">PRO</span>
-			{:else}
-				<span class="chevron">›</span>
-			{/if}
+			<span class="chevron">›</span>
 		</button>
 	</div>
 </div>
@@ -345,7 +342,7 @@
 			<div class="icon-box">🫥</div>
 			<div class="row-content">
 				<div class="row-label">Estado del día</div>
-				<div class="row-detail">{moodEnabled ? 'Activo' : 'Inactivo'} · Energía, digestión y ánimo</div>
+				<div class="row-detail">{moodEnabled ? 'Visible en el diario' : 'Oculto en el diario'} · Energía, digestión y ánimo</div>
 			</div>
 			<button
 				onclick={toggleMood}
@@ -714,7 +711,7 @@
 	</a>
 </div>
 
-<div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v0.3.0</div>
+<div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v{CHANGELOG_VERSION}</div>
 
 <style>
 	

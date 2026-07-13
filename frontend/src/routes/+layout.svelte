@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import '../app.css';
+	import { untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -19,15 +20,21 @@
 
 	let { children } = $props();
 
+	// Solo debe depender de auth.isLoggedIn: sin untrack, pushStore.init()
+	// lee $state que él mismo escribe y el efecto se re-ejecutaba, duplicando
+	// las llamadas a /friends/pending/count y /users/me/subscription.
 	$effect(() => {
-		if (auth.isLoggedIn) {
-			connectivity.ping();
-			pendingFriends.start();
-			pushStore.init();
-			subscription.load();
-		} else {
-			pendingFriends.stop();
-		}
+		const logged = auth.isLoggedIn;
+		untrack(() => {
+			if (logged) {
+				connectivity.ping();
+				pendingFriends.start();
+				pushStore.init();
+				subscription.load();
+			} else {
+				pendingFriends.stop();
+			}
+		});
 	});
 
 	// Drain offline write queue when connectivity is restored

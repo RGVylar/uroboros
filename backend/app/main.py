@@ -66,8 +66,12 @@ app.add_middleware(
 )
 
 
+# El frontend sondea la conectividad con HEAD; sin estas rutas cada carga
+# de página registraba un HEAD /api/health -> 405 (ERR_ABORTED).
 @app.get("/health")
 @app.get("/api/health")
+@app.head("/health")
+@app.head("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 

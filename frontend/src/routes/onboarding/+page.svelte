@@ -59,7 +59,8 @@
 	function back() {
 		if (step > 0) step--;
 	}
-	async function skip() { await finish(); }
+	// Saltar sale sin tocar los objetivos: solo "Entrar a uroboros" (o invitar pareja) guarda el plan.
+	function skip() { goto('/'); }
 
 	async function finish() {
 		saving = true;

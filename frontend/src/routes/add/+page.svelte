@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Capacitor } from '@capacitor/core';
@@ -7,6 +8,7 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
+	import { isDrink } from '$lib/drink';
 	import type {
 		Product,
 		User,
@@ -154,7 +156,12 @@
 				});
 			}
 		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			// getUserMedia lanza errores técnicos en inglés (p. ej. "Requested device
+			// not found"); al usuario le mostramos siempre un mensaje claro en español.
+			const name = e instanceof DOMException ? e.name : '';
+			scanError = name === 'NotAllowedError'
+				? 'Permiso de cámara denegado. Actívalo en los ajustes del navegador.'
+				: 'No se ha encontrado ninguna cámara disponible.';
 			scanning = false;
 		}
 	}
@@ -176,17 +183,23 @@
 	let barcodeNotFound = $state(false);
 	let results: Product[] = $state([]);
 	let searching = $state(false);
+	let searched = $state(false);
 	let searchOffset = $state(0);
 	let hasMore = $state(false);
 	const PAGE_SIZE = 20;
 
-	const DRINK_KEYWORDS = ['leche', 'zumo', 'jugo', 'agua', 'bebida', 'refresco', 'batido',
-		'smoothie', 'néctar', 'nectar', 'cerveza', 'vino', 'caldo', 'té', 'te ', 'café', 'cafe',
-		'yogur', 'kéfir', 'kefir', 'infusión', 'infusion', 'horchata', 'limonada', 'naranjada'];
-
-	function isDrink(product: Product): boolean {
-		const text = `${product.name} ${product.brand ?? ''}`.toLowerCase();
-		return DRINK_KEYWORDS.some(k => text.includes(k));
+	// Búsqueda en vivo: el backend responde en <100ms, así que buscamos
+	// automáticamente con un pequeño debounce en vez de exigir Enter.
+	let searchDebounce: ReturnType<typeof setTimeout> | undefined;
+	function onQueryInput() {
+		clearTimeout(searchDebounce);
+		searched = false;
+		if (query.trim().length < 2) {
+			results = [];
+			hasMore = false;
+			return;
+		}
+		searchDebounce = setTimeout(searchByName, 350);
 	}
 
 	function getLastGrams(productId: number): number {
@@ -489,7 +502,10 @@
 		}
 	}
 
-	$effect(() => {
+	// Carga inicial una sola vez: con $effect, leer recFocus dentro de
+	// loadRecommendations() lo convertía en dependencia y cada cambio de chip
+	// re-disparaba todas estas llamadas (y duplicaba la de recomendaciones).
+	onMount(() => {
 		api.get<User[]>('/users').then(u => {
 			users = u;
 			const p = u.find(x => x.id !== auth.user?.id);
@@ -516,6 +532,7 @@
 			const res = await api.get<Product[]>(`/products?q=${encodeURIComponent(query)}&limit=${PAGE_SIZE}&offset=0`);
 			results = res;
 			hasMore = res.length === PAGE_SIZE;
+			searched = true;
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
 		} finally {
@@ -1115,7 +1132,8 @@
 			bind:value={query}
 			placeholder="Buscar avena, pollo, código de barras..."
 			class="search-input"
-			onkeydown={(e) => { if (e.key === 'Enter') searchByName(); }}
+			oninput={onQueryInput}
+			onkeydown={(e) => { if (e.key === 'Enter') { clearTimeout(searchDebounce); searchByName(); } }}
 		/>
 		<button
 			onclick={isNative ? scanBarcode : startWebScan}
@@ -1216,6 +1234,13 @@
 	{#if query}
 		{#if searching && results.length === 0}
 			<div class="loading-row">Buscando...</div>
+		{:else if !searched && results.length === 0}
+			<div class="loading-row" style="color:rgba(255,255,255,0.35);">Sigue escribiendo para buscar…</div>
+		{:else if searched && results.length === 0}
+			<div class="loading-row" style="color:rgba(255,255,255,0.35);">
+				<div>Sin resultados para «{query}»</div>
+				<button onclick={() => { showManual = true; }} class="filter-chip" style="margin-top:0.625rem;">✏️ Crear producto manual</button>
+			</div>
 		{:else if results.length > 0}
 			<div class="section-header">
 				<div><div class="section-title">Resultados</div></div>
@@ -1223,7 +1248,11 @@
 			</div>
 			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
 				{#each results as product (product.id)}
-					<button class="product-row" onclick={() => selectProduct(product)}>
+					<button
+						class="product-row"
+						onclick={() => selectProduct(product)}
+						aria-label="{product.name}{product.brand ? `, ${product.brand}` : ''}, {product.calories_per_100g} kcal por 100{isDrink(product) ? 'ml' : 'g'}"
+					>
 						<div class="product-avatar" style="
 							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
 						">{productGlyph(product.name)}</div>
@@ -1256,6 +1285,7 @@
 				{#each recFocusOptions as opt}
 					<button
 						onclick={() => setRecFocus(opt.value)}
+						aria-pressed={recFocus === opt.value}
 						style="padding:0.3rem 0.7rem; border-radius:99px; font-size:0.6875rem; font-weight:{recFocus === opt.value ? '700' : '400'}; border:1px solid {recFocus === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'}; background:{recFocus === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'}; color:{recFocus === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'}; box-shadow:none; cursor:pointer; font-family:inherit; transition:all 0.15s;">
 						{opt.label}
 					</button>
@@ -1291,7 +1321,11 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="loading-row" style="color:rgba(255,255,255,0.35);">Sin sugerencias por ahora</div>
+				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
+					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⚡</div>
+					<div>Sin sugerencias por ahora</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Aparecerán aquí según lo que registres estos días. Mientras tanto usa el buscador o Recientes.</div>
+				</div>
 			{/if}
 		{/if}
 

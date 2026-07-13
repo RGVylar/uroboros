@@ -8,6 +8,7 @@
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { productUnit } from '$lib/drink';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 
@@ -235,7 +236,9 @@
 		}
 	}
 
-	$effect(() => { today; load(); });
+	// Sin sesión no lanzamos la batería de fetches: antes disparaban 7 peticiones
+	// con 401 mientras el goto('/login') aún no había navegado.
+	$effect(() => { today; if (auth.isLoggedIn) load(); });
 
 	function pct(current: number, goal: number) {
 		if (!goal) return 0;
@@ -360,7 +363,13 @@
 		copyingYesterday = true;
 		try {
 			const res = await api.post<{ copied: number }>('/diary/copy-from-yesterday', {});
-			if (res.copied > 0) load();
+			if (res.copied > 0) {
+				toast.success(`Copiado de ayer: ${res.copied} ${res.copied === 1 ? 'alimento' : 'alimentos'}`);
+				load();
+			} else {
+				// Antes esto no daba ningún feedback y parecía que el botón no hacía nada
+				toast.info('Ayer no registraste nada que copiar');
+			}
 		} catch {
 			toast.error('No se pudo copiar de ayer');
 		} finally {
@@ -425,7 +434,19 @@
 		}
 	}
 
+	// Borrado en dos toques: el primer ✕ pide confirmación en la propia fila
+	let confirmingSuppDelete: number | null = $state(null);
+	let confirmSuppTimer: ReturnType<typeof setTimeout> | undefined;
+
 	async function deleteSupp(suppId: number) {
+		if (confirmingSuppDelete !== suppId) {
+			confirmingSuppDelete = suppId;
+			clearTimeout(confirmSuppTimer);
+			confirmSuppTimer = setTimeout(() => (confirmingSuppDelete = null), 3000);
+			return;
+		}
+		clearTimeout(confirmSuppTimer);
+		confirmingSuppDelete = null;
 		try {
 			await api.del(`/supplements/${suppId}`);
 			supplements = await api.get<SupplementToday[]>('/supplements/today');
@@ -615,12 +636,22 @@
 								transition: background 0.25s;
 							">{supplements[0].taken ? '✓' : ''}</div>
 							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{supplements[0].name}</div>
-							<span role="button" tabindex="0"
-								onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
-								onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
-								style="font-size:0.72rem; font-weight:600; color:var(--text-muted); cursor:pointer;">
-								{supplements[0].taken ? 'Deshacer · Gestionar' : 'Marcar · Gestionar'}
-							</span>
+							<!-- Dos acciones = dos controles separados (antes era un único target confuso) -->
+							<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; font-weight:600; color:var(--text-muted);">
+								<span role="button" tabindex="0"
+									onclick={(e) => { e.stopPropagation(); toggleSupp(supplements[0].supplement_id, supplements[0].taken); }}
+									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), toggleSupp(supplements[0].supplement_id, supplements[0].taken))}
+									style="cursor:pointer; padding:0.2rem 0.1rem;">
+									{supplements[0].taken ? 'Deshacer' : 'Marcar'}
+								</span>
+								<span aria-hidden="true">·</span>
+								<span role="button" tabindex="0"
+									onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
+									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
+									style="cursor:pointer; padding:0.2rem 0.1rem;">
+									Gestionar
+								</span>
+							</div>
 						</div>
 					{:else if suppCount > 1}
 						<!-- Multiple supplements: tap opens modal with ring -->
@@ -931,7 +962,7 @@
 	<Modal
 		onClose={() => deletingEntry = null}
 		title="Borrar entrada"
-		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}g"
+		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}{deletingEntry.product ? productUnit(deletingEntry.product) : 'g'}"
 	>
 		<div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
 			¿Borrar también para {partner?.name}?
@@ -966,19 +997,28 @@
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.07);">
 					<button
 						onclick={() => toggleSupp(s.supplement_id, s.taken)}
+						aria-label="{s.taken ? 'Desmarcar' : 'Marcar'} {s.name}"
+						aria-pressed={s.taken}
 						style="
-							width:28px; height:28px; border-radius:50%; flex-shrink:0; cursor:pointer;
+							width:44px; height:44px; border-radius:50%; flex-shrink:0; cursor:pointer;
 							background:{s.taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
 							border:{s.taken ? 'none' : '1.5px dashed rgba(255,255,255,0.3)'};
-							color:var(--primary-ink); font-size:0.85rem; font-weight:800;
+							color:var(--primary-ink); font-size:0.95rem; font-weight:800;
 							display:flex; align-items:center; justify-content:center;
 							transition: background 0.2s; box-shadow:none; padding:0;
 						">{s.taken ? '✓' : ''}</button>
 					<span style="flex:1; font-size:0.875rem; font-weight:600; color:{s.taken ? 'rgba(255,255,255,0.5)' : '#fff'}; text-decoration:{s.taken ? 'line-through' : 'none'};">{s.name}</span>
-					<button
-						onclick={() => deleteSupp(s.supplement_id)}
-						style="background:none; border:none; color:rgba(255,255,255,0.25); font-size:1rem; cursor:pointer; padding:0.25rem; box-shadow:none; line-height:1;"
-						aria-label="Eliminar">✕</button>
+					{#if confirmingSuppDelete === s.supplement_id}
+						<button
+							onclick={() => deleteSupp(s.supplement_id)}
+							style="background:oklch(65% 0.22 25 / 0.12); border:1px solid oklch(65% 0.22 25 / 0.4); border-radius:8px; color:oklch(75% 0.2 25); font-size:0.6875rem; font-weight:700; cursor:pointer; padding:0.375rem 0.5rem; box-shadow:none; line-height:1;"
+						>¿Eliminar?</button>
+					{:else}
+						<button
+							onclick={() => deleteSupp(s.supplement_id)}
+							style="background:none; border:none; color:rgba(255,255,255,0.25); font-size:1rem; cursor:pointer; padding:0.625rem; box-shadow:none; line-height:1;"
+							aria-label="Eliminar {s.name}">✕</button>
+					{/if}
 				</div>
 			{/each}
 			{#if supplements.length === 0}
@@ -1013,7 +1053,7 @@
 				{entry.product?.name ?? `Producto #${entry.product_id}`}
 			</div>
 			<div class="diary-entry-detail" style="font-size:0.78rem; color:var(--text-muted);">
-				{entry.grams}g · {fmtTime(entry.consumed_at)}
+				{entry.grams}{entry.product ? productUnit(entry.product) : 'g'} · {fmtTime(entry.consumed_at)}
 			</div>
 		</div>
 		<div style="text-align:right; margin-right:0.5rem;">

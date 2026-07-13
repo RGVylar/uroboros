@@ -309,7 +309,20 @@
 		}
 	}
 
+	// Borrado en dos toques: el primer ✕ pide confirmación en el propio botón
+	// (antes un solo toque borraba la receta sin confirmación).
+	let confirmingDelete: number | null = $state(null);
+	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+
 	async function deleteRecipe(id: number) {
+		if (confirmingDelete !== id) {
+			confirmingDelete = id;
+			clearTimeout(confirmTimer);
+			confirmTimer = setTimeout(() => (confirmingDelete = null), 3000);
+			return;
+		}
+		clearTimeout(confirmTimer);
+		confirmingDelete = null;
 		await api.del(`/recipes/${id}`);
 		load();
 	}
@@ -454,6 +467,7 @@
 		<!-- Resultados de búsqueda con macros -->
 		{#each searchResults as p (p.id)}
 			<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
+				aria-label="Añadir {p.name}{p.brand ? ` (${p.brand})` : ''} como ingrediente"
 				onclick={() => addIngredient(p)}>
 				<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 				<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
@@ -553,6 +567,7 @@
 
 			{#each editSearchResults as p (p.id)}
 				<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
+					aria-label="Añadir {p.name}{p.brand ? ` (${p.brand})` : ''} como ingrediente"
 					onclick={() => addEditIngredient(p)}>
 					<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 					<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
@@ -598,7 +613,11 @@
 				<button class="icon-btn" onclick={() => toggleShare(recipe)} title={recipe.is_shared ? 'Dejar de compartir' : 'Compartir'}>
 					{recipe.is_shared ? '🔗' : '🔒'}
 				</button>
-				<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title="Borrar">✕</button>
+				{#if confirmingDelete === recipe.id}
+					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title="Confirmar borrado">¿Borrar?</button>
+				{:else}
+					<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title="Borrar" aria-label="Borrar receta {recipe.name}">✕</button>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -951,6 +970,7 @@
 		color: oklch(78% 0.2 25);
 	}
 	.icon-btn-danger:hover { background: oklch(65% 0.22 25 / 0.25); }
+	.icon-btn-danger.confirm { width: auto; padding: 0 0.625rem; font-size: 0.6875rem; font-weight: 700; }
 
 	/* ── Partner share card ── */
 	.share-card {
