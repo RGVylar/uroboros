@@ -21,7 +21,9 @@ from app.schemas.diary import (
     DiaryEntryCreate,
     DiaryEntryOut,
     DiaryEntryUpdate,
+    MealConflictCheck,
     MealSection,
+    MealTypeLiteral,
 )
 from app.schemas.misc import DiaryRecipeCreate
 from app.services.streak_service import calculate_streak, milestone_hit
@@ -187,6 +189,47 @@ def log_recipe(
     for e in entries:
         db.refresh(e)
     return entries
+
+
+@router.get("/meal-check", response_model=MealConflictCheck)
+def meal_conflict_check(
+    user_id: int,
+    day: date,
+    meal_type: MealTypeLiteral,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MealConflictCheck:
+    """
+    Avisa si `user_id` ya tiene entradas en `meal_type` ese día — para que quien
+    registra comida para su pareja (also_for_user_id / only_for_user_id) sepa
+    que ya hay algo ahí antes de añadir más, sin ver el resto de su diario.
+    """
+    if user_id != user.id and not _can_log_for_user(db, user.id, user_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "No tienes permiso para consultar el diario de este usuario",
+        )
+
+    start = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(day, time.max, tzinfo=timezone.utc)
+    entries = list(
+        db.scalars(
+            select(DiaryEntry)
+            .where(
+                DiaryEntry.user_id == user_id,
+                DiaryEntry.meal_type == MealType(meal_type),
+                DiaryEntry.consumed_at >= start,
+                DiaryEntry.consumed_at <= end,
+            )
+            .order_by(DiaryEntry.consumed_at)
+        )
+    )
+    return MealConflictCheck(
+        has_entries=len(entries) > 0,
+        count=len(entries),
+        calories=sum(e.calories for e in entries),
+        product_names=[e.product.name for e in entries if e.product],
+    )
 
 
 @router.get("/day", response_model=DaySummary)

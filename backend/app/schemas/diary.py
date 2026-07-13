@@ -72,3 +72,11 @@ class DaySummary(BaseModel):
     calories_burned: float = 0     # Calorías quemadas por ejercicio ese día
     net_calories: float = 0        # totals.calories - calories_burned
     has_exercise: bool = False     # True si hay sesión de ejercicio ese día
+
+
+class MealConflictCheck(BaseModel):
+    """Aviso de que el usuario destino ya tiene esa comida registrada ese día."""
+    has_entries: bool
+    count: int
+    calories: float
+    product_names: list[str]

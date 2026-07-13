@@ -21,6 +21,7 @@
 	} from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -302,6 +303,40 @@
 		return ALLERGEN_LABELS[key] ?? key;
 	}
 
+	// ── Aviso de comida duplicada al registrar para la pareja ───────────────────
+	// Si registro (o registramos los dos) en el diario de mi pareja, ella no tiene
+	// forma de saber que ya iba a registrar ese meal_type él mismo. Avisamos antes
+	// de guardar en vez de descubrirlo luego con dos desayunos duplicados.
+	type MealConflict = { hasEntries: boolean; count: number; calories: number; productNames: string[] };
+	let mealConflict: MealConflict | null = $state(null);
+	let mealConflictConfirmed = $state(false);
+
+	$effect(() => {
+		const targetId = shareMode !== null ? partner?.id : null;
+		const mt = mealType;
+		const day = selectedDate;
+		mealConflictConfirmed = false;
+		if (!targetId) {
+			mealConflict = null;
+			return;
+		}
+		api.get<{ has_entries: boolean; count: number; calories: number; product_names: string[] }>(
+			`/diary/meal-check?user_id=${targetId}&day=${day}&meal_type=${mt}`
+		).then(r => {
+			mealConflict = { hasEntries: r.has_entries, count: r.count, calories: r.calories, productNames: r.product_names };
+		}).catch(() => { mealConflict = null; });
+	});
+
+	let showMealConflictConfirm = $state(false);
+	let pendingLogAction: (() => void) | null = null;
+
+	function confirmMealConflictAndProceed() {
+		mealConflictConfirmed = true;
+		showMealConflictConfirm = false;
+		pendingLogAction?.();
+		pendingLogAction = null;
+	}
+
 	function checkAllergens(product: Product, list: AllergyInfo[]): string[] {
 		if (!list.length) return [];
 		const userKeys = new Set(list.map(a => a.ingredient.toLowerCase()));
@@ -484,6 +519,11 @@
 	}
 
 	async function logRecipe(recipe: FrequentRecipe['recipe']) {
+		if (mealConflict?.hasEntries && !mealConflictConfirmed) {
+			pendingLogAction = () => logRecipe(recipe);
+			showMealConflictConfirm = true;
+			return;
+		}
 		saving = true;
 		error = '';
 		try {
@@ -670,6 +710,11 @@
 
 	async function logEntry() {
 		if (!selected) return;
+		if (mealConflict?.hasEntries && !mealConflictConfirmed) {
+			pendingLogAction = () => logEntry();
+			showMealConflictConfirm = true;
+			return;
+		}
 		saving = true;
 		error = '';
 		const payload = {
@@ -983,6 +1028,22 @@
 						{/each}
 					</div>
 				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Aviso: la persona para la que registro ya tiene comida en este meal_type hoy -->
+	{#if shareMode !== null && mealConflict?.hasEntries && partner}
+		<div class="meal-conflict-banner">
+			<div class="meal-conflict-icon">🍽️</div>
+			<div class="meal-conflict-body">
+				<div class="meal-conflict-title">{partner.name} ya tiene {MEAL_LABELS[mealType]?.toLowerCase()} registrado</div>
+				<div class="meal-conflict-detail">
+					{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal
+					{#if mealConflict.productNames.length}
+						 — {mealConflict.productNames.slice(0, 3).join(', ')}{mealConflict.productNames.length > 3 ? '…' : ''}
+					{/if}
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -1590,6 +1651,24 @@
 	/>
 {/if}
 
+<!-- ── Confirmar registro cuando la pareja ya tiene esa comida hoy ── -->
+{#if showMealConflictConfirm && mealConflict && partner}
+	<Modal
+		onClose={() => { showMealConflictConfirm = false; pendingLogAction = null; }}
+		title="🍽️ {partner.name} ya tiene {MEAL_LABELS[mealType]?.toLowerCase()}"
+		subtitle="{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal registrados hoy"
+	>
+		<div style="display:flex; flex-direction:column; gap:0.5rem;">
+			<button class="btn-submit" onclick={confirmMealConflictAndProceed}>
+				Añadir de todas formas
+			</button>
+			<button class="btn-secondary" style="width:100%;" onclick={() => { showMealConflictConfirm = false; pendingLogAction = null; }}>
+				Cancelar
+			</button>
+		</div>
+	</Modal>
+{/if}
+
 <style>
 	/* ── No allergen info notice ── */
 	.allergen-unknown-notice {
@@ -1607,6 +1686,31 @@
 	}
 
 	/* ── Allergy banner ── */
+	.meal-conflict-banner {
+		display: flex;
+		gap: 0.625rem;
+		align-items: flex-start;
+		background: oklch(45% 0.15 250 / 0.18);
+		border: 1px solid oklch(65% 0.18 250 / 0.4);
+		border-radius: 16px;
+		padding: 0.75rem 0.875rem;
+		margin-bottom: 0.875rem;
+		animation: banner-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.meal-conflict-icon { font-size: 1.125rem; flex-shrink: 0; margin-top: 0.05rem; }
+	.meal-conflict-body { flex: 1; min-width: 0; }
+	.meal-conflict-title {
+		font-size: 0.8125rem;
+		font-weight: 700;
+		color: oklch(85% 0.14 250);
+	}
+	.meal-conflict-detail {
+		font-size: 0.75rem;
+		color: rgba(255,255,255,0.55);
+		margin-top: 0.2rem;
+		line-height: 1.4;
+	}
+
 	.allergy-banner {
 		display: flex;
 		gap: 0.625rem;
