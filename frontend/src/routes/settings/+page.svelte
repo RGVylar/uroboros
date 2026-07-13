@@ -218,6 +218,8 @@
 					onclick={toggleCheatDays}
 					disabled={savingCheatDays}
 					class="toggle-btn"
+					aria-label="Cheat days"
+					aria-pressed={goals.cheat_days_enabled}
 					style="background:{goals.cheat_days_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.cheat_days_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 				>
 					<span class="toggle-knob" style="left:{goals.cheat_days_enabled ? '18px' : '2px'};"></span>
@@ -347,6 +349,8 @@
 			<button
 				onclick={toggleMood}
 				class="toggle-btn"
+				aria-label="Estado del día"
+				aria-pressed={moodEnabled}
 				style="background:{moodEnabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{moodEnabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 			>
 				<span class="toggle-knob" style="left:{moodEnabled ? '18px' : '2px'};"></span>
@@ -365,6 +369,8 @@
 				onclick={toggleInventory}
 				disabled={savingInventory}
 				class="toggle-btn"
+				aria-label="Inventario doméstico"
+				aria-pressed={goals?.inventory_enabled ?? false}
 				style="background:{goals?.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals?.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 			>
 				<span class="toggle-knob" style="left:{goals?.inventory_enabled ? '18px' : '2px'};"></span>
@@ -446,7 +452,8 @@
 					class:toggle-on={prefs?.enabled}
 					onclick={() => prefs?.enabled ? disableNotifs() : enableNotifs()}
 					disabled={savingPrefs}
-					aria-label="Toggle notificaciones"
+					aria-label="Activar notificaciones"
+					aria-pressed={prefs?.enabled ?? false}
 				>
 					<span class="toggle-thumb"></span>
 				</button>
