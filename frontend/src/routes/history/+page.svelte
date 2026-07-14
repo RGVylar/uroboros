@@ -7,6 +7,8 @@
 	import { MealHeader } from '$lib/components';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { productUnit } from '$lib/drink';
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -35,6 +37,49 @@
 	}
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	// ── Copiar el día al portapapeles ────────────────────────────────────────
+	// Texto legible (no CSV): pensado para pegarlo en WhatsApp, notas o
+	// mandárselo a un nutricionista. Usa el resumen ya cargado del día.
+	let copyingDay = $state(false);
+
+	async function copyDayToClipboard() {
+		if (!selectedDay || !selectedSummary || copyingDay) return;
+		copyingDay = true;
+		const s = selectedSummary;
+		const rawDate = new Date(selectedDay + 'T12:00').toLocaleDateString('es-ES', {
+			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+		});
+		const lines: string[] = [];
+		lines.push(`🍽 uroboros — ${rawDate.charAt(0).toUpperCase() + rawDate.slice(1)}`);
+		lines.push(`Total: ${Math.round(s.totals.calories)} kcal · P ${Math.round(s.totals.protein)}g · C ${Math.round(s.totals.carbs)}g · G ${Math.round(s.totals.fat)}g`);
+		if (s.calories_burned > 0) {
+			lines.push(`🔥 Ejercicio: ${Math.round(s.calories_burned)} kcal quemadas · neto ${Math.round(s.net_calories)} kcal`);
+		}
+		for (const meal of s.meals) {
+			if (meal.entries.length === 0) continue;
+			lines.push('');
+			lines.push(`${meal.label} — ${Math.round(meal.totals.calories)} kcal`);
+			for (const e of meal.entries) {
+				const unit = e.product ? productUnit(e.product) : 'g';
+				lines.push(`• ${e.product?.name ?? `Producto #${e.product_id}`} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal`);
+			}
+		}
+		// Agua del día (si hay): petición pequeña solo al copiar
+		const water = await api.get<{ total_ml: number }>(`/water/day?day=${selectedDay}`).catch(() => null);
+		if (water && water.total_ml > 0) {
+			lines.push('');
+			lines.push(`💧 Agua: ${water.total_ml} ml`);
+		}
+		try {
+			await navigator.clipboard.writeText(lines.join('\n'));
+			toast.success('Día copiado al portapapeles');
+		} catch {
+			toast.error('No se pudo copiar al portapapeles');
+		} finally {
+			copyingDay = false;
+		}
+	}
 
 	// Calendar state
 	const now = new Date();
@@ -458,7 +503,17 @@
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff;">
 				{new Date(selectedDay + 'T12:00').toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' })}
 			</div>
-			<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">Ver diario →</a>
+			<div style="display:flex; align-items:center; gap:0.875rem;">
+				{#if selectedSummary && selectedSummary.entries.length > 0}
+					<button
+						onclick={copyDayToClipboard}
+						disabled={copyingDay}
+						aria-label="Copiar resumen del día al portapapeles"
+						style="background:none; border:none; box-shadow:none; padding:0; font-size:0.75rem; color:oklch(85% 0.17 160); cursor:pointer; font-family:inherit; font-weight:600;"
+					>📋 {copyingDay ? 'Copiando…' : 'Copiar'}</button>
+				{/if}
+				<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">Ver diario →</a>
+			</div>
 		</div>
 		{#if loadingDay}
 			<p style="color:rgba(255,255,255,0.45); font-size:0.85rem; text-align:center; padding:1rem 0;">Cargando...</p>
