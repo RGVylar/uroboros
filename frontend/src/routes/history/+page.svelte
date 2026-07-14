@@ -56,13 +56,15 @@
 		if (s.calories_burned > 0) {
 			lines.push(`🔥 Ejercicio: ${Math.round(s.calories_burned)} kcal quemadas · neto ${Math.round(s.net_calories)} kcal`);
 		}
+		const macros = (x: { protein: number; carbs: number; fat: number }) =>
+			`P ${Math.round(x.protein)}g · C ${Math.round(x.carbs)}g · G ${Math.round(x.fat)}g`;
 		for (const meal of s.meals) {
 			if (meal.entries.length === 0) continue;
 			lines.push('');
-			lines.push(`${meal.label} — ${Math.round(meal.totals.calories)} kcal`);
+			lines.push(`${meal.label} — ${Math.round(meal.totals.calories)} kcal · ${macros(meal.totals)}`);
 			for (const e of meal.entries) {
 				const unit = e.product ? productUnit(e.product) : 'g';
-				lines.push(`• ${e.product?.name ?? `Producto #${e.product_id}`} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal`);
+				lines.push(`• ${e.product?.name ?? `Producto #${e.product_id}`} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
 			}
 		}
 		// Agua del día (si hay): petición pequeña solo al copiar
