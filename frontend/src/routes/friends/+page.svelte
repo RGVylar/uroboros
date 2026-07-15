@@ -196,7 +196,7 @@
 				<div style="padding:0.875rem; border-bottom:{i < friends.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
 					<div style="display:flex; align-items:center; gap:0.75rem;">
 						<!-- Avatar — toca para ver perfil -->
-						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer;">
+						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer; box-shadow:none; border-radius:50%; line-height:0;">
 							<Avatar name={fName} avatarId={friendAvatar(f)} size={46} />
 							{#if f.can_add_food}
 								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;">★</div>

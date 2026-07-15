@@ -321,9 +321,11 @@
 		background: none;
 		cursor: pointer;
 		line-height: 0;
+		/* Global button styling would glow as a rounded square behind the disc */
+		box-shadow: none;
 		transition: transform 0.12s, border-color 0.12s;
 	}
-	.avatar-opt:hover { transform: scale(1.06); }
+	.avatar-opt:hover { transform: scale(1.06); filter: none; box-shadow: none; }
 	.avatar-opt.selected {
 		border-color: oklch(80% 0.17 165);
 		box-shadow: 0 0 16px oklch(75% 0.2 165 / 0.4);
