@@ -6,4 +6,7 @@ AVATAR_IDS: frozenset[str] = frozenset({
     "aguacate", "sushi", "fresa",
     "taco", "brocoli", "huevo",
     "ramen", "sandia", "cafe",
+    "pizza", "pepinillo", "donut",
+    "pulpo", "tostada", "lata",
+    "chile", "gelatina", "queso",
 })

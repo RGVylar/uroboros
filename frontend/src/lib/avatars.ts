@@ -18,6 +18,15 @@ export const AVATARS: AvatarOption[] = [
 	{ id: 'ramen', label: 'Ramen', emoji: '🍜' },
 	{ id: 'sandia', label: 'Sandía', emoji: '🍉' },
 	{ id: 'cafe', label: 'Café', emoji: '☕' },
+	{ id: 'pizza', label: 'Pizza', emoji: '🍕' },
+	{ id: 'pepinillo', label: 'Pepinillo', emoji: '🥒' },
+	{ id: 'donut', label: 'Donut', emoji: '🍩' },
+	{ id: 'pulpo', label: 'Pulpo', emoji: '🐙' },
+	{ id: 'tostada', label: 'Tostada', emoji: '🍞' },
+	{ id: 'lata', label: 'Lata sorpresa', emoji: '🥫' },
+	{ id: 'chile', label: 'Chile picante', emoji: '🌶️' },
+	{ id: 'gelatina', label: 'Gelatina', emoji: '🧠' },
+	{ id: 'queso', label: 'Queso azul', emoji: '🧀' },
 ];
 
 const AVATAR_IDS = new Set(AVATARS.map((a) => a.id));
