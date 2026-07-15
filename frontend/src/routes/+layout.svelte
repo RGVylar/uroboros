@@ -7,6 +7,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { untrack } from 'svelte';
+	import { api } from '$lib/api';
+	import type { User } from '$lib/types';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -31,6 +33,11 @@
 				pendingFriends.start();
 				pushStore.init();
 				subscription.load();
+				// The user copy in localStorage is only written at login, so it goes
+				// stale when it changes on another device (picking an avatar on the
+				// phone wouldn't show up on the desktop). Refresh it from the server;
+				// on failure we keep the cached copy so offline still works.
+				api.get<User>('/auth/me').then((u) => auth.updateUser(u)).catch(() => {});
 			} else {
 				pendingFriends.stop();
 			}
