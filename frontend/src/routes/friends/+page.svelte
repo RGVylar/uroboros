@@ -166,7 +166,6 @@
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff; margin-top:0.125rem;">{pName}</div>
 			<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.125rem;">{friendEmail(partner)}</div>
 		</div>
-		<div style="padding:0.25rem 0.625rem; border-radius:99px; background:oklch(75% 0.18 160 / 0.25); color:oklch(85% 0.15 160); font-size:0.625rem; font-weight:800; letter-spacing:0.03em; flex-shrink:0;">2× ACTIVO</div>
 	</div>
 {/if}
 

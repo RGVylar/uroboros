@@ -14,9 +14,13 @@ STREAK_MILESTONES = {3, 7, 14, 30, 60, 100, 200, 365}
 
 
 def calculate_streak(db: Session, user_id: int) -> int:
-    """Count consecutive days with ≥1 diary entry (or a cheat day) going back from today (UTC)."""
+    """Count consecutive days with ≥1 diary entry (or a cheat day) going back from today (UTC).
+
+    Today is a grace day: not having logged anything *yet* today doesn't reset
+    the streak — it just doesn't count until the first entry lands."""
     streak = 0
-    day = datetime.now(timezone.utc).date()
+    today = datetime.now(timezone.utc).date()
+    day = today
     while True:
         start = datetime.combine(day, time.min, tzinfo=timezone.utc)
         end = datetime.combine(day, time.max, tzinfo=timezone.utc)
@@ -35,6 +39,9 @@ def calculate_streak(db: Session, user_id: int) -> int:
                 .where(CheatDayLog.user_id == user_id, CheatDayLog.used_date == day)
             )
             if not is_cheat_day:
+                if day == today:
+                    day -= timedelta(days=1)
+                    continue
                 break
         streak += 1
         day -= timedelta(days=1)
