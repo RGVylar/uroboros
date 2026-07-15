@@ -185,7 +185,11 @@
 		background: none;
 		cursor: pointer;
 		line-height: 0;
+		/* Undo the global button chrome (gradient glow, hover brighten) */
+		box-shadow: none;
+		border-radius: 50%;
 	}
+	.avatar-wrap:hover { filter: none; box-shadow: none; }
 	.avatar-shadow {
 		width: 92px; height: 92px; border-radius: 50%;
 		box-shadow: 0 10px 32px oklch(72% 0.18 var(--hue) / 0.3);
@@ -197,6 +201,7 @@
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		display: flex; align-items: center; justify-content: center;
 		font-size: 12px;
+		line-height: 1;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 	.streak-badge {
@@ -204,6 +209,9 @@
 		padding: 4px 10px; border-radius: 99px;
 		background: linear-gradient(135deg, oklch(80% 0.19 45), oklch(70% 0.2 30));
 		font-size: 11px; font-weight: 800; color: #fff;
+		/* The wrapper zeroes line-height for the avatar image; restore it here
+		   or the badge has no text height and collapses to its padding. */
+		line-height: 1.4;
 		display: flex; align-items: center; gap: 3px;
 		box-shadow: 0 4px 14px oklch(75% 0.2 40 / 0.5);
 	}
