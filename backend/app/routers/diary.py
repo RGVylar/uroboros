@@ -31,6 +31,69 @@ from app.services.notification_scheduler import send_milestone_push
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
+
+def _restore_inventory_for_entry(db: Session, entry: DiaryEntry) -> None:
+    """Devuelve al stock lo consumido por los logs de inventario ligados a `entry`.
+
+    Se llama ANTES de borrar la entrada. No hace commit.
+    """
+    from datetime import timezone as _tz
+
+    from app.models import InventoryItem, InventoryLog, SharedInventoryItem
+    from app.routers.inventory import _get_active_shared_friendship, _log_change
+    from app.services.unit_conversions import get_conversion_factor
+
+    logs = db.scalars(
+        select(InventoryLog).where(
+            InventoryLog.diary_entry_id == entry.id,
+            InventoryLog.log_type == "consume",
+        )
+    ).all()
+
+    for log in logs:
+        restore_qty = -log.quantity_change  # consume logs store negative amounts
+        restore_g = -log.quantity_base_change
+        if restore_qty <= 0 or restore_g <= 0:
+            continue
+
+        item: InventoryItem | SharedInventoryItem | None = None
+        if log.item_id is not None:
+            item = db.get(InventoryItem, log.item_id)
+        elif log.product_id is not None:
+            friendship = _get_active_shared_friendship(db, log.user_id)
+            if friendship:
+                item = db.scalar(
+                    select(SharedInventoryItem).where(
+                        SharedInventoryItem.friendship_id == friendship.id,
+                        SharedInventoryItem.product_id == log.product_id,
+                    )
+                )
+        # Evitar restauraciones dobles aunque el item ya no exista
+        log.diary_entry_id = None
+        if not item:
+            continue
+
+        if item.unit == log.unit:
+            restore_in_item_unit = restore_qty
+        else:
+            factor = get_conversion_factor(db, item.unit, "g", item.product_id)
+            restore_in_item_unit = restore_g / factor if factor else restore_g
+
+        item.quantity_g += restore_g
+        item.quantity_base += restore_in_item_unit
+        item.updated_at = datetime.now(_tz.utc)
+        _log_change(
+            db,
+            user_id=log.user_id,
+            item_id=log.item_id,
+            product_id=log.product_id,
+            quantity_change=restore_qty,
+            unit=log.unit,
+            quantity_base_change=restore_g,
+            log_type="adjust",
+            notes="Reposición: entrada del diario eliminada",
+        )
+
 # Free tier can browse the last N days of history; older days are premium.
 FREE_HISTORY_DAYS = 90
 
@@ -561,8 +624,10 @@ def delete_entry(
             .limit(1)
         )
         if partner_entry:
+            _restore_inventory_for_entry(db, partner_entry)
             db.delete(partner_entry)
 
+    _restore_inventory_for_entry(db, entry)
     db.delete(entry)
     db.commit()
 
@@ -593,5 +658,6 @@ def clear_meal(
     ).all()
 
     for e in entries:
+        _restore_inventory_for_entry(db, e)
         db.delete(e)
     db.commit()

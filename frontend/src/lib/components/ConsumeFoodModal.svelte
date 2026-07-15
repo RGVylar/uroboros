@@ -8,6 +8,8 @@
 		// Optional pre-fill quantity (e.g. from diary entry)
 		initialQuantity?: number;
 		initialUnit?: InventoryUnit;
+		// Diary entry that caused this consumption — deleting it restores the stock
+		diaryEntryId?: number | null;
 		onclose: () => void;
 		onconsumed?: (updated: InventoryItem) => void;
 	}
@@ -16,6 +18,7 @@
 		item,
 		initialQuantity,
 		initialUnit,
+		diaryEntryId = null,
 		onclose,
 		onconsumed
 	}: Props = $props();
@@ -38,6 +41,7 @@
 				quantity,
 				unit,
 				notes: notes.trim() || null,
+				diary_entry_id: diaryEntryId,
 			});
 			onconsumed?.(updated);
 			onclose();

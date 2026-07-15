@@ -89,6 +89,7 @@ def _log_change(
     log_type: str,
     price_per_unit: float | None = None,
     notes: str | None = None,
+    diary_entry_id: int | None = None,
 ) -> None:
     """Create an inventory log entry (does NOT commit)."""
     db.add(
@@ -102,6 +103,7 @@ def _log_change(
             log_type=log_type,
             price_per_unit=price_per_unit,
             notes=notes,
+            diary_entry_id=diary_entry_id,
         )
     )
 
@@ -375,6 +377,13 @@ def consume_inventory_item(
     consume_g = to_grams(db, payload.quantity, payload.unit)
     consume_in_unit = payload.quantity
 
+    # Only link to a diary entry the caller owns (the link allows stock restore on delete)
+    diary_entry_id = None
+    if payload.diary_entry_id is not None:
+        entry = db.get(DiaryEntry, payload.diary_entry_id)
+        if entry and entry.user_id == user.id:
+            diary_entry_id = entry.id
+
     if friendship:
         item = db.scalar(
             select(SharedInventoryItem).where(
@@ -406,6 +415,7 @@ def consume_inventory_item(
             log_type="consume",
             price_per_unit=item.price_per_100g,
             notes=payload.notes,
+            diary_entry_id=diary_entry_id,
         )
         db.commit()
         db.refresh(item)
@@ -435,6 +445,7 @@ def consume_inventory_item(
         log_type="consume",
         price_per_unit=item.price_per_100g,
         notes=payload.notes,
+        diary_entry_id=diary_entry_id,
     )
     db.commit()
     db.refresh(item)

@@ -135,6 +135,11 @@ class InventoryLog(Base):
     # 'purchase' | 'consume' | 'adjust'
     price_per_unit: Mapped[float | None] = mapped_column(Float, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    diary_entry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("diary_entries.id", ondelete="SET NULL"), nullable=True
+    )
+    # set on 'consume' logs created from a diary entry, so deleting that entry
+    # can restore the stock it consumed
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -143,6 +148,7 @@ class InventoryLog(Base):
 
     __table_args__ = (
         Index("ix_inventory_logs_user_created", "user_id", "created_at"),
+        Index("ix_inventory_logs_diary_entry", "diary_entry_id"),
     )
 
 

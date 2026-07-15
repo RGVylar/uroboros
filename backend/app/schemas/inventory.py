@@ -59,6 +59,8 @@ class InventoryConsumeIn(BaseModel):
     quantity: float = Field(gt=0)
     unit: UnitLiteral = "g"
     notes: str | None = None
+    # Diary entry that caused this consumption (deleting it restores the stock)
+    diary_entry_id: int | None = None
 
 
 class InventoryAdjustIn(BaseModel):

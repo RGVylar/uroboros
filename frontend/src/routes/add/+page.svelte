@@ -17,6 +17,7 @@
 		RecommendedProduct,
 		FrequentProduct,
 		FrequentRecipe,
+		Goals,
 		InventoryItem,
 	} from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
@@ -681,10 +682,15 @@
 	let inventoryMatch: InventoryItem | null = $state(null);
 	let consumePromptOpen = $state(false);
 	let showConsumeModal = $state(false);
+	let loggedDiaryEntryId: number | null = $state(null);
 
 	async function findInventoryMatch(productId: number): Promise<InventoryItem | null> {
 		try {
-			const items = await api.get<InventoryItem[]>('/inventory');
+			const [goals, items] = await Promise.all([
+				api.get<Goals>('/goals'),
+				api.get<InventoryItem[]>('/inventory'),
+			]);
+			if (!goals.inventory_enabled) return null;
 			return items.find((i) => i.product_id === productId && i.quantity_base > 0) ?? null;
 		} catch {
 			return null;
@@ -760,8 +766,10 @@
 				goto('/?pending=1');
 				return;
 			}
-			await api.post<DiaryEntry[]>('/diary', payload);
+			const created = await api.post<DiaryEntry[]>('/diary', payload);
 			saveLastGrams(selected.id, grams);
+			loggedDiaryEntryId =
+				created.find((e) => e.user_id === auth.user?.id)?.id ?? created[0]?.id ?? null;
 
 			// After successful diary entry, check inventory for this product
 			const match = await findInventoryMatch(selected.id);
@@ -1645,8 +1653,9 @@
 {#if showConsumeModal && inventoryMatch}
 	<ConsumeFoodModal
 		item={inventoryMatch}
-		initialQuantity={inventoryMatch.unit === 'g' ? grams : 1}
+		initialQuantity={inventoryMatch.unit === 'unit' ? 1 : grams}
 		initialUnit={inventoryMatch.unit}
+		diaryEntryId={loggedDiaryEntryId}
 		onclose={onConsumeModalClose}
 	/>
 {/if}
