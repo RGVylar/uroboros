@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
+from app.avatars import AVATAR_IDS
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
@@ -32,6 +34,25 @@ def get_subscription(user: User = Depends(get_current_user)) -> dict:
         "trial_days_left": user.trial_days_left,
         "is_premium": user.is_premium_or_trial,
     }
+
+
+class AvatarUpdate(BaseModel):
+    avatar_id: str | None  # null clears the avatar, back to the initial disc
+
+
+@router.patch("/me/avatar", response_model=UserOut)
+def update_avatar(
+    payload: AvatarUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Set (or clear) the current user's preset profile avatar."""
+    if payload.avatar_id is not None and payload.avatar_id not in AVATAR_IDS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown avatar")
+    user.avatar_id = payload.avatar_id
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.get("", response_model=list[UserOut])
@@ -111,6 +132,7 @@ def get_friend_profile(
     return {
         "id": target.id,
         "name": target.name,
+        "avatar_id": target.avatar_id,
         "streak": streak,
         "active_days": active_days,
         "recipe_count": recipe_count,

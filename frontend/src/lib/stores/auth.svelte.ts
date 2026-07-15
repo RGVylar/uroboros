@@ -28,6 +28,12 @@ function createAuth() {
 			localStorage.setItem('user', JSON.stringify(u));
 		},
 
+		updateUser(patch: Partial<User>) {
+			if (!user) return;
+			user = { ...user, ...patch };
+			localStorage.setItem('user', JSON.stringify(user));
+		},
+
 		logout() {
 			token = null;
 			user = null;

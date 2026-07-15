@@ -2,6 +2,7 @@ export interface User {
 	id: number;
 	email: string;
 	name: string;
+	avatar_id?: string | null;
 }
 
 export interface TokenResponse {
@@ -221,6 +222,7 @@ export interface UserMinimal {
 	id: number;
 	name: string;
 	email: string;
+	avatar_id?: string | null;
 }
 
 export interface Friendship {

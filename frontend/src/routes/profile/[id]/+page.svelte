@@ -3,12 +3,14 @@
 	import { page } from '$app/state';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { Avatar } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	interface FriendProfile {
 		id: number;
 		name: string;
+		avatar_id: string | null;
 		streak: number;
 		active_days: number;
 		recipe_count: number;
@@ -66,8 +68,8 @@
 {:else if profile}
 	<!-- Hero card -->
 	<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem; text-align:center;">
-		<div style="width:92px; height:92px; border-radius:50%; background:linear-gradient(135deg, oklch(72% 0.18 {nameHue}), oklch(55% 0.16 {(nameHue+40) % 360})); display:flex; align-items:center; justify-content:center; font-size:2.25rem; font-weight:800; color:#fff; margin:0 auto 0.625rem; box-shadow:0 10px 32px oklch(72% 0.18 {nameHue} / 0.3);">
-			{profile.name[0].toUpperCase()}
+		<div style="width:92px; height:92px; margin:0 auto 0.625rem; border-radius:50%; box-shadow:0 10px 32px oklch(72% 0.18 {nameHue} / 0.3); line-height:0;">
+			<Avatar name={profile.name} avatarId={profile.avatar_id} size={92} />
 		</div>
 		<div style="font-size:1.1875rem; font-weight:700; color:#fff;">{profile.name}</div>
 

@@ -3,7 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Friendship } from '$lib/types';
-	import { Modal } from '$lib/components';
+	import { Modal, Avatar } from '$lib/components';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -114,10 +114,8 @@
 		return f.requester.id === auth.user?.id ? f.receiver.email : f.requester.email;
 	}
 
-	function nameHue(name: string): number {
-		let h = 0;
-		for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
-		return h;
+	function friendAvatar(f: Friendship): string | null | undefined {
+		return f.requester.id === auth.user?.id ? f.receiver.avatar_id : f.requester.avatar_id;
 	}
 
 	let activeTab = $state<'lista' | 'solicitudes'>('lista');
@@ -158,9 +156,10 @@
 <!-- ── Partner spotlight ── -->
 {#if partner}
 	{@const pName = friendName(partner)}
-	{@const pHue = nameHue(pName)}
 	<div class="glass-card" style="margin-bottom:0.875rem; display:flex; align-items:center; gap:0.875rem; border-color:oklch(75% 0.18 160 / 0.3); background:oklch(75% 0.15 160 / 0.07);">
-		<div style="width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, oklch(72% 0.18 {pHue}), oklch(55% 0.16 {(pHue+30) % 360})); display:flex; align-items:center; justify-content:center; font-size:1.375rem; font-weight:800; color:#fff; border:2px solid oklch(80% 0.17 165); box-shadow:0 0 20px oklch(75% 0.2 165 / 0.4); flex-shrink:0;">{pName[0].toUpperCase()}</div>
+		<div style="border-radius:50%; box-shadow:0 0 20px oklch(75% 0.2 165 / 0.4); flex-shrink:0; line-height:0;">
+			<Avatar name={pName} avatarId={friendAvatar(partner)} size={52} ring="2px solid oklch(80% 0.17 165)" />
+		</div>
 		<div style="flex:1; min-width:0;">
 			<div style="font-size:0.625rem; letter-spacing:0.075em; color:oklch(85% 0.15 160); text-transform:uppercase; font-weight:800;">Empareja@</div>
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff; margin-top:0.125rem;">{pName}</div>
@@ -193,13 +192,12 @@
 			{#each friends as f, i (f.id)}
 				{@const iAmReceiver = f.receiver.id === auth.user?.id}
 				{@const fName = friendName(f)}
-				{@const fHue = nameHue(fName)}
 				{@const fId = f.requester.id === auth.user?.id ? f.receiver.id : f.requester.id}
 				<div style="padding:0.875rem; border-bottom:{i < friends.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
 					<div style="display:flex; align-items:center; gap:0.75rem;">
 						<!-- Avatar — toca para ver perfil -->
 						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer;">
-							<div style="width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg, oklch(72% 0.18 {fHue}), oklch(55% 0.16 {(fHue+30) % 360})); display:flex; align-items:center; justify-content:center; font-size:1.1875rem; font-weight:800; color:#fff;">{fName[0].toUpperCase()}</div>
+							<Avatar name={fName} avatarId={friendAvatar(f)} size={46} />
 							{#if f.can_add_food}
 								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;">★</div>
 							{/if}
@@ -263,9 +261,8 @@
 	{:else}
 		<div class="glass-card" style="padding:0.375rem;">
 			{#each pending as f, i (f.id)}
-				{@const rHue = nameHue(f.requester.name)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.875rem; border-bottom:{i < pending.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-					<div style="width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg, oklch(72% 0.18 {rHue}), oklch(55% 0.16 {(rHue+30) % 360})); display:flex; align-items:center; justify-content:center; font-size:1.125rem; font-weight:800; color:#fff; flex-shrink:0;">{f.requester.name[0].toUpperCase()}</div>
+					<Avatar name={f.requester.name} avatarId={f.requester.avatar_id} size={42} />
 					<div style="flex:1; min-width:0;">
 						<div style="font-size:0.8125rem; font-weight:700; color:#fff;">{f.requester.name}</div>
 						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45);">{f.requester.email}</div>

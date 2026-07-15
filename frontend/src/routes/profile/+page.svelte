@@ -6,8 +6,28 @@
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
+	import { Avatar, Modal } from '$lib/components';
+	import { AVATARS } from '$lib/avatars';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
+
+	let showAvatarPicker = $state(false);
+	let savingAvatar = $state(false);
+
+	async function pickAvatar(id: string | null) {
+		if (savingAvatar) return;
+		savingAvatar = true;
+		try {
+			await api.patch('/users/me/avatar', { avatar_id: id });
+			auth.updateUser({ avatar_id: id });
+			showAvatarPicker = false;
+		} catch {
+			toast.error('No se pudo cambiar el avatar');
+		} finally {
+			savingAvatar = false;
+		}
+	}
 
 	let goals: Goals | null = $state(null);
 	let streak = $state(0);
@@ -54,7 +74,7 @@
 
 	const userName = $derived(auth.user?.name ?? 'Usuario');
 	const userEmail = $derived(auth.user?.email ?? '');
-	const userInitial = $derived(userName[0]?.toUpperCase() ?? 'U');
+	const userAvatar = $derived(auth.user?.avatar_id ?? null);
 	const nameHue = $derived((() => {
 		let h = 0;
 		for (const c of userName) h = (h * 31 + c.charCodeAt(0)) % 360;
@@ -81,12 +101,15 @@
 	<!-- Hero -->
 	<GlassCard padding={22}>
 		<div class="hero">
-			<div class="avatar-wrap">
-				<div class="avatar" style:--hue={nameHue}>{userInitial}</div>
+			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title="Cambiar avatar">
+				<div class="avatar-shadow" style:--hue={nameHue}>
+					<Avatar name={userName} avatarId={userAvatar} size={92} />
+				</div>
+				<div class="edit-badge">✏️</div>
 				{#if streak > 0}
 					<div class="streak-badge">🔥 {streak}</div>
 				{/if}
-			</div>
+			</button>
 			<div class="name">{userName}</div>
 			<div class="email">{userEmail}</div>
 
@@ -121,6 +144,27 @@
 	<div class="spacer"></div>
 </div>
 
+{#if showAvatarPicker}
+	<Modal onClose={() => showAvatarPicker = false} title="Elige tu avatar" subtitle="Toca uno para usarlo en tu perfil">
+		<div class="avatar-grid">
+			{#each AVATARS as a}
+				<button
+					class="avatar-opt"
+					class:selected={userAvatar === a.id}
+					disabled={savingAvatar}
+					onclick={() => pickAvatar(a.id)}
+					title={a.label}
+				>
+					<Avatar name={a.label} avatarId={a.id} size={72} />
+				</button>
+			{/each}
+		</div>
+		<button class="avatar-clear" disabled={savingAvatar || !userAvatar} onclick={() => pickAvatar(null)}>
+			Usar inicial ({userName[0]?.toUpperCase() ?? 'U'})
+		</button>
+	</Modal>
+{/if}
+
 <style>
 	.page {
 		position: relative;
@@ -136,15 +180,24 @@
 		position: relative;
 		display: inline-block;
 		margin-bottom: 10px;
+		padding: 0;
+		border: none;
+		background: none;
+		cursor: pointer;
+		line-height: 0;
 	}
-	.avatar {
+	.avatar-shadow {
 		width: 92px; height: 92px; border-radius: 50%;
-		background: linear-gradient(135deg, oklch(72% 0.18 var(--hue)), oklch(55% 0.16 calc(var(--hue) + 40)));
+		box-shadow: 0 10px 32px oklch(72% 0.18 var(--hue) / 0.3);
+	}
+	.edit-badge {
+		position: absolute; top: 0; right: -4px;
+		width: 28px; height: 28px; border-radius: 50%;
+		background: rgba(20, 24, 34, 0.95);
+		border: 1px solid rgba(255, 255, 255, 0.15);
 		display: flex; align-items: center; justify-content: center;
-		font-size: 36px; font-weight: 800; color: #fff;
-		box-shadow:
-			0 10px 32px oklch(72% 0.18 var(--hue) / 0.3),
-			inset 0 2px 0 rgba(255, 255, 255, 0.25);
+		font-size: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 	.streak-badge {
 		position: absolute; bottom: 0; right: -4px;
@@ -245,4 +298,41 @@
 	}
 
 	.spacer { height: 60px; }
+
+	/* Avatar picker */
+	.avatar-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px;
+		justify-items: center;
+	}
+	.avatar-opt {
+		padding: 4px;
+		border-radius: 50%;
+		border: 2px solid transparent;
+		background: none;
+		cursor: pointer;
+		line-height: 0;
+		transition: transform 0.12s, border-color 0.12s;
+	}
+	.avatar-opt:hover { transform: scale(1.06); }
+	.avatar-opt.selected {
+		border-color: oklch(80% 0.17 165);
+		box-shadow: 0 0 16px oklch(75% 0.2 165 / 0.4);
+	}
+	.avatar-opt:disabled { opacity: 0.5; cursor: default; }
+	.avatar-clear {
+		width: 100%;
+		margin-top: 16px;
+		padding: 12px;
+		border-radius: 12px;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		background: rgba(255, 255, 255, 0.05);
+		color: rgba(255, 255, 255, 0.75);
+		font-family: inherit;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.avatar-clear:disabled { opacity: 0.4; cursor: default; }
 </style>

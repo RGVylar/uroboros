@@ -10,4 +10,5 @@ export { default as StatPill } from './StatPill.svelte';
 export { default as DayNav } from './DayNav.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as Modal } from './Modal.svelte';
+export { default as Avatar } from './Avatar.svelte';
 export { default as Toast } from './Toast.svelte';
