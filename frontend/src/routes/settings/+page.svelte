@@ -6,9 +6,54 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
-	import { APP_VERSION } from '$lib/changelog';
+	import { APP_VERSION, UPDATE_URL } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
+
+	// ── Percentil anónimo de constancia ─────────────────────────────────────────
+	interface Percentile {
+		in_ranking: boolean;
+		pct?: number;
+		rank?: number;
+		active_users: number;
+		top_percent?: number;
+		week: number;
+	}
+	let percentile = $state<Percentile | null>(null);
+	api.get<Percentile>('/duel/me/percentile').then((p) => (percentile = p)).catch(() => {});
+
+	// ── Compartir la app ─────────────────────────────────────────────────────────
+	const INVITE_TEXT = `Estoy usando uroboros 🐍 para llevar la comida (¡se puede registrar en pareja!). Únete: ${UPDATE_URL}`;
+	let inviteCopied = $state(false);
+	async function shareApp() {
+		if (navigator.share) {
+			try {
+				await navigator.share({ text: INVITE_TEXT });
+				return;
+			} catch {
+				return; // usuario canceló el share sheet — no hacer fallback
+			}
+		}
+		try {
+			await navigator.clipboard.writeText(INVITE_TEXT);
+		} catch {
+			// Clipboard API bloqueada (WebView viejo, permisos): fallback clásico.
+			const ta = document.createElement('textarea');
+			ta.value = INVITE_TEXT;
+			ta.style.position = 'fixed';
+			ta.style.opacity = '0';
+			document.body.appendChild(ta);
+			ta.select();
+			const ok = document.execCommand('copy');
+			ta.remove();
+			if (!ok) {
+				toast.error('No se pudo copiar el mensaje');
+				return;
+			}
+		}
+		inviteCopied = true;
+		setTimeout(() => (inviteCopied = false), 3000);
+	}
 
 	// ── Changelog / update-nudge subscription ──────────────────────────────────
 	let changelogOptOut = $state(auth.user?.changelog_opt_out ?? false);
@@ -290,10 +335,20 @@
 	</div>
 </div>
 
-<!-- ── Group: Pareja ── -->
+<!-- ── Group: Social ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Pareja</div>
+	<div class="group-label">Social</div>
 	<div class="settings-group">
+		<!-- Mi perfil (avatar y nombre: es lo que ven tus amigos) -->
+		<button class="settings-row" onclick={() => goto('/profile')}>
+			<div class="icon-box">👤</div>
+			<div class="row-content">
+				<div class="row-label">{auth.user?.name ?? 'Usuario'}</div>
+				<div class="row-detail">Tu perfil y avatar</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => goto('/friends')}>
 			<div class="icon-box">💑</div>
 			<div class="row-content">
@@ -303,7 +358,38 @@
 						<span style="background:oklch(55% 0.23 25); color:#fff; border-radius:99px; padding:0.05rem 0.4rem; font-size:0.625rem; font-weight:800; line-height:1.5;">{pendingFriends.count}</span>
 					{/if}
 				</div>
-				<div class="row-detail">Gestiona amigos y permisos</div>
+				<div class="row-detail">Gestiona amigos, permisos y el duelo</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<!-- Percentil anónimo de constancia -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">🏅</div>
+			<div class="row-content">
+				<div class="row-label">Tu constancia</div>
+				<div class="row-detail">
+					{#if percentile?.in_ranking}
+						{#if percentile.active_users >= 20}
+							Top {percentile.top_percent}% de uroboros esta semana · {percentile.pct}%
+						{:else}
+							{percentile.rank}º de {percentile.active_users} esta semana · {percentile.pct}% de adherencia
+						{/if}
+					{:else if percentile}
+						Registra esta semana para entrar en el ranking
+					{:else}
+						—
+					{/if}
+				</div>
+			</div>
+		</div>
+		<div class="row-divider"></div>
+		<!-- Invitar -->
+		<button class="settings-row" onclick={shareApp}>
+			<div class="icon-box">📤</div>
+			<div class="row-content">
+				<div class="row-label">{inviteCopied ? '✅ Mensaje copiado' : 'Invitar a uroboros'}</div>
+				<div class="row-detail">Comparte la app con quien quieras</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -671,14 +757,13 @@
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Cuenta</div>
 	<div class="settings-group">
-		<button class="settings-row" onclick={() => goto('/profile')}>
-			<div class="icon-box">👤</div>
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">✉️</div>
 			<div class="row-content">
-				<div class="row-label">{auth.user?.name ?? 'Usuario'}</div>
-				<div class="row-detail">{auth.user?.email ?? ''}</div>
+				<div class="row-label">{auth.user?.email ?? ''}</div>
+				<div class="row-detail">Sesión iniciada</div>
 			</div>
-			<span class="chevron">›</span>
-		</button>
+		</div>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={logout} style="cursor:pointer;">
 			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15);">→</div>

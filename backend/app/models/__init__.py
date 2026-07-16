@@ -27,6 +27,7 @@ from app.models.notification_prefs import NotificationPrefs
 from app.models.notification_log import NotificationLog
 from app.models.mood import MoodEntry
 from app.models.release_note import ReleaseNote
+from app.models.weekly_adherence import WeeklyAdherence
 
 __all__ = [
     "User",
@@ -62,4 +63,5 @@ __all__ = [
     "NotificationLog",
     "MoodEntry",
     "ReleaseNote",
+    "WeeklyAdherence",
 ]

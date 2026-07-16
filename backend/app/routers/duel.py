@@ -6,7 +6,7 @@ adherence percentage crosses over, never the diary itself.
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -56,6 +56,51 @@ def _badges(
         DuelBadgeOut(icon="🎢", label="Remontada", desc="Ganar tras perder", unlocked=comeback),
         DuelBadgeOut(icon="📸", label="Photo finish", desc="Ganar por poco", unlocked=photo),
     ]
+
+
+@router.get("/me/percentile")
+def my_percentile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Anonymous standing among this week's active users.
+
+    My own number is computed live (cheap: one user); the population comes from
+    the precomputed snapshot, so cost never grows with the user count per view.
+    No names ever leave the server — just counts."""
+    from datetime import datetime as _dt
+    from math import ceil
+
+    from app.models.weekly_adherence import WeeklyAdherence
+    from app.services.adherence_snapshot import upsert_snapshot
+    from app.services.duel_service import week_start_for
+
+    today = _dt.now(timezone.utc).date()
+    ws = week_start_for(today)
+
+    mine = upsert_snapshot(db, user.id, today)
+    db.commit()
+    if mine is None:
+        # Nothing counted yet this week (e.g. it's Monday) — no standing to show.
+        pop = db.scalar(
+            select(func.count()).select_from(WeeklyAdherence).where(WeeklyAdherence.week_start == ws)
+        ) or 0
+        return {"in_ranking": False, "active_users": pop, "week": today.isocalendar().week}
+
+    pcts = list(db.scalars(
+        select(WeeklyAdherence.pct).where(WeeklyAdherence.week_start == ws)
+    ))
+    n = len(pcts)
+    rank = 1 + sum(1 for p in pcts if p > mine.pct)
+    top_percent = ceil(sum(1 for p in pcts if p >= mine.pct) / n * 100) if n else 100
+    return {
+        "in_ranking": True,
+        "pct": mine.pct,
+        "rank": rank,
+        "active_users": n,
+        "top_percent": top_percent,
+        "week": today.isocalendar().week,
+    }
 
 
 @router.get("/{friend_id}", response_model=DuelOut)

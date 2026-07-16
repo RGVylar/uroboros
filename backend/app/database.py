@@ -36,6 +36,7 @@ def _get_engine():
     from app.models.supplement import UserSupplement, SupplementLog
     from app.models.allergy import UserAllergy
     from app.models.release_note import ReleaseNote
+    from app.models.weekly_adherence import WeeklyAdherence
 
     if settings.demo_mode:
         from app.security import hash_password

@@ -314,8 +314,17 @@ _scheduler: BackgroundScheduler | None = None
 
 def start_scheduler() -> None:
     global _scheduler
+    from datetime import datetime as _dt
+    from app.services.adherence_snapshot import snapshot_weekly_adherence
+
     _scheduler = BackgroundScheduler()
     _scheduler.add_job(_check_notifications, "interval", minutes=5, id="notif_check")
+    # Percentile snapshot: cheap (~3 queries per active user), so a few times a
+    # day keeps it fresh. next_run_time=now also populates it right at boot.
+    _scheduler.add_job(
+        snapshot_weekly_adherence, "interval", hours=6,
+        id="adherence_snapshot", next_run_time=_dt.now(),
+    )
     _scheduler.start()
     logger.info("Notification scheduler started (every 5 min)")
 

@@ -151,6 +151,15 @@ def _user_goal(db: Session, user_id: int) -> tuple[float | None, str]:
     return goals.kcal, goals.macro_adjust_mode or "off"
 
 
+def current_week(db: Session, user_id: int, today: date) -> WeekResult:
+    """Adherence for just the week in progress — the cheap form the
+    percentile snapshot job runs per user."""
+    goal_kcal, mode = _user_goal(db, user_id)
+    ws = week_start_for(today)
+    kcal_by_date, burned_by_date, cheat_dates = _gather(db, user_id, ws, ws + timedelta(days=6))
+    return _week_result(ws, today, kcal_by_date, burned_by_date, cheat_dates, goal_kcal, mode)
+
+
 def user_weeks(db: Session, user_id: int, today: date) -> tuple[WeekResult, list[WeekResult]]:
     """Return (current_week, [past weeks newest→oldest]) for a user.
 
