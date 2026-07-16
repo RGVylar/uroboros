@@ -184,11 +184,6 @@ _LANDING_HTML = """<!doctype html>
     color: #041010; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em;
     box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 14px 34px -8px oklch(75% 0.2 165 / 0.45);
   }
-  .cta-sub {
-    text-align: center; margin-top: 10px; font-size: 0.75rem; color: rgba(255,255,255,0.45);
-  }
-  .cta-sub b { color: rgba(255,255,255,0.7); }
-
   /* Trust */
   .trust h2 { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .trust p { font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.55; }
@@ -233,7 +228,6 @@ _LANDING_HTML = """<!doctype html>
   </div>
 
   <a class="btn" href="{APP}/api/download/latest-apk">📥 Descargar para Android</a>
-  <div class="cta-sub"><b>Empieza gratis</b> · sin anuncios</div>
 
   <div class="card trust" style="margin-top:14px;">
     <h2>🔒 Sobre la descarga</h2>
