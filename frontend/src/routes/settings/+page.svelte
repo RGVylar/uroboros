@@ -374,12 +374,14 @@
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
 						{#if percentile.active_users >= 20}
-							Top {percentile.top_percent}% de uroboros esta semana · {percentile.pct}%
+							Cumpliste tu objetivo el {percentile.pct}% de los días · top {percentile.top_percent}% de uroboros esta semana
+						{:else if percentile.active_users > 1}
+							Cumpliste tu objetivo el {percentile.pct}% de los días · nº{percentile.rank} de {percentile.active_users} personas esta semana
 						{:else}
-							{percentile.rank}º de {percentile.active_users} esta semana · {percentile.pct}% de adherencia
+							Cumpliste tu objetivo el {percentile.pct}% de los días esta semana
 						{/if}
 					{:else if percentile}
-						Registra esta semana para entrar en el ranking
+						Registra tus comidas esta semana para entrar en la comparativa
 					{:else}
 						—
 					{/if}
