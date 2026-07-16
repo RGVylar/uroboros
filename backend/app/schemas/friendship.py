@@ -26,6 +26,9 @@ class FriendshipOut(BaseModel):
     shared_inventory_requester: bool
     shared_inventory_receiver: bool
     shared_inventory: bool  # computed: both true
+    duel_opt_in_requester: bool
+    duel_opt_in_receiver: bool
+    duel_active: bool  # computed: both true
     created_at: datetime
 
     class Config:
@@ -45,3 +48,5 @@ class FriendshipUpdate(BaseModel):
     # Each side opts in independently
     shared_inventory_requester: bool | None = None
     shared_inventory_receiver: bool | None = None
+    duel_opt_in_requester: bool | None = None
+    duel_opt_in_receiver: bool | None = None

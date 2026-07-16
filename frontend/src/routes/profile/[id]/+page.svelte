@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Avatar, DuelBoard, Modal } from '$lib/components';
-	import { makeExampleDuel } from '$lib/duel-example';
+	import type { DuelData } from '$lib/duel-example';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -52,16 +52,45 @@
 		return h;
 	})());
 
-	// Duelo semanal de adherencia. Datos de EJEMPLO (aún sin backend); usa el
-	// nombre/avatar reales de ambos para que se vea con la persona de verdad.
-	const duel = $derived(
-		profile
-			? makeExampleDuel(
-				auth.user?.name ?? 'Tú',
-				auth.user?.avatar_id ?? null,
-				profile.name,
-				profile.avatar_id,
-			)
+	// Duelo semanal de adherencia (datos reales del backend, gated por opt-in doble).
+	interface DuelApi {
+		active: boolean;
+		my_opt_in: boolean;
+		their_opt_in: boolean;
+		friend_name: string;
+		week?: number;
+		phase?: string;
+		me?: { name: string; avatar_id: string | null; pct: number | null; days: string[] };
+		them?: { name: string; avatar_id: string | null; pct: number | null; days: string[] };
+		seasons_won?: { me: number; them: number };
+		history?: { week: number; winner: string }[];
+		streak_weeks?: number;
+		badges?: { icon: string; label: string; desc: string; unlocked: boolean }[];
+	}
+
+	let duelApi = $state<DuelApi | null>(null);
+	async function loadDuel() {
+		try {
+			duelApi = await api.get<DuelApi>(`/duel/${userId}`);
+		} catch {
+			duelApi = null;
+		}
+	}
+	$effect(() => { if (userId) loadDuel(); });
+
+	// Map the snake_case API into the DuelData shape DuelBoard renders.
+	const duel = $derived<DuelData | null>(
+		duelApi?.active && duelApi.me && duelApi.them
+			? {
+				week: duelApi.week ?? 0,
+				phase: duelApi.phase ?? '',
+				me: { name: duelApi.me.name, avatarId: duelApi.me.avatar_id, pct: duelApi.me.pct, days: duelApi.me.days as DuelData['me']['days'] },
+				them: { name: duelApi.them.name, avatarId: duelApi.them.avatar_id, pct: duelApi.them.pct, days: duelApi.them.days as DuelData['them']['days'] },
+				seasonsWon: duelApi.seasons_won ?? { me: 0, them: 0 },
+				history: (duelApi.history ?? []) as DuelData['history'],
+				streakWeeks: duelApi.streak_weeks ?? 0,
+				badges: duelApi.badges ?? [],
+			}
 			: null,
 	);
 	let showDuel = $state(false);
@@ -120,6 +149,24 @@
 				Ver duelo completo →
 			</button>
 		</div>
+	{:else if duelApi && !duelApi.active}
+		<!-- Duelo no activo: hace falta que ambos lo activen (en Amigos). -->
+		<button
+			onclick={() => goto('/friends')}
+			style="width:100%; text-align:left; background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem; color:#fff; font-family:inherit; cursor:pointer;"
+		>
+			<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">⚔️ Duelo semanal</div>
+			<div style="font-size:0.875rem; font-weight:600;">
+				{#if duelApi.my_opt_in && !duelApi.their_opt_in}
+					Esperando a que {profile.name} lo active
+				{:else if !duelApi.my_opt_in && duelApi.their_opt_in}
+					{profile.name} quiere competir · <span style="color:oklch(85% 0.17 160);">actívalo</span>
+				{:else}
+					Compite en adherencia con {profile.name}
+				{/if}
+			</div>
+			<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.25rem;">Actívalo en Amigos →</div>
+		</button>
 	{/if}
 
 	<!-- Logros -->

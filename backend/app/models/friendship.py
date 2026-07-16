@@ -44,9 +44,18 @@ class Friendship(Base):
     shared_inventory_requester: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     shared_inventory_receiver: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
+    # Weekly adherence duel: same double opt-in — only the % is shared, never the
+    # diary, and it's off until both sides agree.
+    duel_opt_in_requester: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    duel_opt_in_receiver: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+
     @property
     def shared_inventory(self) -> bool:
         return self.shared_inventory_requester and self.shared_inventory_receiver
+
+    @property
+    def duel_active(self) -> bool:
+        return self.duel_opt_in_requester and self.duel_opt_in_receiver
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

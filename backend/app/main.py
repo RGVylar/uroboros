@@ -9,7 +9,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.limiter import client_ip, limiter
 from app.routers import (
-    auth, cheat_days, creatine, diary, downloads, exercises, exercise_sessions,
+    auth, cheat_days, creatine, diary, downloads, duel, exercises, exercise_sessions,
     export, favorites, friends, goals, inventory, measurements, mood, products,
     push, recipes, release_notes, shopping_list, supplements, users, water, weight, allergies,
 )
@@ -101,3 +101,4 @@ app.include_router(mood.router, prefix=api_prefix)
 app.include_router(export.router, prefix=api_prefix)
 app.include_router(release_notes.router, prefix=api_prefix)
 app.include_router(downloads.router, prefix=api_prefix)
+app.include_router(duel.router, prefix=api_prefix)

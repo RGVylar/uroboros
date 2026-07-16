@@ -13,7 +13,7 @@
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
-	import { pushStore } from '$lib/stores/push.svelte';
+	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
@@ -167,7 +167,13 @@
 						{/if}
 					</div>
 					<div class="update-nudge-actions">
-						<a class="update-nudge-cta" href={UPDATE_URL} target="_blank" rel="noopener noreferrer">Actualizar</a>
+						{#if isNativeApp}
+							<!-- Android: el frontend va empaquetado en el APK; recargar no sirve. -->
+							<a class="update-nudge-cta" href={UPDATE_URL} target="_blank" rel="noopener noreferrer">Actualizar</a>
+						{:else}
+							<!-- Web: recargar ya trae el bundle nuevo tras un deploy. -->
+							<button class="update-nudge-cta" onclick={() => window.location.reload()}>Actualizar</button>
+						{/if}
 						<button class="update-nudge-later" aria-label="Más tarde" onclick={() => updateDismissed = true}>✕</button>
 					</div>
 				</div>

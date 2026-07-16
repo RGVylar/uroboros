@@ -81,6 +81,8 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "users", "avatar_id", "VARCHAR(40)")
                 _sqlite_add_column_if_missing(conn, "user_goals", "macro_adjust_mode", "VARCHAR(20) NOT NULL DEFAULT 'off'")
                 _sqlite_add_column_if_missing(conn, "users", "changelog_opt_out", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "friendships", "duel_opt_in_requester", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "friendships", "duel_opt_in_receiver", "BOOLEAN NOT NULL DEFAULT 0")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]
@@ -141,6 +143,8 @@ def _get_engine():
                     can_add_food_requester=True,
                     shared_inventory_requester=False,
                     shared_inventory_receiver=False,
+                    duel_opt_in_requester=True,
+                    duel_opt_in_receiver=True,
                 ))
                 db.commit()
 
@@ -277,6 +281,44 @@ def _get_engine():
             ]
             db.add_all(demo_products)
             db.commit()
+
+            # Goals for Pilar too, so the adherence duel has two real targets.
+            if not db.scalar(select(UserGoals).where(UserGoals.user_id == pilar.id)):
+                db.add(UserGoals(
+                    user_id=pilar.id, kcal=1900, protein=140, carbs=190, fat=60, water_ml=2000,
+                ))
+                db.commit()
+
+            # Seed diary entries for the last 4 weeks so the duel shows real data:
+            # demo adheres better than Pilar, so demo wins most weeks.
+            if not db.scalar(select(DiaryEntry.id).where(DiaryEntry.user_id == user1.id).limit(1)):
+                from datetime import datetime as _dt, timezone as _tz, timedelta as _td, time as _tm
+                from app.models.diary import MealType as _Meal
+                _prod = demo_products[0]  # Pollo, 165 kcal/100g
+                _today = _dt.now(_tz.utc).date()
+                _start = _today - _td(days=_today.weekday()) - _td(weeks=3)
+
+                def _seed_days(uid, kcal_fn):
+                    for i in range(28):
+                        d = _start + _td(days=i)
+                        if d > _today:
+                            break
+                        kcal = kcal_fn(i)
+                        if kcal is None:
+                            continue  # no entry → empty day
+                        grams = kcal / 1.65
+                        db.add(DiaryEntry(
+                            user_id=uid, product_id=_prod.id, grams=grams,
+                            meal_type=_Meal.lunch, calories=float(kcal),
+                            protein=grams * 0.31, carbs=0.0, fat=grams * 0.036,
+                            consumed_at=_dt.combine(d, _tm(13, 0), tzinfo=_tz.utc),
+                        ))
+
+                # demo (goal 2200): ~6 of 7 days on target
+                _seed_days(user1.id, lambda i: 2850 if i % 7 == 3 else 2150)
+                # Pilar (goal 1900): roughly half on target
+                _seed_days(pilar.id, lambda i: 1850 if i % 2 == 0 else 2650)
+                db.commit()
 
             # Seed a demo allergy for user1 (milk) so allergen warnings show in demo
             existing_allergy = db.scalar(

@@ -95,6 +95,23 @@
 		return f.requester.id === auth.user?.id ? f.shared_inventory_receiver : f.shared_inventory_requester;
 	}
 
+	async function toggleDuel(f: Friendship) {
+		const iAmRequester = f.requester.id === auth.user?.id;
+		const patch = iAmRequester
+			? { duel_opt_in_requester: !f.duel_opt_in_requester }
+			: { duel_opt_in_receiver: !f.duel_opt_in_receiver };
+		await api.patch(`/friends/${f.id}`, patch);
+		load();
+	}
+
+	function myDuelFlag(f: Friendship): boolean {
+		return f.requester.id === auth.user?.id ? f.duel_opt_in_requester : f.duel_opt_in_receiver;
+	}
+
+	function theirDuelFlag(f: Friendship): boolean {
+		return f.requester.id === auth.user?.id ? f.duel_opt_in_receiver : f.duel_opt_in_requester;
+	}
+
 	async function removeFriend(id: number) {
 		confirmDeleteId = id;
 	}
@@ -231,6 +248,31 @@
 						</div>
 						{#if theirSharedFlag(f) && !mySharedFlag(f)}
 							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar a compartir</div>
+						{/if}
+					</div>
+					<!-- Weekly duel double-flag -->
+					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
+						<div style="display:flex; align-items:center; justify-content:space-between;">
+							<div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;">⚔️ Duelo semanal</div>
+								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
+									{#if f.duel_active}
+										Compitiendo en adherencia ✓
+									{:else if myDuelFlag(f) && !theirDuelFlag(f)}
+										Esperando a {f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name}...
+									{:else if !myDuelFlag(f) && theirDuelFlag(f)}
+										{f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name} quiere competir
+									{:else}
+										Solo se comparte el %, nunca el diario
+									{/if}
+								</div>
+							</div>
+							<button onclick={() => toggleDuel(f)} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myDuelFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myDuelFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
+								<div style="position:absolute; top:2px; left:{myDuelFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
+							</button>
+						</div>
+						{#if theirDuelFlag(f) && !myDuelFlag(f)}
+							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar el duelo</div>
 						{/if}
 					</div>
 					<!-- Each controls their own: "allow partner to add to MY diary" -->

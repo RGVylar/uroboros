@@ -236,6 +236,9 @@ export interface Friendship {
 	shared_inventory_requester: boolean;
 	shared_inventory_receiver: boolean;
 	shared_inventory: boolean; // both true
+	duel_opt_in_requester: boolean;
+	duel_opt_in_receiver: boolean;
+	duel_active: boolean; // both true
 	created_at: string;
 }
 

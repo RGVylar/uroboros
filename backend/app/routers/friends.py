@@ -303,6 +303,21 @@ def update_friendship(
         elif not now_shared and was_shared:
             _split_from_shared(db, f)
 
+    # Duel opt-in — double flag, each side owns their own (no data migration).
+    if payload.duel_opt_in_requester is not None:
+        if f.requester_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante puede cambiar su flag")
+        if f.status != FriendshipStatus.accepted:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
+        f.duel_opt_in_requester = payload.duel_opt_in_requester
+
+    if payload.duel_opt_in_receiver is not None:
+        if f.receiver_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor puede cambiar su flag")
+        if f.status != FriendshipStatus.accepted:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
+        f.duel_opt_in_receiver = payload.duel_opt_in_receiver
+
     db.commit()
     db.refresh(f)
     return f
