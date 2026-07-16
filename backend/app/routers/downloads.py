@@ -261,10 +261,10 @@ def invite_landing() -> HTMLResponse:
     """Public invite landing: OG preview card + download + trust notes."""
     # Warm the latest-APK cache so the download button redirects instantly.
     _warm_cache_async()
-    # Short max-age on purpose: with Cloudflare + browsers honouring this, a
-    # longer TTL made copy fixes invisible for an hour. The page is a constant
-    # string — serving it costs nothing, so caching buys almost nothing.
+    # 1h cache: the page rarely changes and this keeps Cloudflare serving it
+    # from the edge. Caveat: copy edits take up to an hour to show for anyone
+    # who already viewed it — bust with a ?v= query while reviewing changes.
     return HTMLResponse(
         _LANDING_HTML,
-        headers={"Cache-Control": "public, max-age=300"},
+        headers={"Cache-Control": "public, max-age=3600"},
     )
