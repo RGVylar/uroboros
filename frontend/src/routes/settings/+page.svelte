@@ -6,7 +6,7 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
-	import { APP_VERSION, UPDATE_URL } from '$lib/changelog';
+	import { APP_VERSION } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -23,7 +23,10 @@
 	api.get<Percentile>('/duel/me/percentile').then((p) => (percentile = p)).catch(() => {});
 
 	// ── Compartir la app ─────────────────────────────────────────────────────────
-	const INVITE_TEXT = `Estoy usando uroboros 🐍 para llevar la comida (¡se puede registrar en pareja!). Únete: ${UPDATE_URL}`;
+	// Enlaza a la landing /api/unete (con Open Graph → tarjeta con imagen en
+	// WhatsApp), no al APK a pelo: una redirección a un binario no puede tener preview.
+	const INVITE_URL = 'https://comida.mugrelore.com/api/unete';
+	const INVITE_TEXT = `Estoy usando uroboros 🐍 para llevar la comida (¡se puede registrar en pareja!). Únete: ${INVITE_URL}`;
 	let inviteCopied = $state(false);
 	async function shareApp() {
 		if (navigator.share) {
