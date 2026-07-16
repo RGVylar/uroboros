@@ -115,7 +115,6 @@ def latest_apk() -> RedirectResponse:
 
 
 _APP_URL = "https://comida.mugrelore.com"
-_REPO_URL = "https://github.com/RGVylar/uroboros"
 
 # The invite message links here instead of at the raw APK: messaging apps'
 # crawlers need an HTML page with Open Graph tags to render a preview card
@@ -234,7 +233,7 @@ _LANDING_HTML = """<!doctype html>
   </div>
 
   <a class="btn" href="{APP}/api/download/latest-apk">📥 Descargar para Android</a>
-  <div class="cta-sub"><b>Gratis</b> · sin anuncios · código abierto</div>
+  <div class="cta-sub"><b>Empieza gratis</b> · sin anuncios</div>
 
   <div class="card trust" style="margin-top:14px;">
     <h2>🔒 Sobre la descarga</h2>
@@ -244,7 +243,7 @@ _LANDING_HTML = """<!doctype html>
       <li>Abre el archivo y toca <b>Instalar</b>. Si Android pide permiso para "instalar apps desconocidas", actívalo solo para Chrome.</li>
       <li>Listo — la app se actualiza avisándote dentro.</li>
     </ol>
-    <p style="margin-top:10px;">El código es abierto y puedes revisarlo en <a href="{REPO}" rel="noopener">GitHub</a>.</p>
+    <p style="margin-top:10px;">La descarga viene directa de nuestro servidor, siempre en su última versión.</p>
   </div>
 
   <a class="web" href="{APP}/">¿Sin Android? Úsala desde el navegador →</a>
@@ -254,7 +253,7 @@ _LANDING_HTML = """<!doctype html>
   </footer>
 </div>
 </body>
-</html>""".replace("{APP}", _APP_URL).replace("{REPO}", _REPO_URL)
+</html>""".replace("{APP}", _APP_URL)
 
 
 @landing_router.get("/unete", response_class=HTMLResponse)
