@@ -3,7 +3,8 @@
 	import { page } from '$app/state';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { Avatar } from '$lib/components';
+	import { Avatar, DuelBoard, Modal } from '$lib/components';
+	import { makeExampleDuel } from '$lib/duel-example';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -24,7 +25,7 @@
 		{ id: 6, label: '30 días',     desc: 'Racha de 30 días',           hue: 25,  check: (p: FriendProfile) => p.streak >= 30 },
 	];
 
-	let profile: FriendProfile | null = $state(null);
+	let profile = $state<FriendProfile | null>(null);
 	let loading = $state(true);
 	let error = $state('');
 
@@ -50,6 +51,20 @@
 		for (const c of profile.name) h = (h * 31 + c.charCodeAt(0)) % 360;
 		return h;
 	})());
+
+	// Duelo semanal de adherencia. Datos de EJEMPLO (aún sin backend); usa el
+	// nombre/avatar reales de ambos para que se vea con la persona de verdad.
+	const duel = $derived(
+		profile
+			? makeExampleDuel(
+				auth.user?.name ?? 'Tú',
+				auth.user?.avatar_id ?? null,
+				profile.name,
+				profile.avatar_id,
+			)
+			: null,
+	);
+	let showDuel = $state(false);
 </script>
 
 <!-- Header -->
@@ -90,6 +105,23 @@
 		</div>
 	</div>
 
+	<!-- Duelo semanal -->
+	{#if duel}
+		<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem;">
+			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;">⚔️ Duelo · semana {duel.week}</div>
+				<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">Tú {duel.seasonsWon.me} — {profile.name} {duel.seasonsWon.them}</div>
+			</div>
+			<DuelBoard {duel} compact />
+			<button
+				onclick={() => (showDuel = true)}
+				style="width:100%; margin-top:1.125rem; padding:0.75rem; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer;"
+			>
+				Ver duelo completo →
+			</button>
+		</div>
+	{/if}
+
 	<!-- Logros -->
 	<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin:1rem 0.25rem 0.625rem;">Logros</div>
 	<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-bottom:2rem;">
@@ -107,3 +139,9 @@
 {/if}
 
 <div style="height:5rem;"></div>
+
+{#if showDuel && duel}
+	<Modal onClose={() => (showDuel = false)} title="⚔️ Duelo semanal" subtitle="Adherencia · quién cumple más sus objetivos">
+		<DuelBoard {duel} />
+	</Modal>
+{/if}
