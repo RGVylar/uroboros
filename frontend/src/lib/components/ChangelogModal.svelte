@@ -1,31 +1,9 @@
 <script lang="ts">
-	import { CHANGELOG_VERSION, changelogMarkSeen } from '$lib/changelog';
+	import { APP_VERSION, markSeen, type ChangeType, type ReleaseNote } from '$lib/changelog';
 
-	type ChangeType = 'nuevo' | 'mejora' | 'fix';
-	interface Change { type: ChangeType; title: string; desc: string; }
-
-	const CHANGES: Change[] = [
-		{
-			type: 'nuevo',
-			title: 'Modo sin conexión',
-			desc: 'El diario, el agua, la creatina y los suplementos funcionan aunque haya fútbol. Se sincronizan solos al volver la conexión.',
-		},
-		{
-			type: 'nuevo',
-			title: 'Producto manual sin conexión',
-			desc: 'Puedes crear un producto con sus macros y añadirlo al diario aunque no haya servidor.',
-		},
-		{
-			type: 'mejora',
-			title: 'Detección de caída más rápida',
-			desc: 'El aviso de sin conexión aparece en menos de 6 segundos en vez de quedarse cargando indefinidamente.',
-		},
-		{
-			type: 'fix',
-			title: 'Editar y borrar entradas offline',
-			desc: 'Los cambios se aplican al instante en local y se envían al servidor cuando vuelva la conexión.',
-		},
-	];
+	// Notes come from the server (newest first). May span several versions if the
+	// user skipped a couple of updates.
+	let { notes, onclose }: { notes: ReleaseNote[]; onclose: () => void } = $props();
 
 	const BADGE: Record<ChangeType, { label: string; cls: string }> = {
 		nuevo:  { label: 'Nuevo',  cls: 'badge-new' },
@@ -33,10 +11,13 @@
 		fix:    { label: 'Fix',    cls: 'badge-fix' },
 	};
 
-	let { onclose }: { onclose: () => void } = $props();
+	// Header shows the most recent version in the batch.
+	const topVersion = $derived(notes[0]?.version ?? APP_VERSION);
+	const multiVersion = $derived(notes.length > 1);
 
 	function dismiss() {
-		changelogMarkSeen();
+		// Everything up to the build we're running is now seen.
+		markSeen(APP_VERSION);
 		onclose();
 	}
 </script>
@@ -52,19 +33,24 @@
 		<div class="icon">🐍</div>
 		<div class="header-text">
 			<div class="eyebrow">Novedades</div>
-			<div class="version-title">Versión {CHANGELOG_VERSION}</div>
+			<div class="version-title">Versión {topVersion}</div>
 		</div>
 	</div>
 
 	<div class="changes">
-		{#each CHANGES as c}
-			<div class="change">
-				<span class="badge {BADGE[c.type].cls}">{BADGE[c.type].label}</span>
-				<div class="change-text">
-					<div class="change-title">{c.title}</div>
-					<div class="change-desc">{c.desc}</div>
+		{#each notes as note}
+			{#if multiVersion}
+				<div class="ver-label">v{note.version}</div>
+			{/if}
+			{#each note.items as c}
+				<div class="change">
+					<span class="badge {BADGE[c.type].cls}">{BADGE[c.type].label}</span>
+					<div class="change-text">
+						<div class="change-title">{c.title}</div>
+						{#if c.desc}<div class="change-desc">{c.desc}</div>{/if}
+					</div>
 				</div>
-			</div>
+			{/each}
 		{/each}
 	</div>
 
@@ -93,6 +79,8 @@
 		border-radius: 24px 24px 0 0;
 		padding: 0 0 2rem;
 		animation: slide-up 0.32s cubic-bezier(0.34, 1.3, 0.64, 1);
+		max-height: 90dvh;
+		overflow-y: auto;
 	}
 	@keyframes slide-up {
 		from { transform: translateX(-50%) translateY(100%); opacity: 0; }
@@ -127,6 +115,11 @@
 	.changes {
 		padding: 1.25rem 1.5rem 0;
 		display: flex; flex-direction: column; gap: 0.75rem;
+	}
+	.ver-label {
+		font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em;
+		color: rgba(255,255,255,0.35); text-transform: uppercase;
+		margin-top: 0.35rem;
 	}
 	.change {
 		display: flex; gap: 0.75rem; align-items: flex-start;

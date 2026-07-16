@@ -18,7 +18,7 @@
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
-	import { changelogShouldShow } from '$lib/changelog';
+	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
 
 	let { children } = $props();
 
@@ -54,10 +54,25 @@
 		wasOffline = isOffline;
 	});
 
-	// Changelog modal — show once per version after login
+	// Changelog + update nudge — served from the DB, fetched once after login.
+	// The server decides what to show from the version we report (APP_VERSION),
+	// the last version we dismissed (getSeen), and the user's opt-out flag.
+	let changelogNotes = $state<ReleaseNote[]>([]);
 	let showChangelog = $state(false);
+	let updateInfo = $state<UpdateInfo | null>(null);
+	let updateDismissed = $state(false);
 	$effect(() => {
-		if (auth.isLoggedIn) showChangelog = changelogShouldShow();
+		if (!auth.isLoggedIn) return;
+		untrack(() => {
+			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(getSeen())}`;
+			api.get<ChangelogResponse>(`/release-notes?${q}`)
+				.then((res) => {
+					changelogNotes = res.news;
+					showChangelog = res.news.length > 0;
+					updateInfo = res.update;
+				})
+				.catch(() => {});
+		});
 	});
 
 	// App update detection via service worker controllerchange
@@ -140,7 +155,23 @@
 
 		<!-- Contenido principal -->
 		<div class="main-content">
-			{#if updateAvailable}
+			{#if updateInfo && !updateDismissed}
+				<!-- Server-driven update nudge: teaser of what the newer version brings. -->
+				<div class="update-nudge" role="alert">
+					<div class="update-nudge-body">
+						<div class="update-nudge-title">✨ Novedad en la v{updateInfo.version}: {updateInfo.title}</div>
+						{#if updateInfo.teaser.length}
+							<div class="update-nudge-teaser">
+								{updateInfo.teaser.join(' · ')}{#if updateInfo.more > 0} · y {updateInfo.more} más{/if}
+							</div>
+						{/if}
+					</div>
+					<div class="update-nudge-actions">
+						<a class="update-nudge-cta" href={UPDATE_URL} target="_blank" rel="noopener noreferrer">Actualizar</a>
+						<button class="update-nudge-later" aria-label="Más tarde" onclick={() => updateDismissed = true}>✕</button>
+					</div>
+				</div>
+			{:else if updateAvailable}
 				<div class="update-strip" role="alert">
 					<span>✨ Nueva versión disponible</span>
 					<button onclick={() => window.location.reload()}>Actualizar</button>
@@ -167,7 +198,7 @@
 <Toast />
 
 {#if showChangelog}
-	<ChangelogModal onclose={() => showChangelog = false} />
+	<ChangelogModal notes={changelogNotes} onclose={() => showChangelog = false} />
 {/if}
 
 {#if auth.isLoggedIn && !hideNav}
@@ -255,6 +286,60 @@
 	}
 	.update-strip button:hover {
 		background: oklch(72% 0.2 160 / 0.3);
+	}
+
+	/* ── Nudge de actualización (data-driven, con teaser) ── */
+	.update-nudge {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.5rem 1rem;
+		background: oklch(28% 0.06 160 / 0.92);
+		border-bottom: 1px solid oklch(55% 0.18 160 / 0.4);
+		animation: strip-in 0.25s ease;
+	}
+	.update-nudge-body { min-width: 0; }
+	.update-nudge-title {
+		font-size: 0.74rem;
+		font-weight: 700;
+		color: oklch(90% 0.15 160);
+		letter-spacing: 0.01em;
+	}
+	.update-nudge-teaser {
+		font-size: 0.66rem;
+		color: oklch(78% 0.08 160);
+		margin-top: 0.1rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.update-nudge-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+	.update-nudge-cta {
+		padding: 0.25rem 0.7rem;
+		border-radius: 99px;
+		border: 1px solid oklch(72% 0.2 160 / 0.6);
+		background: oklch(72% 0.2 160 / 0.18);
+		color: oklch(90% 0.15 160);
+		font-size: 0.68rem;
+		font-weight: 700;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.15s;
+		text-decoration: none;
+		display: inline-block;
+		white-space: nowrap;
+	}
+	.update-nudge-cta:hover { background: oklch(72% 0.2 160 / 0.32); }
+	.update-nudge-later {
+		background: none;
+		border: none;
+		box-shadow: none;
+		color: oklch(80% 0.05 160 / 0.7);
+		font-size: 0.7rem;
+		cursor: pointer;
+		padding: 0.2rem 0.35rem;
+		line-height: 1;
 	}
 
 	/* ── Strip sin conexión (dentro del main-content, no flotante) ── */

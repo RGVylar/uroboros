@@ -26,6 +26,7 @@ from app.models.push_subscription import PushSubscription
 from app.models.notification_prefs import NotificationPrefs
 from app.models.notification_log import NotificationLog
 from app.models.mood import MoodEntry
+from app.models.release_note import ReleaseNote
 
 __all__ = [
     "User",
@@ -60,4 +61,5 @@ __all__ = [
     "NotificationPrefs",
     "NotificationLog",
     "MoodEntry",
+    "ReleaseNote",
 ]

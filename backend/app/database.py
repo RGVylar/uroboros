@@ -35,6 +35,7 @@ def _get_engine():
     from app.models.inventory import InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
     from app.models.supplement import UserSupplement, SupplementLog
     from app.models.allergy import UserAllergy
+    from app.models.release_note import ReleaseNote
 
     if settings.demo_mode:
         from app.security import hash_password
@@ -79,6 +80,7 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "friendships", "can_add_food_requester", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "users", "avatar_id", "VARCHAR(40)")
                 _sqlite_add_column_if_missing(conn, "user_goals", "macro_adjust_mode", "VARCHAR(20) NOT NULL DEFAULT 'off'")
+                _sqlite_add_column_if_missing(conn, "users", "changelog_opt_out", "BOOLEAN NOT NULL DEFAULT 0")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]
@@ -140,6 +142,39 @@ def _get_engine():
                     shared_inventory_requester=False,
                     shared_inventory_receiver=False,
                 ))
+                db.commit()
+
+            # Seed demo release notes (changelog served from the DB).
+            # 1.4/1.5 are <= the app build (they show as "novedades"); 1.6 is
+            # newer, so it shows as an "update available" nudge.
+            if not db.scalar(select(ReleaseNote).limit(1)):
+                from datetime import datetime as _dt, timezone as _tz
+                db.add_all([
+                    ReleaseNote(
+                        version="1.4", title="Modo sin conexión", importance="minor",
+                        published=True, published_at=_dt.now(_tz.utc),
+                        items=[
+                            {"type": "nuevo", "title": "Modo sin conexión", "desc": "El diario, el agua y los suplementos funcionan aunque haya fútbol."},
+                            {"type": "fix", "title": "Editar y borrar offline", "desc": "Los cambios se aplican al instante y se sincronizan al volver."},
+                        ],
+                    ),
+                    ReleaseNote(
+                        version="1.5", title="Duelo semanal", importance="major",
+                        published=True, published_at=_dt.now(_tz.utc),
+                        items=[
+                            {"type": "nuevo", "title": "Duelo de adherencia", "desc": "Compite con tu pareja: quién cumple más sus objetivos cada semana."},
+                            {"type": "mejora", "title": "Perfil del amigo", "desc": "Ahora muestra el marcador del duelo y el histórico de temporadas."},
+                        ],
+                    ),
+                    ReleaseNote(
+                        version="1.6", title="Recetas compartidas", importance="minor",
+                        published=True, published_at=_dt.now(_tz.utc),
+                        items=[
+                            {"type": "nuevo", "title": "Comparte recetas", "desc": "Envía una receta a tu pareja con un toque."},
+                            {"type": "mejora", "title": "Buscador más rápido", "desc": "Resultados de productos al instante."},
+                        ],
+                    ),
+                ])
                 db.commit()
 
             # Create demo goals for user1 (if not exist)

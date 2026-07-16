@@ -3,6 +3,7 @@ export interface User {
 	email: string;
 	name: string;
 	avatar_id?: string | null;
+	changelog_opt_out?: boolean;
 }
 
 export interface TokenResponse {

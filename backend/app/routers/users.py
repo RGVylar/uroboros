@@ -55,6 +55,23 @@ def update_avatar(
     return user
 
 
+class ChangelogPrefUpdate(BaseModel):
+    opt_out: bool
+
+
+@router.patch("/me/changelog-subscription", response_model=UserOut)
+def update_changelog_subscription(
+    payload: ChangelogPrefUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Toggle whether the user sees the in-app changelog / update nudges."""
+    user.changelog_opt_out = payload.opt_out
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @router.get("", response_model=list[UserOut])
 def list_users(
     db: Session = Depends(get_db),

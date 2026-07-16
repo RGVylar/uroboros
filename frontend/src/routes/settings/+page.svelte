@@ -6,9 +6,26 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
-	import { CHANGELOG_VERSION } from '$lib/changelog';
-	import type { Goals } from '$lib/types';
+	import { APP_VERSION } from '$lib/changelog';
+	import type { Goals, User } from '$lib/types';
 	if (!auth.isLoggedIn) goto('/login');
+
+	// ── Changelog / update-nudge subscription ──────────────────────────────────
+	let changelogOptOut = $state(auth.user?.changelog_opt_out ?? false);
+	let savingChangelog = $state(false);
+	async function toggleChangelog() {
+		savingChangelog = true;
+		const next = !changelogOptOut;
+		try {
+			const u = await api.patch<User>('/users/me/changelog-subscription', { opt_out: next });
+			changelogOptOut = u.changelog_opt_out ?? next;
+			auth.updateUser(u);
+		} catch {
+			toast.error('No se pudo guardar la preferencia');
+		} finally {
+			savingChangelog = false;
+		}
+	}
 
 	// ── Notification prefs ─────────────────────────────────────────────────────
 	interface NotifPrefs {
@@ -585,6 +602,30 @@
 	</div>
 </div>
 
+<!-- ── Group: Novedades ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">Novedades</div>
+	<div class="settings-group">
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">📣</div>
+			<div class="row-content">
+				<div class="row-label">Novedades y actualizaciones</div>
+				<div class="row-detail">{changelogOptOut ? 'Silenciadas · solo verás lanzamientos importantes' : 'Verás qué cambia en cada versión'}</div>
+			</div>
+			<button
+				onclick={toggleChangelog}
+				disabled={savingChangelog}
+				class="toggle-btn"
+				aria-label="Novedades y actualizaciones"
+				aria-pressed={!changelogOptOut}
+				style="background:{!changelogOptOut ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{!changelogOptOut ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
+			>
+				<span class="toggle-knob" style="left:{!changelogOptOut ? '18px' : '2px'};"></span>
+			</button>
+		</div>
+	</div>
+</div>
+
 <!-- ── Group: Plan ── -->
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Plan</div>
@@ -718,7 +759,7 @@
 	</a>
 </div>
 
-<div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v{CHANGELOG_VERSION}</div>
+<div style="text-align:center; margin-top:0.5rem; color:rgba(255,255,255,0.25); font-size:0.6875rem; padding-bottom:6rem;">v{APP_VERSION}</div>
 
 <style>
 	

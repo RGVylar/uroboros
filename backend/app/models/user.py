@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -36,6 +36,13 @@ class User(Base):
     # Launch-cohort users: full access for life, regardless of subscription.
     grandfathered: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
+    )
+    # Opt-out of the in-app "what's new" changelog. When true, only notes marked
+    # as major (feature launches) are shown; minor notes and the update nudge
+    # are suppressed. It's a preference, so it lives here (syncs across devices)
+    # rather than in localStorage.
+    changelog_opt_out: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=false()
     )
 
     @property
