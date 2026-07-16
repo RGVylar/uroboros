@@ -10,6 +10,8 @@ modified `.apk`, and redirect to its direct download.
 Public + unauthenticated on purpose: the button opens this in an external
 browser (Android), where there is no session/JWT to send.
 """
+import threading
+import time as _time
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from urllib.parse import quote, unquote
@@ -33,6 +35,29 @@ _SHARE_URL = f"{_NC_BASE}/index.php/s/{_SHARE_TOKEN}"
 _FOLDER_FALLBACK = _SHARE_URL
 
 _DAV_NS = "{DAV:}"
+
+
+# The WebDAV listing takes 1-3s against Nextcloud, which made the download
+# button feel sluggish. Cache the resolved name and refresh it in the
+# background from the landing view, so the click itself is instant.
+_CACHE_TTL = 600.0  # seconds
+_cache: dict = {"name": None, "at": 0.0}
+
+
+def _cached_apk_name() -> str | None:
+    if _time.monotonic() - _cache["at"] < _CACHE_TTL and _cache["name"]:
+        return _cache["name"]
+    name = _latest_apk_name()
+    if name:
+        _cache.update(name=name, at=_time.monotonic())
+    return name
+
+
+def _warm_cache_async() -> None:
+    """Refresh the cache off-thread if stale (fire-and-forget)."""
+    if _time.monotonic() - _cache["at"] < _CACHE_TTL:
+        return
+    threading.Thread(target=_cached_apk_name, daemon=True).start()
 
 
 def _latest_apk_name() -> str | None:
@@ -81,7 +106,7 @@ def _latest_apk_name() -> str | None:
 @router.get("/latest-apk")
 def latest_apk() -> RedirectResponse:
     """Redirect to the direct download of the newest debug APK."""
-    name = _latest_apk_name()
+    name = _cached_apk_name()
     if not name:
         # Couldn't resolve a specific file — send them to the folder instead.
         return RedirectResponse(_FOLDER_FALLBACK, status_code=302)
@@ -90,13 +115,15 @@ def latest_apk() -> RedirectResponse:
 
 
 _APP_URL = "https://comida.mugrelore.com"
+_REPO_URL = "https://github.com/RGVylar/uroboros"
 
 # The invite message links here instead of at the raw APK: messaging apps'
 # crawlers need an HTML page with Open Graph tags to render a preview card
-# (a 302 to a binary shows a bare domain), and a human gets a clear download
-# button instead of a surprise APK. This page is also where a future invite
-# deep-link would plug in (detect the installed app, open the add-friend modal).
-_LANDING_HTML = f"""<!doctype html>
+# (a 302 to a binary shows a bare domain), and — until the app is on Google
+# Play — this page has to earn the trust of someone about to sideload an APK:
+# clear pitch, install steps, and the open-source link. It's also where a
+# future invite deep-link would plug in (open the add-friend modal in the app).
+_LANDING_HTML = """<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -106,53 +133,136 @@ _LANDING_HTML = f"""<!doctype html>
 <meta property="og:site_name" content="uroboros">
 <meta property="og:title" content="uroboros — come mejor, en pareja">
 <meta property="og:description" content="La app para llevar la comida con tu pareja: registra una comida para los dos a la vez, compite en constancia y comparte la lista de la compra.">
-<meta property="og:image" content="{_APP_URL}/social-banner.png">
+<meta property="og:image" content="{APP}/social-banner.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="{_APP_URL}/api/unete">
+<meta property="og:url" content="{APP}/api/unete">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="{APP}/logo.png" type="image/png">
 <style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
     background: #06070a; color: #eef1f5;
     font-family: 'Segoe UI', system-ui, sans-serif;
-    min-height: 100dvh; display: flex; align-items: center; justify-content: center;
-    padding: 24px; text-align: center;
-  }}
-  .card {{
+    min-height: 100dvh;
+    background-image:
+      radial-gradient(60% 45% at 15% 0%, oklch(45% 0.12 170 / 0.22), transparent 60%),
+      radial-gradient(50% 40% at 90% 15%, oklch(45% 0.14 300 / 0.16), transparent 60%),
+      radial-gradient(70% 50% at 50% 110%, oklch(40% 0.1 220 / 0.18), transparent 60%);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 460px; margin: 0 auto; padding: 40px 20px 32px; }
+
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 26px; }
+  .hero img { width: 96px; height: 96px; filter: drop-shadow(0 12px 32px oklch(70% 0.18 165 / 0.35)); }
+  h1 {
+    font-family: Lora, Georgia, serif; font-weight: 500;
+    font-size: 2.6rem; letter-spacing: -0.04em; margin-top: 10px;
+  }
+  .tag { color: oklch(85% 0.17 160); font-weight: 600; font-size: 1.02rem; margin-top: 4px; }
+  .pitch { color: rgba(255,255,255,0.6); font-size: 0.92rem; line-height: 1.55; margin: 14px auto 0; max-width: 340px; }
+
+  /* Cards */
+  .card {
     background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 24px; padding: 40px 28px; max-width: 400px; width: 100%;
-  }}
-  img.logo {{ width: 110px; height: 110px; margin-bottom: 14px; }}
-  h1 {{ font-size: 2rem; letter-spacing: -0.03em; }}
-  .tag {{ color: oklch(85% 0.17 160); font-weight: 600; margin-top: 6px; }}
-  p.desc {{ color: rgba(255,255,255,0.55); font-size: 0.9rem; line-height: 1.5; margin: 16px 0 28px; }}
-  a.btn {{
-    display: block; padding: 15px; border-radius: 14px; text-decoration: none;
+    border-radius: 20px; padding: 18px; margin-bottom: 12px;
+    backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  }
+  .feat { display: flex; gap: 12px; align-items: flex-start; padding: 9px 4px; }
+  .feat .ico {
+    width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; font-size: 1.05rem;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .feat b { font-size: 0.88rem; display: block; }
+  .feat span { font-size: 0.78rem; color: rgba(255,255,255,0.5); line-height: 1.45; }
+
+  /* CTA */
+  a.btn {
+    display: block; text-align: center; padding: 16px; border-radius: 16px; text-decoration: none;
     background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
-    color: #041010; font-weight: 800; font-size: 1rem;
-  }}
-  a.web {{
-    display: block; margin-top: 14px; color: rgba(255,255,255,0.55);
+    color: #041010; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 14px 34px -8px oklch(75% 0.2 165 / 0.45);
+  }
+  .cta-sub {
+    text-align: center; margin-top: 10px; font-size: 0.75rem; color: rgba(255,255,255,0.45);
+  }
+  .cta-sub b { color: rgba(255,255,255,0.7); }
+
+  /* Trust */
+  .trust h2 { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .trust p { font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.55; }
+  .trust ol { margin: 10px 0 0 2px; list-style: none; counter-reset: step; }
+  .trust li {
+    counter-increment: step; font-size: 0.78rem; color: rgba(255,255,255,0.65);
+    padding: 4px 0 4px 30px; position: relative; line-height: 1.45;
+  }
+  .trust li::before {
+    content: counter(step); position: absolute; left: 0; top: 3px;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 0.68rem; font-weight: 800;
+    background: oklch(75% 0.18 165 / 0.15); border: 1px solid oklch(75% 0.18 165 / 0.35);
+    color: oklch(88% 0.16 160); display: flex; align-items: center; justify-content: center;
+  }
+  .trust a { color: oklch(85% 0.17 160); text-decoration: none; }
+
+  a.web {
+    display: block; text-align: center; margin: 18px 0 0; color: rgba(255,255,255,0.55);
     font-size: 0.85rem; text-decoration: none;
-  }}
-  a.web:hover {{ color: #eef1f5; }}
+  }
+  a.web:hover { color: #eef1f5; }
+  footer {
+    text-align: center; margin-top: 26px; font-size: 0.7rem; color: rgba(255,255,255,0.3);
+  }
+  footer a { color: rgba(255,255,255,0.45); text-decoration: none; margin: 0 6px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <img class="logo" src="{_APP_URL}/logo.png" alt="uroboros">
+<div class="wrap">
+  <div class="hero">
+    <img src="{APP}/logo.png" alt="uroboros" width="96" height="96">
     <h1>uroboros</h1>
     <div class="tag">Come mejor. Juntos.</div>
-    <p class="desc">Te han invitado a llevar la comida en pareja: registra una comida para los dos a la vez, con macros, recetas e inventario compartido.</p>
-    <a class="btn" href="{_APP_URL}/api/download/latest-apk">📥 Descargar para Android</a>
-    <a class="web" href="{_APP_URL}/">o úsala desde el navegador →</a>
+    <p class="pitch">Te han invitado a la app para llevar la comida <b>en pareja</b>: una sola vez, para los dos.</p>
   </div>
+
+  <div class="card">
+    <div class="feat"><div class="ico">🍽️</div><div><b>Registro a dos</b><span>Apunta una comida y aparece en el diario de ambos, con sus macros calculados.</span></div></div>
+    <div class="feat"><div class="ico">📊</div><div><b>Objetivos y progreso</b><span>Calorías, proteína, agua, peso y medidas — con historial y tendencias.</span></div></div>
+    <div class="feat"><div class="ico">🍳</div><div><b>Recetas e inventario compartido</b><span>La despensa y la lista de la compra, comunes de verdad.</span></div></div>
+    <div class="feat"><div class="ico">⚔️</div><div><b>Duelo semanal</b><span>Un pique sano: quién cumple más sus propios objetivos cada semana.</span></div></div>
+  </div>
+
+  <a class="btn" href="{APP}/api/download/latest-apk">📥 Descargar para Android</a>
+  <div class="cta-sub"><b>Gratis</b> · sin anuncios · código abierto</div>
+
+  <div class="card trust" style="margin-top:14px;">
+    <h2>🔒 Sobre la descarga</h2>
+    <p>Todavía no estamos en Google Play (estamos en ello), así que la app se instala directamente con su archivo APK. Android te avisará porque no viene de la tienda — es lo normal en este caso:</p>
+    <ol>
+      <li>Toca <b>Descargar de todos modos</b> cuando Chrome pregunte.</li>
+      <li>Abre el archivo y toca <b>Instalar</b>. Si Android pide permiso para "instalar apps desconocidas", actívalo solo para Chrome.</li>
+      <li>Listo — la app se actualiza avisándote dentro.</li>
+    </ol>
+    <p style="margin-top:10px;">El código es abierto y puedes revisarlo en <a href="{REPO}" rel="noopener">GitHub</a>.</p>
+  </div>
+
+  <a class="web" href="{APP}/">¿Sin Android? Úsala desde el navegador →</a>
+
+  <footer>
+    uroboros · <a href="{APP}/privacy">privacidad</a>·<a href="{APP}/terms">términos</a>
+  </footer>
+</div>
 </body>
-</html>"""
+</html>""".replace("{APP}", _APP_URL).replace("{REPO}", _REPO_URL)
 
 
 @landing_router.get("/unete", response_class=HTMLResponse)
 def invite_landing() -> HTMLResponse:
-    """Public invite landing: OG preview card + download button."""
-    return HTMLResponse(_LANDING_HTML)
+    """Public invite landing: OG preview card + download + trust notes."""
+    # Warm the latest-APK cache so the download button redirects instantly.
+    _warm_cache_async()
+    return HTMLResponse(
+        _LANDING_HTML,
+        headers={"Cache-Control": "public, max-age=3600"},
+    )

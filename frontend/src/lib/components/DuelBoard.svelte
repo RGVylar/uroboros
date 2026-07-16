@@ -26,6 +26,18 @@
 
 	// El que va por delante lidera (barra y % resaltados, coronita).
 	let meLeads = $derived((duel.me.pct ?? 0) >= (duel.them.pct ?? 0) && (duel.me.pct ?? 0) > 0);
+
+	// "Semana 29" (ISO) no le dice nada a nadie: mostramos las fechas reales.
+	const weekLabel = (() => {
+		const now = new Date();
+		const mon = new Date(now);
+		mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+		const sun = new Date(mon);
+		sun.setDate(mon.getDate() + 6);
+		const short = (d: Date) => d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+		const sameMonth = mon.getMonth() === sun.getMonth();
+		return sameMonth ? `Semana del ${mon.getDate()} al ${short(sun)}` : `Semana del ${short(mon)} al ${short(sun)}`;
+	})();
 </script>
 
 <!-- ── Marcador ── -->
@@ -50,7 +62,7 @@
 <div class="board" class:compact>
 	<div class="scorecard">
 		<div class="season">
-			<div class="season-title">⚔️ Semana {duel.week}</div>
+			<div class="season-title">⚔️ {weekLabel}</div>
 			<div class="season-phase">{duel.phase}</div>
 		</div>
 		{@render scoreRow(duel.me, meLeads)}

@@ -138,7 +138,7 @@
 	{#if duel}
 		<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem;">
 			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;">⚔️ Duelo · semana {duel.week}</div>
+				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;">⚔️ Duelo · esta semana</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">Tú {duel.seasonsWon.me} — {profile.name} {duel.seasonsWon.them}</div>
 			</div>
 			<DuelBoard {duel} compact />
