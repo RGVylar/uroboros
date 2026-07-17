@@ -1,7 +1,14 @@
 -- urostats
 -- uroboros · dashboard stats
--- Usage: psql $DATABASE_URL -f stats.sql
--- or:    pct exec 200 -- bash -c "psql \$DATABASE_URL -f /opt/uroboros/backend/scripts/stats.sql"
+--
+-- Usage, from the Proxmox host:
+--   pct exec 200 -- sudo -u postgres psql -d uroboros -f /opt/uroboros/backend/scripts/stats.sql
+--
+-- (The "could not change directory to /root" notice is harmless.)
+--
+-- Don't reach for $DATABASE_URL: it only exists inside the systemd unit via
+-- EnvironmentFile, and its value starts with the SQLAlchemy-only prefix
+-- postgresql+psycopg2://, which psql rejects as an invalid URI scheme.
 
 \pset border 2
 \pset linestyle unicode

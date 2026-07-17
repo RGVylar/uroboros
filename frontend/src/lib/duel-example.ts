@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
-// Datos de EJEMPLO para el Duelo semanal de adherencia.
+// Tipos y datos de EJEMPLO para el Duelo semanal de adherencia.
 //
-// El Duelo aún no tiene backend: esta es la única fuente de datos y sirve para
-// ver la UI en su sitio real. Cuando exista el endpoint, se sustituye
-// `makeExampleDuel(...)` por una llamada a la API que devuelva un `DuelData`
-// con la misma forma; los componentes (`DuelBoard`) no cambian.
+// El Duelo ya tiene backend (`GET /duel/{friend_id}`, desde la 0032): el perfil
+// del amigo llama a la API y mapea la respuesta a `DuelData`. Lo que queda aquí
+// son los tipos que consume `DuelBoard` y un generador de ejemplo para ver la UI
+// aislada, sin datos reales.
 // ---------------------------------------------------------------------------
 
 // Estado de un día dentro de la semana del duelo.
