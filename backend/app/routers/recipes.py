@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.deps import get_current_user, require_premium
 from app.models import DiaryEntry, Friendship, FriendshipStatus, Recipe, RecipeIngredient, User
-from app.schemas.misc import FrequentRecipeOut, RecipeIn, RecipeOut, SharedRecipeOut
+from app.models.friendship import FriendshipKind
+from app.models.recipe import RecipeScope
+from app.schemas.misc import FrequentRecipeOut, RecipeIn, RecipeOut, ShareScopeIn, SharedRecipeOut
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -19,15 +21,31 @@ def _load_recipe(db: Session, recipe_id: int) -> Recipe:
     return db.scalars(stmt).first()
 
 
-def _friend_ids(db: Session, user_id: int) -> set[int]:
+def _circles(db: Session, user_id: int) -> tuple[int | None, set[int]]:
+    """(partner_id, friend_ids) — friend_ids excludes the partner."""
+    partner_id: int | None = None
+    friends: set[int] = set()
     stmt = select(Friendship).where(
         or_(Friendship.requester_id == user_id, Friendship.receiver_id == user_id),
         Friendship.status == FriendshipStatus.accepted,
     )
-    ids: set[int] = set()
     for f in db.scalars(stmt):
-        ids.add(f.receiver_id if f.requester_id == user_id else f.requester_id)
-    return ids
+        other = f.receiver_id if f.requester_id == user_id else f.requester_id
+        if f.kind is FriendshipKind.partner:
+            partner_id = other
+        else:
+            friends.add(other)
+    return partner_id, friends
+
+
+def _can_see(db: Session, user_id: int, recipe: Recipe) -> bool:
+    """Whether `recipe` is shared with this user's circle."""
+    if recipe.share_scope is RecipeScope.none:
+        return False
+    partner_id, friends = _circles(db, user_id)
+    if recipe.owner_id == partner_id:
+        return True  # partners see both 'partner' and 'friends'
+    return recipe.owner_id in friends and recipe.share_scope is RecipeScope.friends
 
 
 # ── GET /recipes/frequent ────────────────────────────────────────────────────
@@ -60,15 +78,28 @@ def list_shared_recipes(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[dict]:
-    friend_ids = _friend_ids(db, user.id)
-    if not friend_ids:
+    partner_id, friend_ids = _circles(db, user.id)
+    if not friend_ids and partner_id is None:
         return []
+
+    # Your partner's 'partner' recipes are yours to see; a friend only ever sees
+    # what was published to 'friends'.
+    visible = []
+    if partner_id is not None:
+        visible.append(
+            (Recipe.owner_id == partner_id)
+            & (Recipe.share_scope.in_([RecipeScope.partner, RecipeScope.friends]))
+        )
+    if friend_ids:
+        visible.append(
+            Recipe.owner_id.in_(friend_ids) & (Recipe.share_scope == RecipeScope.friends)
+        )
 
     stmt = (
         select(Recipe, User)
         .join(User, Recipe.owner_id == User.id)
         .options(selectinload(Recipe.ingredients).joinedload(RecipeIngredient.product))
-        .where(Recipe.owner_id.in_(friend_ids), Recipe.is_shared == True)  # noqa: E712
+        .where(or_(*visible))
         .order_by(Recipe.name)
     )
     results = []
@@ -77,6 +108,7 @@ def list_shared_recipes(
             "id": recipe.id,
             "name": recipe.name,
             "owner_id": recipe.owner_id,
+            "share_scope": recipe.share_scope,
             "is_shared": recipe.is_shared,
             "ingredients": recipe.ingredients,
             "owner_name": owner.name,
@@ -109,9 +141,7 @@ def get_recipe(
     recipe = _load_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
-    if recipe.owner_id != user.id and not (
-        recipe.is_shared and recipe.owner_id in _friend_ids(db, user.id)
-    ):
+    if recipe.owner_id != user.id and not _can_see(db, user.id, recipe):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
     return recipe
 
@@ -139,7 +169,7 @@ def create_recipe(
     recipe = Recipe(
         name=payload.name,
         owner_id=user.id,
-        is_shared=payload.is_shared,
+        share_scope=RecipeScope(payload.share_scope),
         ingredients=[
             RecipeIngredient(product_id=i.product_id, grams=i.grams)
             for i in payload.ingredients
@@ -151,17 +181,23 @@ def create_recipe(
     return _load_recipe(db, recipe.id)
 
 
-# ── PATCH /recipes/{id}/share  — toggle sharing ──────────────────────────────
+# ── PATCH /recipes/{id}/share  — pick who sees it ────────────────────────────
 @router.patch("/{recipe_id}/share", response_model=RecipeOut)
-def toggle_share(
+def set_share_scope(
     recipe_id: int,
+    payload: ShareScopeIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Recipe:
+    """Used to be a blind toggle; now the caller says which circle.
+
+    'partner' is allowed with no partner yet — it just means nobody sees it for
+    now, and it starts working the day there is one.
+    """
     recipe = db.get(Recipe, recipe_id)
     if not recipe or recipe.owner_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
-    recipe.is_shared = not recipe.is_shared
+    recipe.share_scope = RecipeScope(payload.scope)
     db.commit()
     return _load_recipe(db, recipe.id)
 
@@ -176,16 +212,15 @@ def copy_recipe(
     source = _load_recipe(db, recipe_id)
     if not source:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
-    # Must be shared and from a friend (or own recipe)
-    if source.owner_id != user.id:
-        friend_ids = _friend_ids(db, user.id)
-        if source.owner_id not in friend_ids or not source.is_shared:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Recipe not accessible")
+    # Must be shared with my circle (or be my own)
+    if source.owner_id != user.id and not _can_see(db, user.id, source):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Recipe not accessible")
 
+    # The copy is private: someone else's sharing choice isn't mine to inherit.
     clone = Recipe(
         name=source.name,
         owner_id=user.id,
-        is_shared=False,
+        share_scope=RecipeScope.none,
         ingredients=[
             RecipeIngredient(product_id=ing.product_id, grams=ing.grams)
             for ing in source.ingredients
@@ -208,7 +243,7 @@ def update_recipe(
     if not recipe or recipe.owner_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
     recipe.name = payload.name
-    recipe.is_shared = payload.is_shared
+    recipe.share_scope = RecipeScope(payload.share_scope)
     for ing in list(recipe.ingredients):
         db.delete(ing)
     recipe.ingredients = [

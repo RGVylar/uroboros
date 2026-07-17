@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.measurement_keys import MEASUREMENT_KEYS
+from app.models.recipe import RecipeScope
 
 
 class GoalsIn(BaseModel):
@@ -101,14 +103,22 @@ class RecipeIngredientOut(BaseModel):
 class RecipeIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     ingredients: list[RecipeIngredientIn]
-    is_shared: bool = False
+    # New recipes go out to friends by default: recipes are the social side of the
+    # app, and nothing here is private the way the diary is. Narrow it per recipe
+    # with PATCH /recipes/{id}/share.
+    share_scope: Literal["none", "partner", "friends"] = "friends"
+
+
+class ShareScopeIn(BaseModel):
+    scope: Literal["none", "partner", "friends"]
 
 
 class RecipeOut(BaseModel):
     id: int
     name: str
     owner_id: int
-    is_shared: bool
+    share_scope: RecipeScope
+    is_shared: bool  # computed: share_scope is not none
     ingredients: list[RecipeIngredientOut]
 
     class Config:

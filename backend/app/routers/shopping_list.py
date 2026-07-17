@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import InventoryItem, SharedInventoryItem, SharedShoppingListItem, User
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship
+from app.services.household import active_household
 from app.models.inventory import ShoppingListItem
 from app.models.recipe import Recipe, RecipeIngredient
 from app.schemas.inventory import (
@@ -22,14 +23,8 @@ router = APIRouter(prefix="/shopping-list", tags=["shopping-list"])
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _get_active_shared_friendship(db: Session, user_id: int) -> Friendship | None:
-    return db.scalar(
-        select(Friendship).where(
-            or_(Friendship.requester_id == user_id, Friendship.receiver_id == user_id),
-            Friendship.status == FriendshipStatus.accepted,
-            Friendship.shared_inventory_requester == True,  # noqa: E712
-            Friendship.shared_inventory_receiver == True,  # noqa: E712
-        )
-    )
+    """The partnership whose shopping list this user shares, if any."""
+    return active_household(db, user_id)
 
 
 def _to_out_personal(item: ShoppingListItem) -> ShoppingListItemOut:

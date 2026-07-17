@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr
 
-from app.models.friendship import FriendshipStatus
+from app.models.friendship import FriendshipKind, FriendshipStatus
 
 
 class UserMinimal(BaseModel):
@@ -21,6 +21,8 @@ class FriendshipOut(BaseModel):
     requester: UserMinimal
     receiver: UserMinimal
     status: FriendshipStatus
+    kind: FriendshipKind
+    partner_proposed_by: int | None = None
     can_add_food: bool
     can_add_food_requester: bool
     shared_inventory_requester: bool
@@ -38,11 +40,18 @@ class FriendshipOut(BaseModel):
 class FriendshipRequest(BaseModel):
     """Send a friend request by email."""
     email: str
+    kind: Literal["friend", "partner"] = "friend"
 
 
 class FriendshipUpdate(BaseModel):
-    """Accept/reject a request, or update permissions."""
+    """Accept/reject a request, or update permissions.
+
+    `kind` does double duty on an accepted friendship: asking for "partner"
+    proposes it (and seals it once the other side asks too), asking for "friend"
+    steps back down. On a pending request it can only lower what was proposed.
+    """
     status: Literal["accepted", "rejected"] | None = None
+    kind: Literal["friend", "partner"] | None = None
     can_add_food: bool | None = None           # receiver controls
     can_add_food_requester: bool | None = None  # requester controls
     # Each side opts in independently

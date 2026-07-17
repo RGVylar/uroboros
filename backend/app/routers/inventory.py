@@ -14,7 +14,8 @@ from app.models import (
     User,
 )
 from app.models.diary import DiaryEntry
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship
+from app.services.household import active_household
 from app.schemas.inventory import (
     CostSummaryOut,
     InventoryAdjustIn,
@@ -33,15 +34,8 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _get_active_shared_friendship(db: Session, user_id: int) -> Friendship | None:
-    """Return the accepted friendship with shared_inventory=True for this user, if any."""
-    return db.scalar(
-        select(Friendship).where(
-            or_(Friendship.requester_id == user_id, Friendship.receiver_id == user_id),
-            Friendship.status == FriendshipStatus.accepted,
-            Friendship.shared_inventory_requester == True,  # noqa: E712
-            Friendship.shared_inventory_receiver == True,  # noqa: E712
-        )
-    )
+    """The partnership whose inventory this user shares, if any."""
+    return active_household(db, user_id)
 
 
 def _to_out_personal(item: InventoryItem) -> InventoryItemOut:

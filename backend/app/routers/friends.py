@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User, InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
 from app.schemas.friendship import FriendshipOut, FriendshipRequest, FriendshipUpdate
 
 router = APIRouter(prefix="/friends", tags=["friends"])
@@ -19,6 +19,38 @@ def _get_friendship(db: Session, friendship_id: int, user: User) -> Friendship:
     if not f or (f.requester_id != user.id and f.receiver_id != user.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Friendship not found")
     return f
+
+
+def _partner_of(db: Session, user_id: int, exclude_id: int | None = None) -> Friendship | None:
+    """The user's accepted partnership, if they have one.
+
+    This is what actually enforces "one partner per user": the partial unique
+    indexes catch being the requester of two partnerships or the receiver of
+    two, but not the requester of one and the receiver of another — a unique
+    index gets one entry per row, and a row has two participants.
+    """
+    stmt = select(Friendship).where(
+        or_(Friendship.requester_id == user_id, Friendship.receiver_id == user_id),
+        Friendship.status == FriendshipStatus.accepted,
+        Friendship.kind == FriendshipKind.partner,
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(Friendship.id != exclude_id)
+    return db.scalar(stmt)
+
+
+def _reject_if_taken(db: Session, me_id: int, other_id: int, exclude_id: int | None = None) -> None:
+    """409 if either side already has a partner.
+
+    Only names my own partner back to me: who someone else is paired with is
+    their business, not something to leak in an error message.
+    """
+    mine = _partner_of(db, me_id, exclude_id=exclude_id)
+    if mine:
+        their = mine.receiver if mine.requester_id == me_id else mine.requester
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Ya tienes pareja ({their.name})")
+    if _partner_of(db, other_id, exclude_id=exclude_id):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Esa persona ya tiene pareja")
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +67,7 @@ def list_friends(
             or_(Friendship.requester_id == user.id, Friendship.receiver_id == user.id),
             Friendship.status == FriendshipStatus.accepted,
         )
+        .order_by(Friendship.kind.desc(), Friendship.created_at)  # partner first, then oldest
     )
     return list(db.scalars(stmt))
 
@@ -108,6 +141,10 @@ def send_request(
     if target.id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No puedes añadirte a ti mismo")
 
+    kind = FriendshipKind(payload.kind)
+    if kind is FriendshipKind.partner:
+        _reject_if_taken(db, user.id, target.id)
+
     # Check if a relationship already exists in either direction
     existing = db.scalar(
         select(Friendship).where(
@@ -124,17 +161,22 @@ def send_request(
             raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe una solicitud pendiente")
         # rejected → allow re-requesting: reset it
         existing.status = FriendshipStatus.pending
+        existing.kind = kind
         existing.requester_id = user.id
         existing.receiver_id = target.id
         db.commit()
         db.refresh(existing)
         return existing
 
+    # can_add_food starts off. It used to default to true, which meant every
+    # request you sent silently handed you write access to the other person's
+    # diary the moment they accepted — nobody ever asked for that.
     friendship = Friendship(
         requester_id=user.id,
         receiver_id=target.id,
         status=FriendshipStatus.pending,
-        can_add_food=True,
+        kind=kind,
+        can_add_food=False,
     )
     db.add(friendship)
     db.commit()
@@ -147,7 +189,13 @@ def send_request(
 # ---------------------------------------------------------------------------
 
 def _migrate_to_shared(db: Session, f: Friendship) -> None:
-    """Copy both users' personal inventory + shopping list into the shared tables."""
+    """Move both users' personal inventory + shopping list into the shared tables.
+
+    The personal rows are deleted once absorbed. They used to be left behind:
+    invisible while sharing (every read goes to the shared tables), but
+    `_split_from_shared` adds the shared stock back *on top* of them, so turning
+    sharing off handed you doubled quantities.
+    """
     user_ids = [f.requester_id, f.receiver_id]
 
     # ── Inventory ────────────────────────────────────────────────────────────
@@ -186,6 +234,9 @@ def _migrate_to_shared(db: Session, f: Friendship) -> None:
                 added_by_user_id=data["added_by_user_id"],
             ))
 
+    for item in personal_items:
+        db.delete(item)
+
     # ── Shopping list ─────────────────────────────────────────────────────────
     personal_shopping = list(db.scalars(
         select(ShoppingListItem).where(ShoppingListItem.user_id.in_(user_ids))
@@ -200,6 +251,7 @@ def _migrate_to_shared(db: Session, f: Friendship) -> None:
             source=item.source,
             added_by_user_id=item.user_id,
         ))
+        db.delete(item)
 
     db.flush()
 
@@ -257,11 +309,53 @@ def update_friendship(
     user: User = Depends(get_current_user),
 ) -> Friendship:
     f = _get_friendship(db, friendship_id, user)
+    other_id = f.receiver_id if f.requester_id == user.id else f.requester_id
+
+    # Kind is handled before status on purpose: "I accept, but only as a friend"
+    # arrives as {status: accepted, kind: friend} in one request, and this branch
+    # has to still see it as pending to tell it apart from a demotion.
+    if payload.kind is not None:
+        requested = FriendshipKind(payload.kind)
+
+        if f.status == FriendshipStatus.pending:
+            if f.receiver_id != user.id:
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN, "Solo quien recibe la solicitud elige cómo aceptarla"
+                )
+            if requested is FriendshipKind.partner and f.kind is not FriendshipKind.partner:
+                # Accepting can only lower the kind. Deciding on your own that
+                # someone is your partner is exactly what we're fixing.
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, "No puedes aceptar como pareja lo que no se propuso"
+                )
+            f.kind = requested
+
+        elif f.status == FriendshipStatus.accepted:
+            if requested is FriendshipKind.partner:
+                if f.kind is not FriendshipKind.partner:
+                    _reject_if_taken(db, user.id, other_id, exclude_id=f.id)
+                    if f.partner_proposed_by is None:
+                        f.partner_proposed_by = user.id  # proposed, waiting on them
+                    elif f.partner_proposed_by != user.id:
+                        f.kind = FriendshipKind.partner  # both asked → sealed
+                        f.partner_proposed_by = None
+            else:
+                # Demotion is unilateral: you don't need the other side's blessing
+                # to stop being someone's partner. The household splits back.
+                if f.kind is FriendshipKind.partner:
+                    if f.shared_inventory:
+                        _split_from_shared(db, f)
+                    f.shared_inventory_requester = False
+                    f.shared_inventory_receiver = False
+                    f.kind = FriendshipKind.friend
+                f.partner_proposed_by = None
 
     if payload.status is not None:
         # Only the receiver can accept/reject
         if f.receiver_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor puede aceptar o rechazar")
+        if payload.status == "accepted" and f.kind is FriendshipKind.partner:
+            _reject_if_taken(db, f.receiver_id, f.requester_id, exclude_id=f.id)
         f.status = FriendshipStatus(payload.status)
 
     if payload.can_add_food is not None:
@@ -276,12 +370,19 @@ def update_friendship(
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante controla este permiso")
         f.can_add_food_requester = payload.can_add_food_requester
 
-    # Double-flag shared inventory: each side opts in independently
+    # Double-flag shared inventory: each side opts in independently. Only for
+    # partners — a household is a 1:1 thing, and the whole reason the "which
+    # shared inventory is mine?" lookup used to be ambiguous was that nothing
+    # said so.
     if payload.shared_inventory_requester is not None:
         if f.requester_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante puede cambiar su flag")
         if f.status != FriendshipStatus.accepted:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
+        if f.kind is not FriendshipKind.partner:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "La despensa compartida es solo con tu pareja"
+            )
         was_shared = f.shared_inventory
         f.shared_inventory_requester = payload.shared_inventory_requester
         now_shared = f.shared_inventory
@@ -295,6 +396,10 @@ def update_friendship(
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor puede cambiar su flag")
         if f.status != FriendshipStatus.accepted:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "La amistad debe estar aceptada")
+        if f.kind is not FriendshipKind.partner:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "La despensa compartida es solo con tu pareja"
+            )
         was_shared = f.shared_inventory
         f.shared_inventory_receiver = payload.shared_inventory_receiver
         now_shared = f.shared_inventory
@@ -332,6 +437,14 @@ def delete_friendship(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
+    """Remove the relationship, giving the household back first.
+
+    shared_inventory_items and shared_shopping_list_items are ON DELETE CASCADE
+    from friendships, so deleting the row on its own doesn't split the household
+    — it deletes it, and both people lose the stock. Split first, then drop.
+    """
     f = _get_friendship(db, friendship_id, user)
+    if f.shared_inventory:
+        _split_from_shared(db, f)
     db.delete(f)
     db.commit()
