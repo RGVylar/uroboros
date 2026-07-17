@@ -509,7 +509,7 @@
 		savingRecipe = true;
 		recipeSaveError = '';
 		try {
-			await api.post('/recipes', { name, ingredients, is_shared: false });
+			await api.post('/recipes', { name, ingredients, share_scope: 'friends' });
 			recipeSaveSuccess = 'Receta guardada.';
 			closeRecipeModal();
 		} catch (err: any) {

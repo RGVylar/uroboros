@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Recipe, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
+	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
 	import { Modal } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -148,7 +148,7 @@
 			await api.post('/recipes', {
 				name: recipeName,
 				ingredients: ingredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
-				is_shared: false,
+				share_scope: 'friends',
 			});
 			recipeName = ''; ingredients = []; showCreate = false;
 			load();
@@ -182,7 +182,7 @@
 			await api.put(`/recipes/${editingRecipe.id}`, {
 				name: editName,
 				ingredients: editIngredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
-				is_shared: editingRecipe.is_shared,
+				share_scope: editingRecipe.share_scope, // keep the circle; editing isn't unpublishing
 			});
 			cancelEdit(); load();
 		} catch (e: unknown) {
@@ -192,8 +192,30 @@
 		}
 	}
 
-	async function toggleShare(recipe: Recipe) {
-		await api.patch(`/recipes/${recipe.id}/share`, {});
+	// Three circles now, so the old on/off toggle cycles: 🔒 privada → 💚 solo mi
+	// pareja → 🔗 mis amigos → 🔒. Sin pareja, el paso intermedio se salta: no
+	// tendría a quién enseñársela.
+	const SCOPE_CYCLE: Record<RecipeScope, RecipeScope> = {
+		none: 'partner',
+		partner: 'friends',
+		friends: 'none',
+	};
+	const SCOPE_LABEL: Record<RecipeScope, string> = {
+		none: 'Privada',
+		partner: 'Solo mi pareja',
+		friends: 'Mis amigos',
+	};
+	const SCOPE_ICON: Record<RecipeScope, string> = { none: '🔒', partner: '💚', friends: '🔗' };
+
+	let hasPartner = $state(false);
+	api.get<{ kind: string }[]>('/friends')
+		.then((fs) => (hasPartner = fs.some((f) => f.kind === 'partner')))
+		.catch(() => {});
+
+	async function cycleScope(recipe: Recipe) {
+		let next = SCOPE_CYCLE[recipe.share_scope];
+		if (next === 'partner' && !hasPartner) next = 'friends';
+		await api.patch(`/recipes/${recipe.id}/share`, { scope: next });
 		load();
 	}
 
@@ -594,7 +616,7 @@
 					<div style="display:flex; align-items:center; gap:0.375rem;">
 						<span class="recipe-name">{recipe.name}</span>
 						{#if recipe.is_shared}
-							<span class="shared-badge">🔗</span>
+							<span class="shared-badge" title={SCOPE_LABEL[recipe.share_scope]}>{SCOPE_ICON[recipe.share_scope]}</span>
 						{/if}
 					</div>
 					<div class="recipe-sub">{recipe.ingredients.length} ing · {preview}</div>
@@ -610,8 +632,8 @@
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">Registrar</button>
 				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title="Copiar al portapapeles">📋</button>
 				<button class="icon-btn" onclick={() => startEdit(recipe)} title="Editar">✏️</button>
-				<button class="icon-btn" onclick={() => toggleShare(recipe)} title={recipe.is_shared ? 'Dejar de compartir' : 'Compartir'}>
-					{recipe.is_shared ? '🔗' : '🔒'}
+				<button class="icon-btn" onclick={() => cycleScope(recipe)} title="{SCOPE_LABEL[recipe.share_scope]} · toca para cambiar" aria-label="Compartir: {SCOPE_LABEL[recipe.share_scope]}">
+					{SCOPE_ICON[recipe.share_scope]}
 				</button>
 				{#if confirmingDelete === recipe.id}
 					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title="Confirmar borrado">¿Borrar?</button>

@@ -188,11 +188,15 @@ export interface RecipeIngredient {
 	product: Pick<Product, 'id' | 'name' | 'brand' | 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g' | 'allergens' | 'ingredients_text'>;
 }
 
+/** Who a recipe is shared with. 'partner' is invisible to plain friends. */
+export type RecipeScope = 'none' | 'partner' | 'friends';
+
 export interface Recipe {
 	id: number;
 	name: string;
 	owner_id: number;
-	is_shared: boolean;
+	share_scope: RecipeScope;
+	is_shared: boolean; // computed by the API: share_scope !== 'none'
 	ingredients: RecipeIngredient[];
 }
 
@@ -226,11 +230,16 @@ export interface UserMinimal {
 	avatar_id?: string | null;
 }
 
+/** What the relationship *is*. The flags below are what's switched on within it. */
+export type FriendshipKind = 'friend' | 'partner';
+
 export interface Friendship {
 	id: number;
 	requester: UserMinimal;
 	receiver: UserMinimal;
 	status: FriendshipStatus;
+	kind: FriendshipKind;
+	partner_proposed_by: number | null; // set while one side has asked and the other hasn't
 	can_add_food: boolean;           // receiver controls: requester can add to receiver's diary
 	can_add_food_requester: boolean; // requester controls: receiver can add to requester's diary
 	shared_inventory_requester: boolean;

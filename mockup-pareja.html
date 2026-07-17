@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Pareja vs Amigo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #060d10;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+    padding: 24px 16px 60px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  h2 {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 40px 0 12px;
+  }
+  h2:first-child { margin-top: 0; }
+  .note {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.5;
+    margin: -6px 0 12px;
+  }
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 10px;
+  }
+  .eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  input[type=text] {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 11px 13px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  input::placeholder { color: rgba(255,255,255,0.3); }
+
+  /* ── Selector de tipo ── */
+  .kinds { display: flex; gap: 8px; }
+  .kind {
+    flex: 1;
+    border-radius: 14px;
+    padding: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+  }
+  .kind.sel {
+    border-color: oklch(80% 0.17 165 / 0.55);
+    background: oklch(75% 0.15 160 / 0.1);
+  }
+  .kind.off { opacity: 0.4; }
+  .kind-i { font-size: 17px; }
+  .kind-t { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  .kind.sel .kind-t { color: oklch(88% 0.15 160); }
+  .kind-d {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 5px;
+    line-height: 1.45;
+  }
+  .lock {
+    font-size: 9.5px;
+    color: oklch(80% 0.13 85);
+    margin-top: 7px;
+    line-height: 1.4;
+  }
+
+  .cta {
+    width: 100%;
+    margin-top: 12px;
+    padding: 11px;
+    border-radius: 13px;
+    border: none;
+    background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+    color: #041010;
+    font-weight: 800;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .ghost {
+    padding: 9px 13px;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.7);
+    font-size: 11.5px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* ── Fila de persona ── */
+  .row { display: flex; align-items: center; gap: 11px; }
+  /* Igual que <Avatar>: imagen del preset elegido, y si no hay, disco con la
+     inicial y el tono derivado del nombre (hue() en Avatar.svelte). */
+  .av {
+    width: 44px; height: 44px; border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .av-ini {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: #fff;
+  }
+  .av-silva { background: linear-gradient(135deg, oklch(72% 0.18 241), oklch(55% 0.16 271)); }
+  .av.p {
+    box-shadow: 0 0 18px oklch(75% 0.2 165 / 0.35);
+    border: 2px solid oklch(80% 0.17 165);
+  }
+  .nm { font-size: 13.5px; font-weight: 700; }
+  .em { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 1px; }
+
+  /* ── Toggles ── */
+  .tg {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 11px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-top: 7px;
+  }
+  .tg-t { font-size: 12px; font-weight: 600; }
+  .tg-d { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .sw {
+    width: 40px; height: 24px; border-radius: 99px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+  }
+  .sw.on {
+    background: oklch(75% 0.18 165 / 0.35);
+    border-color: oklch(80% 0.17 165 / 0.5);
+  }
+  .knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+  }
+  .sw.on .knob { left: 18px; }
+
+  .partner-card {
+    border-color: oklch(75% 0.18 160 / 0.3);
+    background: oklch(75% 0.15 160 / 0.07);
+  }
+  .tag {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.075em;
+    text-transform: uppercase; color: oklch(85% 0.15 160);
+  }
+  .warn {
+    background: oklch(60% 0.16 25 / 0.1);
+    border: 1px solid oklch(65% 0.18 25 / 0.3);
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-size: 11px;
+    color: oklch(85% 0.1 30);
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+  .danger {
+    width: 100%; margin-top: 10px; padding: 10px;
+    border-radius: 12px;
+    border: 1px solid oklch(65% 0.18 25 / 0.4);
+    background: oklch(60% 0.16 25 / 0.12);
+    color: oklch(85% 0.12 25);
+    font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h2>1 · Añadir — elegir el tipo</h2>
+<p class="note">El tipo se elige aquí, no se deduce de un permiso suelto. Cada opción dice lo que implica antes de enviar nada.</p>
+<div class="card">
+  <div class="eyebrow" style="margin-bottom:10px;">Enviar solicitud</div>
+  <input type="text" placeholder="Email de la persona..." value="silva@email.com">
+  <div class="kinds">
+    <div class="kind">
+      <div class="kind-i">💚</div>
+      <div class="kind-t">Pareja</div>
+      <div class="kind-d">Despensa y lista de la compra en común. Podéis apuntaros comida.</div>
+    </div>
+    <div class="kind sel">
+      <div class="kind-i">👋</div>
+      <div class="kind-t">Amigo</div>
+      <div class="kind-d">Recetas y duelo semanal. Cada uno con su despensa.</div>
+    </div>
+  </div>
+  <button class="cta">Enviar solicitud</button>
+</div>
+
+<h2>2 · Si ya tienes pareja</h2>
+<p class="note">Una pareja como máximo. La opción no desaparece: se explica. Así el límite se entiende en vez de sorprender.</p>
+<div class="card">
+  <div class="kinds">
+    <div class="kind off">
+      <div class="kind-i">💚</div>
+      <div class="kind-t">Pareja</div>
+      <div class="kind-d">Despensa y lista de la compra en común.</div>
+      <div class="lock">🔒 Ya tienes a Pilar como pareja</div>
+    </div>
+    <div class="kind sel">
+      <div class="kind-i">👋</div>
+      <div class="kind-t">Amigo</div>
+      <div class="kind-d">Recetas y duelo semanal.</div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · La solicitud de pareja</h2>
+<p class="note">El tipo se propone, no se impone: Silva ve qué implica y puede aceptar como amigo aunque le hayas pedido pareja.</p>
+<div class="card">
+  <div class="row">
+    <img class="av" src="frontend/static/avatars/aguacate.webp" alt="Rubén">
+    <div style="flex:1; min-width:0;">
+      <div class="nm">Rubén</div>
+      <div class="em">te quiere añadir como <span style="color:oklch(85% 0.15 160); font-weight:700;">pareja</span></div>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:11px 13px; margin-top:11px;">
+    <div style="font-size:10.5px; color:rgba(255,255,255,0.5); line-height:1.7;">
+      Si aceptáis como pareja podréis:<br>
+      · juntar despensa y lista de la compra<br>
+      · apuntaros comida el uno al otro<br>
+      · veros las alergias<br>
+      <span style="color:rgba(255,255,255,0.35);">Cada cosa se activa aparte. Nada se enciende solo.</span>
+    </div>
+  </div>
+  <button class="cta">Aceptar como pareja</button>
+  <div style="display:flex; gap:7px; margin-top:7px;">
+    <button class="ghost" style="flex:1;">Aceptar solo como amigo</button>
+    <button class="ghost" style="width:38px;">✕</button>
+  </div>
+</div>
+
+<h2>4 · La solicitud de amigo</h2>
+<p class="note">Mucho más corta, y esa es la gracia: si aceptar amigo casi no tiene consecuencias, la pantalla no tiene nada que explicar. No hay "aceptar como pareja" — solo se puede rebajar el tipo, nunca subirlo.</p>
+<div class="card">
+  <div class="row">
+    <div class="av av-ini av-silva">S</div>
+    <div style="flex:1; min-width:0;">
+      <div class="nm">Silva</div>
+      <div class="em">te quiere añadir como <span style="color:rgba(255,255,255,0.75); font-weight:700;">amigo</span></div>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:11px 13px; margin-top:11px;">
+    <div style="font-size:10.5px; color:rgba(255,255,255,0.5); line-height:1.7;">
+      Silva podrá:<br>
+      · ver tu racha y cuántas recetas tienes<br>
+      · ver las recetas que marques <em>para amigos</em><br>
+      · proponerte duelo semanal (solo el %)<br>
+      <span style="color:rgba(255,255,255,0.35);">No verá tu diario ni podrá escribir en él.</span>
+    </div>
+  </div>
+  <button class="cta">Aceptar</button>
+  <div style="display:flex; gap:7px; margin-top:7px;">
+    <button class="ghost" style="flex:1;">Rechazar</button>
+  </div>
+</div>
+
+<h2>5 · La lista, ya separada</h2>
+<p class="note">Pareja arriba, amigos debajo. La tarjeta de amigo es más corta: la despensa no sale desactivada, es que no existe para amigos. Pilar tiene avatar elegido y Silva no — de ahí el disco con la inicial, igual que hace &lt;Avatar&gt;.</p>
+
+<div class="card partner-card">
+  <div class="row">
+    <img class="av p" src="frontend/static/avatars/fresa.webp" alt="Pilar">
+    <div style="flex:1; min-width:0;">
+      <div class="tag">Pareja</div>
+      <div class="nm" style="margin-top:1px;">Pilar</div>
+      <div class="em">pilar@email.com</div>
+    </div>
+  </div>
+  <div class="tg">
+    <div>
+      <div class="tg-t">🏠 Despensa común</div>
+      <div class="tg-d">Un inventario y una lista para los dos ✓</div>
+    </div>
+    <div class="sw on"><div class="knob"></div></div>
+  </div>
+  <div class="tg">
+    <div>
+      <div class="tg-t">🍽️ Puede apuntar en mi diario</div>
+      <div class="tg-d">Incluye ver tus alergias</div>
+    </div>
+    <div class="sw on"><div class="knob"></div></div>
+  </div>
+  <div class="tg">
+    <div>
+      <div class="tg-t">⚔️ Duelo semanal</div>
+      <div class="tg-d">Solo se comparte el %, nunca el diario</div>
+    </div>
+    <div class="sw on"><div class="knob"></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div class="av av-ini av-silva">S</div>
+    <div style="flex:1; min-width:0;">
+      <div class="nm">Silva</div>
+      <div class="em">silva@email.com</div>
+    </div>
+    <button class="ghost" style="font-size:10.5px; padding:6px 10px;">Hacer pareja</button>
+  </div>
+  <div class="tg">
+    <div>
+      <div class="tg-t">⚔️ Duelo semanal</div>
+      <div class="tg-d">Esperando a Silva...</div>
+    </div>
+    <div class="sw on"><div class="knob"></div></div>
+  </div>
+  <div class="tg">
+    <div>
+      <div class="tg-t">📖 Mis recetas compartidas</div>
+      <div class="tg-d">Silva ve las que marques para amigos</div>
+    </div>
+    <div class="sw"><div class="knob"></div></div>
+  </div>
+</div>
+
+<h2>6 · Dejar de ser pareja</h2>
+<p class="note">Unilateral y sin pedir permiso — no necesitas el visto bueno de nadie para romper. Pero la despensa se parte, y eso se avisa antes, no después.</p>
+<div class="card">
+  <div class="row">
+    <img class="av p" src="frontend/static/avatars/fresa.webp" alt="Pilar">
+    <div style="flex:1; min-width:0;">
+      <div class="tag">Pareja</div>
+      <div class="nm" style="margin-top:1px;">Pilar</div>
+    </div>
+  </div>
+  <div class="warn">
+    <strong>Vuestra despensa se separará.</strong><br>
+    Cada uno recupera lo que aportó. Seguiréis siendo amigos: no se borran las recetas ni el historial del duelo.
+  </div>
+  <button class="danger">Ya no somos pareja</button>
+</div>
+
+</body>
+</html>
