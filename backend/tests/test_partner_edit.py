@@ -152,3 +152,20 @@ def test_plain_friend_cannot_edit_or_delete_my_entry(client, make_user, make_pro
     assert client.delete(f"{API}/diary/{my_id}", headers=auth(silva)).status_code == 404
     # Y mi entrada sigue como estaba
     assert _entries(client, ruben)[0]["grams"] == 100
+
+
+def test_delete_only_for_partner_keeps_mine(client, make_user, make_product):
+    """'Solo para la pareja' borra su copia y conserva la mía."""
+    ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    _partner_can_write(client, ruben, pilar)
+    product = make_product("Pollo")
+
+    mine = _log(client, ruben, product, grams=100, meal="lunch", also_for=pilar)
+    my_id = mine[0]["id"]
+    assert len(_entries(client, ruben)) == 1
+    assert len(_entries(client, pilar)) == 1
+
+    r = client.delete(f"{API}/diary/{my_id}?only_for_user_id={pilar.id}", headers=auth(ruben))
+    assert r.status_code == 204, r.text
+    assert len(_entries(client, ruben)) == 1
+    assert _entries(client, pilar) == []

@@ -121,9 +121,10 @@
 	let editSaving = $state(false);
 	// Pareja en editar: si la pareja ya tiene este producto en esta comida hoy.
 	let partnerEntry: { entry_id: number; grams: number } | null = $state(null);
-	let sharePartner = $state(false);          // toggle "también para la pareja"
-	let partnerDiffGrams = $state(false);      // toggle "cantidad distinta"
-	let partnerGrams = $state(100);            // gramos de la pareja si distintos
+	let sharePartner = $state(false);          // "comida compartida" on/off
+	let partnerGrams = $state(100);            // gramos/ml de la pareja
+	// Unidad (g o ml) del producto en edición — se conserva en los "platos".
+	let editUnit = $derived(editingEntry?.product ? productUnit(editingEntry.product) : 'g');
 
 	// Delete confirm state
 	let deletingEntry: DiaryEntry | null = $state(null);
@@ -266,28 +267,42 @@
 		return goals;
 	})());
 
+	// ¿La pareja tiene una copia de ESTA entrada (mismo producto/comida/día)?
+	// Solo si la tiene ofrecemos "Solo para la pareja" en el menú de borrar.
+	let deletingPartnerHas = $state(false);
+
 	function startDelete(entry: DiaryEntry) {
-		if (partner) {
-			deletingEntry = entry;
-		} else {
-			confirmDelete(entry.id, false);
+		if (!partner) {
+			confirmDelete(entry.id, 'mine');
+			return;
+		}
+		deletingPartnerHas = false;
+		deletingEntry = entry;
+		if (!connectivity.isOffline) {
+			api.get<{ entry_id: number | null }>(
+				`/diary/partner-entry?user_id=${partner.id}&product_id=${entry.product_id}&day=${today}&meal_type=${entry.meal_type}`
+			).then(res => {
+				if (deletingEntry === entry) deletingPartnerHas = res.entry_id != null;
+			}).catch(() => {});
 		}
 	}
 
-	async function confirmDelete(id: number, alsoForPartner: boolean) {
+	async function confirmDelete(id: number, mode: 'both' | 'mine' | 'partner') {
 		deletingEntry = null;
-		const url = alsoForPartner && partner
-			? `/diary/${id}?also_for_user_id=${partner.id}`
-			: `/diary/${id}`;
+		let url = `/diary/${id}`;
+		if (partner && mode === 'both') url += `?also_for_user_id=${partner.id}`;
+		else if (partner && mode === 'partner') url += `?only_for_user_id=${partner.id}`;
+		const removesMine = mode !== 'partner';  // "solo para la pareja" conserva la mía
 		if (connectivity.isOffline) {
 			syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
-			optimisticDeleteEntry(id);
+			if (removesMine) optimisticDeleteEntry(id);
 			return;
 		}
 		// Online: update UI instantly, send request in background, revert on failure
-		optimisticDeleteEntry(id);
+		if (removesMine) optimisticDeleteEntry(id);
 		try {
 			await api.del(url);
+			if (mode === 'partner') toast.success(`Quitado del diario de ${partner?.name}`);
 		} catch {
 			toast.error('No se pudo borrar');
 			load();
@@ -301,9 +316,15 @@
 		// Reset del bloque de pareja y consulta si ya lo tiene (solo online).
 		partnerEntry = null;
 		sharePartner = false;
-		partnerDiffGrams = false;
 		partnerGrams = entry.grams;
 		if (partner && !connectivity.isOffline) refreshPartnerEntry();
+	}
+
+	// Interruptor "comida compartida": al activarlo, si la pareja aún no lo tiene,
+	// hereda tus gramos/ml como punto de partida (luego se editan por separado).
+	function toggleSharePartner() {
+		sharePartner = !sharePartner;
+		if (sharePartner && !partnerEntry) partnerGrams = editGrams;
 	}
 
 	async function refreshPartnerEntry() {
@@ -320,7 +341,6 @@
 				partnerEntry = { entry_id: res.entry_id, grams: res.grams ?? 0 };
 				sharePartner = true;
 				partnerGrams = res.grams ?? editGrams;
-				partnerDiffGrams = (res.grams ?? editGrams) !== editGrams;
 			}
 		} catch {
 			// Si falla la consulta, dejamos el bloque en "no lo tiene" (default seguro)
@@ -337,9 +357,10 @@
 		const name = editingEntry.product?.name ?? 'entrada';
 		const myGrams = editGrams;
 		const mt = editMealType as MealType;
-		const wantPartner = !!(partner && sharePartner);
-		const pGrams = partnerDiffGrams ? partnerGrams : myGrams;
+		const pGrams = partnerGrams;
 		const existing = partnerEntry;
+		// Añadir a la pareja solo si NO lo tenía y activaste el interruptor.
+		const wantAdd = !!(partner && sharePartner && !existing);
 		try {
 			if (connectivity.isOffline) {
 				syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editId}`, body: { grams: myGrams, meal_type: mt }, label: `Editar ${name}` });
@@ -354,12 +375,13 @@
 				await api.patch(`/diary/${editId}`, { grams: myGrams, meal_type: mt });
 				// Reconciliar la copia de la pareja (afecta a SU diario, no al mío)
 				if (partner) {
-					if (wantPartner && existing) {
-						await api.patch(`/diary/${existing.entry_id}`, { grams: pGrams, meal_type: mt });
-					} else if (wantPartner && !existing) {
+					if (existing) {
+						// Ya la tiene: actualizar SOLO sus gramos y solo si los cambiaste.
+						if (pGrams !== existing.grams) {
+							await api.patch(`/diary/${existing.entry_id}`, { grams: pGrams });
+						}
+					} else if (wantAdd) {
 						await api.post('/diary', { product_id: productId, grams: pGrams, consumed_at: consumedAt, meal_type: mt, only_for_user_id: partner.id });
-					} else if (!wantPartner && existing) {
-						await api.del(`/diary/${existing.entry_id}`);
 					}
 				}
 			} catch {
@@ -963,10 +985,12 @@
 		title={editingEntry.product?.name ?? 'Editar'}
 		subtitle="Editar entrada"
 	>
-		<div class="form-group">
-			<label for="edit-grams">Gramos</label>
-			<input id="edit-grams" type="number" bind:value={editGrams} min="1" step="1" style="width:100%;" />
-		</div>
+		{#if !(partner && !connectivity.isOffline && (partnerEntry || sharePartner))}
+			<div class="form-group">
+				<label for="edit-grams">{editUnit === 'ml' ? 'Mililitros' : 'Gramos'}</label>
+				<input id="edit-grams" type="number" bind:value={editGrams} min="1" step="1" style="width:100%;" />
+			</div>
+		{/if}
 
 		<div class="form-group">
 			<label>Comida</label>
@@ -985,22 +1009,60 @@
 		{#if partner && !connectivity.isOffline}
 			<div class="form-group">
 				<label>Pareja</label>
-				<button
-					onclick={() => sharePartner = !sharePartner}
-					class:btn-secondary={!sharePartner}
-					style="width:100%; text-align:left; font-size:0.8rem; padding:0.5rem 0.7rem;">
-					{sharePartner ? '✓ ' : ''}También para {partner.name}{partnerEntry ? ` · ya lo tiene (${Math.round(partnerEntry.grams)}g)` : ''}
-				</button>
-				{#if sharePartner}
-					<button
-						onclick={() => partnerDiffGrams = !partnerDiffGrams}
-						class:btn-secondary={!partnerDiffGrams}
-						style="width:100%; text-align:left; font-size:0.75rem; padding:0.4rem 0.7rem; margin-top:0.4rem;">
-						{partnerDiffGrams ? '✓ ' : ''}Cantidad distinta para {partner.name}
-					</button>
-					{#if partnerDiffGrams}
-						<input type="number" bind:value={partnerGrams} min="1" step="1"
-							style="width:100%; margin-top:0.4rem;" aria-label="Gramos de {partner.name}" />
+
+				{#snippet plates()}
+					<div class="edit-plates">
+						<div class="edit-plate you">
+							<div class="edit-av you">Tú</div>
+							<div class="edit-plate-who">Tú</div>
+							<div class="edit-plate-g">
+								<input type="number" bind:value={editGrams} min="1" step="1" aria-label="Tus {editUnit}" />
+								<span>{editUnit}</span>
+							</div>
+						</div>
+						<div class="edit-plate her">
+							<div class="edit-av">{partner.name.charAt(0).toUpperCase()}</div>
+							<div class="edit-plate-who">{partner.name}</div>
+							<div class="edit-plate-g">
+								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label="{editUnit} de {partner.name}" />
+								<span>{editUnit}</span>
+							</div>
+						</div>
+					</div>
+				{/snippet}
+
+				{#if partnerEntry}
+					<!-- Ya la tiene: sin interruptor. Ajusta cantidades; para quitarla, se usa Borrar. -->
+					<div class="edit-share-row on">
+						<div style="flex:1; min-width:0;">
+							<div style="font-weight:700; font-size:0.85rem;">
+								Comida compartida
+								<span class="edit-has-badge">ya lo tiene</span>
+							</div>
+							<div class="edit-share-sub" style="margin-top:0.1rem;">Editando también lo de {partner.name}</div>
+						</div>
+					</div>
+					{@render plates()}
+					<div class="edit-share-sub" style="margin-top:0.5rem;">Para quitarla de su diario, usa la ✕ de la entrada.</div>
+				{:else}
+					<div class="edit-share-row" class:on={sharePartner}>
+						<div style="flex:1; min-width:0;">
+							<div style="font-weight:700; font-size:0.85rem;">Comida compartida</div>
+							<div class="edit-share-sub" style="margin-top:0.1rem;">
+								{sharePartner ? `Cada uno con sus ${editUnit}` : `Añadirla también para ${partner.name}`}
+							</div>
+						</div>
+						<button
+							type="button"
+							class="edit-switch"
+							class:on={sharePartner}
+							onclick={toggleSharePartner}
+							role="switch"
+							aria-checked={sharePartner}
+							aria-label="Comida compartida con {partner.name}"></button>
+					</div>
+					{#if sharePartner}
+						{@render plates()}
 					{/if}
 				{/if}
 			</div>
@@ -1023,15 +1085,22 @@
 		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}{deletingEntry.product ? productUnit(deletingEntry.product) : 'g'}"
 	>
 		<div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
-			¿Borrar también para {partner?.name}?
+			{deletingPartnerHas
+				? `${partner?.name} también lo tiene. ¿De quién lo quito?`
+				: `¿Borrar también para ${partner?.name}?`}
 		</div>
 		<div style="display:flex; flex-direction:column; gap:0.5rem;">
-			<button class="btn-danger" onclick={() => confirmDelete(deletingEntry!.id, true)}>
+			<button class="btn-danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
 				Borrar para los dos
 			</button>
-			<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, false)}>
-				Solo para mí
+			<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
+				Solo para mí{deletingPartnerHas ? ` (${partner?.name} lo conserva)` : ''}
 			</button>
+			{#if deletingPartnerHas}
+				<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
+					Solo para {partner?.name} (tú lo conservas)
+				</button>
+			{/if}
 			<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
 		</div>
 	</Modal>
@@ -1132,6 +1201,137 @@
 {/if}
 
 <style>
+	/* ── Pareja en editar · "dos platos" ── */
+	.edit-share-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid var(--border, rgba(255,255,255,0.09));
+		border-radius: 16px;
+		padding: 0.7rem 0.85rem;
+		transition: background 0.25s, border-color 0.25s;
+	}
+	.edit-share-row.on {
+		background: oklch(75% 0.18 165 / 0.10);
+		border-color: oklch(80% 0.17 165 / 0.32);
+	}
+	.edit-share-sub {
+		font-size: 0.72rem;
+		color: var(--text-muted, rgba(255,255,255,0.55));
+		transition: color 0.2s;
+	}
+	.edit-has-badge {
+		display: inline-block;
+		font-size: 0.6rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		color: var(--primary, oklch(85% 0.17 160));
+		background: oklch(80% 0.17 165 / 0.14);
+		border: 1px solid oklch(80% 0.17 165 / 0.32);
+		padding: 0.08rem 0.4rem;
+		border-radius: 99px;
+		margin-left: 0.35rem;
+		vertical-align: middle;
+	}
+	.edit-switch {
+		width: 46px;
+		height: 28px;
+		flex-shrink: 0;
+		border-radius: 99px;
+		background: rgba(255,255,255,0.14);
+		border: 1px solid rgba(255,255,255,0.12);
+		position: relative;
+		cursor: pointer;
+		padding: 0;
+		box-shadow: none;
+		transition: background 0.25s;
+	}
+	.edit-switch::after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+		transition: left 0.26s cubic-bezier(0.34,1.56,0.64,1);
+	}
+	.edit-switch.on {
+		background: linear-gradient(135deg, var(--primary, oklch(85% 0.17 160)), var(--primary-dim, oklch(72% 0.18 170)));
+		border-color: transparent;
+	}
+	.edit-switch.on::after { left: 22px; }
+
+	.edit-plates {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.6rem;
+		margin-top: 0.6rem;
+	}
+	.edit-plate {
+		background: var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid var(--border, rgba(255,255,255,0.09));
+		border-radius: 14px;
+		padding: 0.75rem 0.6rem;
+		text-align: center;
+	}
+	.edit-plate.you {
+		border-color: oklch(72% 0.14 220 / 0.35);
+		background: oklch(72% 0.14 220 / 0.07);
+	}
+	.edit-plate.her {
+		border-color: oklch(80% 0.17 165 / 0.32);
+		background: oklch(75% 0.18 165 / 0.08);
+	}
+	.edit-av {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		margin: 0 auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.72rem;
+		font-weight: 800;
+		color: #fff;
+		background: linear-gradient(135deg, oklch(70% 0.16 320), oklch(62% 0.2 350));
+	}
+	.edit-av.you {
+		background: linear-gradient(135deg, oklch(72% 0.14 220), oklch(60% 0.16 240));
+	}
+	.edit-plate-who {
+		font-size: 0.72rem;
+		color: var(--text-muted, rgba(255,255,255,0.55));
+		margin-top: 0.45rem;
+	}
+	.edit-plate-g {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 0.2rem;
+		margin-top: 0.35rem;
+	}
+	.edit-plate-g input {
+		width: 62px;
+		background: rgba(0,0,0,0.25);
+		border: 1px solid var(--border, rgba(255,255,255,0.09));
+		border-radius: 10px;
+		color: #fff;
+		font-size: 1rem;
+		font-weight: 800;
+		padding: 0.3rem 0.35rem;
+		text-align: center;
+		font-family: inherit;
+		outline: none;
+	}
+	.edit-plate-g span {
+		font-size: 0.72rem;
+		color: var(--text-faint, rgba(255,255,255,0.35));
+	}
+
 	.cache-notice {
 		display: flex;
 		align-items: center;

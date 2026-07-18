@@ -648,7 +648,8 @@ def update_entry(
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_entry(
     entry_id: int,
-    also_for_user_id: int | None = Query(None),
+    also_for_user_id: int | None = Query(None),  # borrar la mía + la copia de la pareja
+    only_for_user_id: int | None = Query(None),  # borrar SOLO la copia de la pareja, conservar la mía
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
@@ -657,20 +658,22 @@ def delete_entry(
     if not entry or (entry.user_id != user.id and not _can_log_for_user(db, user.id, entry.user_id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
 
-    if also_for_user_id and also_for_user_id != user.id:
-        if not _can_log_for_user(db, user.id, also_for_user_id):
+    # ¿Hay que tocar la copia de la pareja? Se empareja por producto + comida + día
+    # a partir de ESTA entrada (also_for = además de la mía; only_for = solo la suya).
+    partner_target = also_for_user_id or only_for_user_id
+    if partner_target and partner_target != user.id:
+        if not _can_log_for_user(db, user.id, partner_target):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 "No tienes permiso para eliminar entradas de este usuario",
             )
-        # Find the partner's entry with same product + same meal on same day
         entry_date = entry.consumed_at.date()
         p_start = datetime.combine(entry_date, time.min, tzinfo=timezone.utc)
         p_end = datetime.combine(entry_date, time.max, tzinfo=timezone.utc)
         partner_entry = db.scalar(
             select(DiaryEntry)
             .where(
-                DiaryEntry.user_id == also_for_user_id,
+                DiaryEntry.user_id == partner_target,
                 DiaryEntry.product_id == entry.product_id,
                 DiaryEntry.meal_type == entry.meal_type,
                 DiaryEntry.consumed_at >= p_start,
@@ -682,8 +685,10 @@ def delete_entry(
             _restore_inventory_for_entry(db, partner_entry)
             db.delete(partner_entry)
 
-    _restore_inventory_for_entry(db, entry)
-    db.delete(entry)
+    # Mi entrada se borra salvo que sea "solo para la pareja".
+    if not only_for_user_id:
+        _restore_inventory_for_entry(db, entry)
+        db.delete(entry)
     db.commit()
 
 
