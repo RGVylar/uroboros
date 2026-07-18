@@ -385,13 +385,9 @@
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
 						{#if percentile.active_users > 1}
-							Cumpliste tu objetivo el {percentile.pct}% de los días · top {percentile.top_percent}% de uroboros{#if rankMove}
-								<span class="rank-move {rankMove.dir}">{rankMove.dir === 'up' ? '↑' : '↓'} del {rankMove.prev}%</span>
-							{:else}
-								{' esta semana'}
-							{/if}
+							{percentile.pct}&nbsp;% de los días cumplidos ·<span class="rank-top">top {percentile.top_percent}&nbsp;%</span>de uroboros{#if rankMove}<span class="rank-move {rankMove.dir}">{rankMove.dir === 'up' ? '↑' : '↓'} del {rankMove.prev}&nbsp;%</span>{:else}{' esta semana'}{/if}
 						{:else}
-							Cumpliste tu objetivo el {percentile.pct}% de los días esta semana
+							{percentile.pct}&nbsp;% de los días cumplidos esta semana
 						{/if}
 					{:else if percentile}
 						Registra tus comidas esta semana para entrar en la comparativa
@@ -925,16 +921,22 @@
 		color: rgba(255,255,255,0.45);
 		margin-top: 0.125rem;
 	}
+	.rank-top,
 	.rank-move {
 		display: inline-flex;
 		align-items: center;
-		margin-left: 0.35rem;
-		padding: 0.02rem 0.35rem;
+		padding: 0.05rem 0.4rem;
 		border-radius: 99px;
 		font-weight: 700;
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
 	}
+	.rank-top {
+		margin: 0 0.3rem;
+		color: oklch(82% 0.14 70);
+		background: oklch(82% 0.14 70 / 0.15);
+	}
+	.rank-move { margin-left: 0.35rem; }
 	.rank-move.up { color: oklch(82% 0.16 165); background: oklch(82% 0.16 165 / 0.15); }
 	.rank-move.down { color: oklch(80% 0.14 70); background: oklch(80% 0.14 70 / 0.15); }
 	.chevron {
