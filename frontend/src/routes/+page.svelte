@@ -9,7 +9,7 @@
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -45,25 +45,32 @@
 	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
 	let lastWaterMl = $state(250); // tracks last addWater amount for offline undo
 
+	function sumTotals(entries: DiaryEntry[]): DayTotals {
+		return {
+			calories: entries.reduce((s, e) => s + e.calories, 0),
+			protein:  entries.reduce((s, e) => s + e.protein, 0),
+			carbs:    entries.reduce((s, e) => s + e.carbs, 0),
+			fat:      entries.reduce((s, e) => s + e.fat, 0),
+		};
+	}
+
+	// Reagrupa las entradas en secciones por comida (orden fijo). Reconstruir en vez
+	// de mutar in-place hace que al cambiar el meal_type de una entrada su tarjeta se
+	// mueva de sección al instante, y que las comidas vacías desaparezcan.
+	function regroupMeals(entries: DiaryEntry[]): MealSection[] {
+		const meals: MealSection[] = [];
+		for (const mt of MEAL_ORDER) {
+			const me = entries.filter(e => e.meal_type === mt);
+			if (me.length === 0) continue;
+			meals.push({ meal_type: mt, label: MEAL_LABELS[mt], totals: sumTotals(me), entries: me });
+		}
+		return meals;
+	}
+
 	function optimisticDeleteEntry(id: number) {
 		if (!summary) return;
-		const entry = summary.entries.find(e => e.id === id);
-		if (!entry) return;
-		const sub = (t: typeof summary.totals) => ({
-			calories: t.calories - entry.calories,
-			protein:  t.protein  - entry.protein,
-			carbs:    t.carbs    - entry.carbs,
-			fat:      t.fat      - entry.fat,
-		});
-		summary = {
-			...summary,
-			totals:  sub(summary.totals),
-			entries: summary.entries.filter(e => e.id !== id),
-			meals:   summary.meals.map(m => {
-				if (!m.entries.some(e => e.id === id)) return m;
-				return { ...m, totals: sub(m.totals), entries: m.entries.filter(e => e.id !== id) };
-			}),
-		};
+		const entries = summary.entries.filter(e => e.id !== id);
+		summary = { ...summary, totals: sumTotals(entries), entries, meals: regroupMeals(entries) };
 	}
 
 	function optimisticEditEntry(id: number, newGrams: number, newMealType: MealType) {
@@ -81,32 +88,8 @@
 			carbs:     Math.round(p.carbs_per_100g    * f * 10) / 10,
 			fat:       Math.round(p.fat_per_100g      * f * 10) / 10,
 		};
-		const diff = {
-			calories: updated.calories - entry.calories,
-			protein:  updated.protein  - entry.protein,
-			carbs:    updated.carbs    - entry.carbs,
-			fat:      updated.fat      - entry.fat,
-		};
-		const addDiff = (t: typeof summary.totals) => ({
-			calories: t.calories + diff.calories,
-			protein:  t.protein  + diff.protein,
-			carbs:    t.carbs    + diff.carbs,
-			fat:      t.fat      + diff.fat,
-		});
-		summary = {
-			...summary,
-			totals:  addDiff(summary.totals),
-			entries: summary.entries.map(e => e.id === id ? updated : e),
-			meals:   summary.meals.map(m => {
-				const has = m.entries.some(e => e.id === id);
-				if (!has) return m;
-				return {
-					...m,
-					totals:  addDiff(m.totals),
-					entries: m.entries.map(e => e.id === id ? updated : e),
-				};
-			}),
-		};
+		const entries = summary.entries.map(e => e.id === id ? updated : e);
+		summary = { ...summary, totals: sumTotals(entries), entries, meals: regroupMeals(entries) };
 	}
 
 	// ── Notification modal ─────────────────────────────────────────────────────
@@ -136,6 +119,11 @@
 	let editGrams = $state(100);
 	let editMealType = $state('snack');
 	let editSaving = $state(false);
+	// Pareja en editar: si la pareja ya tiene este producto en esta comida hoy.
+	let partnerEntry: { entry_id: number; grams: number } | null = $state(null);
+	let sharePartner = $state(false);          // toggle "también para la pareja"
+	let partnerDiffGrams = $state(false);      // toggle "cantidad distinta"
+	let partnerGrams = $state(100);            // gramos de la pareja si distintos
 
 	// Delete confirm state
 	let deletingEntry: DiaryEntry | null = $state(null);
@@ -310,24 +298,70 @@
 		editingEntry = entry;
 		editGrams = entry.grams;
 		editMealType = entry.meal_type;
+		// Reset del bloque de pareja y consulta si ya lo tiene (solo online).
+		partnerEntry = null;
+		sharePartner = false;
+		partnerDiffGrams = false;
+		partnerGrams = entry.grams;
+		if (partner && !connectivity.isOffline) refreshPartnerEntry();
+	}
+
+	async function refreshPartnerEntry() {
+		if (!editingEntry || !partner) return;
+		const pid = editingEntry.product_id;
+		const mt = editMealType;
+		try {
+			const res = await api.get<{ entry_id: number | null; grams: number | null; count: number }>(
+				`/diary/partner-entry?user_id=${partner.id}&product_id=${pid}&day=${today}&meal_type=${mt}`
+			);
+			// Descarta respuesta obsoleta (modal cerrado o cambiado de producto)
+			if (!editingEntry || editingEntry.product_id !== pid) return;
+			if (res.entry_id != null) {
+				partnerEntry = { entry_id: res.entry_id, grams: res.grams ?? 0 };
+				sharePartner = true;
+				partnerGrams = res.grams ?? editGrams;
+				partnerDiffGrams = (res.grams ?? editGrams) !== editGrams;
+			}
+		} catch {
+			// Si falla la consulta, dejamos el bloque en "no lo tiene" (default seguro)
+		}
 	}
 
 	async function saveEdit() {
 		if (!editingEntry) return;
 		editSaving = true;
+		// Capturamos lo necesario antes de cerrar el modal.
+		const editId = editingEntry.id;
+		const consumedAt = editingEntry.consumed_at;
+		const productId = editingEntry.product_id;
+		const name = editingEntry.product?.name ?? 'entrada';
+		const myGrams = editGrams;
+		const mt = editMealType as MealType;
+		const wantPartner = !!(partner && sharePartner);
+		const pGrams = partnerDiffGrams ? partnerGrams : myGrams;
+		const existing = partnerEntry;
 		try {
 			if (connectivity.isOffline) {
-				syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editingEntry.id}`, body: { grams: editGrams, meal_type: editMealType }, label: `Editar ${editingEntry.product?.name ?? 'entrada'}` });
-				optimisticEditEntry(editingEntry.id, editGrams, editMealType as MealType);
+				syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editId}`, body: { grams: myGrams, meal_type: mt }, label: `Editar ${name}` });
+				optimisticEditEntry(editId, myGrams, mt);
 				editingEntry = null;
 				return;
 			}
 			// Online: update UI instantly, send request in background, revert on failure
-			const editId = editingEntry.id;
-			optimisticEditEntry(editId, editGrams, editMealType as MealType);
+			optimisticEditEntry(editId, myGrams, mt);
 			editingEntry = null;
 			try {
-				await api.patch(`/diary/${editId}`, { grams: editGrams, meal_type: editMealType });
+				await api.patch(`/diary/${editId}`, { grams: myGrams, meal_type: mt });
+				// Reconciliar la copia de la pareja (afecta a SU diario, no al mío)
+				if (partner) {
+					if (wantPartner && existing) {
+						await api.patch(`/diary/${existing.entry_id}`, { grams: pGrams, meal_type: mt });
+					} else if (wantPartner && !existing) {
+						await api.post('/diary', { product_id: productId, grams: pGrams, consumed_at: consumedAt, meal_type: mt, only_for_user_id: partner.id });
+					} else if (!wantPartner && existing) {
+						await api.del(`/diary/${existing.entry_id}`);
+					}
+				}
 			} catch {
 				toast.error('No se pudo guardar el cambio');
 				load();
@@ -947,6 +981,30 @@
 				{/each}
 			</div>
 		</div>
+
+		{#if partner && !connectivity.isOffline}
+			<div class="form-group">
+				<label>Pareja</label>
+				<button
+					onclick={() => sharePartner = !sharePartner}
+					class:btn-secondary={!sharePartner}
+					style="width:100%; text-align:left; font-size:0.8rem; padding:0.5rem 0.7rem;">
+					{sharePartner ? '✓ ' : ''}También para {partner.name}{partnerEntry ? ` · ya lo tiene (${Math.round(partnerEntry.grams)}g)` : ''}
+				</button>
+				{#if sharePartner}
+					<button
+						onclick={() => partnerDiffGrams = !partnerDiffGrams}
+						class:btn-secondary={!partnerDiffGrams}
+						style="width:100%; text-align:left; font-size:0.75rem; padding:0.4rem 0.7rem; margin-top:0.4rem;">
+						{partnerDiffGrams ? '✓ ' : ''}Cantidad distinta para {partner.name}
+					</button>
+					{#if partnerDiffGrams}
+						<input type="number" bind:value={partnerGrams} min="1" step="1"
+							style="width:100%; margin-top:0.4rem;" aria-label="Gramos de {partner.name}" />
+					{/if}
+				{/if}
+			</div>
+		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
 			<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">Cancelar</button>

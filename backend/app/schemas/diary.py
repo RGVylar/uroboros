@@ -80,3 +80,10 @@ class MealConflictCheck(BaseModel):
     count: int
     calories: float
     product_names: list[str]
+
+
+class PartnerEntryStatus(BaseModel):
+    """¿La pareja ya tiene ESTE producto en ESTA comida ese día? Para el modal de editar."""
+    entry_id: int | None = None
+    grams: float | None = None
+    count: int = 0

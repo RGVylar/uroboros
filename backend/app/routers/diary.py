@@ -24,6 +24,7 @@ from app.schemas.diary import (
     MealConflictCheck,
     MealSection,
     MealTypeLiteral,
+    PartnerEntryStatus,
 )
 from app.schemas.misc import DiaryRecipeCreate
 from app.services.streak_service import calculate_streak, milestone_hit
@@ -302,6 +303,48 @@ def meal_conflict_check(
         calories=sum(e.calories for e in entries),
         product_names=[e.product.name for e in entries if e.product],
     )
+
+
+@router.get("/partner-entry", response_model=PartnerEntryStatus)
+def partner_entry_status(
+    user_id: int,
+    product_id: int,
+    day: date,
+    meal_type: MealTypeLiteral,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PartnerEntryStatus:
+    """
+    ¿`user_id` (la pareja) ya tiene ESTE producto en ESTA comida ese día?
+    Para el modal de editar: decidir si mostrar "ya lo tiene (Xg)" o "añadírselo".
+    Empareja por producto + comida + día (no solo por día), así distingue el mismo
+    alimento en desayuno vs cena.
+    """
+    if user_id != user.id and not _can_log_for_user(db, user.id, user_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "No tienes permiso para consultar el diario de este usuario",
+        )
+
+    start = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(day, time.max, tzinfo=timezone.utc)
+    entries = list(
+        db.scalars(
+            select(DiaryEntry)
+            .where(
+                DiaryEntry.user_id == user_id,
+                DiaryEntry.product_id == product_id,
+                DiaryEntry.meal_type == MealType(meal_type),
+                DiaryEntry.consumed_at >= start,
+                DiaryEntry.consumed_at <= end,
+            )
+            .order_by(DiaryEntry.consumed_at)
+        )
+    )
+    if not entries:
+        return PartnerEntryStatus(count=0)
+    first = entries[0]
+    return PartnerEntryStatus(entry_id=first.id, grams=first.grams, count=len(entries))
 
 
 @router.get("/day", response_model=DaySummary)
@@ -583,7 +626,8 @@ def update_entry(
     user: User = Depends(get_current_user),
 ) -> DiaryEntry:
     entry = db.get(DiaryEntry, entry_id)
-    if not entry or entry.user_id != user.id:
+    # Permite editar tu entrada o la de tu pareja (misma capacidad household que añadir).
+    if not entry or (entry.user_id != user.id and not _can_log_for_user(db, user.id, entry.user_id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
     product = db.get(Product, entry.product_id)
     if not product:
@@ -609,7 +653,8 @@ def delete_entry(
     user: User = Depends(get_current_user),
 ) -> None:
     entry = db.get(DiaryEntry, entry_id)
-    if not entry or entry.user_id != user.id:
+    # Permite borrar tu entrada o la de tu pareja (misma capacidad household que añadir).
+    if not entry or (entry.user_id != user.id and not _can_log_for_user(db, user.id, entry.user_id)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entry not found")
 
     if also_for_user_id and also_for_user_id != user.id:
@@ -618,7 +663,7 @@ def delete_entry(
                 status.HTTP_403_FORBIDDEN,
                 "No tienes permiso para eliminar entradas de este usuario",
             )
-        # Find the partner's entry with same product logged on same day
+        # Find the partner's entry with same product + same meal on same day
         entry_date = entry.consumed_at.date()
         p_start = datetime.combine(entry_date, time.min, tzinfo=timezone.utc)
         p_end = datetime.combine(entry_date, time.max, tzinfo=timezone.utc)
@@ -627,6 +672,7 @@ def delete_entry(
             .where(
                 DiaryEntry.user_id == also_for_user_id,
                 DiaryEntry.product_id == entry.product_id,
+                DiaryEntry.meal_type == entry.meal_type,
                 DiaryEntry.consumed_at >= p_start,
                 DiaryEntry.consumed_at <= p_end,
             )
