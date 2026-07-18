@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User, UserAllergy
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
 
 router = APIRouter(prefix="/allergies", tags=["allergies"])
 
@@ -34,10 +34,12 @@ def list_allergies(
         stmt = select(UserAllergy).where(UserAllergy.user_id == user.id)
         return list(db.scalars(stmt))
 
-    # Verify friendship with food-adding permission
+    # Seeing allergies rides on the diary permission, and both are partner-only:
+    # you only need someone's allergies if you're logging their meals.
     friendship = db.scalar(
         select(Friendship).where(
             Friendship.status == FriendshipStatus.accepted,
+            Friendship.kind == FriendshipKind.partner,
             or_(
                 # current user is requester and can_add_food
                 (Friendship.requester_id == user.id) & (Friendship.receiver_id == user_id) & Friendship.can_add_food.is_(True),

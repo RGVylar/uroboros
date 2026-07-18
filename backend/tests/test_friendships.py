@@ -27,23 +27,75 @@ def test_new_friendship_grants_no_diary_access(client, make_user):
     assert f["can_add_food_requester"] is False
 
 
-def test_friend_cannot_write_in_my_diary_by_default(client, make_user, make_product):
-    ruben, silva = make_user("Ruben"), make_user("Silva")
-    _befriend(client, ruben, silva)
-    product = make_product()
-
-    r = client.post(
+def _log_for(client, actor, target, product):
+    return client.post(
         f"{API}/diary",
         json={
             "product_id": product.id,
             "grams": 100,
             "consumed_at": "2026-07-17T12:00:00Z",
             "meal_type": "lunch",
-            "only_for_user_id": ruben.id,
+            "only_for_user_id": target.id,
         },
-        headers=auth(silva),
+        headers=auth(actor),
     )
+
+
+def test_friend_cannot_write_in_my_diary_by_default(client, make_user, make_product):
+    ruben, silva = make_user("Ruben"), make_user("Silva")
+    _befriend(client, ruben, silva)
+    assert _log_for(client, silva, ruben, make_product()).status_code == 403
+
+
+# ── Diary access is partner-only ────────────────────────────────────────────
+
+def test_a_friend_cannot_be_granted_diary_access(client, make_user):
+    """The flag can't even be switched on for a friend — it's a couple thing."""
+    ruben, silva = make_user("Ruben"), make_user("Silva")
+    fid = _befriend(client, ruben, silva)  # ruben=requester, silva=receiver
+
+    r = client.patch(f"{API}/friends/{fid}", json={"can_add_food": True}, headers=auth(silva))
     assert r.status_code == 403
+    assert "pareja" in r.json()["detail"]
+
+
+def test_a_partner_can_be_granted_and_then_write(client, make_user, make_product):
+    ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    fid = _befriend(client, ruben, pilar, kind="partner")  # ruben=req, pilar=receiver
+    product = make_product()
+
+    # Nothing granted yet → ruben can't write in pilar's diary.
+    assert _log_for(client, ruben, pilar, product).status_code == 403
+
+    # Pilar (receiver) lets ruben write.
+    r = client.patch(f"{API}/friends/{fid}", json={"can_add_food": True}, headers=auth(pilar))
+    assert r.status_code == 200
+
+    assert _log_for(client, ruben, pilar, product).status_code in (200, 201)
+
+
+def test_demoting_a_partner_revokes_diary_access(client, make_user, make_product):
+    ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    fid = _befriend(client, ruben, pilar, kind="partner")
+    product = make_product()
+    client.patch(f"{API}/friends/{fid}", json={"can_add_food": True}, headers=auth(pilar))
+    assert _log_for(client, ruben, pilar, product).status_code in (200, 201)
+
+    # Break up → the diary flag is cleared and writing is refused again.
+    r = client.patch(f"{API}/friends/{fid}", json={"kind": "friend"}, headers=auth(ruben))
+    assert r.json()["can_add_food"] is False
+    assert _log_for(client, ruben, pilar, product).status_code == 403
+
+
+def test_partner_shows_in_the_also_log_picker_but_a_friend_does_not(client, make_user):
+    ruben, pilar, silva = make_user("Ruben"), make_user("Pilar"), make_user("Silva")
+    fp = _befriend(client, ruben, pilar, kind="partner")
+    _befriend(client, ruben, silva)  # plain friend
+    client.patch(f"{API}/friends/{fp}", json={"can_add_food": True}, headers=auth(pilar))
+
+    names = {u["name"] for u in client.get(f"{API}/users", headers=auth(ruben)).json()}
+    assert "Pilar" in names   # partner who granted access
+    assert "Silva" not in names  # friend never qualifies
 
 
 # ── One partner per user ────────────────────────────────────────────────────

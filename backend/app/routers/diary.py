@@ -12,7 +12,7 @@ from app.deps import get_current_user
 from app.models import DiaryEntry, Product, User, ExerciseSession
 from app.models.cheat_day import CheatDayLog
 from app.models.diary import MealType
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
 from app.schemas.diary import (
     MEAL_LABELS,
     MEAL_ORDER,
@@ -99,6 +99,13 @@ FREE_HISTORY_DAYS = 90
 
 
 def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
+    """Whether `actor` may write in `target`'s diary.
+
+    Partners only. Logging each other's meals is an intimate, household-level
+    thing, so it needs both a partnership and the target's opt-in flag — not just
+    the flag. The flag alone used to be enough, and it defaulted to true on every
+    request ever sent, so any friend could write. kind == partner closes that.
+    """
     if actor_id == target_user_id:
         return True
 
@@ -109,6 +116,7 @@ def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
             Friendship.requester_id == actor_id,
             Friendship.receiver_id == target_user_id,
             Friendship.status == FriendshipStatus.accepted,
+            Friendship.kind == FriendshipKind.partner,
             Friendship.can_add_food.is_(True),
         )
         .limit(1)
@@ -123,6 +131,7 @@ def _can_log_for_user(db: Session, actor_id: int, target_user_id: int) -> bool:
             Friendship.requester_id == target_user_id,
             Friendship.receiver_id == actor_id,
             Friendship.status == FriendshipStatus.accepted,
+            Friendship.kind == FriendshipKind.partner,
             Friendship.can_add_food_requester.is_(True),
         )
         .limit(1)

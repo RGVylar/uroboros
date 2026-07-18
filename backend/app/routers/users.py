@@ -13,7 +13,7 @@ from app.models.cheat_day import CheatDayLog
 from app.models.creatine import CreatineLog
 from app.models.diary import DiaryEntry
 from app.models.exercise import ExerciseSession, ExerciseSessionEntry
-from app.models.friendship import Friendship, FriendshipStatus
+from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
 from app.models.goals import UserGoals
 from app.models.inventory import InventoryItem, ShoppingListItem
 from app.models.password_reset import PasswordResetToken
@@ -77,12 +77,13 @@ def list_users(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[User]:
-    """Users available for the 'also log for' picker (self + allowed friends)."""
+    """Users available for the 'also log for' picker (self + partner if allowed)."""
     as_requester = (
         select(Friendship.receiver_id)
         .where(
             Friendship.requester_id == user.id,
             Friendship.status == FriendshipStatus.accepted,
+            Friendship.kind == FriendshipKind.partner,
             Friendship.can_add_food.is_(True),
         )
     )
@@ -91,6 +92,7 @@ def list_users(
         .where(
             Friendship.receiver_id == user.id,
             Friendship.status == FriendshipStatus.accepted,
+            Friendship.kind == FriendshipKind.partner,
             Friendship.can_add_food_requester.is_(True),
         )
     )

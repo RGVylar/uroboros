@@ -341,12 +341,15 @@ def update_friendship(
                         f.partner_proposed_by = None
             else:
                 # Demotion is unilateral: you don't need the other side's blessing
-                # to stop being someone's partner. The household splits back.
+                # to stop being someone's partner. The household splits back, and
+                # the partner-only permissions (diary access) reset too.
                 if f.kind is FriendshipKind.partner:
                     if f.shared_inventory:
                         _split_from_shared(db, f)
                     f.shared_inventory_requester = False
                     f.shared_inventory_receiver = False
+                    f.can_add_food = False
+                    f.can_add_food_requester = False
                     f.kind = FriendshipKind.friend
                 f.partner_proposed_by = None
 
@@ -359,15 +362,20 @@ def update_friendship(
         f.status = FriendshipStatus(payload.status)
 
     if payload.can_add_food is not None:
-        # Receiver controls whether requester can add to receiver's diary
+        # Receiver controls whether requester can add to receiver's diary.
+        # Partners only: writing in someone's diary is a couple thing.
         if f.receiver_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el receptor controla este permiso")
+        if f.kind is not FriendshipKind.partner:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo tu pareja puede añadir a tu diario")
         f.can_add_food = payload.can_add_food
 
     if payload.can_add_food_requester is not None:
         # Requester controls whether receiver can add to requester's diary
         if f.requester_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el solicitante controla este permiso")
+        if f.kind is not FriendshipKind.partner:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo tu pareja puede añadir a tu diario")
         f.can_add_food_requester = payload.can_add_food_requester
 
     # Double-flag shared inventory: each side opts in independently. Only for

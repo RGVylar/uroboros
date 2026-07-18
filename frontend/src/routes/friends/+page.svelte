@@ -339,7 +339,8 @@
 							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar el duelo</div>
 						{/if}
 					</div>
-					<!-- Each controls their own: "allow partner to add to MY diary" -->
+					<!-- Diary access is partner-only, like the household above -->
+					{#if f.kind === 'partner'}
 					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
 						<div>
 							<div style="font-size:0.75rem; font-weight:600; color:#fff;">Permitir añadir a mi diario</div>
@@ -351,7 +352,6 @@
 							<div style="position:absolute; top:2px; left:{myCanAddFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
 						</button>
 					</div>
-					{#if f.kind === 'partner'}
 						<button onclick={() => (confirmBreakupId = f.id)} style="width:100%; margin-top:0.375rem; padding:0.5rem; border-radius:10px; border:1px solid oklch(65% 0.18 25 / 0.3); background:oklch(60% 0.16 25 / 0.08); color:oklch(85% 0.12 25); font-weight:600; font-size:0.6875rem; font-family:inherit; cursor:pointer;">
 							Ya no somos pareja
 						</button>
