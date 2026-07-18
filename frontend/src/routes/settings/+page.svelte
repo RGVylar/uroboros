@@ -388,7 +388,7 @@
 							Cumpliste tu objetivo el {percentile.pct}% de los días · top {percentile.top_percent}% de uroboros{#if rankMove}
 								<span class="rank-move {rankMove.dir}">{rankMove.dir === 'up' ? '↑' : '↓'} del {rankMove.prev}%</span>
 							{:else}
-								esta semana
+								{' esta semana'}
 							{/if}
 						{:else}
 							Cumpliste tu objetivo el {percentile.pct}% de los días esta semana
