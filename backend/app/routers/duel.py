@@ -67,13 +67,18 @@ def my_percentile(
 
     My own number is computed live (cheap: one user); the population comes from
     the precomputed snapshot, so cost never grows with the user count per view.
-    No names ever leave the server — just counts."""
-    from datetime import datetime as _dt
+    Also returns last week's band so the client can show the movement
+    ("top 12% ↑ del 20%"). No names ever leave the server — just counts."""
+    from datetime import datetime as _dt, timedelta
     from math import ceil
 
     from app.models.weekly_adherence import WeeklyAdherence
     from app.services.adherence_snapshot import upsert_snapshot
     from app.services.duel_service import week_start_for
+
+    def top_band(pcts: list[int], mine: int) -> int:
+        """Percentile band mine sits in — smaller is better; ties count as ahead."""
+        return ceil(sum(1 for p in pcts if p >= mine) / len(pcts) * 100) if pcts else 100
 
     today = _dt.now(timezone.utc).date()
     ws = week_start_for(today)
@@ -92,13 +97,29 @@ def my_percentile(
     ))
     n = len(pcts)
     rank = 1 + sum(1 for p in pcts if p > mine.pct)
-    top_percent = ceil(sum(1 for p in pcts if p >= mine.pct) / n * 100) if n else 100
+    top_percent = top_band(pcts, mine.pct)
+
+    # Week-over-week movement: my band last week, only if I ranked then.
+    prev_top_percent = None
+    my_prev = db.scalar(
+        select(WeeklyAdherence.pct).where(
+            WeeklyAdherence.user_id == user.id,
+            WeeklyAdherence.week_start == ws - timedelta(days=7),
+        )
+    )
+    if my_prev is not None:
+        prev_pcts = list(db.scalars(
+            select(WeeklyAdherence.pct).where(WeeklyAdherence.week_start == ws - timedelta(days=7))
+        ))
+        prev_top_percent = top_band(prev_pcts, my_prev)
+
     return {
         "in_ranking": True,
         "pct": mine.pct,
         "rank": rank,
         "active_users": n,
         "top_percent": top_percent,
+        "prev_top_percent": prev_top_percent,
         "week": today.isocalendar().week,
     }
 

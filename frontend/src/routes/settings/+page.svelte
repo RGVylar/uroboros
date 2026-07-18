@@ -17,10 +17,21 @@
 		rank?: number;
 		active_users: number;
 		top_percent?: number;
+		prev_top_percent?: number | null;
 		week: number;
 	}
 	let percentile = $state<Percentile | null>(null);
 	api.get<Percentile>('/duel/me/percentile').then((p) => (percentile = p)).catch(() => {});
+
+	// Movement vs last week's band. Lower top_percent = better, so a drop is a rise
+	// in standing. Null when I didn't rank last week or the band didn't change.
+	let rankMove = $derived.by(() => {
+		const p = percentile;
+		if (!p?.in_ranking || p.top_percent == null || p.prev_top_percent == null) return null;
+		if (p.top_percent < p.prev_top_percent) return { dir: 'up' as const, prev: p.prev_top_percent };
+		if (p.top_percent > p.prev_top_percent) return { dir: 'down' as const, prev: p.prev_top_percent };
+		return null;
+	});
 
 	// ── Compartir la app ─────────────────────────────────────────────────────────
 	// Enlaza a la landing /api/unete (con Open Graph → tarjeta con imagen en
@@ -373,10 +384,12 @@
 				<div class="row-label">Tu constancia</div>
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
-						{#if percentile.active_users >= 20}
-							Cumpliste tu objetivo el {percentile.pct}% de los días · top {percentile.top_percent}% de uroboros esta semana
-						{:else if percentile.active_users > 1}
-							Cumpliste tu objetivo el {percentile.pct}% de los días · nº{percentile.rank} de {percentile.active_users} personas esta semana
+						{#if percentile.active_users > 1}
+							Cumpliste tu objetivo el {percentile.pct}% de los días · top {percentile.top_percent}% de uroboros{#if rankMove}
+								<span class="rank-move {rankMove.dir}">{rankMove.dir === 'up' ? '↑' : '↓'} del {rankMove.prev}%</span>
+							{:else}
+								esta semana
+							{/if}
 						{:else}
 							Cumpliste tu objetivo el {percentile.pct}% de los días esta semana
 						{/if}
@@ -912,6 +925,18 @@
 		color: rgba(255,255,255,0.45);
 		margin-top: 0.125rem;
 	}
+	.rank-move {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.35rem;
+		padding: 0.02rem 0.35rem;
+		border-radius: 99px;
+		font-weight: 700;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+	.rank-move.up { color: oklch(82% 0.16 165); background: oklch(82% 0.16 165 / 0.15); }
+	.rank-move.down { color: oklch(80% 0.14 70); background: oklch(80% 0.14 70 / 0.15); }
 	.chevron {
 		color: rgba(255,255,255,0.3);
 		font-size: 0.875rem;
