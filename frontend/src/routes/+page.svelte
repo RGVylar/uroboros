@@ -1342,6 +1342,7 @@
 		background: var(--surface, rgba(255,255,255,0.055));
 		border: 1px solid var(--border, rgba(255,255,255,0.09));
 		border-radius: 14px; padding: 0.7rem 0.85rem; cursor: pointer; text-align: left;
+		color: var(--text, #eef1f5);
 		box-shadow: none; transition: background 0.18s, border-color 0.18s;
 	}
 	.del-card:hover { background: var(--surface-hover, rgba(255,255,255,0.09)); }
@@ -1349,8 +1350,10 @@
 		border-color: oklch(70% 0.2 25 / 0.35);
 		background: oklch(65% 0.2 25 / 0.08);
 	}
-	.del-avs { display: flex; flex-shrink: 0; }
-	.del-avs > :global(:nth-child(2)) { margin-left: -12px; box-shadow: 0 0 0 2px #0c0e13; border-radius: 50%; }
+	/* Ancho fijo y centrado para que el título de las 3 tarjetas quede alineado,
+	   tenga 1 avatar o 2 (los dos). */
+	.del-avs { display: flex; align-items: center; justify-content: center; width: 56px; flex-shrink: 0; }
+	.del-avs > :global(:nth-child(2)) { margin-left: -14px; box-shadow: 0 0 0 2px rgba(0,0,0,0.45); border-radius: 50%; }
 	.del-txt { flex: 1; min-width: 0; }
 	.del-t { font-size: 0.9rem; font-weight: 700; }
 	.del-card.danger .del-t { color: oklch(80% 0.15 25); }

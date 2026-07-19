@@ -38,6 +38,18 @@ def _parse(version: str) -> tuple[int, ...]:
 # The number of headline items shown in the "update available" teaser.
 _TEASER_MAX = 2
 
+# Tipos válidos + alias heredados. Las notas viejas (p.ej. la 1.6) usan "arreglo";
+# normalizamos aquí para que un tipo legado o desconocido nunca tumbe el endpoint.
+_VALID_TYPES = {"nuevo", "mejora", "fix"}
+_TYPE_ALIASES = {"arreglo": "fix"}
+
+
+def _norm_item(it: dict) -> dict:
+    t = _TYPE_ALIASES.get(it.get("type"), it.get("type"))
+    if t not in _VALID_TYPES:
+        t = "mejora"
+    return {**it, "type": t}
+
 
 @router.get("", response_model=ChangelogResponse)
 def get_changelog(
@@ -74,7 +86,7 @@ def get_changelog(
             version=n.version,
             title=n.title,
             importance=n.importance,
-            items=[ReleaseNoteItem(**it) for it in (n.items or [])],
+            items=[ReleaseNoteItem(**_norm_item(it)) for it in (n.items or [])],
         )
         for n in news
     ]
