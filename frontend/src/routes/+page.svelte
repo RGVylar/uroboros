@@ -20,6 +20,7 @@
 		MealHeader,
 		Modal,
 		EmptyState,
+		Avatar,
 	} from '$lib/components';
 	import TrialBanner from '$lib/components/uro/TrialBanner.svelte';
 
