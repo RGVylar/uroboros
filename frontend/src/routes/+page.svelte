@@ -76,7 +76,10 @@
 	function optimisticDeleteEntry(id: number) {
 		if (!summary) return;
 		const entries = summary.entries.filter(e => e.id !== id);
-		summary = { ...summary, totals: sumTotals(entries), entries, meals: regroupMeals(entries) };
+		const totals = sumTotals(entries);
+		// net_calories = consumidas - quemadas (el ejercicio no cambia al borrar comida);
+		// hay que recalcularlo o el número central del anillo se queda obsoleto.
+		summary = { ...summary, totals, net_calories: totals.calories - (summary.calories_burned ?? 0), entries, meals: regroupMeals(entries) };
 	}
 
 	function optimisticEditEntry(id: number, newGrams: number, newMealType: MealType) {
@@ -95,7 +98,8 @@
 			fat:       Math.round(p.fat_per_100g      * f * 10) / 10,
 		};
 		const entries = summary.entries.map(e => e.id === id ? updated : e);
-		summary = { ...summary, totals: sumTotals(entries), entries, meals: regroupMeals(entries) };
+		const totals = sumTotals(entries);
+		summary = { ...summary, totals, net_calories: totals.calories - (summary.calories_burned ?? 0), entries, meals: regroupMeals(entries) };
 	}
 
 	// ── Notification modal ─────────────────────────────────────────────────────
