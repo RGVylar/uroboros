@@ -1,15 +1,20 @@
 <script lang="ts">
-	import { APP_VERSION, markSeen, type ChangeType, type ReleaseNote } from '$lib/changelog';
+	import { APP_VERSION, markSeen, type ReleaseNote } from '$lib/changelog';
 
 	// Notes come from the server (newest first). May span several versions if the
 	// user skipped a couple of updates.
 	let { notes, onclose }: { notes: ReleaseNote[]; onclose: () => void } = $props();
 
-	const BADGE: Record<ChangeType, { label: string; cls: string }> = {
-		nuevo:  { label: 'Nuevo',  cls: 'badge-new' },
-		mejora: { label: 'Mejora', cls: 'badge-mejora' },
-		fix:    { label: 'Fix',    cls: 'badge-fix' },
+	// Keyed by string (not ChangeType) so a note authored with a legacy/unknown
+	// type never crashes the modal. 'arreglo' is an old alias for 'fix'.
+	const BADGE: Record<string, { label: string; cls: string }> = {
+		nuevo:   { label: 'Nuevo',  cls: 'badge-new' },
+		mejora:  { label: 'Mejora', cls: 'badge-mejora' },
+		fix:     { label: 'Fix',    cls: 'badge-fix' },
+		arreglo: { label: 'Fix',    cls: 'badge-fix' },
 	};
+	const FALLBACK_BADGE = { label: 'Novedad', cls: 'badge-new' };
+	const badgeFor = (t: string) => BADGE[t] ?? FALLBACK_BADGE;
 
 	// Header shows the most recent version in the batch.
 	const topVersion = $derived(notes[0]?.version ?? APP_VERSION);
@@ -44,7 +49,7 @@
 			{/if}
 			{#each note.items as c}
 				<div class="change">
-					<span class="badge {BADGE[c.type].cls}">{BADGE[c.type].label}</span>
+					<span class="badge {badgeFor(c.type).cls}">{badgeFor(c.type).label}</span>
 					<div class="change-text">
 						<div class="change-title">{c.title}</div>
 						{#if c.desc}<div class="change-desc">{c.desc}</div>{/if}
