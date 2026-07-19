@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
@@ -135,20 +135,30 @@ async def search_products(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[Product]:
-    # Build a map of product_id → usage count for this user (for ranking boost)
+    # Build a map of product_id → usage count for this user (for ranking boost).
+    # Scoped to the last 90 days + top 200 so this stays cheap on every
+    # keystroke: the boost only needs "what does this user usually eat", not
+    # their entire history.
     from sqlalchemy import func as sqlfunc
     from app.models import DiaryEntry as DE
+    ninety_days_ago = datetime.now(timezone.utc) - timedelta(days=90)
     freq_rows = db.execute(
         select(DE.product_id, sqlfunc.count(DE.id).label("cnt"))
-        .where(DE.user_id == user.id)
+        .where(DE.user_id == user.id, DE.consumed_at >= ninety_days_ago)
         .group_by(DE.product_id)
+        .order_by(sqlfunc.count(DE.id).desc())
+        .limit(200)
     ).all()
     user_freq: dict[int, int] = {row[0]: row[1] for row in freq_rows}
 
-    # Fetch all local matches (no DB-level limit — we rank in Python)
+    # Fetch local matches, capped at 300 candidates — plenty to rank a 20-item
+    # page and bounds the scan on a table that only grows (every uncached
+    # search result gets inserted below). local_barcodes/local_ids below stay
+    # a best-effort dedup filter against this capped set, same as before.
     stmt = (
         select(Product)
         .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
+        .limit(300)
     )
     local_all = list(db.scalars(stmt))
 

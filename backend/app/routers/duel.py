@@ -76,42 +76,55 @@ def my_percentile(
     from app.services.adherence_snapshot import upsert_snapshot
     from app.services.duel_service import week_start_for
 
-    def top_band(pcts: list[int], mine: int) -> int:
-        """Percentile band mine sits in — smaller is better; ties count as ahead."""
-        return ceil(sum(1 for p in pcts if p >= mine) / len(pcts) * 100) if pcts else 100
+    def _population(week_start) -> int:
+        return db.scalar(
+            select(func.count()).select_from(WeeklyAdherence).where(WeeklyAdherence.week_start == week_start)
+        ) or 0
+
+    def _top_band(week_start, mine: int) -> int:
+        """Percentile band `mine` sits in — smaller is better; ties count as ahead."""
+        n = _population(week_start)
+        if not n:
+            return 100
+        ahead_or_tied = db.scalar(
+            select(func.count()).select_from(WeeklyAdherence).where(
+                WeeklyAdherence.week_start == week_start, WeeklyAdherence.pct >= mine,
+            )
+        ) or 0
+        return ceil(ahead_or_tied / n * 100)
 
     today = _dt.now(timezone.utc).date()
     ws = week_start_for(today)
 
-    mine = upsert_snapshot(db, user.id, today)
-    db.commit()
+    # Live-compute *my* number (cheap: one user) but only write/commit the
+    # snapshot when it actually changed — the scheduler already refreshes
+    # everyone's row several times a day, so most views are read-only.
+    mine, changed = upsert_snapshot(db, user.id, today)
+    if changed:
+        db.commit()
     if mine is None:
         # Nothing counted yet this week (e.g. it's Monday) — no standing to show.
-        pop = db.scalar(
-            select(func.count()).select_from(WeeklyAdherence).where(WeeklyAdherence.week_start == ws)
-        ) or 0
-        return {"in_ranking": False, "active_users": pop, "week": today.isocalendar().week}
+        return {"in_ranking": False, "active_users": _population(ws), "week": today.isocalendar().week}
 
-    pcts = list(db.scalars(
-        select(WeeklyAdherence.pct).where(WeeklyAdherence.week_start == ws)
-    ))
-    n = len(pcts)
-    rank = 1 + sum(1 for p in pcts if p > mine.pct)
-    top_percent = top_band(pcts, mine.pct)
+    n = _population(ws)
+    rank = 1 + (db.scalar(
+        select(func.count()).select_from(WeeklyAdherence).where(
+            WeeklyAdherence.week_start == ws, WeeklyAdherence.pct > mine.pct,
+        )
+    ) or 0)
+    top_percent = _top_band(ws, mine.pct)
 
     # Week-over-week movement: my band last week, only if I ranked then.
     prev_top_percent = None
+    prev_ws = ws - timedelta(days=7)
     my_prev = db.scalar(
         select(WeeklyAdherence.pct).where(
             WeeklyAdherence.user_id == user.id,
-            WeeklyAdherence.week_start == ws - timedelta(days=7),
+            WeeklyAdherence.week_start == prev_ws,
         )
     )
     if my_prev is not None:
-        prev_pcts = list(db.scalars(
-            select(WeeklyAdherence.pct).where(WeeklyAdherence.week_start == ws - timedelta(days=7))
-        ))
-        prev_top_percent = top_band(prev_pcts, my_prev)
+        prev_top_percent = _top_band(prev_ws, my_prev)
 
     return {
         "in_ranking": True,

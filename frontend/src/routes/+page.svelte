@@ -27,12 +27,17 @@
 	if (!auth.isLoggedIn) goto('/login');
 
 	let today = $state(new Date().toISOString().slice(0, 10));
+	let isToday = $derived(today === new Date().toISOString().slice(0, 10));
 	let summary: DaySummary | null = $state(null);
 	let goals: Goals | null = $state(null);
 	let water: WaterDay | null = $state(null);
 	let frequent: FrequentProduct[] = $state([]);
 	let frequentRecipes: FrequentRecipe[] = $state([]);
-	let streak = $state(0);
+	// The streak itself doesn't depend on which day is being browsed (the
+	// endpoint always answers for "now"); only whether we SHOW it does — the
+	// flame badge is hidden while looking at a past day, same as before.
+	let currentStreak = $state(0);
+	let streak = $derived(isToday ? currentStreak : 0);
 	let users: User[] = $state([]);
 	let loading = $state(true);
 	let fromCache = $state(false);
@@ -142,69 +147,89 @@
 		if (!clearingMeal) return;
 		await api.del(`/diary/meal/${clearingMeal.meal_type}?day=${today}`);
 		clearingMeal = null;
-		await load();
+		await loadDay();
+		refreshStreak();
 	}
 
-	async function load() {
+	// Refetches the current streak. Only meaningful while looking at today
+	// (the flame is hidden otherwise via the `streak` derived above), so this
+	// is a no-op elsewhere — keeps callers simple.
+	async function refreshStreak() {
+		if (!isToday) return;
+		const st = await api.get<{ streak: number }>('/diary/streak').catch(() => null);
+		if (st) currentStreak = st.streak;
+	}
+
+	// goals/frequent/frequentRecipes/users/streak don't depend on which day is
+	// being browsed — fetched once on mount instead of on every day change.
+	// Kept as a promise so loadDay() can wait on it the first time (goals
+	// decides whether creatine/cheat-day extras are fetched below).
+	let staticLoaded: Promise<void> | null = null;
+	async function loadStatic() {
+		const [g, f, fr, u, st] = await Promise.all([
+			api.get<Goals>('/goals').catch(() => null),
+			api.get<FrequentProduct[]>('/products/frequent?limit=5').catch(() => []),
+			api.get<FrequentRecipe[]>('/recipes/frequent?limit=3').catch(() => []),
+			api.get<User[]>('/users').catch(() => []),
+			api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 })),
+		]);
+		goals = g;
+		frequent = f;
+		frequentRecipes = fr;
+		users = u;
+		currentStreak = st.streak;
+		if (g) cacheSet('goals', g);
+	}
+
+	async function loadDay() {
 		fromCache = false;
 		// Cache-first: paint instantly with cached data, then refresh in background
 		const cachedSummary0 = cacheGet<DaySummary>(`diary_${today}`);
 		const cachedGoals0 = cacheGet<Goals>('goals');
 		if (cachedSummary0) {
 			summary = cachedSummary0.data;
-			if (cachedGoals0) goals = cachedGoals0.data;
+			if (cachedGoals0 && !goals) goals = cachedGoals0.data;
 			loading = false; // we already have something to show
 		} else {
 			loading = true;
 		}
 		try {
-			const isTodayVal = today === new Date().toISOString().slice(0, 10);
-			const streakPromise = isTodayVal
-				? api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 }))
-				: Promise.resolve({ streak: 0 });
-			const [s, g, w, f, fr, st, u] = await Promise.all([
+			const [s, w] = await Promise.all([
 				api.get<DaySummary>(`/diary/day?day=${today}`),
-				api.get<Goals>('/goals').catch(() => null),
 				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => null),
-				api.get<FrequentProduct[]>('/products/frequent?limit=5').catch(() => []),
-				api.get<FrequentRecipe[]>('/recipes/frequent?limit=3').catch(() => []),
-				streakPromise,
-				api.get<User[]>('/users').catch(() => []),
 			]);
 			summary = s;
-			goals = g;
 			water = w;
-			frequent = f;
-			frequentRecipes = fr;
-			streak = st.streak;
-			users = u;
-			// Load creatine status only if tracking enabled and viewing today
-			if (g?.track_creatine && isTodayVal) {
-				creatine = await api.get<CreatineToday>('/creatine/today').catch(() => null);
-			} else {
-				creatine = null;
-			}
-			// Load supplements (always, if viewing today)
-			if (isTodayVal) {
-				supplements = await api.get<SupplementToday[]>('/supplements/today').catch(() => []);
-			} else {
-				supplements = [];
-			}
-			// Load cheat day status only if enabled and viewing today
-			if (g?.cheat_days_enabled && isTodayVal) {
-				cheatDay = await api.get<CheatDayToday>('/cheat-days/today').catch(() => null);
-			} else {
-				cheatDay = null;
-			}
-			// Load mood entry if enabled
-			if (typeof localStorage !== 'undefined' && localStorage.getItem('mood_enabled') === 'true') {
-				moodEntry = await api.get<MoodEntry | null>(`/mood/day?day=${today}`).catch(() => null);
-			} else {
-				moodEntry = null;
-			}
+
+			// goals may still be in flight on the very first load (loadStatic
+			// runs in parallel, not before) — wait for it just this once so the
+			// creatine/cheat-day decision below isn't made on a stale `null`.
+			if (!goals && staticLoaded) await staticLoaded.catch(() => {});
+
+			// H5: these 4 only depend on goals (already resolved above) and
+			// localStorage, so they run as one parallel batch instead of 4
+			// sequential awaits.
+			const [c, sup, cd, mood] = await Promise.all([
+				goals?.track_creatine && isToday
+					? api.get<CreatineToday>('/creatine/today').catch(() => null)
+					: Promise.resolve(null),
+				isToday
+					? api.get<SupplementToday[]>('/supplements/today').catch(() => [])
+					: Promise.resolve([]),
+				goals?.cheat_days_enabled && isToday
+					? api.get<CheatDayToday>('/cheat-days/today').catch(() => null)
+					: Promise.resolve(null),
+				typeof localStorage !== 'undefined' && localStorage.getItem('mood_enabled') === 'true'
+					? api.get<MoodEntry | null>(`/mood/day?day=${today}`).catch(() => null)
+					: Promise.resolve(null),
+			]);
+			creatine = c;
+			supplements = sup;
+			cheatDay = cd;
+			moodEntry = mood;
+
 			// Persist to cache for offline use
 			cacheSet(`diary_${today}`, s);
-			if (g) cacheSet('goals', g);
 			// Show notification modal once after user has their first entry
 			if (s.totals.calories > 0 && !sessionStorage.getItem('uro_notif_modal_shown')) {
 				sessionStorage.setItem('uro_notif_modal_shown', '1');
@@ -218,7 +243,7 @@
 				summary = cachedSummary.data;
 				fromCache = true;
 			}
-			if (cachedGoals) {
+			if (cachedGoals && !goals) {
 				goals = cachedGoals.data;
 			}
 		} finally {
@@ -226,9 +251,12 @@
 		}
 	}
 
-	// Sin sesión no lanzamos la batería de fetches: antes disparaban 7 peticiones
+	// Sin sesión no lanzamos la batería de fetches: antes disparaban peticiones
 	// con 401 mientras el goto('/login') aún no había navegado.
-	$effect(() => { today; if (auth.isLoggedIn) load(); });
+	$effect(() => {
+		if (auth.isLoggedIn && !staticLoaded) staticLoaded = loadStatic();
+	});
+	$effect(() => { today; if (auth.isLoggedIn) loadDay(); });
 
 	function pct(current: number, goal: number) {
 		if (!goal) return 0;
@@ -316,7 +344,7 @@
 			if (mode === 'partner') toast.success(`Quitado del diario de ${partner?.name}`);
 		} catch {
 			toast.error('No se pudo borrar');
-			load();
+			loadDay();
 		}
 	}
 
@@ -397,7 +425,7 @@
 				}
 			} catch {
 				toast.error('No se pudo guardar el cambio');
-				load();
+				loadDay();
 			}
 		} catch {
 			toast.error('No se pudo guardar el cambio');
@@ -432,7 +460,8 @@
 			const res = await api.post<{ copied: number }>('/diary/copy-from-yesterday', {});
 			if (res.copied > 0) {
 				toast.success(`Copiado de ayer: ${res.copied} ${res.copied === 1 ? 'alimento' : 'alimentos'}`);
-				load();
+				await loadDay();
+				refreshStreak();
 			} else {
 				// Antes esto no daba ningún feedback y parecía que el botón no hacía nada
 				toast.info('Ayer no registraste nada que copiar');
@@ -529,8 +558,7 @@
 			} else {
 				cheatDay = await api.post<CheatDayToday>('/cheat-days/use', {});
 				// Reload streak so the 🔥 updates immediately
-				const st = await api.get<{ streak: number }>('/diary/streak').catch(() => ({ streak: 0 }));
-				streak = st.streak;
+				await refreshStreak();
 			}
 		} catch {
 			toast.error('No se pudo actualizar el cheat day');
@@ -579,6 +607,9 @@
 			await api.post('/recipes', { name, ingredients, share_scope: 'friends' });
 			recipeSaveSuccess = 'Receta guardada.';
 			closeRecipeModal();
+			// Invalidate the frequent-recipes part of loadStatic (skipped on plain
+			// day navigation, but a new recipe should still show up promptly).
+			frequentRecipes = await api.get<FrequentRecipe[]>('/recipes/frequent?limit=3').catch(() => frequentRecipes);
 		} catch (err: any) {
 			recipeSaveError = 'Error guardando la receta: ' + (err?.message || err);
 		} finally {
@@ -589,8 +620,6 @@
 	function fmtTime(iso: string) {
 		return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 	}
-
-	let isToday = $derived(today === new Date().toISOString().slice(0, 10));
 </script>
 
 {#if !auth.isLoggedIn}

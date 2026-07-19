@@ -176,36 +176,34 @@ def get_recommendations(
 
 
 def get_frequently_used_products(db: Session, user: User, limit: int = 10) -> list[FrequentlyUsedProduct]:
-    """Get user's most frequently logged products (all time)"""
+    """Get user's most frequently logged products (all time).
 
-    # Get all entries for the user, ordered by recency
-    entries = list(
-        db.scalars(
-            select(DiaryEntry)
-            .where(DiaryEntry.user_id == user.id)
-            .order_by(DiaryEntry.consumed_at.desc())
+    Was: load every diary entry the user ever logged (hydrated with the
+    joined product) and count in Python — O(full history) on every dashboard
+    and Add-food page load. Now: GROUP BY in SQL (uses ix_diary_entries_user_id)
+    to get just the top `limit` product ids/counts, then a single IN query for
+    the product rows. Two fixed queries regardless of history size; same
+    response shape."""
+    rows = db.execute(
+        select(DiaryEntry.product_id, func.count(DiaryEntry.id).label("cnt"))
+        .where(DiaryEntry.user_id == user.id)
+        .group_by(DiaryEntry.product_id)
+        .order_by(func.count(DiaryEntry.id).desc())
+        .limit(limit)
+    ).all()
+
+    if not rows:
+        return []
+
+    products = {
+        p.id: p
+        for p in db.scalars(
+            select(Product).where(Product.id.in_([row.product_id for row in rows]))
         )
-    )
+    }
 
-    # Count frequency of each product (products already loaded via lazy="joined")
-    product_frequency: dict[int, int] = {}
-    product_by_id: dict[int, Product] = {}
-    for entry in entries:
-        product_frequency[entry.product_id] = product_frequency.get(entry.product_id, 0) + 1
-        if entry.product_id not in product_by_id and entry.product:
-            product_by_id[entry.product_id] = entry.product
-
-    # Get top products with their details
-    frequently_used = []
-    for product_id in sorted(
-        product_frequency.keys(),
-        key=lambda pid: product_frequency[pid],
-        reverse=True
-    )[:limit]:
-        product = product_by_id.get(product_id)
-        if product:
-            frequently_used.append(
-                FrequentlyUsedProduct(product, product_frequency[product_id])
-            )
-
-    return frequently_used
+    return [
+        FrequentlyUsedProduct(products[row.product_id], row.cnt)
+        for row in rows
+        if row.product_id in products
+    ]

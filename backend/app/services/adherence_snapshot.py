@@ -30,11 +30,17 @@ def _try_lock(db: Session) -> bool | None:
     return bool(db.scalar(text(f"SELECT pg_try_advisory_lock({_ADVISORY_LOCK_ID})")))
 
 
-def upsert_snapshot(db: Session, user_id: int, today) -> WeeklyAdherence | None:
-    """Compute and store this user's current-week adherence. None if nothing counted yet."""
+def upsert_snapshot(db: Session, user_id: int, today) -> tuple[WeeklyAdherence | None, bool]:
+    """Compute and store this user's current-week adherence.
+
+    Returns (row, changed). row is None if nothing counted yet this week.
+    `changed` is False when the freshly computed value matches what's already
+    stored — lets callers skip the write/commit entirely (the percentile
+    endpoint calls this on every view; the scheduler already refreshes this
+    snapshot several times a day, so most live recomputes are no-ops)."""
     result = current_week(db, user_id, today)
     if result.pct is None:
-        return None
+        return None, False
     ws = week_start_for(today)
     row = db.scalar(
         select(WeeklyAdherence).where(
@@ -42,12 +48,19 @@ def upsert_snapshot(db: Session, user_id: int, today) -> WeeklyAdherence | None:
         )
     )
     if row:
-        row.pct = result.pct
-        row.counted = result.counted
+        changed = row.pct != result.pct or row.counted != result.counted
+        if changed:
+            # Only touch the attributes when they actually differ — assigning
+            # even an identical value marks the row dirty, which would flush
+            # an UPDATE on the next autoflush regardless of whether the
+            # caller commits.
+            row.pct = result.pct
+            row.counted = result.counted
     else:
         row = WeeklyAdherence(user_id=user_id, week_start=ws, pct=result.pct, counted=result.counted)
         db.add(row)
-    return row
+        changed = True
+    return row, changed
 
 
 def snapshot_weekly_adherence() -> None:
@@ -72,7 +85,7 @@ def snapshot_weekly_adherence() -> None:
         ))
         for uid in active_ids:
             upsert_snapshot(db, uid, today)
-        db.commit()
+        db.commit()  # scheduler always commits: it's a batch pass, not a per-view write
         logger.info("Adherence snapshot refreshed for %d active users", len(active_ids))
     except Exception as e:
         logger.error("Adherence snapshot error: %s", e)

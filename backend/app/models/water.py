@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Date, Float, ForeignKey
+from sqlalchemy import Date, Float, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -13,3 +13,5 @@ class WaterLog(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     ml: Mapped[float] = mapped_column(Float, nullable=False)
     logged_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    __table_args__ = (Index("ix_water_logs_user_date", "user_id", "logged_date"),)

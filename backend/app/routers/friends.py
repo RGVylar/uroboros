@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -95,33 +95,38 @@ def pending_count(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict[str, int]:
+    # Polled every 60s per connected client. Friendship.requester/receiver are
+    # lazy="joined", so the old `select(Friendship)...` here hydrated full rows
+    # (each dragging a double JOIN to users) just to len() them. select(func.count())
+    # doesn't trigger the joined-load — same three filters, three cheap counts.
+
     # Pending friend requests
-    friend_requests = len(list(db.scalars(
-        select(Friendship).where(
+    friend_requests = db.scalar(
+        select(func.count()).select_from(Friendship).where(
             Friendship.receiver_id == user.id,
             Friendship.status == FriendshipStatus.pending,
         )
-    )))
+    ) or 0
 
     # Pending inventory share: other side activated their flag, mine is still off
     # Case: I am receiver, requester activated theirs but I haven't
-    inv_as_receiver = len(list(db.scalars(
-        select(Friendship).where(
+    inv_as_receiver = db.scalar(
+        select(func.count()).select_from(Friendship).where(
             Friendship.receiver_id == user.id,
             Friendship.status == FriendshipStatus.accepted,
             Friendship.shared_inventory_requester == True,  # noqa: E712
             Friendship.shared_inventory_receiver == False,  # noqa: E712
         )
-    )))
+    ) or 0
     # Case: I am requester, receiver activated theirs but I haven't
-    inv_as_requester = len(list(db.scalars(
-        select(Friendship).where(
+    inv_as_requester = db.scalar(
+        select(func.count()).select_from(Friendship).where(
             Friendship.requester_id == user.id,
             Friendship.status == FriendshipStatus.accepted,
             Friendship.shared_inventory_receiver == True,  # noqa: E712
             Friendship.shared_inventory_requester == False,  # noqa: E712
         )
-    )))
+    ) or 0
 
     return {"count": friend_requests + inv_as_receiver + inv_as_requester}
 

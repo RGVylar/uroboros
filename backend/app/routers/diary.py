@@ -195,7 +195,11 @@ def create_entry(
                 )
             created.append(_build_entry(other.id, product, payload.grams, payload.consumed_at, meal_type))
 
-    # Calculate streak BEFORE commit to detect milestone
+    # Calculate streak BEFORE commit to detect milestone. Still two calls (not
+    # collapsed into old_streak + 1) because consumed_at is client-supplied and
+    # entries can be backdated to fill a past gap, which can jump the streak by
+    # more than one day — calculate_streak is now 2 fixed queries instead of
+    # O(days), so the second call is cheap rather than something to eliminate.
     old_streak = calculate_streak(db, user.id)
 
     db.add_all(created)

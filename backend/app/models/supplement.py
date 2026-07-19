@@ -11,7 +11,7 @@ class UserSupplement(Base):
     __tablename__ = "user_supplements"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     position: Mapped[int] = mapped_column(default=0)
     # JSON array of weekday ints (0=Mon … 6=Sun). NULL means every day.

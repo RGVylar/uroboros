@@ -46,7 +46,7 @@
 <div class="login-shell">
 	<!-- Logo + name -->
 	<div class="brand">
-		<img src="/logo.png" alt="uroboros" class="logo" />
+		<img src="/logo-192.png" alt="uroboros" class="logo" />
 		<h1 class="title"><em>uroboros</em></h1>
 		<div class="tagline">Come mejor. Juntos.</div>
 	</div>
