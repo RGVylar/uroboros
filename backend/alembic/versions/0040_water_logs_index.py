@@ -18,18 +18,19 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_index(
-        "ix_water_logs_user_date",
-        "water_logs",
-        ["user_id", "logged_date"],
+    # IF NOT EXISTS: the app also creates these via Base.metadata.create_all()
+    # on startup, so the index may already exist when the migration runs.
+    # Valid on both PostgreSQL and SQLite.
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_water_logs_user_date "
+        "ON water_logs (user_id, logged_date)"
     )
-    op.create_index(
-        "ix_user_supplements_user_id",
-        "user_supplements",
-        ["user_id"],
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_user_supplements_user_id "
+        "ON user_supplements (user_id)"
     )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_user_supplements_user_id", table_name="user_supplements")
-    op.drop_index("ix_water_logs_user_date", table_name="water_logs")
+    op.execute("DROP INDEX IF EXISTS ix_user_supplements_user_id")
+    op.execute("DROP INDEX IF EXISTS ix_water_logs_user_date")
