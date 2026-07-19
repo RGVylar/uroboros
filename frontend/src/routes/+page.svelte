@@ -271,19 +271,29 @@
 	// Solo si la tiene ofrecemos "Solo para la pareja" en el menú de borrar.
 	let deletingPartnerHas = $state(false);
 
-	function startDelete(entry: DiaryEntry) {
+	async function startDelete(entry: DiaryEntry) {
 		if (!partner) {
 			confirmDelete(entry.id, 'mine');
 			return;
 		}
-		deletingPartnerHas = false;
-		deletingEntry = entry;
-		if (!connectivity.isOffline) {
-			api.get<{ entry_id: number | null }>(
+		if (connectivity.isOffline) {
+			// Sin conexión no podemos consultar: modal simple (los dos / solo yo).
+			deletingPartnerHas = false;
+			deletingEntry = entry;
+			return;
+		}
+		try {
+			const res = await api.get<{ entry_id: number | null }>(
 				`/diary/partner-entry?user_id=${partner.id}&product_id=${entry.product_id}&day=${today}&meal_type=${entry.meal_type}`
-			).then(res => {
-				if (deletingEntry === entry) deletingPartnerHas = res.entry_id != null;
-			}).catch(() => {});
+			);
+			if (res.entry_id != null) {
+				deletingPartnerHas = true;
+				deletingEntry = entry;          // hay copia → preguntar de quién
+			} else {
+				confirmDelete(entry.id, 'mine'); // solo es tuya → borrar directo
+			}
+		} catch {
+			confirmDelete(entry.id, 'mine');
 		}
 	}
 
@@ -1084,26 +1094,32 @@
 		title="Borrar entrada"
 		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}{deletingEntry.product ? productUnit(deletingEntry.product) : 'g'}"
 	>
-		<div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
+		<div class="del-q">
 			{deletingPartnerHas
 				? `${partner?.name} también lo tiene. ¿De quién lo quito?`
-				: `¿Borrar también para ${partner?.name}?`}
+				: '¿Seguro que quieres borrarla?'}
 		</div>
-		<div style="display:flex; flex-direction:column; gap:0.5rem;">
-			<button class="btn-danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
-				Borrar para los dos
+		<div class="del-cards">
+			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
+				<div class="del-avs"><div class="edit-av you">Tú</div><div class="edit-av">{partner?.name.charAt(0).toUpperCase()}</div></div>
+				<div class="del-txt"><div class="del-t">Para los dos</div><div class="del-s">Se borra en ambos diarios</div></div>
+				<div class="del-chev">›</div>
 			</button>
-			<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
-				Solo para mí{deletingPartnerHas ? ` (${partner?.name} lo conserva)` : ''}
+			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
+				<div class="del-avs"><div class="edit-av you">Tú</div></div>
+				<div class="del-txt"><div class="del-t">Solo para mí</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
+				<div class="del-chev">›</div>
 			</button>
 			{#if deletingPartnerHas}
-				<button class="btn-secondary" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
-					Solo para {partner?.name} (tú lo conservas)
+				<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
+					<div class="del-avs"><div class="edit-av">{partner?.name.charAt(0).toUpperCase()}</div></div>
+					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">Tú lo conservas</div></div>
+					<div class="del-chev">›</div>
 				</button>
 			{/if}
-			<button class="btn-secondary" onclick={() => deletingEntry = null}>Cancelar</button>
 		</div>
-	</Modal>
+		<button class="btn-secondary" style="width:100%; margin-top:0.6rem;" onclick={() => deletingEntry = null}>Cancelar</button>
+		</Modal>
 {/if}
 
 <!-- Clear meal modal -->
@@ -1331,6 +1347,30 @@
 		font-size: 0.72rem;
 		color: var(--text-faint, rgba(255,255,255,0.35));
 	}
+
+	/* ── Modal de borrado · tarjetas por persona ── */
+	.del-q { color: var(--text-muted, rgba(255,255,255,0.55)); font-size: 0.85rem; margin-bottom: 0.9rem; }
+	.del-cards { display: flex; flex-direction: column; gap: 0.5rem; }
+	.del-card {
+		display: flex; align-items: center; gap: 0.75rem; width: 100%;
+		background: var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid var(--border, rgba(255,255,255,0.09));
+		border-radius: 14px; padding: 0.7rem 0.85rem; cursor: pointer; text-align: left;
+		box-shadow: none; transition: background 0.18s, border-color 0.18s;
+	}
+	.del-card:hover { background: var(--surface-hover, rgba(255,255,255,0.09)); }
+	.del-card.danger {
+		border-color: oklch(70% 0.2 25 / 0.35);
+		background: oklch(65% 0.2 25 / 0.08);
+	}
+	.del-avs { display: flex; flex-shrink: 0; }
+	.del-avs .edit-av { margin: 0; }
+	.del-avs .edit-av:nth-child(2) { margin-left: -12px; box-shadow: 0 0 0 2px #0c0e13; }
+	.del-txt { flex: 1; min-width: 0; }
+	.del-t { font-size: 0.9rem; font-weight: 700; }
+	.del-card.danger .del-t { color: oklch(80% 0.15 25); }
+	.del-s { font-size: 0.72rem; color: var(--text-muted, rgba(255,255,255,0.55)); margin-top: 0.05rem; }
+	.del-chev { color: var(--text-faint, rgba(255,255,255,0.35)); font-size: 1.1rem; flex-shrink: 0; }
 
 	.cache-notice {
 		display: flex;
