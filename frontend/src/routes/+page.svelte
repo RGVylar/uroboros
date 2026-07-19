@@ -1024,7 +1024,7 @@
 				{#snippet plates()}
 					<div class="edit-plates">
 						<div class="edit-plate you">
-							<div class="edit-av you">Tú</div>
+							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
 							<div class="edit-plate-who">Tú</div>
 							<div class="edit-plate-g">
 								<input type="number" bind:value={editGrams} min="1" step="1" aria-label="Tus {editUnit}" />
@@ -1032,7 +1032,7 @@
 							</div>
 						</div>
 						<div class="edit-plate her">
-							<div class="edit-av">{partner.name.charAt(0).toUpperCase()}</div>
+							<div class="edit-plate-av"><Avatar name={partner.name} avatarId={partner.avatar_id} size={34} /></div>
 							<div class="edit-plate-who">{partner.name}</div>
 							<div class="edit-plate-g">
 								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label="{editUnit} de {partner.name}" />
@@ -1102,18 +1102,18 @@
 		</div>
 		<div class="del-cards">
 			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
-				<div class="del-avs"><div class="edit-av you">Tú</div><div class="edit-av">{partner?.name.charAt(0).toUpperCase()}</div></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
 				<div class="del-txt"><div class="del-t">Para los dos</div><div class="del-s">Se borra en ambos diarios</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
-				<div class="del-avs"><div class="edit-av you">Tú</div></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
 				<div class="del-txt"><div class="del-t">Solo para mí</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			{#if deletingPartnerHas}
 				<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
-					<div class="del-avs"><div class="edit-av">{partner?.name.charAt(0).toUpperCase()}</div></div>
+					<div class="del-avs"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
 					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">Tú lo conservas</div></div>
 					<div class="del-chev">›</div>
 				</button>
@@ -1303,22 +1303,7 @@
 		border-color: oklch(80% 0.17 165 / 0.32);
 		background: oklch(75% 0.18 165 / 0.08);
 	}
-	.edit-av {
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		margin: 0 auto;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.72rem;
-		font-weight: 800;
-		color: #fff;
-		background: linear-gradient(135deg, oklch(70% 0.16 320), oklch(62% 0.2 350));
-	}
-	.edit-av.you {
-		background: linear-gradient(135deg, oklch(72% 0.14 220), oklch(60% 0.16 240));
-	}
+	.edit-plate-av { display: flex; justify-content: center; }
 	.edit-plate-who {
 		font-size: 0.72rem;
 		color: var(--text-muted, rgba(255,255,255,0.55));
@@ -1365,8 +1350,7 @@
 		background: oklch(65% 0.2 25 / 0.08);
 	}
 	.del-avs { display: flex; flex-shrink: 0; }
-	.del-avs .edit-av { margin: 0; }
-	.del-avs .edit-av:nth-child(2) { margin-left: -12px; box-shadow: 0 0 0 2px #0c0e13; }
+	.del-avs > :global(:nth-child(2)) { margin-left: -12px; box-shadow: 0 0 0 2px #0c0e13; border-radius: 50%; }
 	.del-txt { flex: 1; min-width: 0; }
 	.del-t { font-size: 0.9rem; font-weight: 700; }
 	.del-card.danger .del-t { color: oklch(80% 0.15 25); }
