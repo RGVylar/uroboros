@@ -27,7 +27,9 @@ _rn = sa.table(
 
 def upgrade() -> None:
     bind = op.get_bind()
-    rows = bind.execute(sa.select(_rn.c.version, _rn.c.items)).all()
+    # NB: access the "items" column by subscript — `_rn.c.items` resolves to the
+    # ColumnCollection.items() method, not the column, and blows up select().
+    rows = bind.execute(sa.select(_rn.c.version, _rn.c["items"])).all()
     for version, items in rows:
         if not items:
             continue
