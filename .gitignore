@@ -12,3 +12,9 @@ mockup-mood.html
 .claude/launch.json
 .claude/settings.local.json
 QA_TEST_ACCOUNT.md
+
+# Documentos de trabajo local: suelen llevar datos personales (nombres reales,
+# cuentas de prueba). El repo es PUBLICO, nunca deben subirse.
+mockup-*.html
+PLAN_*.md
+QA_REVIEW_*.md
