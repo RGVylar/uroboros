@@ -227,7 +227,17 @@
 	// ── Registrar receta con selector de comida ──────────────────────────────
 	let logPendingRecipe: Recipe | null = $state(null);
 	let logMealType: MealType = $state(guessMealType());
+	let logDate = $state(new Date().toISOString().slice(0, 10));
 	let logging = $state(false);
+
+	// Igual que al añadir un alimento: la hora exacta solo importa hoy (usamos el
+	// instante actual); para días pasados se registra al mediodía por defecto.
+	function consumedAt(dateStr: string): string {
+		const today = new Date().toISOString().slice(0, 10);
+		return dateStr === today
+			? new Date().toISOString()
+			: new Date(dateStr + 'T12:00:00').toISOString();
+	}
 	type ShareMode = null | 'also' | 'only';
 	let shareMode: ShareMode = $state(null);
 	let partner: { id: number; name: string } | null = $state(null);
@@ -303,6 +313,7 @@
 
 	function logRecipe(recipe: Recipe) {
 		logMealType = guessMealType();
+		logDate = new Date().toISOString().slice(0, 10);
 		logPendingRecipe = recipe;
 		shareMode = null;
 	}
@@ -317,7 +328,7 @@
 					product_id: ing.product_id,
 					grams: ing.grams,
 					meal_type: logMealType,
-					consumed_at: new Date().toISOString(),
+					consumed_at: consumedAt(logDate),
 					also_for_user_id: shareMode === 'also' ? partner?.id : null,
 					only_for_user_id: shareMode === 'only' ? partner?.id : null,
 				});
@@ -704,6 +715,17 @@
 			{/each}
 		</div>
 
+		<!-- Fecha: por defecto hoy, pero se puede elegir otro día -->
+		<div style="margin-bottom:1rem;">
+			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">Fecha</div>
+			<input
+				type="date"
+				bind:value={logDate}
+				max={new Date().toISOString().slice(0, 10)}
+				class="date-input"
+			/>
+		</div>
+
 		{#if partner}
 			<div
 				class="share-card"
@@ -785,6 +807,29 @@
 {/if}
 
 <style>
+	/* ── Selector de fecha (igual que al añadir un alimento) ── */
+	.section-eyebrow {
+		font-size: 0.6875rem;
+		letter-spacing: 0.1em;
+		color: rgba(255,255,255,0.45);
+		text-transform: uppercase;
+		font-weight: 600;
+	}
+	.date-input {
+		width: 100%;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 12px;
+		color: #fff;
+		padding: 0.625rem 0.875rem;
+		font-size: 0.875rem;
+		font-family: inherit;
+		outline: none;
+		box-sizing: border-box;
+	}
+	.date-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
+	.date-input::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
+
 	/* ── Allergy banner ── */
 	.allergy-banner {
 		display: flex;
