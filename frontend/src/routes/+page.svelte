@@ -841,7 +841,7 @@
 					<div style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:0.5rem;">Frecuentes</div>
 					<div style="display:flex; flex-direction:column; gap:0.35rem;">
 						{#each frequent as freq (freq.product.id)}
-							<a href="/add?date={today}" style="text-decoration:none;">
+							<a href="/add?date={today}&product={freq.product.id}" style="text-decoration:none;">
 								<div class="card" style="cursor:pointer; padding:0.6rem 0.75rem;">
 									<div style="display:flex; justify-content:space-between; align-items:center;">
 										<div class="diary-frequent-name" style="font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.product.name}</div>
@@ -911,7 +911,7 @@
 							{/if}
 							<div style="display:flex; flex-direction:column; gap:0.4rem;">
 								{#each frequent as freq (freq.product.id)}
-									<a href="/add?date={today}" style="text-decoration:none;">
+									<a href="/add?date={today}&product={freq.product.id}" style="text-decoration:none;">
 										<div class="card" style="cursor:pointer;">
 											<div style="display:flex; justify-content:space-between; align-items:start;">
 												<div style="flex:1;">

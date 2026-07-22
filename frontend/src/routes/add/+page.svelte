@@ -33,6 +33,10 @@
 	const urlRecipeId = $page.url.searchParams.get('recipe');
 	let quickRecipe: FrequentRecipe['recipe'] | null = $state(null);
 
+	// Quick product from URL param (?product=ID) — salta directo a la pantalla de
+	// ese alimento (p. ej. al pinchar un "frecuente" del diario) en vez de la búsqueda.
+	const urlProductId = $page.url.searchParams.get('product');
+
 	// Use current time for today's entries, noon for past dates
 	function consumedAt(dateStr: string): string {
 		const today = new Date().toISOString().slice(0, 10);
@@ -561,6 +565,12 @@
 			api.get<FrequentRecipe['recipe']>(`/recipes/${urlRecipeId}`)
 				.then(r => { quickRecipe = r; })
 				.catch(() => { quickRecipe = null; });
+		}
+		// Pre-select product from URL param → abre directamente su pantalla de añadir
+		if (urlProductId) {
+			api.get<Product>(`/products/${urlProductId}`)
+				.then(p => { selectProduct(p); })
+				.catch(() => {});
 		}
 	});
 
