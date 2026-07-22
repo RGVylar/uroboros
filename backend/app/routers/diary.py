@@ -354,10 +354,16 @@ def partner_entry_status(
 @router.get("/day", response_model=DaySummary)
 def day_summary(
     day: date = Query(default_factory=lambda: datetime.now(timezone.utc).date()),
+    user_id: int | None = Query(None),  # read a partner's day (household permission)
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> DaySummary:
-    # Free users can only browse recent history
+    # Which diary are we reading — your own, or your partner's?
+    target_id = user_id if user_id is not None else user.id
+    if target_id != user.id and not _can_log_for_user(db, user.id, target_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    # Free users can only browse recent history (gate applies to the actor)
     if not user.is_premium_or_trial:
         cutoff = datetime.now(timezone.utc).date() - timedelta(days=FREE_HISTORY_DAYS - 1)
         if day < cutoff:
@@ -371,7 +377,7 @@ def day_summary(
         db.scalars(
             select(DiaryEntry)
             .where(
-                DiaryEntry.user_id == user.id,
+                DiaryEntry.user_id == target_id,
                 DiaryEntry.consumed_at >= start,
                 DiaryEntry.consumed_at <= end,
             )
@@ -407,7 +413,7 @@ def day_summary(
     # Consultar sesión de ejercicio del día
     exercise_session = db.scalar(
         select(ExerciseSession).where(
-            ExerciseSession.user_id == user.id,
+            ExerciseSession.user_id == target_id,
             ExerciseSession.session_date == day,
         )
     )

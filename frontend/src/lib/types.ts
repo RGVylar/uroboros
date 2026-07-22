@@ -3,6 +3,7 @@ export interface User {
 	email: string;
 	name: string;
 	avatar_id?: string | null;
+	identity_hue?: number | null;
 	changelog_opt_out?: boolean;
 }
 

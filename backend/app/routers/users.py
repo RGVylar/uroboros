@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
-from app.avatars import AVATAR_IDS
+from app.avatars import AVATAR_IDS, IDENTITY_HUES
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
@@ -50,6 +50,25 @@ def update_avatar(
     if payload.avatar_id is not None and payload.avatar_id not in AVATAR_IDS:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown avatar")
     user.avatar_id = payload.avatar_id
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+class IdentityColorUpdate(BaseModel):
+    identity_hue: int | None  # null clears it, back to the name-derived hue
+
+
+@router.patch("/me/identity-color", response_model=UserOut)
+def update_identity_color(
+    payload: IdentityColorUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Set (or clear) the current user's identity colour (OKLCH hue)."""
+    if payload.identity_hue is not None and payload.identity_hue not in IDENTITY_HUES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown colour")
+    user.identity_hue = payload.identity_hue
     db.commit()
     db.refresh(user)
     return user
@@ -152,6 +171,7 @@ def get_friend_profile(
         "id": target.id,
         "name": target.name,
         "avatar_id": target.avatar_id,
+        "identity_hue": target.identity_hue,
         "streak": streak,
         "active_days": active_days,
         "recipe_count": recipe_count,

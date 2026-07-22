@@ -2,7 +2,7 @@
 // each release so the changelog endpoint knows which notes the user already has
 // and whether a newer version exists. On native (Capacitor) this is the version
 // bundled in the APK, which is exactly why the server decides what to show.
-export const APP_VERSION = '1.7';
+export const APP_VERSION = '1.8';
 
 const LS_KEY = 'uro_changelog_seen';
 

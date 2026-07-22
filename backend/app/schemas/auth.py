@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str
     avatar_id: str | None = None
+    identity_hue: int | None = None
     changelog_opt_out: bool = False
 
     class Config:

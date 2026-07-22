@@ -3,28 +3,25 @@
   classic initial disc with a hue derived from the name (unchanged look).
 -->
 <script lang="ts">
-	import { avatarUrl } from '$lib/avatars';
+	import { avatarUrl, nameHue } from '$lib/avatars';
 
 	let {
 		name,
 		avatarId = null,
 		size = 46,
 		ring = null,
+		identityHue = null,
 	}: {
 		name: string;
 		avatarId?: string | null;
 		size?: number;
 		ring?: string | null; // optional CSS border, e.g. "2px solid #fff"
+		identityHue?: number | null; // overrides the name-derived disc hue
 	} = $props();
 
 	const url = $derived(avatarUrl(avatarId));
 
-	function hue(n: string): number {
-		let h = 0;
-		for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
-		return h;
-	}
-	const h = $derived(hue(name || '?'));
+	const h = $derived(identityHue ?? nameHue(name || '?'));
 	const initial = $derived((name || '?')[0].toUpperCase());
 </script>
 

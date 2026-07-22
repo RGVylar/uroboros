@@ -11,6 +11,7 @@
 	import { productUnit } from '$lib/drink';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
+	import { identityColor, nameHue } from '$lib/avatars';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
 	import {
@@ -39,6 +40,11 @@
 	let currentStreak = $state(0);
 	let streak = $derived(isToday ? currentStreak : 0);
 	let users: User[] = $state([]);
+	// ── Pareja: ver su día intercalado en el mío ──
+	// El resumen de la pareja se carga siempre (si la tienes); el chip solo decide
+	// si sus comidas se intercalan entre las tuyas.
+	let showPartner = $state(typeof localStorage !== 'undefined' && localStorage.getItem('uro_show_partner') === '1');
+	let partnerSummary: DaySummary | null = $state(null);
 	let loading = $state(true);
 	let fromCache = $state(false);
 	let copyingYesterday = $state(false);
@@ -268,6 +274,76 @@
 	}
 
 	let partner = $derived(users.find(u => u.id !== auth.user?.id) ?? null);
+	let partnerHue = $derived(partner ? (partner.identity_hue ?? nameHue(partner.name)) : 320);
+
+	async function loadPartnerDay() {
+		if (!partner || connectivity.isOffline) { partnerSummary = null; return; }
+		const day = today;
+		try {
+			partnerSummary = await api.get<DaySummary>(`/diary/day?day=${day}&user_id=${partner.id}`);
+		} catch {
+			partnerSummary = null;
+		}
+	}
+	// Refresca el día de la pareja al cambiar de día o cuando aparece la pareja.
+	$effect(() => { const p = partner; today; if (auth.isLoggedIn && p) loadPartnerDay(); });
+
+	function toggleShowPartner() {
+		showPartner = !showPartner;
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem('uro_show_partner', showPartner ? '1' : '0');
+		}
+	}
+
+	// Comidas a pintar: las tuyas y, si el chip está activo, las de la pareja
+	// intercaladas por hora dentro de cada comida. Sus kcal NO suman a tus totales:
+	// la cabecera usa solo tus totales y las suyas van en una línea aparte.
+	let displayMeals = $derived((() => {
+		if (!summary) return [];
+		const myByType = new Map(summary.meals.map(m => [m.meal_type, m]));
+		const showP = showPartner && !!partner && !!partnerSummary;
+		const pByType = new Map((showP ? partnerSummary!.meals : []).map(m => [m.meal_type, m]));
+		const out = [];
+		for (const mt of MEAL_ORDER) {
+			const mine = myByType.get(mt);
+			const theirs = pByType.get(mt);
+			const myEntries = mine?.entries ?? [];
+			const pEntries = theirs?.entries ?? [];
+			if (myEntries.length === 0 && pEntries.length === 0) continue;
+			const items = [
+				...myEntries.map(e => ({ entry: e, mine: true })),
+				...pEntries.map(e => ({ entry: e, mine: false })),
+			].sort((a, b) => new Date(a.entry.consumed_at).getTime() - new Date(b.entry.consumed_at).getTime());
+			out.push({
+				meal_type: mt,
+				label: MEAL_LABELS[mt],
+				hue: MEAL_HUES[mt] ?? 160,
+				headerKcal: mine?.totals.calories ?? 0,
+				headerProtein: mine?.totals.protein ?? 0,
+				hasMyEntries: myEntries.length > 0,
+				partnerKcal: pEntries.reduce((s, e) => s + e.calories, 0),
+				mySection: mine,
+				items,
+			});
+		}
+		return out;
+	})());
+	let partnerHasEntries = $derived(showPartner && !!partner && !!partnerSummary && partnerSummary.entries.length > 0);
+
+	async function copyToMe(entry: DiaryEntry) {
+		try {
+			await api.post('/diary', {
+				product_id: entry.product_id,
+				grams: entry.grams,
+				meal_type: entry.meal_type,
+				consumed_at: new Date().toISOString(),
+			});
+			toast.success('Añadido a tu diario');
+			await loadDay();
+		} catch {
+			toast.error('No se pudo añadir');
+		}
+	}
 
 	// Adjust macro targets for the day based on exercise calories burned
 	let effectiveGoals = $derived((() => {
@@ -859,7 +935,30 @@
 		<!-- ── RIGHT: diary entries ── -->
 		<div class="diary-right" style="margin-top:0.75rem;">
 
-			{#if summary.entries.length === 0}
+			{#if partner && !connectivity.isOffline}
+				<button
+					type="button"
+					class="partner-chip"
+					class:on={showPartner}
+					style="--phue:{partnerHue};"
+					onclick={toggleShowPartner}
+					aria-pressed={showPartner}
+				>
+					<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
+					<span class="pc-body">
+						<span class="pc-name">{partner.name}</span>
+						{#if partnerSummary}
+							<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} P</span></span>
+						{:else}
+							<span class="pc-mac pc-hint">Ver su día</span>
+						{/if}
+					</span>
+					<span class="pc-state">{showPartner ? 'Ocultar' : 'Mostrar'}</span>
+				</button>
+			{/if}
+
+
+			{#if summary.entries.length === 0 && !partnerHasEntries}
 				<EmptyState
 					icon="🥣"
 					title="Sin registros"
@@ -943,37 +1042,44 @@
 					</div>
 				{/if}
 
-				{#if summary.meals && summary.meals.length > 0}
-					{#each summary.meals as meal (meal.meal_type)}
+				{#if displayMeals.length > 0}
+					{#each displayMeals as meal (meal.meal_type)}
 						<div style="margin-bottom:1rem;">
 							<MealHeader
 								label={meal.label}
-								kcal={meal.totals.calories}
-								protein={meal.totals.protein}
-								hasEntries={meal.entries.length > 0}
-								hue={MEAL_HUES[meal.meal_type] ?? 160}
+								kcal={meal.headerKcal}
+								protein={meal.headerProtein}
+								hasEntries={meal.hasMyEntries}
+								hue={meal.hue}
 							>
 								{#snippet actions()}
 									<button
 										class="btn-ghost"
-										onclick={(e) => { e.stopPropagation(); startSaveMealAsRecipe(meal); }}
-										disabled={meal.entries.length === 0}
+										onclick={(e) => { e.stopPropagation(); if (meal.mySection) startSaveMealAsRecipe(meal.mySection); }}
+										disabled={!meal.hasMyEntries}
 										style="font-size:0.72rem; padding:0.25rem 0.55rem;"
 									>
 										＋ Receta
 									</button>
 									<button
 										class="btn-ghost"
-										onclick={(e) => { e.stopPropagation(); clearingMeal = meal; }}
-										disabled={meal.entries.length === 0}
+										onclick={(e) => { e.stopPropagation(); if (meal.mySection) clearingMeal = meal.mySection; }}
+										disabled={!meal.hasMyEntries}
 										style="font-size:0.72rem; padding:0.25rem 0.55rem; color:oklch(70% 0.18 25);"
 									>
 										🗑 Vaciar
 									</button>
 								{/snippet}
 							</MealHeader>
-							{#each meal.entries as entry (entry.id)}
-								{@render entryCard(entry)}
+							{#if showPartner && meal.partnerKcal > 0}
+								<div class="partner-meal-line" style="--phue:{partnerHue};">{partner?.name}: {Math.round(meal.partnerKcal)} kcal</div>
+							{/if}
+							{#each meal.items as it (it.mine ? 'm' + it.entry.id : 'p' + it.entry.id)}
+								{#if it.mine}
+									{@render entryCard(it.entry)}
+								{:else}
+									{@render partnerEntryCard(it.entry)}
+								{/if}
 							{/each}
 						</div>
 					{/each}
@@ -1158,7 +1264,7 @@
 
 <!-- Clear meal modal -->
 {#if clearingMeal}
-	<Modal onClose={() => clearingMeal = null} title="🗑 Vaciar {clearingMeal.label}" subtitle="Se borrarán todos los alimentos de esta comida">
+	<Modal onClose={() => clearingMeal = null} title="🗑 Vaciar {clearingMeal.label}" subtitle="Se borrarán tus alimentos de esta comida{showPartner && partner ? ` — los de ${partner.name} no se tocan` : ''}">
 		<div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
 			<button class="btn-danger" onclick={confirmClearMeal}>Vaciar</button>
 			<button class="btn-secondary" onclick={() => clearingMeal = null}>Cancelar</button>
@@ -1246,11 +1352,113 @@
 	</div>
 {/snippet}
 
+{#snippet partnerEntryCard(entry: DiaryEntry)}
+	<!-- La entrada de la pareja: solo lectura, con su color. El ＋ te la copia a ti. -->
+	<div class="card partner-card" style="--phue:{partnerHue}; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.6rem;">
+		<span class="pe-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={30} /></span>
+		<div style="flex:1; min-width:0;">
+			<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+				{entry.product?.name ?? `Producto #${entry.product_id}`}
+				<span class="pe-tag">{partner?.name}</span>
+			</div>
+			<div style="font-size:0.78rem; color:var(--text-muted);">
+				{entry.grams}{entry.product ? productUnit(entry.product) : 'g'} · {fmtTime(entry.consumed_at)}
+			</div>
+		</div>
+		<div style="text-align:right; margin-right:0.35rem;">
+			<div style="font-size:0.85rem; color:var(--cal); opacity:0.85;">{Math.round(entry.calories)} kcal</div>
+			<div style="font-size:0.72rem; font-variant-numeric:tabular-nums;">
+				<span style="color:oklch(78% 0.14 220);">P{Math.round(entry.protein)}</span>
+				<span style="color:oklch(78% 0.16 275);"> C{Math.round(entry.carbs)}</span>
+				<span style="color:oklch(75% 0.17 25);"> G{Math.round(entry.fat)}</span>
+			</div>
+		</div>
+		<button class="pe-copy" title="Ponérmelo a mí también" aria-label="Copiar a mi diario"
+			onclick={() => copyToMe(entry)}>＋</button>
+	</div>
+{/snippet}
+
 {#if showNotifModal}
 	<NotifModal onclose={() => showNotifModal = false} />
 {/if}
 
 <style>
+	/* ── Pareja: chip + su día intercalado ── */
+	.partner-chip {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		width: auto;
+		background: var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid var(--border, rgba(255,255,255,0.09));
+		border-radius: 14px;
+		padding: 0.4rem 0.7rem 0.4rem 0.45rem;
+		margin-bottom: 0.75rem;
+		cursor: pointer;
+		box-shadow: none;
+		transition: background 0.2s, border-color 0.2s;
+	}
+	.partner-chip:hover { filter: none; box-shadow: none; }
+	.partner-chip.on {
+		background: oklch(72% 0.15 var(--phue) / 0.14);
+		border-color: oklch(72% 0.15 var(--phue) / 0.34);
+	}
+	.pc-av { display: flex; flex-shrink: 0; }
+	.pc-body { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+	.pc-name { font-size: 0.8rem; font-weight: 800; color: var(--text); }
+	.partner-chip.on .pc-name { color: oklch(78% 0.15 var(--phue)); }
+	.pc-mac { font-size: 0.68rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-muted); margin-top: 0.05rem; }
+	.pc-mac .pc-k { color: var(--cal); }
+	.pc-mac .pc-p { color: oklch(78% 0.14 220); }
+	.pc-hint { color: var(--text-muted); font-weight: 600; }
+	.pc-state { margin-left: auto; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+	.partner-chip.on .pc-state { color: oklch(78% 0.15 var(--phue)); }
+
+	.partner-meal-line {
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: oklch(78% 0.15 var(--phue));
+		text-align: right;
+		margin: -0.15rem 0.15rem 0.4rem;
+	}
+
+	.partner-card {
+		background: oklch(72% 0.15 var(--phue) / 0.08);
+		border: 1px solid oklch(72% 0.15 var(--phue) / 0.30);
+		border-left: 3px solid oklch(72% 0.15 var(--phue));
+	}
+	.pe-av { display: flex; flex-shrink: 0; }
+	.pe-tag {
+		display: inline-block;
+		font-size: 0.6rem;
+		font-weight: 700;
+		color: oklch(78% 0.15 var(--phue));
+		background: oklch(72% 0.15 var(--phue) / 0.16);
+		border: 1px solid oklch(72% 0.15 var(--phue) / 0.32);
+		padding: 0.05rem 0.4rem;
+		border-radius: 99px;
+		margin-left: 0.3rem;
+		vertical-align: middle;
+	}
+	.pe-copy {
+		flex-shrink: 0;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		background: transparent;
+		border: 1px solid oklch(72% 0.15 var(--phue) / 0.34);
+		color: oklch(78% 0.15 var(--phue));
+		font-size: 1rem;
+		font-weight: 700;
+		line-height: 1;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: none;
+	}
+	.pe-copy:hover { background: oklch(72% 0.15 var(--phue) / 0.14); filter: none; box-shadow: none; }
+
 	/* ── Pareja en editar · "dos platos" ── */
 	.edit-share-row {
 		display: flex;

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 
-from sqlalchemy import Boolean, DateTime, String, false, func
+from sqlalchemy import Boolean, DateTime, Integer, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -19,6 +19,10 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     # Preset avatar slug (e.g. "aguacate"); null falls back to the initial disc.
     avatar_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Identity colour (OKLCH hue) shown as the avatar ring and the tint of this
+    # user's rows in a partner's diary. Null falls back to the name-derived hue
+    # that Avatar.svelte already computes, so old rows need no backfill.
+    identity_hue: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -11,6 +11,7 @@ class UserMinimal(BaseModel):
     name: str
     email: str
     avatar_id: str | None = None
+    identity_hue: int | None = None
 
     class Config:
         from_attributes = True

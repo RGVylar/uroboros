@@ -7,13 +7,14 @@
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import { Avatar, Modal } from '$lib/components';
-	import { AVATARS } from '$lib/avatars';
+	import { AVATARS, IDENTITY_HUES, identityColor } from '$lib/avatars';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
 	let showAvatarPicker = $state(false);
 	let savingAvatar = $state(false);
+	let savingColor = $state(false);
 
 	async function pickAvatar(id: string | null) {
 		if (savingAvatar) return;
@@ -26,6 +27,19 @@
 			toast.error('No se pudo cambiar el avatar');
 		} finally {
 			savingAvatar = false;
+		}
+	}
+
+	async function pickColor(hue: number | null) {
+		if (savingColor) return;
+		savingColor = true;
+		try {
+			await api.patch('/users/me/identity-color', { identity_hue: hue });
+			auth.updateUser({ identity_hue: hue });
+		} catch {
+			toast.error('No se pudo cambiar el color');
+		} finally {
+			savingColor = false;
 		}
 	}
 
@@ -75,6 +89,7 @@
 	const userName = $derived(auth.user?.name ?? 'Usuario');
 	const userEmail = $derived(auth.user?.email ?? '');
 	const userAvatar = $derived(auth.user?.avatar_id ?? null);
+	const userColorHue = $derived(auth.user?.identity_hue ?? null);
 	const nameHue = $derived((() => {
 		let h = 0;
 		for (const c of userName) h = (h * 31 + c.charCodeAt(0)) % 360;
@@ -102,8 +117,8 @@
 	<GlassCard padding={22}>
 		<div class="hero">
 			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title="Cambiar avatar">
-				<div class="avatar-shadow" style:--hue={nameHue}>
-					<Avatar name={userName} avatarId={userAvatar} size={92} />
+				<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
+					<Avatar name={userName} avatarId={userAvatar} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
 				</div>
 				<div class="edit-badge">✏️</div>
 				{#if streak > 0}
@@ -162,6 +177,31 @@
 		<button class="avatar-clear" disabled={savingAvatar || !userAvatar} onclick={() => pickAvatar(null)}>
 			Usar inicial ({userName[0]?.toUpperCase() ?? 'U'})
 		</button>
+
+		<div class="color-section">
+			<div class="color-title">Tu color</div>
+			<div class="color-sub">El aro de tu avatar y el tono con el que te ve tu pareja.</div>
+			<div class="color-row">
+				{#each IDENTITY_HUES as hue}
+					<button
+						class="color-opt"
+						class:selected={userColorHue === hue}
+						disabled={savingColor}
+						style="background:{identityColor(userName, hue)};"
+						onclick={() => pickColor(hue)}
+						aria-label="Color {hue}"
+					></button>
+				{/each}
+				<button
+					class="color-opt color-auto"
+					class:selected={userColorHue === null}
+					disabled={savingColor}
+					onclick={() => pickColor(null)}
+					aria-label="Color automático"
+					title="Automático (según tu nombre)"
+				>A</button>
+			</div>
+		</div>
 	</Modal>
 {/if}
 
@@ -345,4 +385,32 @@
 		cursor: pointer;
 	}
 	.avatar-clear:disabled { opacity: 0.4; cursor: default; }
+
+	/* Color picker */
+	.color-section { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+	.color-title { font-size: 13px; font-weight: 700; }
+	.color-sub { font-size: 11.5px; color: rgba(255,255,255,0.5); margin: 3px 0 12px; line-height: 1.4; }
+	.color-row { display: flex; gap: 12px; flex-wrap: wrap; }
+	.color-opt {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 2px solid transparent;
+		cursor: pointer;
+		padding: 0;
+		box-shadow: none;
+		transition: transform 0.12s, border-color 0.12s;
+	}
+	.color-opt:hover { transform: scale(1.08); filter: none; box-shadow: none; }
+	.color-opt.selected { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.25); }
+	.color-opt:disabled { opacity: 0.5; cursor: default; }
+	.color-auto {
+		background: rgba(255,255,255,0.06);
+		color: rgba(255,255,255,0.7);
+		font-size: 13px;
+		font-weight: 800;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 </style>
