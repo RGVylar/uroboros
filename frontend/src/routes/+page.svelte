@@ -275,6 +275,8 @@
 
 	let partner = $derived(users.find(u => u.id !== auth.user?.id) ?? null);
 	let partnerHue = $derived(partner ? (partner.identity_hue ?? nameHue(partner.name)) : 320);
+	// Tu propio color: lo usa la tarjeta compartida, que va del tuyo al suyo.
+	let myHue = $derived(auth.user ? (auth.user.identity_hue ?? nameHue(auth.user.name)) : 235);
 
 	async function loadPartnerDay() {
 		if (!partner || connectivity.isOffline) { partnerSummary = null; return; }
@@ -1337,7 +1339,7 @@
 
 {#snippet entryCard(entry: DiaryEntry, shared: DiaryEntry | null = null)}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-	<div class="card" class:shared-card={!!shared} style="--phue:{partnerHue}; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+	<div class="card" class:shared-card={!!shared} style="--phue:{partnerHue}; --mhue:{myHue}; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
 		onclick={() => startEdit(entry)}
 		role="button"
 		tabindex="0"
@@ -1351,8 +1353,11 @@
 			</div>
 			{#if shared}
 				<div class="shared-line">
-					<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={16} /></span>
-					<span>Los dos · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>
+					<span class="shared-avs">
+						<span class="shared-av"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} identityHue={myHue} size={16} /></span>
+						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={16} /></span>
+					</span>
+					<span class="shared-txt">Los dos · tú {Math.round(entry.grams)}{entry.product ? productUnit(entry.product) : 'g'} · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>
 				</div>
 			{/if}
 		</div>
@@ -1445,23 +1450,41 @@
 		margin: -0.15rem 0.15rem 0.4rem;
 	}
 
-	/* Lo que tenéis los dos: una sola tarjeta (la tuya) marcada como compartida */
-	.shared-card { border-left: 3px solid oklch(72% 0.15 var(--phue) / 0.7); }
+	/* Lo que tenéis los dos: UNA tarjeta (la tuya) con un degradado de DOS tonos,
+	   del tuyo al suyo. La de solo-ella usa el mismo gesto pero de UN tono, así se
+	   lee "dos tonos = los dos / un tono = una persona". El color va en el fondo,
+	   muy tenue, para no comerse el contraste de las kcal ni de los macros. */
+	.shared-card {
+		background:
+			linear-gradient(100deg,
+				oklch(72% 0.15 var(--mhue) / 0.13),
+				transparent 45%,
+				oklch(72% 0.15 var(--phue) / 0.13)),
+			var(--surface, rgba(255,255,255,0.055));
+		border-color: rgba(255, 255, 255, 0.12);
+	}
 	.shared-line {
 		display: flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: 0.35rem;
 		font-size: 0.7rem;
 		font-weight: 600;
-		color: oklch(78% 0.15 var(--phue));
+		color: var(--text-muted, rgba(255,255,255,0.55));
 		margin-top: 0.2rem;
+		min-width: 0;
 	}
-	.shared-av { display: flex; flex-shrink: 0; }
+	.shared-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.shared-avs { display: flex; align-items: center; flex-shrink: 0; }
+	.shared-av { display: flex; flex-shrink: 0; border-radius: 50%; box-shadow: 0 0 0 1.5px #0d0f14; }
+	.shared-avs .shared-av:nth-child(2) { margin-left: -6px; }
 
 	.partner-card {
-		background: oklch(72% 0.15 var(--phue) / 0.08);
-		border: 1px solid oklch(72% 0.15 var(--phue) / 0.30);
-		border-left: 3px solid oklch(72% 0.15 var(--phue));
+		background:
+			linear-gradient(100deg,
+				transparent,
+				oklch(72% 0.15 var(--phue) / 0.15)),
+			var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid oklch(72% 0.15 var(--phue) / 0.28);
 	}
 	.pe-av { display: flex; flex-shrink: 0; }
 	.pe-tag {
