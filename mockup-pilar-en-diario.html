@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Pilar en mi diario</title>
+<style>
+  :root {
+    --bg: #06070a;
+    --surface: rgba(255,255,255,0.055);
+    --surface2: rgba(255,255,255,0.035);
+    --surface-hover: rgba(255,255,255,0.09);
+    --border: rgba(255,255,255,0.09);
+    --text: #eef1f5;
+    --text-muted: rgba(255,255,255,0.55);
+    --text-faint: rgba(255,255,255,0.35);
+    --primary: oklch(85% 0.17 160);
+    --primary-dim: oklch(72% 0.18 170);
+    --primary-ink: #041010;
+    --cal: oklch(80% 0.17 45);
+    --prot: oklch(78% 0.14 220);
+    --carb: oklch(78% 0.16 275);
+    --fat: oklch(75% 0.17 25);
+    --danger: oklch(65% 0.2 20);
+    /* color de Pilar */
+    --her: oklch(72% 0.15 320);
+    --her-dim: oklch(64% 0.19 340);
+    --her-tint: oklch(72% 0.15 320 / 0.09);
+    --her-border: oklch(72% 0.15 320 / 0.28);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(900px 700px at 8% -10%, oklch(60% 0.22 185 / 0.16), transparent 60%),
+      radial-gradient(900px 800px at 50% 115%, oklch(70% 0.23 160 / 0.12), transparent 60%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 20px 14px 96px;
+    max-width: 440px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .toolbar { display:flex; justify-content:flex-end; margin-bottom: 14px; }
+  .pill {
+    display:inline-flex; align-items:center; gap:6px; font-size: 13px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 99px;
+    padding: 9px 15px; color: var(--text);
+  }
+
+  /* ── meal header ── */
+  .meal-head { display:flex; align-items:center; gap: 10px; margin: 22px 2px 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink:0; }
+  .dot.br { background: var(--cal); }
+  .dot.lu { background: var(--primary); }
+  .meal-name { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+  .meal-act { font-size: 12.5px; color: var(--primary); font-weight: 600; }
+  .meal-act.rm { color: var(--danger); }
+  .meal-tot { margin-left:auto; font-size: 13px; font-weight: 700; }
+  .meal-tot .k { color: var(--cal); }
+  .meal-tot .p { color: var(--primary); }
+
+  /* ── entry card ── */
+  .entry {
+    display:flex; align-items:center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 13px 14px; margin-bottom: 9px;
+  }
+  .entry .body { flex:1; min-width:0; }
+  .entry .nm { font-size: 14.5px; font-weight: 600; line-height:1.25; }
+  .entry .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .entry .right { text-align:right; flex-shrink:0; }
+  .entry .kc { font-size: 14px; font-weight: 700; color: var(--cal); }
+  .entry .mac { font-size: 12px; font-variant-numeric: tabular-nums; margin-top: 3px; white-space:nowrap; }
+  .entry .mac .p { color: var(--prot); }
+  .entry .mac .c { color: var(--carb); }
+  .entry .mac .g { color: var(--fat); }
+  .xbtn { width: 30px; height: 30px; border-radius: 50%; flex-shrink:0;
+    background: oklch(65% 0.2 20 / 0.16); border: 1px solid oklch(65% 0.2 20 / 0.32);
+    color: var(--danger); font-size: 15px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; }
+
+  /* ════ PILAR STRIP ════ */
+  .pstrip {
+    margin-top: 26px;
+    border: 1px solid var(--her-border);
+    background: linear-gradient(180deg, var(--her-tint), transparent 70%);
+    border-radius: 20px; overflow: hidden;
+  }
+  .pstrip-head { display:flex; align-items:center; gap: 12px; padding: 14px 15px; cursor:pointer; user-select:none; }
+  .pav { width: 38px; height: 38px; border-radius: 50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size: 15px; font-weight: 800; color:#fff;
+    background: linear-gradient(135deg, var(--her), var(--her-dim)); }
+  .pstrip-head .txt { flex:1; min-width:0; }
+  .pstrip-head .nm { font-size: 15px; font-weight: 800; letter-spacing:-0.01em; }
+  .pstrip-head .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .pstrip-head .sub .k { color: var(--cal); font-weight:600; }
+  .chev { color: var(--text-faint); font-size: 14px; transition: transform 0.3s; }
+  .pstrip.open .chev { transform: rotate(90deg); }
+  .pbody { max-height: 0; overflow: hidden; transition: max-height 0.45s ease; }
+  .pstrip.open .pbody { max-height: 1200px; }
+  .pinner { padding: 0 13px 15px; }
+
+  .pmeal-head { display:flex; align-items:center; gap:8px; margin: 14px 2px 9px; }
+  .pmeal-head .dt { width:7px; height:7px; border-radius:50%; background: var(--her); }
+  .pmeal-head .nm { font-size: 12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color: var(--text-muted); }
+  .pmeal-head .tot { margin-left:auto; font-size:12px; font-weight:700; }
+  .pmeal-head .tot .k { color: var(--cal); }
+
+  .pentry { display:flex; align-items:center; gap:10px;
+    background: var(--surface2); border: 1px solid var(--border); border-left: 2px solid var(--her-border);
+    border-radius: 14px; padding: 11px 13px; margin-bottom: 8px; }
+  .pentry .body { flex:1; min-width:0; }
+  .pentry .nm { font-size: 13.5px; font-weight:600; }
+  .pentry .sub { font-size: 11.5px; color: var(--text-muted); margin-top:2px; }
+  .pentry .right { text-align:right; flex-shrink:0; }
+  .pentry .kc { font-size: 13px; font-weight:700; color: var(--cal); }
+  .pentry .mac { font-size: 11.5px; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .pentry .mac .p { color: var(--prot); } .pentry .mac .c { color: var(--carb); } .pentry .mac .g { color: var(--fat); }
+  .copybtn { background: transparent; border: 1px solid var(--her-border); color: var(--her);
+    border-radius: 99px; width: 30px; height: 30px; flex-shrink:0; font-size: 16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-weight: 700; }
+  .rohint { font-size: 11px; color: var(--text-faint); font-style: italic; text-align:center; margin-top: 6px; }
+
+  /* ── bottom nav ── */
+  .nav { position: fixed; bottom: 0; left:0; right:0; max-width: 440px; margin: 0 auto;
+    background: rgba(10,11,16,0.82); backdrop-filter: blur(18px); border-top: 1px solid var(--border);
+    display:flex; align-items:center; justify-content: space-around; padding: 8px 10px 12px; }
+  .nav .it { display:flex; flex-direction:column; align-items:center; gap:3px; font-size: 10.5px; color: var(--text-muted); }
+  .nav .it.on { color: var(--primary); }
+  .nav .ic { font-size: 18px; }
+  .fab { width: 54px; height: 54px; border-radius: 50%; margin-top: -22px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dim)); color: var(--primary-ink);
+    font-size: 28px; font-weight: 700; display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 10px 26px -6px oklch(75% 0.2 165 / 0.5); }
+
+  .caption { font-size: 12px; color: var(--text-faint); line-height:1.5; margin: 10px 2px 0; }
+</style>
+</head>
+<body>
+
+  <div class="toolbar"><span class="pill">↩ Igual que ayer</span></div>
+
+  <!-- ─── DESAYUNO (tu pantalla real) ─── -->
+  <div class="meal-head">
+    <span class="dot br"></span><span class="meal-name">Desayuno</span>
+    <span class="meal-act">＋ Receta</span><span class="meal-act rm">🗑 Vaciar</span>
+    <span class="meal-tot"><span class="k">694 kcal</span> · <span class="p">P66</span></span>
+  </div>
+  <div class="entry"><div class="body"><div class="nm">Evowhey Chocolate Wafer</div><div class="sub">36g · 10:42</div></div>
+    <div class="right"><div class="kc">130 kcal</div><div class="mac"><span class="p">P27</span> <span class="c">C2</span> <span class="g">G1</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Leche Sin Lactosa semi Asturiana</div><div class="sub">300ml · 10:42</div></div>
+    <div class="right"><div class="kc">135 kcal</div><div class="mac"><span class="p">P9</span> <span class="c">C14</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">SPECIAL K HIGH PROTEIN Cocoa Hazel…</div><div class="sub">76g · 10:42</div></div>
+    <div class="right"><div class="kc">289 kcal</div><div class="mac"><span class="p">P16</span> <span class="c">C49</span> <span class="g">G2</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Tortilla De Patatas Con Cebolla</div><div class="sub">40g · 10:45</div></div>
+    <div class="right"><div class="kc">77 kcal</div><div class="mac"><span class="p">P2</span> <span class="c">C7</span> <span class="g">G4</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Lomo embuchado</div><div class="sub">32g · 11:00</div></div>
+    <div class="right"><div class="kc">64 kcal</div><div class="mac"><span class="p">P12</span> <span class="c">C0</span> <span class="g">G2</span></div></div><div class="xbtn">×</div></div>
+
+  <!-- ─── ALMUERZO ─── -->
+  <div class="meal-head">
+    <span class="dot lu"></span><span class="meal-name">Almuerzo</span>
+    <span class="meal-act">＋ Receta</span><span class="meal-act rm">🗑 Vaciar</span>
+    <span class="meal-tot"><span class="k">822 kcal</span> · <span class="p">P78</span></span>
+  </div>
+  <div class="entry"><div class="body"><div class="nm">Pechuguita de Pollo</div><div class="sub">250g · 15:12</div></div>
+    <div class="right"><div class="kc">250 kcal</div><div class="mac"><span class="p">P67</span> <span class="c">C1</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Aceite De Oliva Vierten Extra</div><div class="sub">5g · 15:12</div></div>
+    <div class="right"><div class="kc">41 kcal</div><div class="mac"><span class="p">P0</span> <span class="c">C0</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+
+  <!-- ═══════════ TIRA DE PILAR ═══════════ -->
+  <div class="pstrip" id="pstrip">
+    <div class="pstrip-head" onclick="document.getElementById('pstrip').classList.toggle('open')">
+      <div class="pav">P</div>
+      <div class="txt">
+        <div class="nm">Hoy también Pilar</div>
+        <div class="sub">3 comidas · <span class="k">1.240 kcal</span> · toca para ver</div>
+      </div>
+      <span class="chev">▸</span>
+    </div>
+    <div class="pbody">
+      <div class="pinner">
+        <div class="pmeal-head"><span class="dt"></span><span class="nm">Desayuno</span><span class="tot"><span class="k">320 kcal</span></span></div>
+        <div class="pentry"><div class="body"><div class="nm">Avena con plátano</div><div class="sub">60g · 08:15</div></div>
+          <div class="right"><div class="kc">320 kcal</div><div class="mac"><span class="p">P10</span> <span class="c">C54</span> <span class="g">G6</span></div></div>
+          <button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+
+        <div class="pmeal-head"><span class="dt"></span><span class="nm">Almuerzo</span><span class="tot"><span class="k">340 kcal</span></span></div>
+        <div class="pentry"><div class="body"><div class="nm">Ensalada de garbanzos</div><div class="sub">200g · 14:30</div></div>
+          <div class="right"><div class="kc">340 kcal</div><div class="mac"><span class="p">P15</span> <span class="c">C40</span> <span class="g">G12</span></div></div>
+          <button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+
+        <div class="pmeal-head"><span class="dt"></span><span class="nm">Cena</span><span class="tot"><span class="k">380 kcal</span></span></div>
+        <div class="pentry"><div class="body"><div class="nm">Salmón al horno</div><div class="sub">180g · 21:00</div></div>
+          <div class="right"><div class="kc">380 kcal</div><div class="mac"><span class="p">P36</span> <span class="c">C0</span> <span class="g">G26</span></div></div>
+          <button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+
+        <div class="rohint">Solo lectura · el botón ＋ te copiaría el plato a ti (idea para después)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">Así se vería en tu diario real. La tira de Pilar va justo debajo de tus comidas, plegada; solo ocupa una fila hasta que la abres. El botón <b>＋</b> de cada plato suyo es el enganche futuro con lo de “pareja en editar”.</div>
+
+  <!-- ─── nav ─── -->
+  <div class="nav">
+    <div class="it on"><span class="ic">📔</span>Diario</div>
+    <div class="it"><span class="ic">🕘</span>Historial</div>
+    <div class="fab">＋</div>
+    <div class="it"><span class="ic">🍳</span>Recetas</div>
+    <div class="it"><span class="ic">⚙️</span>Ajustes</div>
+  </div>
+
+</body>
+</html>

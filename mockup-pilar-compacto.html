@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Pilar compacto + avatar real + color</title>
+<style>
+  :root {
+    --bg: #06070a;
+    --surface: rgba(255,255,255,0.055);
+    --surface2: rgba(255,255,255,0.035);
+    --border: rgba(255,255,255,0.09);
+    --text: #eef1f5;
+    --text-muted: rgba(255,255,255,0.55);
+    --text-faint: rgba(255,255,255,0.35);
+    --primary: oklch(85% 0.17 160);
+    --primary-dim: oklch(72% 0.18 170);
+    --primary-ink: #041010;
+    --cal: oklch(80% 0.17 45);
+    --prot: oklch(78% 0.14 220);
+    --carb: oklch(78% 0.16 275);
+    --fat: oklch(75% 0.17 25);
+    --danger: oklch(65% 0.2 20);
+    /* color de identidad de Pilar — configurable (hue en --hh) */
+    --hh: 320;
+    --her: oklch(72% 0.15 var(--hh));
+    --her-dim: oklch(64% 0.19 calc(var(--hh) + 18));
+    --her-tint: oklch(72% 0.15 var(--hh) / 0.09);
+    --her-border: oklch(72% 0.15 var(--hh) / 0.34);
+    --her-strong: oklch(72% 0.15 var(--hh) / 0.16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(900px 700px at 8% -10%, oklch(60% 0.22 185 / 0.16), transparent 60%),
+      radial-gradient(900px 800px at 50% 115%, oklch(70% 0.23 160 / 0.12), transparent 60%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 20px 14px 96px;
+    max-width: 440px; margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* avatar real (aquí el emoji simula la imagen .webp del preset) con aro de color */
+  .avatar { border-radius: 50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+    box-shadow: 0 0 0 2px var(--her); }
+
+  /* ── toolbar con chip compacto ── */
+  .toolbar { display:flex; align-items:center; gap:8px; margin-bottom: 6px; }
+  .spacer { flex:1; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size: 12.5px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 8px 13px; color: var(--text); white-space:nowrap; }
+  .chip { display:inline-flex; align-items:center; gap:8px; font-size: 12.5px; font-weight: 700;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 6px 12px 6px 7px;
+    color: var(--text); cursor:pointer; user-select:none; transition: all 0.2s; white-space:nowrap; }
+  .chip .avatar { width: 28px; height:28px; font-size:16px; box-shadow: 0 0 0 2px var(--her); opacity:0.9; transition:opacity 0.2s; }
+  .chip .cbody { display:flex; flex-direction:column; line-height:1.15; }
+  .chip .cname { font-size: 12px; font-weight: 800; }
+  .chip .cmac { font-size: 10.5px; font-weight: 700; font-variant-numeric:tabular-nums; color: var(--text-muted); margin-top:1px; }
+  .chip .cmac .k { color: var(--cal); } .chip .cmac .p { color: var(--prot); }
+  .chip.on { background: var(--her-strong); border-color: var(--her-border); }
+  .chip.on .avatar { opacity:1; box-shadow: 0 0 0 2px var(--her); }
+  .chip.on .cname { color: var(--her); }
+
+  /* ── meal header ── */
+  .meal-head { display:flex; align-items:center; gap: 10px; margin: 22px 2px 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink:0; }
+  .dot.br { background: var(--cal); } .dot.lu { background: var(--primary); } .dot.di { background: oklch(70% 0.15 275); }
+  .meal-name { font-size: 16px; font-weight: 800; letter-spacing:-0.01em; }
+  .meal-act { font-size: 12.5px; color: var(--primary); font-weight: 600; }
+  .meal-act.rm { color: var(--danger); }
+  .meal-tot { margin-left:auto; font-size: 13px; font-weight: 700; text-align:right; }
+  .meal-tot .k { color: var(--cal); } .meal-tot .p { color: var(--primary); }
+  .meal-tot .her-line { display:none; font-size: 10.5px; font-weight:600; color: var(--her); margin-top:2px; }
+  .showing .meal-tot .her-line { display:block; }
+
+  /* ── your entry ── */
+  .entry { display:flex; align-items:center; gap: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 16px; padding: 13px 14px; margin-bottom: 9px; }
+  .entry .body { flex:1; min-width:0; }
+  .entry .nm { font-size: 14.5px; font-weight: 600; line-height:1.25; }
+  .entry .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .entry .right { text-align:right; flex-shrink:0; }
+  .entry .kc { font-size: 14px; font-weight: 700; color: var(--cal); }
+  .entry .mac { font-size: 12px; font-variant-numeric: tabular-nums; margin-top: 3px; white-space:nowrap; }
+  .entry .mac .p { color: var(--prot); } .entry .mac .c { color: var(--carb); } .entry .mac .g { color: var(--fat); }
+  .xbtn { width: 30px; height: 30px; border-radius: 50%; flex-shrink:0; background: oklch(65% 0.2 20 / 0.16);
+    border: 1px solid oklch(65% 0.2 20 / 0.32); color: var(--danger); font-size: 15px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+  /* ── PILAR entry ── */
+  .pentry { display:flex; align-items:center; gap: 10px;
+    background: var(--her-tint); border: 1px solid var(--her-border); border-left: 3px solid var(--her);
+    border-radius: 16px; padding: 12px 14px; margin-bottom: 9px;
+    max-height: 0; opacity:0; overflow:hidden; padding-top:0; padding-bottom:0; margin-bottom:0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease; }
+  .showing .pentry { max-height: 90px; opacity:1; padding-top:12px; padding-bottom:12px; margin-bottom:9px; }
+  .showing .her-line { display:block; }
+  .her-line { display:none; }
+  .pentry .avatar { width: 30px; height:30px; font-size:17px; }
+  .pentry .body { flex:1; min-width:0; }
+  .pentry .nm { font-size: 14px; font-weight: 600; }
+  .pentry .nm .tag { font-size:10px; font-weight:700; color:var(--her); background: var(--her-strong);
+    border:1px solid var(--her-border); border-radius:99px; padding:1px 7px; margin-left:6px; vertical-align:middle; }
+  .pentry .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .pentry .right { text-align:right; flex-shrink:0; }
+  .pentry .kc { font-size: 13px; font-weight:700; color: var(--cal); opacity:0.85; }
+  .pentry .mac { font-size: 11.5px; font-variant-numeric:tabular-nums; margin-top:3px; white-space:nowrap; }
+  .pentry .mac .p { color: var(--prot); } .pentry .mac .c { color: var(--carb); } .pentry .mac .g { color: var(--fat); }
+  .copybtn { width: 30px; height:30px; border-radius:50%; flex-shrink:0; background: transparent;
+    border: 1px solid var(--her-border); color: var(--her); font-size: 16px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+  /* ── panel demo del color (simula el perfil de Pilar) ── */
+  .cfg { margin-top: 26px; background: var(--surface2); border: 1px dashed var(--border); border-radius: 16px; padding: 14px; }
+  .cfg .h { font-size: 12px; font-weight:700; color: var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .cfg .sub { font-size: 11.5px; color: var(--text-faint); margin: 5px 0 12px; line-height:1.5; }
+  .cfg .preview { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .cfg .preview .avatar { width: 44px; height:44px; font-size:24px; box-shadow: 0 0 0 2.5px var(--her); }
+  .cfg .preview .nm { font-size:14px; font-weight:700; } .cfg .preview .nm small { display:block; color:var(--text-muted); font-weight:400; font-size:11.5px; }
+  .swatches { display:flex; gap: 10px; flex-wrap:wrap; }
+  .sw { width: 34px; height: 34px; border-radius: 50%; cursor:pointer; border: 2px solid transparent; position:relative; }
+  .sw.sel { border-color: #fff; }
+  .sw.sel::after { content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:800; }
+
+  /* ── bottom nav ── */
+  .nav { position: fixed; bottom: 0; left:0; right:0; max-width: 440px; margin: 0 auto;
+    background: rgba(10,11,16,0.82); backdrop-filter: blur(18px); border-top: 1px solid var(--border);
+    display:flex; align-items:center; justify-content: space-around; padding: 8px 10px 12px; }
+  .nav .it { display:flex; flex-direction:column; align-items:center; gap:3px; font-size: 10.5px; color: var(--text-muted); }
+  .nav .it.on { color: var(--primary); }
+  .nav .ic { font-size: 18px; }
+  .fab { width: 54px; height: 54px; border-radius: 50%; margin-top: -22px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dim)); color: var(--primary-ink);
+    font-size: 28px; font-weight: 700; display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 10px 26px -6px oklch(75% 0.2 165 / 0.5); }
+
+  .caption { font-size: 12px; color: var(--text-faint); line-height:1.55; margin: 18px 2px 0; padding-top:14px; border-top:1px solid var(--border); }
+  .caption b { color: var(--text); }
+</style>
+</head>
+<body>
+
+  <!-- toolbar: chip compacto con AVATAR REAL de Pilar (🍓 = su preset) -->
+  <div class="toolbar">
+    <div class="chip on" id="chip" onclick="toggle()">
+      <div class="avatar">🍓</div>
+      <div class="cbody">
+        <span class="cname">Pilar</span>
+        <span class="cmac"><span class="k">1.240 kc</span> · <span class="p">61 P</span></span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill">↩ Igual que ayer</span>
+  </div>
+
+  <div id="diary" class="showing">
+
+  <!-- ─── DESAYUNO ─── -->
+  <div class="meal-head">
+    <span class="dot br"></span><span class="meal-name">Desayuno</span>
+    <span class="meal-act">＋ Receta</span><span class="meal-act rm">🗑 Vaciar</span>
+    <span class="meal-tot"><span class="k">694 kcal</span> · <span class="p">P66</span><span class="her-line">Pilar: 320 kcal</span></span>
+  </div>
+  <div class="pentry"><div class="avatar">🍓</div><div class="body"><div class="nm">Avena con plátano <span class="tag">Pilar</span></div><div class="sub">60g · 08:15</div></div>
+    <div class="right"><div class="kc">320 kcal</div><div class="mac"><span class="p">P10</span> <span class="c">C54</span> <span class="g">G6</span></div></div><button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+  <div class="entry"><div class="body"><div class="nm">Evowhey Chocolate Wafer</div><div class="sub">36g · 10:42</div></div>
+    <div class="right"><div class="kc">130 kcal</div><div class="mac"><span class="p">P27</span> <span class="c">C2</span> <span class="g">G1</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Leche Sin Lactosa semi Asturiana</div><div class="sub">300ml · 10:42</div></div>
+    <div class="right"><div class="kc">135 kcal</div><div class="mac"><span class="p">P9</span> <span class="c">C14</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">SPECIAL K HIGH PROTEIN Cocoa Hazel…</div><div class="sub">76g · 10:42</div></div>
+    <div class="right"><div class="kc">289 kcal</div><div class="mac"><span class="p">P16</span> <span class="c">C49</span> <span class="g">G2</span></div></div><div class="xbtn">×</div></div>
+  <div class="entry"><div class="body"><div class="nm">Lomo embuchado</div><div class="sub">32g · 11:00</div></div>
+    <div class="right"><div class="kc">64 kcal</div><div class="mac"><span class="p">P12</span> <span class="c">C0</span> <span class="g">G2</span></div></div><div class="xbtn">×</div></div>
+
+  <!-- ─── ALMUERZO ─── -->
+  <div class="meal-head">
+    <span class="dot lu"></span><span class="meal-name">Almuerzo</span>
+    <span class="meal-act">＋ Receta</span><span class="meal-act rm">🗑 Vaciar</span>
+    <span class="meal-tot"><span class="k">822 kcal</span> · <span class="p">P78</span><span class="her-line">Pilar: 340 kcal</span></span>
+  </div>
+  <div class="entry"><div class="body"><div class="nm">Pechuguita de Pollo</div><div class="sub">250g · 15:12</div></div>
+    <div class="right"><div class="kc">250 kcal</div><div class="mac"><span class="p">P67</span> <span class="c">C1</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+  <div class="pentry"><div class="avatar">🍓</div><div class="body"><div class="nm">Ensalada de garbanzos <span class="tag">Pilar</span></div><div class="sub">200g · 14:30</div></div>
+    <div class="right"><div class="kc">340 kcal</div><div class="mac"><span class="p">P15</span> <span class="c">C40</span> <span class="g">G12</span></div></div><button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+  <div class="entry"><div class="body"><div class="nm">Aceite De Oliva Vierten Extra</div><div class="sub">5g · 15:12</div></div>
+    <div class="right"><div class="kc">41 kcal</div><div class="mac"><span class="p">P0</span> <span class="c">C0</span> <span class="g">G5</span></div></div><div class="xbtn">×</div></div>
+
+  <!-- ─── CENA ─── -->
+  <div class="meal-head">
+    <span class="dot di"></span><span class="meal-name">Cena</span>
+    <span class="meal-act">＋ Receta</span><span class="meal-act rm">🗑 Vaciar</span>
+    <span class="meal-tot"><span class="k">0 kcal</span> · <span class="p">P0</span><span class="her-line">Pilar: 380 kcal</span></span>
+  </div>
+  <div class="pentry"><div class="avatar">🍓</div><div class="body"><div class="nm">Salmón al horno <span class="tag">Pilar</span></div><div class="sub">180g · 21:00</div></div>
+    <div class="right"><div class="kc">380 kcal</div><div class="mac"><span class="p">P36</span> <span class="c">C0</span> <span class="g">G26</span></div></div><button class="copybtn" title="Ponérmelo a mí también">＋</button></div>
+
+  </div><!-- /diary -->
+
+  <!-- panel demo del color (vive en el PERFIL de Pilar, lo elige ella) -->
+  <div class="cfg">
+    <div class="h">Perfil de Pilar · avatar + color</div>
+    <div class="preview">
+      <div class="avatar">🍓</div>
+      <div class="nm">Pilar<small>Avatar 🍓 Fresa · color con aro y fondo de sus platos</small></div>
+    </div>
+    <div class="sub">Toca un color para ver cómo recolorea el aro del avatar, el chip y el fondo de sus platos. El avatar (imagen) manda el “quién”; el color, el “de un vistazo, esto es suyo”.</div>
+    <div class="swatches" id="sws">
+      <div class="sw sel" style="background:oklch(72% 0.15 320)" onclick="setHue(320,this)"></div>
+      <div class="sw" style="background:oklch(72% 0.15 350)" onclick="setHue(350,this)"></div>
+      <div class="sw" style="background:oklch(72% 0.15 290)" onclick="setHue(290,this)"></div>
+      <div class="sw" style="background:oklch(72% 0.15 265)" onclick="setHue(265,this)"></div>
+      <div class="sw" style="background:oklch(72% 0.15 235)" onclick="setHue(235,this)"></div>
+      <div class="sw" style="background:oklch(72% 0.15 195)" onclick="setHue(195,this)"></div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <b>El chip resume el día de Pilar</b> (1.240 kc · 61 P) — así sabes cómo va <b>aunque no despliegues</b> sus platos. Tócalo para intercalar/ocultar sus comidas; el resumen se queda siempre visible.<br><br>
+    <b>Avatares reales:</b> cada plato de Pilar lleva su avatar de verdad (aquí 🍓 simula la imagen del preset), no una inicial. Igual el chip de arriba.<br><br>
+    <b>Avatar + color, juntos:</b> el avatar responde “quién” (imagen distinta por persona), y el color de identidad es el <b>aro del avatar</b> + el fondo tenue de sus platos → “de un vistazo, esto es de Pilar, no mío”. Reutiliza la prop <code>ring</code> que el componente Avatar ya tiene. Paleta curada (sin verde ni ámbar). El color que ves es el de <b>ella</b>, no el tuyo.
+  </div>
+
+  <div class="nav">
+    <div class="it on"><span class="ic">📔</span>Diario</div>
+    <div class="it"><span class="ic">🕘</span>Historial</div>
+    <div class="fab">＋</div>
+    <div class="it"><span class="ic">🍳</span>Recetas</div>
+    <div class="it"><span class="ic">⚙️</span>Ajustes</div>
+  </div>
+
+<script>
+  function toggle(){
+    const on = document.getElementById('chip').classList.toggle('on');
+    document.getElementById('diary').classList.toggle('showing', on);
+  }
+  function setHue(h, el){
+    document.documentElement.style.setProperty('--hh', h);
+    document.querySelectorAll('#sws .sw').forEach(s=>s.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Ver el día de la pareja</title>
+<style>
+  :root {
+    --bg: #06070a;
+    --surface: rgba(255,255,255,0.055);
+    --surface2: rgba(255,255,255,0.035);
+    --border: rgba(255,255,255,0.09);
+    --text: #eef1f5;
+    --text-muted: rgba(255,255,255,0.55);
+    --text-faint: rgba(255,255,255,0.35);
+    --primary: oklch(85% 0.17 160);
+    --primary-dim: oklch(72% 0.18 170);
+    --primary-ink: #041010;
+    --green-tint: oklch(75% 0.18 165 / 0.10);
+    --green-border: oklch(80% 0.17 165 / 0.32);
+    --her: oklch(70% 0.16 320);
+    --her-dim: oklch(62% 0.2 350);
+    --her-tint: oklch(70% 0.16 320 / 0.10);
+    --her-border: oklch(70% 0.16 320 / 0.30);
+    --you: oklch(72% 0.14 220);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(900px 700px at 8% -10%, oklch(60% 0.22 185 / 0.22), transparent 60%),
+      radial-gradient(900px 800px at 50% 115%, oklch(70% 0.23 160 / 0.18), transparent 60%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 28px 16px 90px;
+    max-width: 460px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .page-sub { font-size: 12.5px; color: var(--text-muted); margin: 6px 0 4px; line-height: 1.5; }
+
+  .opt-h {
+    font-size: 11px; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin: 38px 0 4px;
+  }
+  .opt-note { font-size: 12px; color: var(--text-faint); line-height: 1.5; margin-bottom: 14px; }
+  .rec { color: var(--primary); }
+
+  /* ── Screen frame ── */
+  .screen {
+    background: linear-gradient(180deg, rgba(16,19,25,0.9), rgba(8,10,14,0.94));
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    padding: 16px 14px 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .s-head { display:flex; align-items:baseline; justify-content:space-between; margin: 2px 4px 14px; }
+  .s-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .s-date { font-size: 11px; color: var(--text-faint); }
+
+  /* meal group */
+  .meal-h { font-size: 11px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin: 14px 4px 8px; }
+  .item {
+    display:flex; align-items:center; gap: 11px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 12px; margin-bottom: 7px;
+  }
+  .item .emoji { font-size: 19px; width: 24px; text-align:center; flex-shrink:0; }
+  .item .txt { flex:1; min-width:0; }
+  .item .nm { font-size: 13.5px; font-weight: 600; }
+  .item .mt { font-size: 11px; color: var(--text-muted); margin-top:1px; }
+  .item .kc { font-size: 12px; font-weight: 700; color: var(--text-muted); flex-shrink:0; }
+
+  /* avatars */
+  .av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, var(--her), var(--her-dim)); }
+  .av.you { background: linear-gradient(135deg, var(--you), oklch(60% 0.16 240)); }
+  .av-sm { width: 28px; height: 28px; font-size: 11px; }
+
+  /* iOS switch */
+  .sw { width: 46px; height: 28px; border-radius: 99px; background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.12); position: relative; cursor: pointer; flex-shrink: 0;
+        transition: background 0.25s; }
+  .sw::after { content:''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+        border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        transition: left 0.26s cubic-bezier(0.34,1.56,0.64,1); }
+  .sw.on { background: linear-gradient(135deg, var(--primary), var(--primary-dim)); border-color: transparent; }
+  .sw.on::after { left: 22px; }
+
+  /* ════ PARTNER STRIP (opción 1 y 3) ════ */
+  .pstrip {
+    margin-top: 18px;
+    border: 1px solid var(--her-border);
+    background: linear-gradient(180deg, var(--her-tint), transparent);
+    border-radius: 18px; overflow: hidden;
+  }
+  .pstrip-head {
+    display:flex; align-items:center; gap: 11px; padding: 12px 14px; cursor: pointer;
+    user-select: none;
+  }
+  .pstrip-head .txt { flex:1; min-width:0; }
+  .pstrip-head .nm { font-size: 13.5px; font-weight: 700; }
+  .pstrip-head .sub { font-size: 11.5px; color: var(--text-muted); margin-top:1px; }
+  .chev { color: var(--text-faint); font-size: 13px; transition: transform 0.3s; }
+  .pstrip.open .chev { transform: rotate(90deg); }
+  .pstrip-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .pstrip.open .pstrip-body { max-height: 900px; }
+  .pstrip-inner { padding: 2px 12px 14px; }
+  .pstrip .meal-h { margin-left: 2px; margin-top: 12px; }
+  .pstrip .item { background: var(--surface2); }
+  .ro-tag { font-size: 10px; color: var(--her); font-weight: 700; background: var(--her-tint);
+    border: 1px solid var(--her-border); border-radius: 99px; padding: 2px 8px; }
+
+  /* mini action on partner item (para opción "ver + actuar", teaser) */
+  .mini { font-size: 11px; font-weight: 700; color: var(--primary); background: transparent;
+    border: 1px solid var(--green-border); border-radius: 99px; padding: 5px 10px; cursor: pointer;
+    font-family: inherit; white-space: nowrap; }
+
+  /* ════ SETTINGS ROW (opción 3) ════ */
+  .set-row { display:flex; align-items:center; gap: 13px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 13px 15px; }
+  .set-row .txt { flex:1; }
+  .set-row .nm { font-size: 14px; font-weight: 600; }
+  .set-row .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height:1.4; }
+
+  /* ════ SIDE BY SIDE (opción 4 extra) ════ */
+  .twocol { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .col-head { display:flex; align-items:center; gap:8px; margin-bottom: 10px; }
+  .col-head .nm { font-size: 13px; font-weight: 700; }
+  .kcal-big { font-size: 11px; color: var(--text-faint); }
+  .col .mini-item { background: var(--surface2); border:1px solid var(--border); border-radius: 11px;
+    padding: 8px 9px; margin-bottom: 6px; }
+  .col .mini-item .nm2 { font-size: 12px; font-weight: 600; }
+  .col .mini-item .mt2 { font-size: 10px; color: var(--text-muted); margin-top:1px; }
+  .col .ph { border-style: dashed; opacity: 0.6; text-align:center; font-size: 11px; color: var(--text-faint);
+    padding: 12px 8px; }
+  .col.you-col { border-radius: 14px; }
+  .divider-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-faint); margin: 16px 4px 6px; }
+
+  .tip { font-size: 11.5px; color: var(--text-faint); font-style: italic; margin: 8px 4px 0; line-height:1.5; }
+</style>
+</head>
+<body>
+  <div class="page-title">Ver el día de la pareja</div>
+  <div class="page-sub">Tres sitios donde puede vivir. Toca las cabeceras e interruptores para probarlos. Elige el que más te encaje y lo llevo al código.</div>
+
+  <!-- ══════════════ OPCIÓN 1 ══════════════ -->
+  <div class="opt-h">Opción 1 · Tira en tu propio diario</div>
+  <div class="opt-note">Al final de tu día de hoy, una tira plegada con el resumen de tu pareja. La despliegas cuando quieres coordinar. Siempre visible pero sin estorbar.</div>
+
+  <div class="screen">
+    <div class="s-head"><div class="s-title">Hoy</div><div class="s-date">mié 22 jul</div></div>
+    <div class="meal-h">Almuerzo</div>
+    <div class="item"><span class="emoji">🍗</span><div class="txt"><div class="nm">Pollo a la plancha</div><div class="mt">150 g</div></div><div class="kc">248 kcal</div></div>
+    <div class="item"><span class="emoji">🍚</span><div class="txt"><div class="nm">Arroz blanco</div><div class="mt">80 g</div></div><div class="kc">104 kcal</div></div>
+
+    <div class="pstrip" id="strip1">
+      <div class="pstrip-head" onclick="toggleStrip('strip1')">
+        <div class="av">P</div>
+        <div class="txt"><div class="nm">Hoy también Pilar</div><div class="sub">3 comidas · 1.240 kcal</div></div>
+        <span class="chev">▸</span>
+      </div>
+      <div class="pstrip-body">
+        <div class="pstrip-inner">
+          <div class="meal-h">Desayuno</div>
+          <div class="item"><span class="emoji">🥣</span><div class="txt"><div class="nm">Avena con plátano</div><div class="mt">60 g</div></div><div class="kc">320 kcal</div></div>
+          <div class="meal-h">Almuerzo</div>
+          <div class="item"><span class="emoji">🥗</span><div class="txt"><div class="nm">Ensalada de garbanzos</div><div class="mt">200 g</div></div><div class="kc">340 kcal</div></div>
+          <div class="meal-h">Cena</div>
+          <div class="item"><span class="emoji">🐟</span><div class="txt"><div class="nm">Salmón al horno</div><div class="mt">180 g</div></div><div class="kc">380 kcal</div></div>
+          <div class="tip">Solo lectura. Idea futura: un botón “ponérmelo a mí también” en cada plato suyo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ OPCIÓN 2 ══════════════ -->
+  <div class="opt-h">Opción 2 · En el perfil de la pareja</div>
+  <div class="opt-note">Un bloque “Su día de hoy” dentro del perfil de Pilar (pantalla que ya existe). Sitio semánticamente correcto y cero ruido en tu diario, pero hay que ir a buscarlo.</div>
+
+  <div class="screen">
+    <div class="s-head" style="align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="av" style="width:44px;height:44px;font-size:16px;">P</div>
+        <div><div class="s-title">Pilar</div><div class="s-date">Tu pareja · racha 12 días 🔥</div></div>
+      </div>
+    </div>
+    <div class="divider-lbl">Su día de hoy</div>
+    <div class="meal-h">Desayuno</div>
+    <div class="item"><span class="emoji">🥣</span><div class="txt"><div class="nm">Avena con plátano</div><div class="mt">60 g</div></div><div class="kc">320 kcal</div></div>
+    <div class="meal-h">Almuerzo</div>
+    <div class="item"><span class="emoji">🥗</span><div class="txt"><div class="nm">Ensalada de garbanzos</div><div class="mt">200 g</div></div><div class="kc">340 kcal</div></div>
+    <div class="meal-h">Cena</div>
+    <div class="item"><span class="emoji">🐟</span><div class="txt"><div class="nm">Salmón al horno</div><div class="mt">180 g</div></div><div class="kc">380 kcal</div></div>
+  </div>
+
+  <!-- ══════════════ OPCIÓN 3 ══════════════ -->
+  <div class="opt-h">Opción 3 · Interruptor en Ajustes + tira <span class="rec">(recomendada)</span></div>
+  <div class="opt-note">La tira de la Opción 1, pero detrás de un interruptor en Ajustes, apagado por defecto. Quien lo quiere lo enciende; el resto ni lo ve. Casi todo frontend, sin migración.</div>
+
+  <div class="screen" style="padding-bottom:14px;">
+    <div class="s-head"><div class="s-title">Ajustes</div></div>
+    <div class="divider-lbl" style="margin-top:2px;">Pareja</div>
+    <div class="set-row">
+      <div class="av av-sm">P</div>
+      <div class="txt"><div class="nm">Ver el día de Pilar en mi diario</div><div class="sub">Muestra sus comidas de hoy, plegadas, al final de tu día</div></div>
+      <div class="sw on" id="setSw" onclick="toggleSet()"></div>
+    </div>
+    <div class="tip">Cuando está encendido, tu diario muestra la tira de la Opción 1. Cada uno decide para su lado.</div>
+  </div>
+
+  <div style="text-align:center; font-size:11px; color:var(--text-faint); margin:12px 0 4px;">↓ con el interruptor encendido, tu diario ↓</div>
+
+  <div class="screen" id="strip3wrap">
+    <div class="s-head"><div class="s-title">Hoy</div><div class="s-date">mié 22 jul</div></div>
+    <div class="meal-h">Almuerzo</div>
+    <div class="item"><span class="emoji">🍗</span><div class="txt"><div class="nm">Pollo a la plancha</div><div class="mt">150 g</div></div><div class="kc">248 kcal</div></div>
+    <div class="pstrip" id="strip3">
+      <div class="pstrip-head" onclick="toggleStrip('strip3')">
+        <div class="av">P</div>
+        <div class="txt"><div class="nm">Hoy también Pilar</div><div class="sub">3 comidas · 1.240 kcal</div></div>
+        <span class="chev">▸</span>
+      </div>
+      <div class="pstrip-body">
+        <div class="pstrip-inner">
+          <div class="meal-h">Desayuno</div>
+          <div class="item"><span class="emoji">🥣</span><div class="txt"><div class="nm">Avena con plátano</div><div class="mt">60 g</div></div><div class="kc">320 kcal</div></div>
+          <div class="meal-h">Cena</div>
+          <div class="item"><span class="emoji">🐟</span><div class="txt"><div class="nm">Salmón al horno</div><div class="mt">180 g</div></div><div class="kc">380 kcal</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EXTRA ══════════════ -->
+  <div class="opt-h">Extra · Vista “los dos hoy” lado a lado</div>
+  <div class="opt-note">Idea más ambiciosa para el futuro: repartir comidas. Los huecos muestran qué falta por cubrir hoy. No para la v1, pero para que veas hacia dónde puede crecer.</div>
+
+  <div class="screen">
+    <div class="s-head"><div class="s-title">Hoy, los dos</div><div class="s-date">mié 22 jul</div></div>
+    <div class="twocol">
+      <div class="col you-col">
+        <div class="col-head"><div class="av you av-sm">Tú</div><div><div class="nm">Tú</div><div class="kcal-big">352 kcal</div></div></div>
+        <div class="mini-item"><div class="nm2">Pollo</div><div class="mt2">Almuerzo</div></div>
+        <div class="mini-item ph">Cena sin registrar</div>
+      </div>
+      <div class="col">
+        <div class="col-head"><div class="av av-sm">P</div><div><div class="nm">Pilar</div><div class="kcal-big">1.240 kcal</div></div></div>
+        <div class="mini-item"><div class="nm2">Avena</div><div class="mt2">Desayuno</div></div>
+        <div class="mini-item"><div class="nm2">Garbanzos</div><div class="mt2">Almuerzo</div></div>
+        <div class="mini-item"><div class="nm2">Salmón</div><div class="mt2">Cena</div></div>
+      </div>
+    </div>
+    <div class="tip">“A ti te falta la cena; Pilar ya tiene salmón. ¿Os coordináis?”</div>
+  </div>
+
+  <div class="opt-note" style="margin-top:32px; border-top:1px solid var(--border); padding-top:16px;">
+    Mi recomendación: <b class="rec">Opción 3</b> — la tira de la Opción 1 detrás de un interruptor en Ajustes (apagado por defecto). Es la de tu frase original, respeta a quien no la quiere y es casi todo frontend. Dime cuál te gusta y la llevo al código real.
+  </div>
+
+<script>
+  function toggleStrip(id){ document.getElementById(id).classList.toggle('open'); }
+  function toggleSet(){
+    const on = document.getElementById('setSw').classList.toggle('on');
+    document.getElementById('strip3wrap').style.opacity = on ? '1' : '0.32';
+    document.getElementById('strip3wrap').style.pointerEvents = on ? 'auto' : 'none';
+  }
+</script>
+</body>
+</html>
