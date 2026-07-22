@@ -310,10 +310,19 @@
 			const myEntries = mine?.entries ?? [];
 			const pEntries = theirs?.entries ?? [];
 			if (myEntries.length === 0 && pEntries.length === 0) continue;
-			const items = [
-				...myEntries.map(e => ({ entry: e, mine: true })),
-				...pEntries.map(e => ({ entry: e, mine: false })),
-			].sort((a, b) => new Date(a.entry.consumed_at).getTime() - new Date(b.entry.consumed_at).getTime());
+			// Si los dos tenéis el mismo producto en la misma comida, se pinta UNA sola
+			// tarjeta (la tuya) marcada como compartida con sus gramos, en vez de
+			// duplicarla. El emparejado es por producto dentro de la comida, igual que
+			// hace el modal de editar; uno a uno, por si hay repetidos.
+			const pRemaining = [...pEntries];
+			const items: { entry: DiaryEntry; mine: boolean; shared: DiaryEntry | null }[] =
+				myEntries.map(e => {
+					const i = pRemaining.findIndex(pe => pe.product_id === e.product_id);
+					const shared = i >= 0 ? pRemaining.splice(i, 1)[0] : null;
+					return { entry: e, mine: true, shared };
+				});
+			for (const pe of pRemaining) items.push({ entry: pe, mine: false, shared: null });
+			items.sort((a, b) => new Date(a.entry.consumed_at).getTime() - new Date(b.entry.consumed_at).getTime());
 			out.push({
 				meal_type: mt,
 				label: MEAL_LABELS[mt],
@@ -336,7 +345,9 @@
 				product_id: entry.product_id,
 				grams: entry.grams,
 				meal_type: entry.meal_type,
-				consumed_at: new Date().toISOString(),
+				// Hereda su hora: es una comida compartida, así queda en el mismo
+				// punto del día que la suya en vez de "ahora" (que descoloca la tarjeta).
+				consumed_at: entry.consumed_at,
 			});
 			toast.success('Añadido a tu diario');
 			await loadDay();
@@ -935,28 +946,40 @@
 		<!-- ── RIGHT: diary entries ── -->
 		<div class="diary-right" style="margin-top:0.75rem;">
 
-			{#if partner && !connectivity.isOffline}
-				<button
-					type="button"
-					class="partner-chip"
-					class:on={showPartner}
-					style="--phue:{partnerHue};"
-					onclick={toggleShowPartner}
-					aria-pressed={showPartner}
-				>
-					<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
-					<span class="pc-body">
-						<span class="pc-name">{partner.name}</span>
-						{#if partnerSummary}
-							<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} P</span></span>
-						{:else}
-							<span class="pc-mac pc-hint">Ver su día</span>
-						{/if}
-					</span>
-					<span class="pc-state">{showPartner ? 'Ocultar' : 'Mostrar'}</span>
-				</button>
+			{#if (partner && !connectivity.isOffline) || (isToday && summary.entries.length > 0)}
+				<div class="diary-toolbar">
+					{#if partner && !connectivity.isOffline}
+						<button
+							type="button"
+							class="partner-chip"
+							class:on={showPartner}
+							style="--phue:{partnerHue};"
+							onclick={toggleShowPartner}
+							aria-pressed={showPartner}
+						>
+							<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
+							<span class="pc-body">
+								<span class="pc-name">{partner.name}</span>
+								{#if partnerSummary}
+									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} P</span></span>
+								{:else}
+									<span class="pc-mac pc-hint">Ver su día</span>
+								{/if}
+							</span>
+							<span class="pc-state">{showPartner ? 'Ocultar' : 'Mostrar'}</span>
+						</button>
+					{/if}
+					{#if isToday && summary.entries.length > 0}
+						<button
+							class="btn-secondary"
+							onclick={copyFromYesterday}
+							disabled={copyingYesterday}
+							style="font-size:0.75rem; padding:0.3rem 0.7rem; margin-left:auto;">
+							{copyingYesterday ? '...' : '↩ Igual que ayer'}
+						</button>
+					{/if}
+				</div>
 			{/if}
-
 
 			{#if summary.entries.length === 0 && !partnerHasEntries}
 				<EmptyState
@@ -1030,18 +1053,6 @@
 					</div>
 				{/if}
 			{:else}
-				{#if isToday}
-					<div style="display:flex; justify-content:flex-end; margin-bottom:0.5rem;">
-						<button
-							class="btn-secondary"
-							onclick={copyFromYesterday}
-							disabled={copyingYesterday}
-							style="font-size:0.75rem; padding:0.3rem 0.7rem;">
-							{copyingYesterday ? '...' : '↩ Igual que ayer'}
-						</button>
-					</div>
-				{/if}
-
 				{#if displayMeals.length > 0}
 					{#each displayMeals as meal (meal.meal_type)}
 						<div style="margin-bottom:1rem;">
@@ -1076,7 +1087,7 @@
 							{/if}
 							{#each meal.items as it (it.mine ? 'm' + it.entry.id : 'p' + it.entry.id)}
 								{#if it.mine}
-									{@render entryCard(it.entry)}
+									{@render entryCard(it.entry, it.shared)}
 								{:else}
 									{@render partnerEntryCard(it.entry)}
 								{/if}
@@ -1085,7 +1096,7 @@
 					{/each}
 				{:else}
 					{#each summary.entries as entry (entry.id)}
-						{@render entryCard(entry)}
+						{@render entryCard(entry, null)}
 					{/each}
 				{/if}
 			{/if}
@@ -1324,9 +1335,9 @@
 	</Modal>
 {/if}
 
-{#snippet entryCard(entry: DiaryEntry)}
+{#snippet entryCard(entry: DiaryEntry, shared: DiaryEntry | null = null)}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-	<div class="card" style="margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+	<div class="card" class:shared-card={!!shared} style="--phue:{partnerHue}; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
 		onclick={() => startEdit(entry)}
 		role="button"
 		tabindex="0"
@@ -1338,6 +1349,12 @@
 			<div class="diary-entry-detail" style="font-size:0.78rem; color:var(--text-muted);">
 				{entry.grams}{entry.product ? productUnit(entry.product) : 'g'} · {fmtTime(entry.consumed_at)}
 			</div>
+			{#if shared}
+				<div class="shared-line">
+					<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={16} /></span>
+					<span>Los dos · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>
+				</div>
+			{/if}
 		</div>
 		<div style="text-align:right; margin-right:0.5rem;">
 			<div class="diary-entry-kcal" style="font-size:0.85rem; color:var(--cal);">{Math.round(entry.calories)} kcal</div>
@@ -1384,6 +1401,13 @@
 
 <style>
 	/* ── Pareja: chip + su día intercalado ── */
+	.diary-toolbar {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.75rem;
+	}
 	.partner-chip {
 		display: flex;
 		align-items: center;
@@ -1393,7 +1417,6 @@
 		border: 1px solid var(--border, rgba(255,255,255,0.09));
 		border-radius: 14px;
 		padding: 0.4rem 0.7rem 0.4rem 0.45rem;
-		margin-bottom: 0.75rem;
 		cursor: pointer;
 		box-shadow: none;
 		transition: background 0.2s, border-color 0.2s;
@@ -1421,6 +1444,19 @@
 		text-align: right;
 		margin: -0.15rem 0.15rem 0.4rem;
 	}
+
+	/* Lo que tenéis los dos: una sola tarjeta (la tuya) marcada como compartida */
+	.shared-card { border-left: 3px solid oklch(72% 0.15 var(--phue) / 0.7); }
+	.shared-line {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: oklch(78% 0.15 var(--phue));
+		margin-top: 0.2rem;
+	}
+	.shared-av { display: flex; flex-shrink: 0; }
 
 	.partner-card {
 		background: oklch(72% 0.15 var(--phue) / 0.08);
