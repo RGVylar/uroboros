@@ -38,9 +38,13 @@
 	});
 
 	// ── Compartir la app ─────────────────────────────────────────────────────────
-	// Enlaza a la landing /api/unete (con Open Graph → tarjeta con imagen en
-	// WhatsApp), no al APK a pelo: una redirección a un binario no puede tener preview.
-	const INVITE_URL = 'https://comida.mugrelore.com/api/unete';
+	// Enlaza a la landing /unete (con Open Graph → tarjeta con imagen en WhatsApp),
+	// no al APK a pelo: una redirección a un binario no puede tener preview.
+	// El ?lang= no es decorativo: los crawlers de WhatsApp no mandan
+	// Accept-Language, así que sin él la tarjeta saldría siempre en español. Al ir
+	// en la query, cada idioma se cachea por separado tanto en WhatsApp como en el
+	// edge (Cloudflare ignora Vary salvo Cache Rule, la query string no).
+	let INVITE_URL = $derived(`https://comida.mugrelore.com/unete?lang=${i18n.locale}`);
 	let INVITE_TEXT = $derived(t('settings.inviteText', { url: INVITE_URL }));
 	let inviteCopied = $state(false);
 	async function shareApp() {

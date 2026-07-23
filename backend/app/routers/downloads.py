@@ -17,13 +17,17 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import quote, unquote
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter(prefix="/download", tags=["download"])
 
 # Invite landing lives outside the /download prefix so the shared URL is short.
+# Se monta sin el prefijo /api: es una página, no una API.
 landing_router = APIRouter(tags=["download"])
+
+# Ruta antigua (/api/unete), viva solo para redirigir los enlaces ya compartidos.
+legacy_landing_router = APIRouter(tags=["download"])
 
 # Read-only public share of the APK folder. The pipeline uploads via a separate
 # upload-only share; this one only exposes listing + download.
@@ -135,7 +139,7 @@ _LANDING_HTML = """<!doctype html>
 <meta property="og:image" content="{APP}/social-banner.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="{APP}/api/unete">
+<meta property="og:url" content="{L_CANONICAL}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{APP}/logo.png" type="image/png">
 <style>
@@ -430,13 +434,23 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
 }
 
 
-def _pick_language(accept_language: str | None) -> str:
-    """Idioma de la landing a partir de Accept-Language, con es de reserva.
+def _pick_language(accept_language: str | None, lang: str | None = None) -> str:
+    """Idioma de la landing: ?lang= manda sobre Accept-Language, y es de reserva.
 
-    Deliberadamente simple: recorre las preferencias en orden y se queda con la
-    primera que sepamos servir. No pesa los factores q= porque los navegadores
-    ya las mandan ordenadas de mayor a menor.
+    El parámetro de query existe por dos motivos prácticos:
+      - Cloudflare solo honra `Vary` para Accept-Encoding salvo que configures
+        una Cache Rule; la query string, en cambio, va en la clave de caché
+        siempre. Sin esto el edge puede repartir un único idioma a todos.
+      - Los crawlers de WhatsApp y compañía no mandan Accept-Language, así que
+        la tarjeta del enlace saldría siempre en español. Con ?lang=, quien
+        comparte propaga su idioma y cada variante se cachea por separado.
+
+    Lo demás es deliberadamente simple: recorre las preferencias en orden y se
+    queda con la primera que sepamos servir. No pesa los factores q= porque los
+    navegadores ya las mandan ordenadas de mayor a menor.
     """
+    if lang and lang.split("-")[0].lower() in _LANDING_COPY:
+        return lang.split("-")[0].lower()
     if not accept_language:
         return "es"
     for part in accept_language.split(","):
@@ -447,32 +461,51 @@ def _pick_language(accept_language: str | None) -> str:
     return "es"
 
 
-def _render_landing(lang: str) -> str:
-    html = _LANDING_HTML
+def _render_landing(lang: str, canonical: str) -> str:
+    html = _LANDING_HTML.replace("{L_CANONICAL}", canonical)
     for key, value in _LANDING_COPY[lang].items():
         html = html.replace("{" + key + "}", value)
     return html
 
 
 @landing_router.get("/unete", response_class=HTMLResponse)
-def invite_landing(accept_language: str | None = Header(default=None)) -> HTMLResponse:
+def invite_landing(
+    accept_language: str | None = Header(default=None),
+    lang: str | None = None,
+) -> HTMLResponse:
     """Public invite landing: OG preview card + download + trust notes.
 
-    Se sirve en es/en/pt según Accept-Language. Aquí no hay sesión ni
-    localStorage — quien abre este enlace todavía no tiene la app.
+    Se sirve en es/en/pt. Aquí no hay sesión ni localStorage — quien abre este
+    enlace todavía no tiene la app —, así que el idioma sale de ?lang= o, en su
+    defecto, de Accept-Language.
     """
     # Warm the latest-APK cache so the download button redirects instantly.
     _warm_cache_async()
-    lang = _pick_language(accept_language)
+    resolved = _pick_language(accept_language, lang)
+    # La canónica refleja lo que se pidió: si el enlace traía ?lang=, se queda,
+    # que es lo que hace que cada idioma tenga su propia tarjeta cacheada.
+    canonical = f"{_APP_URL}/unete?lang={resolved}" if lang else f"{_APP_URL}/unete"
     # 1h cache: the page rarely changes and this keeps Cloudflare serving it
     # from the edge. Caveat: copy edits take up to an hour to show for anyone
     # who already viewed it — bust with a ?v= query while reviewing changes.
-    # `Vary` es imprescindible desde que la página tiene idiomas: sin él, la
-    # caché del edge le daría a todo el mundo el idioma del primero que entró.
+    # `Vary` es correcto en HTTP y lo respetan navegadores y cachés intermedias,
+    # pero Cloudflare solo lo honra para Accept-Encoding salvo Cache Rule: el
+    # reparto de idiomas de verdad lo asegura ?lang=, que sí va en la clave.
     return HTMLResponse(
-        _render_landing(lang),
+        _render_landing(resolved, canonical),
         headers={
             "Cache-Control": "public, max-age=3600",
             "Vary": "Accept-Language",
         },
     )
+
+
+@legacy_landing_router.get("/unete", include_in_schema=False)
+def invite_landing_legacy(request: Request) -> RedirectResponse:
+    """La landing vivía en /api/unete, y sigue habiendo enlaces por ahí.
+
+    Cada WhatsApp ya enviado apunta aquí para siempre, así que esta ruta no se
+    borra: redirige permanente y conserva la query (el ?lang=).
+    """
+    qs = request.url.query
+    return RedirectResponse(f"/unete?{qs}" if qs else "/unete", status_code=301)

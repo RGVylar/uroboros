@@ -101,5 +101,9 @@ app.include_router(mood.router, prefix=api_prefix)
 app.include_router(export.router, prefix=api_prefix)
 app.include_router(release_notes.router, prefix=api_prefix)
 app.include_router(downloads.router, prefix=api_prefix)
-app.include_router(downloads.landing_router, prefix=api_prefix)
+# La landing es una página, no una API: va en la raíz. La ruta antigua
+# (/api/unete) se queda redirigiendo, porque hay enlaces compartidos que
+# apuntan ahí y no se pueden recuperar.
+app.include_router(downloads.landing_router)
+app.include_router(downloads.legacy_landing_router, prefix=api_prefix)
 app.include_router(duel.router, prefix=api_prefix)
