@@ -6,7 +6,8 @@
 -->
 <script lang="ts">
 	import '../app.css';
-	import { untrack } from 'svelte';
+	import { untrack, onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import type { User } from '$lib/types';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -21,6 +22,29 @@
 	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
 
 	let { children } = $props();
+
+	// ── Deep links desde los widgets de Android ──────────────────────────────
+	// uroboros://add        -> pantalla de añadir
+	// uroboros://add?scan=1 -> añadir con el escáner QR/barras abierto de golpe
+	// Navegamos con el router de la SPA (goto) para no recargar la webview.
+	function openWidgetTarget(url: string | undefined | null) {
+		if (!url || !url.startsWith('uroboros://')) return;
+		const rest = url.slice('uroboros://'.length); // "add?scan=1"
+		const qIdx = rest.indexOf('?');
+		const path = (qIdx === -1 ? rest : rest.slice(0, qIdx)).replace(/\/+$/, '');
+		const search = qIdx === -1 ? '' : rest.slice(qIdx);
+		goto('/' + path + search);
+	}
+
+	onMount(async () => {
+		if (!isNativeApp) return;
+		const { App } = await import('@capacitor/app');
+		// App ya abierta (MainActivity es singleTask -> onNewIntent)
+		App.addListener('appUrlOpen', (data) => openWidgetTarget(data?.url));
+		// Arranque en frío: la URL con la que el widget lanzó la app
+		const launch = await App.getLaunchUrl();
+		openWidgetTarget(launch?.url);
+	});
 
 	// Solo debe depender de auth.isLoggedIn: sin untrack, pushStore.init()
 	// lee $state que él mismo escribe y el efecto se re-ejecutaba, duplicando

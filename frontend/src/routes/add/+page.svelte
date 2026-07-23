@@ -37,6 +37,9 @@
 	// ese alimento (p. ej. al pinchar un "frecuente" del diario) en vez de la búsqueda.
 	const urlProductId = $page.url.searchParams.get('product');
 
+	// Widget de escaneo (?scan=1) — abre el escáner de golpe al entrar (solo nativo).
+	const urlScan = $page.url.searchParams.get('scan');
+
 	// Use current time for today's entries, noon for past dates
 	function consumedAt(dateStr: string): string {
 		const today = new Date().toISOString().slice(0, 10);
@@ -571,6 +574,10 @@
 			api.get<Product>(`/products/${urlProductId}`)
 				.then(p => { selectProduct(p); })
 				.catch(() => {});
+		}
+		// Widget QR → abre el escáner nada más entrar
+		if (urlScan && isNative) {
+			scanBarcode();
 		}
 	});
 

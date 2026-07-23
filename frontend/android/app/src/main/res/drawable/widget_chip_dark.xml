@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chip oscuro con borde verde + halo tenue, para la acción secundaria (Escanear). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#1A34E0A1" />
+        </shape>
+    </item>
+    <item
+        android:left="6dp"
+        android:top="6dp"
+        android:right="6dp"
+        android:bottom="6dp">
+        <shape android:shape="oval">
+            <solid android:color="#101725" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#34E0A1" />
+        </shape>
+    </item>
+</layer-list>

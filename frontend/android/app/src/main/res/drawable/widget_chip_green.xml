@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chip verde con degradado radial + anillo translúcido que aproxima el halo (RemoteViews no hace blur real). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#2634E0A1" />
+        </shape>
+    </item>
+    <item
+        android:left="6dp"
+        android:top="6dp"
+        android:right="6dp"
+        android:bottom="6dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="30dp"
+                android:centerX="0.5"
+                android:centerY="0.38"
+                android:startColor="#4DEFB0"
+                android:endColor="#23B587" />
+        </shape>
+    </item>
+</layer-list>

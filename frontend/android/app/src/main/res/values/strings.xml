@@ -4,4 +4,8 @@
     <string name="title_activity_main">Uroboros</string>
     <string name="package_name">com.uroboros.app</string>
     <string name="custom_url_scheme">com.uroboros.app</string>
+    <string name="widget_quick_add_label">Añadir</string>
+    <string name="widget_quick_add_desc">Registra comida de un toque</string>
+    <string name="widget_scan_label">Escanear</string>
+    <string name="widget_scan_desc">Abre el escáner de códigos de barras</string>
 </resources>
