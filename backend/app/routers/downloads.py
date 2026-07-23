@@ -167,7 +167,7 @@ _LANDING_HTML = """<!doctype html>
     }
     .col {
       padding: 60px 48px;
-      display: flex; flex-direction: column; justify-content: center;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
     /* El panel de descarga se separa del fondo con un velo y un filo. */
     .col + .col {
