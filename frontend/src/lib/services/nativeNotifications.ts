@@ -5,6 +5,7 @@
  */
 
 import { api } from '$lib/api';
+import { t } from '$lib/i18n/index.svelte';
 
 interface NotifPrefs {
 	enabled: boolean;
@@ -70,12 +71,15 @@ export async function scheduleNativeNotifications(): Promise<boolean> {
 			});
 		};
 
-		if (prefs.breakfast_on) add(IDS.breakfast, '🍳 Desayuno', '¿Has registrado el desayuno?',   prefs.breakfast_time);
-		if (prefs.lunch_on)     add(IDS.lunch,     '🥗 Almuerzo', '¿Has registrado el almuerzo?',   prefs.lunch_time);
-		if (prefs.dinner_on)    add(IDS.dinner,    '🍽 Cena',     '¿Has registrado la cena?',       prefs.dinner_time);
-		if (prefs.water_on)     add(IDS.water,     '💧 Agua',     '¿Estás bebiendo suficiente agua?', prefs.water_time);
-		if (prefs.streak_on)    add(IDS.streak,    '🔥 Racha',    '¡No pierdas tu racha! Registra algo hoy.', prefs.streak_time);
-		if (prefs.summary_on)   add(IDS.summary,   '📊 Resumen',  'Revisa tu progreso de hoy.',     prefs.summary_time);
+		// Se programan con el idioma activo al llamar a esta función. Como se
+		// reprograman al tocar cualquier preferencia de notificaciones, cambiar
+		// de idioma en Ajustes también las regenera.
+		if (prefs.breakfast_on) add(IDS.breakfast, t('notif.breakfast.title'), t('notif.breakfast.body'), prefs.breakfast_time);
+		if (prefs.lunch_on)     add(IDS.lunch,     t('notif.lunch.title'),     t('notif.lunch.body'),     prefs.lunch_time);
+		if (prefs.dinner_on)    add(IDS.dinner,    t('notif.dinner.title'),    t('notif.dinner.body'),    prefs.dinner_time);
+		if (prefs.water_on)     add(IDS.water,     t('notif.water.title'),     t('notif.water.body'),     prefs.water_time);
+		if (prefs.streak_on)    add(IDS.streak,    t('notif.streak.title'),    t('notif.streak.body'),    prefs.streak_time);
+		if (prefs.summary_on)   add(IDS.summary,   t('notif.summary.title'),   t('notif.summary.body'),   prefs.summary_time);
 
 		if (notifications.length > 0) {
 			await LocalNotifications.schedule({ notifications });
@@ -109,7 +113,7 @@ export async function testNativeNotification(): Promise<void> {
 			notifications: [{
 				id: 99,
 				title: '🔔 uroboros',
-				body: 'Las notificaciones están funcionando correctamente.',
+				body: t('notif.test.body'),
 				schedule: { at },
 				smallIcon: 'ic_stat_icon',
 				sound: undefined,

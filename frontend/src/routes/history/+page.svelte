@@ -9,6 +9,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
+	import { fmtDate, fmtTime as fmtTimeI18n, fmtNumber } from '$lib/i18n/index.svelte';
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -47,7 +48,7 @@
 		if (!selectedDay || !selectedSummary || copyingDay) return;
 		copyingDay = true;
 		const s = selectedSummary;
-		const rawDate = new Date(selectedDay + 'T12:00').toLocaleDateString('es-ES', {
+		const rawDate = fmtDate(new Date(selectedDay + 'T12:00'), {
 			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
 		});
 		const lines: string[] = [];
@@ -235,7 +236,7 @@
 		return 'rgba(79,255,153,0.85)';
 	}
 	function fmtTime(iso: string) {
-		return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+		return fmtTimeI18n(new Date(iso), { hour: '2-digit', minute: '2-digit' });
 	}
 
 	// SVG chart helpers
@@ -350,7 +351,7 @@
 	<div class="glass-card">
 		<div class="stat-eyebrow">{TREND_STAT_META[trendMacro].label}</div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
-			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendAvg.toLocaleString('es-ES')}</div>
+			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{fmtNumber(trendAvg)}</div>
 			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">{TREND_STAT_META[trendMacro].unit}</div>
 		</div>
 		{#if trendMacro === 'calories' && goals?.kcal}
@@ -486,7 +487,7 @@
 			</div>
 			<div style="flex:1; min-width:0;">
 				<div style="font-size:0.8125rem; font-weight:600; display:flex; align-items:center; gap:0.375rem;">
-					{isToday(d.date) ? 'Hoy' : new Date(d.date + 'T12:00').toLocaleDateString('es', { weekday:'short' })}
+					{isToday(d.date) ? 'Hoy' : fmtDate(new Date(d.date + 'T12:00'), { weekday:'short' })}
 					<div style="width:6px; height:6px; border-radius:99px; background:{d.calories > 0 ? statusColor : 'rgba(255,255,255,0.2)'};"></div>
 				</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
@@ -503,7 +504,7 @@
 	<div style="margin-top:1rem;">
 		<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff;">
-				{new Date(selectedDay + 'T12:00').toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' })}
+				{fmtDate(new Date(selectedDay + 'T12:00'), { weekday:'long', day:'numeric', month:'long' })}
 			</div>
 			<div style="display:flex; align-items:center; gap:0.875rem;">
 				{#if selectedSummary && selectedSummary.entries.length > 0}

@@ -1,6 +1,7 @@
 {
   "name": "Uroboros",
   "short_name": "Uroboros",
+  "lang": "es",
   "description": "Seguimiento de nutrición y ejercicio",
   "start_url": "/",
   "display": "standalone",

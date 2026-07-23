@@ -12,6 +12,7 @@
 <script lang="ts">
 	import Avatar from './Avatar.svelte';
 	import type { DuelData, DuelDay, DuelSide } from '$lib/duel-example';
+	import { fmtDate } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		duel: DuelData;
@@ -34,7 +35,7 @@
 		mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
 		const sun = new Date(mon);
 		sun.setDate(mon.getDate() + 6);
-		const short = (d: Date) => d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+		const short = (d: Date) => fmtDate(d, { day: 'numeric', month: 'short' });
 		const sameMonth = mon.getMonth() === sun.getMonth();
 		return sameMonth ? `Semana del ${mon.getDate()} al ${short(sun)}` : `Semana del ${short(mon)} al ${short(sun)}`;
 	})();

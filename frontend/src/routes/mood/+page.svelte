@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import type { MoodEntry, MoodLevel } from '$lib/types';
+	import { fmtDate } from '$lib/i18n/index.svelte';
 
 	const day = $derived($page.url.searchParams.get('day') ?? new Date().toISOString().slice(0, 10));
 
@@ -71,7 +72,7 @@
 	// (text-transform: capitalize producía "Lunes, 13 De Julio")
 	const dateLabel = $derived(() => {
 		const d = new Date(day + 'T12:00:00');
-		const raw = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+		const raw = fmtDate(d, { weekday: 'long', day: 'numeric', month: 'long' });
 		return raw.charAt(0).toUpperCase() + raw.slice(1);
 	});
 </script>

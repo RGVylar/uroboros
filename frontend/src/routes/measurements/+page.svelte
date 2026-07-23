@@ -6,6 +6,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { BodyMeasurementLog } from '$lib/types';
+	import { fmtDate, measureLabel } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -89,14 +90,14 @@
 	}
 
 	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' });
+		return fmtDate(new Date(iso), { day: 'numeric', month: 'short', year: '2-digit' });
 	}
 	function fmtShort(iso: string) {
-		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+		return fmtDate(new Date(iso), { day: 'numeric', month: 'short' });
 	}
 
 	function labelForKey(key: string) {
-		return MEASUREMENT_FIELDS.find((f) => f.key === key)?.label ?? key;
+		return measureLabel(key);
 	}
 
 	// Chronological logs for chart
@@ -192,7 +193,7 @@
 			<!-- Dot + label -->
 			<div style="display:flex; align-items:center; gap:0.5rem;">
 				<div class="meas-dot" style="background:{color}; box-shadow:0 0 12px {color};"></div>
-				<span class="meas-label">{f.label}</span>
+				<span class="meas-label">{measureLabel(f.key)}</span>
 			</div>
 
 			<!-- Current value -->
@@ -315,7 +316,7 @@
 						fill="rgba(8,10,16,0.78)" stroke="rgba(255,255,255,0.1)" stroke-width="0.4"/>
 					<text x={onRight ? 133 : 3} y={pt.y - 1.5}
 						font-size="3.6" fill="rgba(255,255,255,0.55)"
-						text-anchor="start" font-weight="600">{pt.label}</text>
+						text-anchor="start" font-weight="600">{measureLabel(pt.key)}</text>
 					<text x={onRight ? 133 : 3} y={pt.y + 5}
 						font-size="4" fill={col}
 						text-anchor="start" font-weight="700">{cur.toFixed(1)}cm</text>
@@ -375,7 +376,7 @@
 				{#each MEASUREMENT_FIELDS as f}
 					{@const hue = HUES[f.key] ?? 160}
 					<div class="form-field">
-						<label class="form-label" style="color:oklch(78% 0.15 {hue});" for="m-{f.key}">{f.label}</label>
+						<label class="form-label" style="color:oklch(78% 0.15 {hue});" for="m-{f.key}">{measureLabel(f.key)}</label>
 						<div style="display:flex; align-items:baseline; gap:0.25rem;">
 							<input
 								id="m-{f.key}"

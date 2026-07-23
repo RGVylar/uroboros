@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_quick_add_label">Add</string>
+    <string name="widget_quick_add_desc">Log food with one tap</string>
+    <string name="widget_scan_label">Scan</string>
+    <string name="widget_scan_desc">Open the barcode scanner</string>
+</resources>

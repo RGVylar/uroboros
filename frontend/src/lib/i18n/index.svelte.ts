@@ -60,6 +60,10 @@ export function fmtDate(d: Date, opts?: Intl.DateTimeFormatOptions): string {
 	return d.toLocaleDateString(getLocaleTag(), opts);
 }
 
+export function fmtTime(d: Date, opts?: Intl.DateTimeFormatOptions): string {
+	return d.toLocaleTimeString(getLocaleTag(), opts);
+}
+
 export function fmtNumber(n: number, opts?: Intl.NumberFormatOptions): string {
 	return n.toLocaleString(getLocaleTag(), opts);
 }
@@ -68,4 +72,28 @@ export function fmtNumber(n: number, opts?: Intl.NumberFormatOptions): string {
 // por tanto no reaccionaba al cambio de idioma.
 export function mealLabel(mt: MealType): string {
 	return t(`meal.${mt}` as TKey);
+}
+
+/** Contorno corporal: la clave viaja a la API, la etiqueta solo se muestra. */
+export function measureLabel(key: string): string {
+	return t(`measure.${key}` as TKey);
+}
+
+/** Avatar predefinido de lib/avatars.ts. */
+export function avatarLabel(id: string): string {
+	return t(`avatar.${id}` as TKey);
+}
+
+/** Ejercicio predefinido: la clave es su nombre en español, que es lo que
+ *  guarda la BD como semilla y no cambia. Los creados por el usuario se
+ *  devuelven tal cual, que para eso los escribió él. */
+export function exerciseLabel(name: string): string {
+	const key = `exercise.${name}` as TKey;
+	return key in es ? t(key) : name;
+}
+
+/** Unidad de un ejercicio ('minutos' | 'repeticiones'), misma lógica. */
+export function exerciseUnit(unit: string): string {
+	const key = `exerciseUnit.${unit}` as TKey;
+	return key in es ? t(key) : unit;
 }

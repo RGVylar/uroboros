@@ -1,19 +1,23 @@
-/** Keys must match backend `MEASUREMENT_KEYS` / `app.measurement_keys`. */
-export const MEASUREMENT_FIELDS: { key: string; label: string }[] = [
-	{ key: 'neck', label: 'Cuello' },
-	{ key: 'shoulders', label: 'Hombros' },
-	{ key: 'chest', label: 'Pecho' },
-	{ key: 'waist', label: 'Cintura' },
-	{ key: 'navel', label: 'Ombligo' },
-	{ key: 'hips', label: 'Cadera' },
-	{ key: 'bicep_l', label: 'Brazo izq.' },
-	{ key: 'bicep_r', label: 'Brazo dcha.' },
-	{ key: 'forearm_l', label: 'Antebrazo izq.' },
-	{ key: 'forearm_r', label: 'Antebrazo dcha.' },
-	{ key: 'thigh_l', label: 'Muslo izq.' },
-	{ key: 'thigh_r', label: 'Muslo dcha.' },
-	{ key: 'calf_l', label: 'Gemelo izq.' },
-	{ key: 'calf_r', label: 'Gemelo dcha.' }
+/**
+ * Keys must match backend `MEASUREMENT_KEYS` / `app.measurement_keys`.
+ * La etiqueta visible sale de measureLabel() del módulo i18n — aquí solo van
+ * las claves, que son las que viajan a la API y no se traducen nunca.
+ */
+export const MEASUREMENT_FIELDS: { key: string }[] = [
+	{ key: 'neck' },
+	{ key: 'shoulders' },
+	{ key: 'chest' },
+	{ key: 'waist' },
+	{ key: 'navel' },
+	{ key: 'hips' },
+	{ key: 'bicep_l' },
+	{ key: 'bicep_r' },
+	{ key: 'forearm_l' },
+	{ key: 'forearm_r' },
+	{ key: 'thigh_l' },
+	{ key: 'thigh_r' },
+	{ key: 'calf_l' },
+	{ key: 'calf_r' }
 ];
 
 /** Distinct colors per series (works on dark UI). */

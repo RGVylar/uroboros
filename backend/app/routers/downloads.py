@@ -17,7 +17,7 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import quote, unquote
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter(prefix="/download", tags=["download"])
@@ -123,15 +123,15 @@ _APP_URL = "https://comida.mugrelore.com"
 # clear pitch, install steps, and the open-source link. It's also where a
 # future invite deep-link would plug in (open the add-friend modal in the app).
 _LANDING_HTML = """<!doctype html>
-<html lang="es">
+<html lang="{L_LANG}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Únete a uroboros 🐍</title>
+<title>{L_TITLE}</title>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="uroboros">
-<meta property="og:title" content="uroboros — come mejor, en pareja">
-<meta property="og:description" content="La app para llevar la comida con tu pareja: registra una comida para los dos a la vez, compite en constancia y comparte la lista de la compra.">
+<meta property="og:title" content="{L_OG_TITLE}">
+<meta property="og:description" content="{L_OG_DESC}">
 <meta property="og:image" content="{APP}/social-banner.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -278,46 +278,46 @@ _LANDING_HTML = """<!doctype html>
   <div class="hero">
     <img src="{APP}/logo.png" alt="uroboros" width="96" height="96">
     <h1>uroboros</h1>
-    <div class="tag">Come mejor. Juntos.</div>
-    <p class="pitch">Te han invitado a la app para llevar la comida <b>en pareja</b>: una sola vez, para los dos.</p>
+    <div class="tag">{L_TAG}</div>
+    <p class="pitch">{L_PITCH}</p>
   </div>
 
   <div class="card">
-    <div class="feat"><div class="ico">🍽️</div><div><b>Registro a dos</b><span>Apunta una comida y aparece en el diario de ambos, con sus macros calculados.</span></div></div>
-    <div class="feat"><div class="ico">📊</div><div><b>Objetivos y progreso</b><span>Calorías, proteína, agua, peso y medidas — con historial y tendencias.</span></div></div>
-    <div class="feat"><div class="ico">🍳</div><div><b>Recetas e inventario compartido</b><span>La despensa y la lista de la compra, comunes de verdad.</span></div></div>
-    <div class="feat"><div class="ico">⚔️</div><div><b>Duelo semanal</b><span>Un pique sano: quién cumple más sus propios objetivos cada semana.</span></div></div>
+    <div class="feat"><div class="ico">🍽️</div><div><b>{L_F1_T}</b><span>{L_F1_D}</span></div></div>
+    <div class="feat"><div class="ico">📊</div><div><b>{L_F2_T}</b><span>{L_F2_D}</span></div></div>
+    <div class="feat"><div class="ico">🍳</div><div><b>{L_F3_T}</b><span>{L_F3_D}</span></div></div>
+    <div class="feat"><div class="ico">⚔️</div><div><b>{L_F4_T}</b><span>{L_F4_D}</span></div></div>
   </div>
   </div>
 
   <div class="col">
   <div class="dl">
-  <a class="btn" href="{APP}/api/download/latest-apk">📥 Descargar para Android</a>
+  <a class="btn" href="{APP}/api/download/latest-apk">{L_BTN}</a>
 
   <div class="qr">
-    <svg viewBox="0 0 37 37" role="img" aria-label="Código QR para descargar la app en el móvil"><rect width="37" height="37" fill="#fff"/><path stroke="#0b0f14" d="M2 2.5h7m4 0h2m3 0h1m1 0h4m1 0h1m2 0h7m-33 1h1m5 0h1m3 0h2m3 0h2m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m7 0h2m2 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m3 0h5m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h1m1 0h2m5 0h1m2 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m2 0h1m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m-25 1h1m1 0h5m2 0h2m2 0h2m2 0h1m1 0h1m4 0h1m1 0h5m-28 1h1m1 0h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-31 1h1m1 0h4m1 0h3m1 0h5m2 0h3m2 0h2m1 0h1m1 0h2m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h4m1 0h3m1 0h3m1 0h5m-33 1h1m5 0h1m2 0h4m1 0h1m1 0h1m5 0h4m1 0h3m1 0h2m-33 1h2m2 0h1m2 0h4m4 0h1m2 0h3m1 0h2m2 0h1m2 0h4m-31 1h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m3 0h1m1 0h4m2 0h2m-32 1h1m1 0h1m6 0h3m1 0h3m2 0h1m2 0h1m3 0h2m1 0h3m-27 1h1m1 0h7m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1m-32 1h1m3 0h1m4 0h1m1 0h1m3 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m3 0h1m1 0h1m1 0h2m5 0h2m1 0h1m8 0h2m1 0h1m-31 1h1m4 0h1m4 0h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h5m-32 1h2m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h3m2 0h1m-33 1h2m2 0h2m1 0h1m6 0h3m2 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-33 1h1m1 0h2m1 0h7m2 0h1m5 0h3m4 0h3m1 0h1m-32 1h1m1 0h2m1 0h1m1 0h3m2 0h3m1 0h1m4 0h3m1 0h2m1 0h3m-31 1h1m2 0h6m4 0h1m3 0h2m1 0h1m1 0h8m1 0h1m-24 1h1m2 0h3m2 0h7m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m2 0h1m1 0h1m2 0h4m2 0h5m1 0h1m1 0h1m1 0h2m-32 1h1m5 0h1m1 0h5m4 0h5m1 0h2m3 0h3m-31 1h1m1 0h3m1 0h1m1 0h4m3 0h2m7 0h6m-30 1h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m2 0h5m-33 1h1m1 0h3m1 0h1m1 0h5m2 0h3m2 0h4m2 0h2m1 0h1m-30 1h1m5 0h1m2 0h1m5 0h1m2 0h1m1 0h3m2 0h1m2 0h3m-31 1h7m1 0h1m2 0h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1"/></svg>
+    <svg viewBox="0 0 37 37" role="img" aria-label="{L_QR_ARIA}"><rect width="37" height="37" fill="#fff"/><path stroke="#0b0f14" d="M2 2.5h7m4 0h2m3 0h1m1 0h4m1 0h1m2 0h7m-33 1h1m5 0h1m3 0h2m3 0h2m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m7 0h2m2 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m3 0h5m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h1m1 0h2m5 0h1m2 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m2 0h1m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m-25 1h1m1 0h5m2 0h2m2 0h2m2 0h1m1 0h1m4 0h1m1 0h5m-28 1h1m1 0h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-31 1h1m1 0h4m1 0h3m1 0h5m2 0h3m2 0h2m1 0h1m1 0h2m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h4m1 0h3m1 0h3m1 0h5m-33 1h1m5 0h1m2 0h4m1 0h1m1 0h1m5 0h4m1 0h3m1 0h2m-33 1h2m2 0h1m2 0h4m4 0h1m2 0h3m1 0h2m2 0h1m2 0h4m-31 1h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m3 0h1m1 0h4m2 0h2m-32 1h1m1 0h1m6 0h3m1 0h3m2 0h1m2 0h1m3 0h2m1 0h3m-27 1h1m1 0h7m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1m-32 1h1m3 0h1m4 0h1m1 0h1m3 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m3 0h1m1 0h1m1 0h2m5 0h2m1 0h1m8 0h2m1 0h1m-31 1h1m4 0h1m4 0h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h5m-32 1h2m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h3m2 0h1m-33 1h2m2 0h2m1 0h1m6 0h3m2 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-33 1h1m1 0h2m1 0h7m2 0h1m5 0h3m4 0h3m1 0h1m-32 1h1m1 0h2m1 0h1m1 0h3m2 0h3m1 0h1m4 0h3m1 0h2m1 0h3m-31 1h1m2 0h6m4 0h1m3 0h2m1 0h1m1 0h8m1 0h1m-24 1h1m2 0h3m2 0h7m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m2 0h1m1 0h1m2 0h4m2 0h5m1 0h1m1 0h1m1 0h2m-32 1h1m5 0h1m1 0h5m4 0h5m1 0h2m3 0h3m-31 1h1m1 0h3m1 0h1m1 0h4m3 0h2m7 0h6m-30 1h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m2 0h5m-33 1h1m1 0h3m1 0h1m1 0h5m2 0h3m2 0h4m2 0h2m1 0h1m-30 1h1m5 0h1m2 0h1m5 0h1m2 0h1m1 0h3m2 0h1m2 0h3m-31 1h7m1 0h1m2 0h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1"/></svg>
     <div>
-      <b>¿Estás en el ordenador?</b>
-      <span>Escanea este código con la cámara del móvil y la descarga empezará ahí.</span>
+      <b>{L_QR_T}</b>
+      <span>{L_QR_D}</span>
     </div>
   </div>
   </div>
 
   <div class="card trust" style="margin-top:14px;">
-    <h2>🔒 Sobre la descarga</h2>
-    <p>Todavía no estamos en Google Play (estamos en ello), así que la app se instala directamente con su archivo APK. Android te avisará porque no viene de la tienda — es lo normal en este caso:</p>
+    <h2>{L_TRUST_T}</h2>
+    <p>{L_TRUST_INTRO}</p>
     <ol>
-      <li>Toca <b>Descargar de todos modos</b> cuando Chrome pregunte.</li>
-      <li>Abre el archivo y toca <b>Instalar</b>. Si Android pide permiso para "instalar apps desconocidas", actívalo solo para Chrome.</li>
-      <li>Listo — la app se actualiza avisándote dentro.</li>
+      <li>{L_STEP1}</li>
+      <li>{L_STEP2}</li>
+      <li>{L_STEP3}</li>
     </ol>
-    <p style="margin-top:10px;">La descarga viene directa de nuestro servidor, siempre en su última versión.</p>
+    <p style="margin-top:10px;">{L_TRUST_OUTRO}</p>
   </div>
 
-  <a class="web" href="{APP}/">¿Sin Android? Úsala desde el navegador →</a>
+  <a class="web" href="{APP}/">{L_WEB}</a>
 
   <footer>
-    uroboros · <a href="{APP}/privacy">privacidad</a>·<a href="{APP}/terms">términos</a>
+    uroboros · <a href="{APP}/privacy">{L_PRIVACY}</a>·<a href="{APP}/terms">{L_TERMS}</a>
   </footer>
   </div>
  </div>
@@ -326,15 +326,143 @@ _LANDING_HTML = """<!doctype html>
 </html>""".replace("{APP}", _APP_URL)
 
 
+# Copy de la landing en los tres idiomas. Es HTML servido por el servidor, así
+# que no hay localStorage donde mirar: el idioma sale de Accept-Language.
+# El portugués es europeo (pt-PT), igual que el diccionario del frontend.
+_LANDING_COPY: dict[str, dict[str, str]] = {
+    "es": {
+        "L_LANG": "es",
+        "L_TITLE": "Únete a uroboros 🐍",
+        "L_OG_TITLE": "uroboros — come mejor, en pareja",
+        "L_OG_DESC": "La app para llevar la comida con tu pareja: registra una comida para los dos a la vez, compite en constancia y comparte la lista de la compra.",
+        "L_TAG": "Come mejor. Juntos.",
+        "L_PITCH": "Te han invitado a la app para llevar la comida <b>en pareja</b>: una sola vez, para los dos.",
+        "L_F1_T": "Registro a dos",
+        "L_F1_D": "Apunta una comida y aparece en el diario de ambos, con sus macros calculados.",
+        "L_F2_T": "Objetivos y progreso",
+        "L_F2_D": "Calorías, proteína, agua, peso y medidas — con historial y tendencias.",
+        "L_F3_T": "Recetas e inventario compartido",
+        "L_F3_D": "La despensa y la lista de la compra, comunes de verdad.",
+        "L_F4_T": "Duelo semanal",
+        "L_F4_D": "Un pique sano: quién cumple más sus propios objetivos cada semana.",
+        "L_BTN": "📥 Descargar para Android",
+        "L_QR_ARIA": "Código QR para descargar la app en el móvil",
+        "L_QR_T": "¿Estás en el ordenador?",
+        "L_QR_D": "Escanea este código con la cámara del móvil y la descarga empezará ahí.",
+        "L_TRUST_T": "🔒 Sobre la descarga",
+        "L_TRUST_INTRO": "Todavía no estamos en Google Play (estamos en ello), así que la app se instala directamente con su archivo APK. Android te avisará porque no viene de la tienda — es lo normal en este caso:",
+        "L_STEP1": "Toca <b>Descargar de todos modos</b> cuando Chrome pregunte.",
+        "L_STEP2": "Abre el archivo y toca <b>Instalar</b>. Si Android pide permiso para \"instalar apps desconocidas\", actívalo solo para Chrome.",
+        "L_STEP3": "Listo — la app se actualiza avisándote dentro.",
+        "L_TRUST_OUTRO": "La descarga viene directa de nuestro servidor, siempre en su última versión.",
+        "L_WEB": "¿Sin Android? Úsala desde el navegador →",
+        "L_PRIVACY": "privacidad",
+        "L_TERMS": "términos",
+    },
+    "en": {
+        "L_LANG": "en",
+        "L_TITLE": "Join uroboros 🐍",
+        "L_OG_TITLE": "uroboros — eat better, together",
+        "L_OG_DESC": "The app for tracking food with your partner: log one meal for both of you at once, compete on consistency and share the shopping list.",
+        "L_TAG": "Eat better. Together.",
+        "L_PITCH": "You've been invited to the app for tracking food <b>as a couple</b>: log it once, for both of you.",
+        "L_F1_T": "Log once, for two",
+        "L_F1_D": "Log a meal and it shows up in both diaries, with the macros worked out.",
+        "L_F2_T": "Goals and progress",
+        "L_F2_D": "Calories, protein, water, weight and measurements — with history and trends.",
+        "L_F3_T": "Shared recipes and pantry",
+        "L_F3_D": "The pantry and the shopping list, genuinely shared.",
+        "L_F4_T": "Weekly duel",
+        "L_F4_D": "A friendly rivalry: who sticks to their own goals best each week.",
+        "L_BTN": "📥 Download for Android",
+        "L_QR_ARIA": "QR code to download the app on your phone",
+        "L_QR_T": "On your computer?",
+        "L_QR_D": "Scan this code with your phone's camera and the download starts there.",
+        "L_TRUST_T": "🔒 About the download",
+        "L_TRUST_INTRO": "We're not on Google Play yet (we're working on it), so the app installs directly from its APK file. Android will warn you because it isn't from the store — that's normal here:",
+        "L_STEP1": "Tap <b>Download anyway</b> when Chrome asks.",
+        "L_STEP2": "Open the file and tap <b>Install</b>. If Android asks for permission to \"install unknown apps\", turn it on for Chrome only.",
+        "L_STEP3": "Done — the app tells you from the inside when there's an update.",
+        "L_TRUST_OUTRO": "The download comes straight from our server, always the latest version.",
+        "L_WEB": "No Android? Use it in your browser →",
+        "L_PRIVACY": "privacy",
+        "L_TERMS": "terms",
+    },
+    "pt": {
+        "L_LANG": "pt",
+        "L_TITLE": "Junta-te ao uroboros 🐍",
+        "L_OG_TITLE": "uroboros — comer melhor, a dois",
+        "L_OG_DESC": "A app para gerir a comida com o teu par: regista uma refeição para os dois de uma vez, compete na constância e partilha a lista de compras.",
+        "L_TAG": "Comer melhor. Juntos.",
+        "L_PITCH": "Convidaram-te para a app de gerir a comida <b>a dois</b>: registas uma vez, conta para ambos.",
+        "L_F1_T": "Registo a dois",
+        "L_F1_D": "Regista uma refeição e aparece no diário de ambos, com os macros já calculados.",
+        "L_F2_T": "Objetivos e progresso",
+        "L_F2_D": "Calorias, proteína, água, peso e medidas — com histórico e tendências.",
+        "L_F3_T": "Receitas e despensa partilhadas",
+        "L_F3_D": "A despensa e a lista de compras, partilhadas a sério.",
+        "L_F4_T": "Duelo semanal",
+        "L_F4_D": "Uma piadinha saudável: quem cumpre melhor os seus próprios objetivos cada semana.",
+        "L_BTN": "📥 Descarregar para Android",
+        "L_QR_ARIA": "Código QR para descarregar a app no telemóvel",
+        "L_QR_T": "Estás no computador?",
+        "L_QR_D": "Lê este código com a câmara do telemóvel e a transferência começa aí.",
+        "L_TRUST_T": "🔒 Sobre a transferência",
+        "L_TRUST_INTRO": "Ainda não estamos no Google Play (estamos a tratar disso), por isso a app instala-se diretamente a partir do ficheiro APK. O Android vai avisar-te porque não vem da loja — é normal neste caso:",
+        "L_STEP1": "Toca em <b>Transferir mesmo assim</b> quando o Chrome perguntar.",
+        "L_STEP2": "Abre o ficheiro e toca em <b>Instalar</b>. Se o Android pedir permissão para \"instalar apps desconhecidas\", ativa-a só para o Chrome.",
+        "L_STEP3": "Pronto — a app avisa-te por dentro quando houver atualização.",
+        "L_TRUST_OUTRO": "A transferência vem diretamente do nosso servidor, sempre na versão mais recente.",
+        "L_WEB": "Sem Android? Usa-a no navegador →",
+        "L_PRIVACY": "privacidade",
+        "L_TERMS": "termos",
+    },
+}
+
+
+def _pick_language(accept_language: str | None) -> str:
+    """Idioma de la landing a partir de Accept-Language, con es de reserva.
+
+    Deliberadamente simple: recorre las preferencias en orden y se queda con la
+    primera que sepamos servir. No pesa los factores q= porque los navegadores
+    ya las mandan ordenadas de mayor a menor.
+    """
+    if not accept_language:
+        return "es"
+    for part in accept_language.split(","):
+        tag = part.split(";")[0].strip().lower()
+        primary = tag.split("-")[0]
+        if primary in _LANDING_COPY:
+            return primary
+    return "es"
+
+
+def _render_landing(lang: str) -> str:
+    html = _LANDING_HTML
+    for key, value in _LANDING_COPY[lang].items():
+        html = html.replace("{" + key + "}", value)
+    return html
+
+
 @landing_router.get("/unete", response_class=HTMLResponse)
-def invite_landing() -> HTMLResponse:
-    """Public invite landing: OG preview card + download + trust notes."""
+def invite_landing(accept_language: str | None = Header(default=None)) -> HTMLResponse:
+    """Public invite landing: OG preview card + download + trust notes.
+
+    Se sirve en es/en/pt según Accept-Language. Aquí no hay sesión ni
+    localStorage — quien abre este enlace todavía no tiene la app.
+    """
     # Warm the latest-APK cache so the download button redirects instantly.
     _warm_cache_async()
+    lang = _pick_language(accept_language)
     # 1h cache: the page rarely changes and this keeps Cloudflare serving it
     # from the edge. Caveat: copy edits take up to an hour to show for anyone
     # who already viewed it — bust with a ?v= query while reviewing changes.
+    # `Vary` es imprescindible desde que la página tiene idiomas: sin él, la
+    # caché del edge le daría a todo el mundo el idioma del primero que entró.
     return HTMLResponse(
-        _LANDING_HTML,
-        headers={"Cache-Control": "public, max-age=3600"},
+        _render_landing(lang),
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Vary": "Accept-Language",
+        },
     )

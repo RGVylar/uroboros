@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { WeightLog } from '$lib/types';
+	import { fmtDate } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -51,10 +52,10 @@
 	}
 
 	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' });
+		return fmtDate(new Date(iso), { day: 'numeric', month: 'short', year: '2-digit' });
 	}
 	function fmtShort(iso: string) {
-		return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+		return fmtDate(new Date(iso), { day: 'numeric', month: 'short' });
 	}
 
 	// Derived chart data — oldest → newest

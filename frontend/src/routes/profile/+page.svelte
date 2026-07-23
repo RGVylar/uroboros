@@ -8,6 +8,7 @@
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import { Avatar, Modal } from '$lib/components';
 	import { AVATARS, IDENTITY_HUES, identityColor } from '$lib/avatars';
+	import { avatarLabel } from '$lib/i18n/index.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -168,9 +169,9 @@
 					class:selected={userAvatar === a.id}
 					disabled={savingAvatar}
 					onclick={() => pickAvatar(a.id)}
-					title={a.label}
+					title={avatarLabel(a.id)}
 				>
-					<Avatar name={a.label} avatarId={a.id} size={72} />
+					<Avatar name={avatarLabel(a.id)} avatarId={a.id} size={72} />
 				</button>
 			{/each}
 		</div>

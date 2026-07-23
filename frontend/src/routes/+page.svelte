@@ -11,7 +11,7 @@
 	import { productUnit } from '$lib/drink';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
-	import { mealLabel } from '$lib/i18n/index.svelte';
+	import { mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -712,7 +712,7 @@
 	}
 
 	function fmtTime(iso: string) {
-		return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+		return fmtTimeI18n(new Date(iso), { hour: '2-digit', minute: '2-digit' });
 	}
 </script>
 

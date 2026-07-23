@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_quick_add_label">Adicionar</string>
+    <string name="widget_quick_add_desc">Regista comida com um toque</string>
+    <string name="widget_scan_label">Digitalizar</string>
+    <string name="widget_scan_desc">Abre o leitor de códigos de barras</string>
+</resources>

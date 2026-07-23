@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { auth } from '$lib/stores/auth.svelte';
 import { connectivity } from '$lib/stores/connectivity.svelte';
+import { t } from '$lib/i18n/index.svelte';
 
 // In native app, API calls go to the remote server.
 // In web, they go through Caddy's reverse proxy at /api.
@@ -31,7 +32,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	} catch {
 		// Network-level failure (server unreachable, timeout, no internet, etc.)
 		connectivity.recordFailure();
-		throw new Error('Sin conexión con el servidor');
+		throw new Error(t('net.offline'));
 	} finally {
 		if (timer) clearTimeout(timer);
 	}
@@ -39,7 +40,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	// 502/503/504 = gateway errors (proxy up, backend down) → treat as offline
 	if (res.status === 502 || res.status === 503 || res.status === 504) {
 		connectivity.recordFailure();
-		throw new Error('Sin conexión con el servidor');
+		throw new Error(t('net.offline'));
 	}
 
 	// Got a meaningful response — server is reachable
@@ -53,7 +54,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 		const body = await res.json().catch(() => ({}));
 		let message: string;
 		if (res.status === 422) {
-			message = 'Comprueba que el email y la contraseña tienen el formato correcto';
+			message = t('net.badFormat');
 		} else if (typeof body.detail === 'string') {
 			message = body.detail;
 		} else {
