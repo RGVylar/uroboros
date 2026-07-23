@@ -247,7 +247,15 @@ _LANDING_HTML = """<!doctype html>
       border-radius: 20px;
       backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3);
     }
-    .qr svg { width: 104px; height: 104px; flex-shrink: 0; border-radius: 10px; }
+    /* La placa del QR es el degradado del botón: en vez de un parche blanco,
+       una pastilla de la marca. El contraste lo pone el módulo casi negro. */
+    .qr svg {
+      width: 128px; height: 128px; flex-shrink: 0;
+      border-radius: 18px; padding: 9px;
+      background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(76% 0.2 168));
+      box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset,
+                  0 14px 34px -10px oklch(75% 0.2 165 / 0.5);
+    }
     .qr b { font-size: 0.85rem; display: block; margin-bottom: 4px; }
     .qr span { font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
   }
@@ -256,8 +264,10 @@ _LANDING_HTML = """<!doctype html>
   @media (min-width: 900px) {
     .qr {
       background: none; border: 0; border-radius: 0; padding: 4px 0 0;
-      margin-top: 14px; backdrop-filter: none; -webkit-backdrop-filter: none;
+      margin-top: 18px; gap: 18px; backdrop-filter: none; -webkit-backdrop-filter: none;
     }
+    /* Aquí hay sitio de sobra: el QR manda tanto como el botón. */
+    .qr svg { width: 172px; height: 172px; border-radius: 22px; padding: 12px; }
   }
 
   a.web {
@@ -295,7 +305,7 @@ _LANDING_HTML = """<!doctype html>
   <a class="btn" href="{APP}/api/download/latest-apk">{L_BTN}</a>
 
   <div class="qr">
-    <svg viewBox="0 0 37 37" role="img" aria-label="{L_QR_ARIA}"><rect width="37" height="37" fill="#fff"/><path stroke="#0b0f14" d="M2 2.5h7m4 0h2m3 0h1m1 0h4m1 0h1m2 0h7m-33 1h1m5 0h1m3 0h2m3 0h2m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m7 0h2m2 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m3 0h5m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h1m1 0h2m5 0h1m2 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m2 0h1m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m-25 1h1m1 0h5m2 0h2m2 0h2m2 0h1m1 0h1m4 0h1m1 0h5m-28 1h1m1 0h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-31 1h1m1 0h4m1 0h3m1 0h5m2 0h3m2 0h2m1 0h1m1 0h2m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h4m1 0h3m1 0h3m1 0h5m-33 1h1m5 0h1m2 0h4m1 0h1m1 0h1m5 0h4m1 0h3m1 0h2m-33 1h2m2 0h1m2 0h4m4 0h1m2 0h3m1 0h2m2 0h1m2 0h4m-31 1h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m3 0h1m1 0h4m2 0h2m-32 1h1m1 0h1m6 0h3m1 0h3m2 0h1m2 0h1m3 0h2m1 0h3m-27 1h1m1 0h7m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1m-32 1h1m3 0h1m4 0h1m1 0h1m3 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m3 0h1m1 0h1m1 0h2m5 0h2m1 0h1m8 0h2m1 0h1m-31 1h1m4 0h1m4 0h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h5m-32 1h2m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h3m2 0h1m-33 1h2m2 0h2m1 0h1m6 0h3m2 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-33 1h1m1 0h2m1 0h7m2 0h1m5 0h3m4 0h3m1 0h1m-32 1h1m1 0h2m1 0h1m1 0h3m2 0h3m1 0h1m4 0h3m1 0h2m1 0h3m-31 1h1m2 0h6m4 0h1m3 0h2m1 0h1m1 0h8m1 0h1m-24 1h1m2 0h3m2 0h7m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m2 0h1m1 0h1m2 0h4m2 0h5m1 0h1m1 0h1m1 0h2m-32 1h1m5 0h1m1 0h5m4 0h5m1 0h2m3 0h3m-31 1h1m1 0h3m1 0h1m1 0h4m3 0h2m7 0h6m-30 1h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m2 0h5m-33 1h1m1 0h3m1 0h1m1 0h5m2 0h3m2 0h4m2 0h2m1 0h1m-30 1h1m5 0h1m2 0h1m5 0h1m2 0h1m1 0h3m2 0h1m2 0h3m-31 1h7m1 0h1m2 0h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1"/></svg>
+    <svg viewBox="0 0 37 37" role="img" aria-label="{L_QR_ARIA}"><rect width="37" height="37" fill="none"/><path stroke="#04150f" d="M2 2.5h7m4 0h2m3 0h1m1 0h4m1 0h1m2 0h7m-33 1h1m5 0h1m3 0h2m3 0h2m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m7 0h2m2 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m3 0h5m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h1m1 0h2m5 0h1m2 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m2 0h1m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m-25 1h1m1 0h5m2 0h2m2 0h2m2 0h1m1 0h1m4 0h1m1 0h5m-28 1h1m1 0h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-31 1h1m1 0h4m1 0h3m1 0h5m2 0h3m2 0h2m1 0h1m1 0h2m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h4m1 0h3m1 0h3m1 0h5m-33 1h1m5 0h1m2 0h4m1 0h1m1 0h1m5 0h4m1 0h3m1 0h2m-33 1h2m2 0h1m2 0h4m4 0h1m2 0h3m1 0h2m2 0h1m2 0h4m-31 1h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m3 0h1m1 0h4m2 0h2m-32 1h1m1 0h1m6 0h3m1 0h3m2 0h1m2 0h1m3 0h2m1 0h3m-27 1h1m1 0h7m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1m-32 1h1m3 0h1m4 0h1m1 0h1m3 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m3 0h1m1 0h1m1 0h2m5 0h2m1 0h1m8 0h2m1 0h1m-31 1h1m4 0h1m4 0h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h5m-32 1h2m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h3m2 0h1m-33 1h2m2 0h2m1 0h1m6 0h3m2 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-33 1h1m1 0h2m1 0h7m2 0h1m5 0h3m4 0h3m1 0h1m-32 1h1m1 0h2m1 0h1m1 0h3m2 0h3m1 0h1m4 0h3m1 0h2m1 0h3m-31 1h1m2 0h6m4 0h1m3 0h2m1 0h1m1 0h8m1 0h1m-24 1h1m2 0h3m2 0h7m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m2 0h1m1 0h1m2 0h4m2 0h5m1 0h1m1 0h1m1 0h2m-32 1h1m5 0h1m1 0h5m4 0h5m1 0h2m3 0h3m-31 1h1m1 0h3m1 0h1m1 0h4m3 0h2m7 0h6m-30 1h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m2 0h5m-33 1h1m1 0h3m1 0h1m1 0h5m2 0h3m2 0h4m2 0h2m1 0h1m-30 1h1m5 0h1m2 0h1m5 0h1m2 0h1m1 0h3m2 0h1m2 0h3m-31 1h7m1 0h1m2 0h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1"/></svg>
     <div>
       <b>{L_QR_T}</b>
       <span>{L_QR_D}</span>
