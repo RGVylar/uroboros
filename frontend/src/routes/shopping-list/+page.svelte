@@ -9,7 +9,7 @@
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
-	import { t } from '$lib/i18n/index.svelte';
+	import { t, tc } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -202,7 +202,7 @@
 			const created = await api.post<ShoppingListItem[]>(`/shopping-list/from-recipe/${recipeId}`, {});
 			generateMsg = created.length === 0
 				? t('shopping.allInInventory')
-				: `${created.length} ingrediente${created.length > 1 ? 's' : ''} añadido${created.length > 1 ? 's' : ''}.`;
+				: tc('shopping.added', created.length);
 			await load();
 		} finally {
 			generatingId = null;

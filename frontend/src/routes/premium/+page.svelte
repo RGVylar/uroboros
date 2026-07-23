@@ -8,16 +8,16 @@
 	// NOT here yet: Google Play rejects apps that show prices with a buy button
 	// that doesn't complete a purchase. Billing (Play Billing / RevenueCat) will
 	// be wired up in a later version — until then this is a "coming soon" page.
-	const premiumFeatures = [
-		{ emoji: '📈', text: 'Tendencias y gráficas avanzadas' },
-		{ emoji: '💪', text: 'Sesiones de ejercicio' },
-		{ emoji: '📏', text: 'Medidas corporales' },
-		{ emoji: '🛒', text: 'Inventario y lista de la compra compartidos' },
-		{ emoji: '📖', text: 'Recetas ilimitadas' },
-		{ emoji: '🔥', text: 'Cheat days para proteger la racha' },
-		{ emoji: '📤', text: 'Exportar a Excel' },
-		{ emoji: '♾️', text: 'Historial completo (gratis: últimos 90 días)' },
-	];
+	let premiumFeatures = $derived([
+		{ emoji: '📈', text: t('premium.feat1') },
+		{ emoji: '💪', text: t('premium.feat2') },
+		{ emoji: '📏', text: t('premium.feat3') },
+		{ emoji: '🛒', text: t('premium.feat4') },
+		{ emoji: '📖', text: t('premium.feat5') },
+		{ emoji: '🔥', text: t('premium.feat6') },
+		{ emoji: '📤', text: t('premium.feat7') },
+		{ emoji: '♾️', text: t('premium.feat8') },
+	]);
 </script>
 
 <svelte:head>

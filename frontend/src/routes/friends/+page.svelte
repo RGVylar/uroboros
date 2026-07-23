@@ -433,23 +433,23 @@
 
 <!-- Breakup confirmation — the household splits, and that's worth saying first -->
 {#if confirmBreakupId !== null}
-	<Modal onClose={() => (confirmBreakupId = null)} title="¿Ya no sois pareja?" subtitle="Seguiréis siendo amigos.">
+	<Modal onClose={() => (confirmBreakupId = null)} title={t('friends.breakupTitle')} subtitle={t('friends.breakupSub')}>
 		<div style="background:oklch(60% 0.16 25 / 0.1); border:1px solid oklch(65% 0.18 25 / 0.3); border-radius:12px; padding:0.6875rem 0.8125rem; font-size:0.6875rem; color:oklch(85% 0.1 30); line-height:1.5;">
-			<strong>Vuestra despensa se separará.</strong><br>
-			Cada uno recupera lo que aportó. No se borran las recetas ni el historial del duelo.
+			<strong>{t('friends.breakupWarn')}</strong><br>
+			{t('friends.breakupBody')}
 		</div>
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="btn-secondary" onclick={() => (confirmBreakupId = null)} style="flex:1;">Cancelar</button>
-			<button class="btn-danger" onclick={confirmBreakup} style="flex:1;">Confirmar</button>
+			<button class="btn-secondary" onclick={() => (confirmBreakupId = null)} style="flex:1;">{t('common.cancel')}</button>
+			<button class="btn-danger" onclick={confirmBreakup} style="flex:1;">{t('common.confirm')}</button>
 		</div>
 	</Modal>
 {/if}
 
 <!-- Delete confirmation modal -->
 {#if confirmDeleteId !== null}
-	<Modal onClose={() => confirmDeleteId = null} title="¿Eliminar amigo?" subtitle="Se eliminará la amistad y los permisos asociados.">
+	<Modal onClose={() => confirmDeleteId = null} title={t('friends.deleteTitle')} subtitle={t('friends.deleteSub')}>
 		<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-			<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">Cancelar</button>
+			<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">{t('common.cancel')}</button>
 			<button class="btn-danger" onclick={confirmRemove} style="flex:1;">{t('friends.remove')}</button>
 		</div>
 	</Modal>

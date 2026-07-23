@@ -104,20 +104,22 @@
 	}
 
 	// Common IANA timezones for the selector
-	const TIMEZONES = [
-		{ value: 'Europe/Madrid',      label: 'Madrid / España' },
-		{ value: 'Europe/London',      label: 'Londres' },
-		{ value: 'Europe/Paris',       label: 'París / Europa Central' },
-		{ value: 'America/Mexico_City',label: 'Ciudad de México' },
-		{ value: 'America/Bogota',     label: 'Bogotá / Lima / Quito' },
-		{ value: 'America/Caracas',    label: 'Caracas' },
-		{ value: 'America/Santiago',   label: 'Santiago de Chile' },
-		{ value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires' },
-		{ value: 'America/Sao_Paulo',  label: 'São Paulo / Brasil' },
-		{ value: 'America/New_York',   label: 'Nueva York' },
-		{ value: 'America/Los_Angeles',label: 'Los Ángeles' },
+	// Lisboa entra ahora que la app habla portugués.
+	let TIMEZONES = $derived([
+		{ value: 'Europe/Madrid',      label: t('settings.tzMadrid') },
+		{ value: 'Europe/Lisbon',      label: t('settings.tzLisbon') },
+		{ value: 'Europe/London',      label: t('settings.tzLondon') },
+		{ value: 'Europe/Paris',       label: t('settings.tzParis') },
+		{ value: 'America/Mexico_City',label: t('settings.tzMexico') },
+		{ value: 'America/Bogota',     label: t('settings.tzBogota') },
+		{ value: 'America/Caracas',    label: t('settings.tzCaracas') },
+		{ value: 'America/Santiago',   label: t('settings.tzSantiago') },
+		{ value: 'America/Argentina/Buenos_Aires', label: t('settings.tzBuenosAires') },
+		{ value: 'America/Sao_Paulo',  label: t('settings.tzSaoPaulo') },
+		{ value: 'America/New_York',   label: t('settings.tzNewYork') },
+		{ value: 'America/Los_Angeles',label: t('settings.tzLosAngeles') },
 		{ value: 'UTC',                label: 'UTC' },
-	];
+	]);
 	let prefs: NotifPrefs | null = $state(null);
 	let savingPrefs = $state(false);
 	let testSent = $state(false);
@@ -565,7 +567,7 @@
 				<div class="row-content">
 					<div class="row-label">{t('settings.notifsEnable')}</div>
 					<div class="row-sub">
-						{prefs?.enabled ? 'Activadas · Solo cuando tiene sentido' : 'Desactivadas'}
+						{prefs?.enabled ? t('settings.notifsOn') : t('settings.notifsOff')}
 					</div>
 				</div>
 				<button
@@ -635,7 +637,7 @@
 					<div class="notif-row">
 						<span class="notif-emoji">🏆</span>
 						<span class="notif-meal-label">{t('settings.notifStreakMilestones')}</span>
-						<span class="notif-hint">3, 7, 14, 30... días</span>
+						<span class="notif-hint">{t('settings.milestoneHint')}</span>
 						<span class="notif-always">{t('settings.notifAlways')}</span>
 					</div>
 				</div>

@@ -110,8 +110,8 @@
 				barcodeQuery = '';
 			}
 		} catch {
-			if (isEdit) editBarcodeError = 'Código no encontrado';
-			else barcodeError = 'Código no encontrado';
+			if (isEdit) editBarcodeError = t('recipes.codeNotFound');
+			else barcodeError = t('recipes.codeNotFound');
 		} finally {
 			if (isEdit) editBarcodeLoading = false;
 			else barcodeLoading = false;
@@ -781,7 +781,7 @@
 		<div style="display:flex; gap:0.5rem;">
 			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">{t('common.cancel')}</button>
 			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging} style="flex:2;">
-				{#if logging}Registrando...{:else if shareMode === 'also'}Registrar · 👥{:else if shareMode === 'only'}Registrar solo para {partner?.name}{:else}Registrar{/if}
+				{#if logging}{t('recipes.logging')}{:else if shareMode === 'also'}{t('recipes.logBoth')}{:else if shareMode === 'only'}{t('recipes.logOnly', { name: partner?.name ?? '' })}{:else}{t('recipes.log')}{/if}
 			</button>
 		</div>
 	</Modal>
