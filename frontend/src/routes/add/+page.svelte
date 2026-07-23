@@ -21,7 +21,7 @@
 		InventoryItem,
 	} from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { mealLabel } from '$lib/i18n/index.svelte';
+	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
@@ -57,17 +57,17 @@
 	let recFocus = $state<'kcal' | 'protein' | 'carbs' | 'fat'>('kcal');
 
 	const recFocusOptions = [
-		{ value: 'kcal',    label: '🔥 Calorías' },
-		{ value: 'protein', label: '🥩 Proteína' },
-		{ value: 'carbs',   label: '🍚 Carbos' },
-		{ value: 'fat',     label: '🥑 Grasa' },
+		{ value: 'kcal',    label: t('add.recKcal') },
+		{ value: 'protein', label: t('add.recProtein') },
+		{ value: 'carbs',   label: t('add.recCarbs') },
+		{ value: 'fat',     label: t('add.recFat') },
 	] as const;
 
 	const recFocusSubtitle: Record<typeof recFocus, string> = {
-		kcal:    'Basado en tus calorías restantes',
-		protein: 'Basado en tu proteína restante',
-		carbs:   'Basado en tus carbohidratos restantes',
-		fat:     'Basado en tu grasa restante',
+		kcal:    t('add.recSubKcal'),
+		protein: t('add.recSubProtein'),
+		carbs:   t('add.recSubCarbs'),
+		fat:     t('add.recSubFat'),
 	};
 
 	function recMacroGrams(rec: RecommendedProduct): number {
@@ -170,8 +170,8 @@
 			// not found"); al usuario le mostramos siempre un mensaje claro en español.
 			const name = e instanceof DOMException ? e.name : '';
 			scanError = name === 'NotAllowedError'
-				? 'Permiso de cámara denegado. Actívalo en los ajustes del navegador.'
-				: 'No se ha encontrado ninguna cámara disponible.';
+				? t('add.errCameraDenied')
+				: t('add.errNoCamera');
 			scanning = false;
 		}
 	}
@@ -290,27 +290,6 @@
 	type AllergyInfo = { id: number; ingredient: string };
 	let myAllergies: AllergyInfo[] = $state([]);
 	let partnerAllergies: AllergyInfo[] = $state([]);
-
-	const ALLERGEN_LABELS: Record<string, string> = {
-		gluten:           'Gluten',
-		milk:             'Leche',
-		eggs:             'Huevos',
-		peanuts:          'Cacahuetes',
-		nuts:             'Frutos secos',
-		soybeans:         'Soja',
-		fish:             'Pescado',
-		crustaceans:      'Marisco',
-		celery:           'Apio',
-		mustard:          'Mostaza',
-		'sesame-seeds':   'Sésamo',
-		'sulphur-dioxide':'Sulfitos',
-		mollusks:         'Moluscos',
-		lupin:            'Altramuces',
-	};
-
-	function allergenLabel(key: string): string {
-		return ALLERGEN_LABELS[key] ?? key;
-	}
 
 	// ── Aviso de comida duplicada al registrar para la pareja ───────────────────
 	// Si registro (o registramos los dos) en el diario de mi pareja, ella no tiene
@@ -877,20 +856,20 @@
 {#if selected && !showManual && !showEdit}
 	<!-- Header -->
 	<div class="add-header">
-		<button class="glass-btn" onclick={() => (selected = null)} aria-label="Volver">
+		<button class="glass-btn" onclick={() => (selected = null)} aria-label={t('add.back')}>
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div style="flex:1; min-width:0;">
-			<div class="header-eyebrow">Detalle</div>
+			<div class="header-eyebrow">{t('add.detail')}</div>
 			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected.name}</div>
 		</div>
 		<button
 			class="glass-btn"
 			onclick={() => toggleFavorite(selected!.id)}
-			aria-label={favoriteIds.has(selected.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
-			title={favoriteIds.has(selected.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+			aria-label={favoriteIds.has(selected.id) ? t('add.favRemove') : t('add.favAdd')}
+			title={favoriteIds.has(selected.id) ? t('add.favRemove') : t('add.favAdd')}
 			disabled={favoriteToggling}
 			style="color: {favoriteIds.has(selected.id) ? 'oklch(85% 0.22 55)' : 'rgba(255,255,255,0.5)'} !important;"
 		>
@@ -898,7 +877,7 @@
 				<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
-		<button class="glass-btn" onclick={startEdit} aria-label="Editar producto" title="Corregir datos del producto">
+		<button class="glass-btn" onclick={startEdit} aria-label={t('add.editProduct')} title={t('add.editProductTitle')}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
 				<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 				<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -930,7 +909,7 @@
 	<!-- Grams picker -->
 	<div class="glass-card" style="margin-bottom:0.875rem;">
 		<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
-			<span style="font-size:0.8125rem; font-weight:700;">Cantidad</span>
+			<span style="font-size:0.8125rem; font-weight:700;">{t('add.quantity')}</span>
 			<div style="display:flex; align-items:baseline; gap:0.25rem;">
 				<input
 					type="number"
@@ -955,7 +934,7 @@
 
 	<!-- Meal type -->
 	<div style="margin-bottom:0.875rem;">
-		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">Comida</div>
+		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.meal')}</div>
 		<div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.375rem;">
 			{#each MEAL_ORDER as mt}
 				<button
@@ -969,7 +948,7 @@
 
 	<!-- Date picker -->
 	<div style="margin-bottom:0.875rem;">
-		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">Fecha</div>
+		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.date')}</div>
 		<input
 			type="date"
 			bind:value={selectedDate}
@@ -994,14 +973,14 @@
 			</div>
 			<div style="flex:1; min-width:0; text-align:left;">
 				{#if shareMode === null}
-					<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">Sin compartir</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">Solo tu cuenta</div>
+					<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">{t('add.shareNone')}</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">{t('add.shareNoneSub')}</div>
 				{:else if shareMode === 'also'}
 					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Se registra en las dos cuentas</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareBothSub')}</div>
 				{:else}
 					<div style="font-size:0.8125rem; font-weight:700; color:oklch(80% 0.18 45);">Solo para {partner.name}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Tú no lo registras</div>
+					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareOnlyPartnerSub')}</div>
 				{/if}
 			</div>
 			<!-- Segmented pill con sliding thumb -->
@@ -1015,11 +994,11 @@
 							: 'rgba(255,255,255,0.12)'};
 				"></div>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
-					onclick={() => shareMode = null} aria-label="Solo yo">👤</button>
+					onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}>👤</button>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
-					onclick={() => shareMode = 'also'} aria-label="Los dos">👥</button>
+					onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}>👥</button>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
-					onclick={() => shareMode = 'only'} aria-label="Solo {partner.name}">👤→</button>
+					onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}>👤→</button>
 			</div>
 		</div>
 	{/if}
@@ -1028,7 +1007,7 @@
 	{#if noAllergenInfo}
 		<div class="allergen-unknown-notice">
 			<span style="font-size:1rem; flex-shrink:0;">ℹ️</span>
-			<span>No tenemos información sobre alérgenos de este producto. Revisa el envase antes de consumirlo.</span>
+			<span>{t('add.noAllergenInfo')}</span>
 		</div>
 	{/if}
 
@@ -1037,10 +1016,10 @@
 		<div class="allergy-banner">
 			<div class="allergy-banner-icon">⚠️</div>
 			<div class="allergy-banner-body">
-				<div class="allergy-banner-title">Alérgeno detectado</div>
+				<div class="allergy-banner-title">{t('add.allergenDetected')}</div>
 				{#if allergenWarnings.mine.length > 0}
 					<div class="allergy-banner-row">
-						<span class="allergy-banner-who">Tú:</span>
+						<span class="allergy-banner-who">{t('add.you')}</span>
 						{#each allergenWarnings.mine as a}
 							<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
 						{/each}
@@ -1063,7 +1042,7 @@
 		<div class="meal-conflict-banner">
 			<div class="meal-conflict-icon">🍽️</div>
 			<div class="meal-conflict-body">
-				<div class="meal-conflict-title">{partner.name} ya tiene {mealLabel(mealType).toLowerCase()} registrado</div>
+				<div class="meal-conflict-title">{t('add.conflictBanner', { name: partner.name, meal: mealLabel(mealType).toLowerCase() })}</div>
 				<div class="meal-conflict-detail">
 					{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal
 					{#if mealConflict.productNames.length}
@@ -1093,13 +1072,13 @@
 ═══════════════════════════════════════════════════════ -->
 {:else if showEdit}
 	<div class="add-header">
-		<button class="glass-btn" onclick={() => (showEdit = false)} aria-label="Volver">
+		<button class="glass-btn" onclick={() => (showEdit = false)} aria-label={t('add.back')}>
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div style="flex:1; min-width:0;">
-			<div class="header-eyebrow">Editar</div>
+			<div class="header-eyebrow">{t('add.edit')}</div>
 			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{selected?.name}</div>
 		</div>
 	</div>
@@ -1110,28 +1089,28 @@
 
 	<div class="glass-card" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
 		<div class="manual-field">
-			<label for="e-name">Nombre</label>
+			<label for="e-name">{t('add.name')}</label>
 			<input id="e-name" bind:value={editName} required class="field-input" />
 		</div>
 		<div class="manual-field">
-			<label for="e-brand">Marca <span style="color:rgba(255,255,255,0.4);">(opcional)</span></label>
+			<label for="e-brand">{t('add.brand')} <span style="color:rgba(255,255,255,0.4);">{t('add.optional')}</span></label>
 			<input id="e-brand" bind:value={editBrand} class="field-input" />
 		</div>
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
 			<div class="manual-field">
-				<label for="e-cal">Kcal / 100g</label>
+				<label for="e-cal">{t('add.kcal100')}</label>
 				<input id="e-cal" type="number" bind:value={editCal} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-prot">Prot / 100g</label>
+				<label for="e-prot">{t('add.prot100')}</label>
 				<input id="e-prot" type="number" bind:value={editProt} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-carbs">Carb / 100g</label>
+				<label for="e-carbs">{t('add.carb100')}</label>
 				<input id="e-carbs" type="number" bind:value={editCarbs} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-fat">Grasa / 100g</label>
+				<label for="e-fat">{t('add.fat100')}</label>
 				<input id="e-fat" type="number" bind:value={editFat} min="0" step="0.1" class="field-input" />
 			</div>
 		</div>
@@ -1148,41 +1127,41 @@
 ═══════════════════════════════════════════════════════ -->
 {:else if showManual}
 	<div class="add-header">
-		<button class="glass-btn" onclick={() => (showManual = false)} aria-label="Volver">
+		<button class="glass-btn" onclick={() => (showManual = false)} aria-label={t('add.back')}>
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div>
-			<div class="header-eyebrow">Nuevo</div>
-			<div class="header-title">Producto manual</div>
+			<div class="header-eyebrow">{t('add.new')}</div>
+			<div class="header-title">{t('add.manualProduct')}</div>
 		</div>
 	</div>
 
 	<div class="glass-card" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
 		<div class="manual-field">
-			<label for="m-name">Nombre</label>
+			<label for="m-name">{t('add.name')}</label>
 			<input id="m-name" bind:value={manualName} required class="field-input" />
 		</div>
 		<div class="manual-field">
-			<label for="m-brand">Marca <span style="color:rgba(255,255,255,0.4);">(opcional)</span></label>
+			<label for="m-brand">{t('add.brand')} <span style="color:rgba(255,255,255,0.4);">{t('add.optional')}</span></label>
 			<input id="m-brand" bind:value={manualBrand} class="field-input" />
 		</div>
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
 			<div class="manual-field">
-				<label for="m-cal">Kcal / 100g</label>
+				<label for="m-cal">{t('add.kcal100')}</label>
 				<input id="m-cal" type="number" bind:value={manualCal} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-prot">Prot / 100g</label>
+				<label for="m-prot">{t('add.prot100')}</label>
 				<input id="m-prot" type="number" bind:value={manualProt} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-carbs">Carb / 100g</label>
+				<label for="m-carbs">{t('add.carb100')}</label>
 				<input id="m-carbs" type="number" bind:value={manualCarbs} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-fat">Grasa / 100g</label>
+				<label for="m-fat">{t('add.fat100')}</label>
 				<input id="m-fat" type="number" bind:value={manualFat} min="0" step="0.1" class="field-input" />
 			</div>
 		</div>
@@ -1190,7 +1169,7 @@
 
 	{#if error}<p class="add-error">{error}</p>{/if}
 
-	<button class="btn-submit" onclick={createManual}>Crear producto</button>
+	<button class="btn-submit" onclick={createManual}>{t('add.createProduct')}</button>
 
 <!-- ═══════════════════════════════════════════════════════
      SEARCH / LIST VIEW
@@ -1198,14 +1177,14 @@
 {:else}
 	<!-- Header -->
 	<div class="add-header">
-		<button class="glass-btn" onclick={() => goto('/')} aria-label="Volver al diario">
+		<button class="glass-btn" onclick={() => goto('/')} aria-label={t('add.backToDiary')}>
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
 				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 		<div>
-			<div class="header-eyebrow">Registrar</div>
-			<div class="header-title">Añadir comida</div>
+			<div class="header-eyebrow">{t('add.eyebrow')}</div>
+			<div class="header-title">{t('add.title')}</div>
 		</div>
 	</div>
 
@@ -1217,7 +1196,7 @@
 		</svg>
 		<input
 			bind:value={query}
-			placeholder="Buscar avena, pollo, código de barras..."
+			placeholder={t('add.search')}
 			class="search-input"
 			oninput={onQueryInput}
 			onkeydown={(e) => { if (e.key === 'Enter') { clearTimeout(searchDebounce); searchByName(); } }}
@@ -1225,7 +1204,7 @@
 		<button
 			onclick={isNative ? scanBarcode : startWebScan}
 			class="barcode-btn"
-			aria-label="Escanear código de barras"
+			aria-label={t('add.scanAria')}
 			disabled={scanning}
 		>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -1238,8 +1217,8 @@
 	{#if barcode}
 		{#if barcodeNotFound}
 			<div style="margin-bottom:0.75rem; background:oklch(65% 0.22 25 / 0.08); border:1px solid oklch(65% 0.22 25 / 0.2); border-radius:16px; padding:0.875rem;">
-				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">Producto no encontrado</div>
-				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">El código <span style="font-variant-numeric:tabular-nums;">{barcode}</span> no está en la base de datos.</div>
+				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">{t('add.notFound')}</div>
+				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">{t('add.notFoundPre')} <span style="font-variant-numeric:tabular-nums;">{barcode}</span> {t('add.notFoundPost')}</div>
 				<div style="display:flex; gap:0.5rem;">
 					<button onclick={() => { barcodeNotFound = false; barcode = ''; }} class="filter-chip" style="flex:1;">
 						Escanear otro
@@ -1252,11 +1231,11 @@
 		{:else}
 			<div style="margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
 				<div style="flex:1; min-width:0;">
-					<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-bottom:0.2rem;">Código escaneado</div>
+					<div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-bottom:0.2rem;">{t('add.scanned')}</div>
 					<div style="font-size:0.875rem; font-weight:600; color:#fff; font-variant-numeric:tabular-nums;">{barcode}</div>
 				</div>
 				<button onclick={searchByBarcode} disabled={searching} class="btn-submit" style="padding:0 1.25rem; height:44px; border-radius:12px; width:auto; flex-shrink:0;">
-					{searching ? 'Buscando...' : 'Añadir →'}
+					{searching ? t('add.searching') : t('add.addArrow')}
 				</button>
 			</div>
 		{/if}
@@ -1272,7 +1251,7 @@
 			<button
 				onclick={stopWebScan}
 				style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"
-				aria-label="Detener escáner"
+				aria-label={t('add.scanStop')}
 			>✕</button>
 		</div>
 	{/if}
@@ -1301,7 +1280,7 @@
 					disabled={saving}
 					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.875rem; cursor:pointer; font-family:inherit;"
 				>
-					{saving ? 'Añadiendo...' : '＋ Añadir al diario'}
+					{saving ? t('add.adding') : t('add.addToDiary')}
 				</button>
 			</div>
 		</div>
@@ -1309,28 +1288,28 @@
 
 	<!-- Quick filter chips -->
 	<div style="display:flex; gap:0.5rem; margin-bottom:1.125rem; flex-wrap:wrap;">
-		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>⚡ Sugerencias</button>
-		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>🕒 Recientes{#if frequentFromCache}<span class="chip-offline-dot" title="Guardado sin conexión">·</span>{/if}</button>
-		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>⭐ Favoritos</button>
-		<button onclick={() => { activeFilter = 'recipes'; loadRecipesTab(); }}    class="filter-chip" class:filter-chip-active={activeFilter === 'recipes'}>🍳 Recetas</button>
-		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}>📦 Inventario</button>
-		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">✏️ Manual</button>
+		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>{t('add.tabSuggestions')}</button>
+		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>{t('add.tabRecent')}{#if frequentFromCache}<span class="chip-offline-dot" title={t('add.offlineSaved')}>·</span>{/if}</button>
+		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>{t('add.tabFavorites')}</button>
+		<button onclick={() => { activeFilter = 'recipes'; loadRecipesTab(); }}    class="filter-chip" class:filter-chip-active={activeFilter === 'recipes'}>{t('add.tabRecipes')}</button>
+		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}>{t('add.tabInventory')}</button>
+		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">{t('add.tabManual')}</button>
 	</div>
 
 	<!-- Results section (when query) -->
 	{#if query}
 		{#if searching && results.length === 0}
-			<div class="loading-row">Buscando...</div>
+			<div class="loading-row">{t('add.searching')}</div>
 		{:else if !searched && results.length === 0}
-			<div class="loading-row" style="color:rgba(255,255,255,0.35);">Sigue escribiendo para buscar…</div>
+			<div class="loading-row" style="color:rgba(255,255,255,0.35);">{t('add.keepTyping')}</div>
 		{:else if searched && results.length === 0}
 			<div class="loading-row" style="color:rgba(255,255,255,0.35);">
 				<div>Sin resultados para «{query}»</div>
-				<button onclick={() => { showManual = true; }} class="filter-chip" style="margin-top:0.625rem;">✏️ Crear producto manual</button>
+				<button onclick={() => { showManual = true; }} class="filter-chip" style="margin-top:0.625rem;">{t('add.createManual')}</button>
 			</div>
 		{:else if results.length > 0}
 			<div class="section-header">
-				<div><div class="section-title">Resultados</div></div>
+				<div><div class="section-title">{t('add.results')}</div></div>
 				<div class="section-count">{results.length} encontrados</div>
 			</div>
 			<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
@@ -1338,7 +1317,7 @@
 					<button
 						class="product-row"
 						onclick={() => selectProduct(product)}
-						aria-label="{product.name}{product.brand ? `, ${product.brand}` : ''}, {product.calories_per_100g} kcal por 100{isDrink(product) ? 'ml' : 'g'}"
+						aria-label={t('add.productAria', { name: product.name, brand: product.brand ? `, ${product.brand}` : '', kcal: product.calories_per_100g, unit: isDrink(product) ? 'ml' : 'g' })}
 					>
 						<div class="product-avatar" style="
 							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
@@ -1356,7 +1335,7 @@
 			</div>
 			{#if hasMore}
 				<button class="load-more-btn" onclick={loadMore} disabled={searching}>
-					{searching ? 'Cargando...' : 'Mostrar más'}
+					{searching ? t('add.loading') : t('add.loadMore')}
 				</button>
 			{/if}
 		{/if}
@@ -1379,11 +1358,11 @@
 				{/each}
 			</div>
 			{#if loadingRecs}
-				<div class="loading-row">Cargando sugerencias...</div>
+				<div class="loading-row">{t('add.loadingRecs')}</div>
 			{:else if recommendations.length > 0}
 				<div class="section-header">
 					<div>
-						<div class="section-title">Sugerencias para ahora</div>
+						<div class="section-title">{t('add.recsTitle')}</div>
 						<div class="section-sub">{recFocusSubtitle[recFocus]}</div>
 					</div>
 				</div>
@@ -1410,8 +1389,8 @@
 			{:else}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
 					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⚡</div>
-					<div>Sin sugerencias por ahora</div>
-					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Aparecerán aquí según lo que registres estos días. Mientras tanto usa el buscador o Recientes.</div>
+					<div>{t('add.recsEmpty')}</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.recsEmptySub')}</div>
 				</div>
 			{/if}
 		{/if}
@@ -1421,13 +1400,13 @@
 			{#if favorites.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
 					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⭐</div>
-					<div>Aún no tienes favoritos</div>
-					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Pulsa la estrella en cualquier producto para guardarlo aquí</div>
+					<div>{t('add.favEmpty')}</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.favEmptySub')}</div>
 				</div>
 			{:else}
 				<div class="section-header">
 					<div>
-						<div class="section-title">Favoritos</div>
+						<div class="section-title">{t('add.favTitle')}</div>
 						<div class="section-sub">{favorites.length} producto{favorites.length !== 1 ? 's' : ''}</div>
 					</div>
 				</div>
@@ -1448,7 +1427,7 @@
 							<button
 								class="fav-star-btn"
 								onclick={() => toggleFavorite(product.id)}
-								aria-label="Quitar de favoritos"
+								aria-label={t('add.favRemove')}
 								disabled={favoriteToggling}
 							>★</button>
 						</div>
@@ -1460,17 +1439,17 @@
 		<!-- ── RECETAS ── -->
 		{#if activeFilter === 'recipes'}
 			{#if loadingAllRecipes}
-				<div class="loading-row">Cargando recetas...</div>
+				<div class="loading-row">{t('add.loadingRecipes')}</div>
 			{:else if allRecipes.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
 					<div style="font-size:2rem; margin-bottom:0.375rem;">🍳</div>
-					<div>Aún no tienes recetas</div>
-					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Créalas en la sección Recetas</div>
+					<div>{t('add.recipesEmpty')}</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.recipesEmptySub')}</div>
 				</div>
 			{:else}
 				<div class="section-header">
 					<div>
-						<div class="section-title">Tus recetas</div>
+						<div class="section-title">{t('add.recipesTitle')}</div>
 						<div class="section-sub">{allRecipes.length} receta{allRecipes.length !== 1 ? 's' : ''}</div>
 					</div>
 				</div>
@@ -1496,17 +1475,17 @@
 		<!-- ── INVENTARIO ── -->
 		{#if activeFilter === 'inventory'}
 			{#if loadingInventory}
-				<div class="loading-row">Cargando inventario...</div>
+				<div class="loading-row">{t('add.loadingInventory')}</div>
 			{:else if inventoryItems.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
 					<div style="font-size:2rem; margin-bottom:0.375rem;">📦</div>
-					<div>Tu inventario está vacío</div>
-					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">Añade alimentos en /inventario</div>
+					<div>{t('add.inventoryEmpty')}</div>
+					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.inventoryEmptySub')}</div>
 				</div>
 			{:else}
 				<div class="section-header">
 					<div>
-						<div class="section-title">En casa</div>
+						<div class="section-title">{t('add.inventoryTitle')}</div>
 						<div class="section-sub">{inventoryItems.length} producto{inventoryItems.length !== 1 ? 's' : ''} en stock</div>
 					</div>
 				</div>
@@ -1527,7 +1506,7 @@
 							</div>
 							<div style="text-align:right; flex-shrink:0;">
 								<div class="product-kcal">{item.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-								<div class="product-per">/100g</div>
+								<div class="product-per">{t('add.per100')}</div>
 							</div>
 						</button>
 					{/each}
@@ -1538,18 +1517,18 @@
 		<!-- ── RECIENTES ── -->
 		{#if activeFilter === 'recent'}
 			{#if loadingFrequent}
-				<div class="loading-row">Cargando historial...</div>
+				<div class="loading-row">{t('add.loadingHistory')}</div>
 			{:else if frequentRecipes.length === 0 && frequent.length === 0}
-				<div class="loading-row" style="color:rgba(255,255,255,0.35);">Aún no tienes alimentos recientes</div>
+				<div class="loading-row" style="color:rgba(255,255,255,0.35);">{t('add.historyEmpty')}</div>
 			{:else}
 				{#if frequentFromCache}
-					<div class="offline-cache-notice">📦 Mostrando alimentos guardados · sin conexión</div>
+					<div class="offline-cache-notice">{t('add.historyOffline')}</div>
 				{/if}
 				<!-- Header con toggle de orden -->
 				<div class="section-header">
 					<div>
-						<div class="section-title">Mis alimentos</div>
-						<div class="section-sub">Por frecuencia de uso</div>
+						<div class="section-title">{t('add.myFoods')}</div>
+						<div class="section-sub">{t('add.byFrequency')}</div>
 					</div>
 					<div style="display:flex; gap:0.25rem; background:rgba(255,255,255,0.05); border-radius:99px; padding:3px; border:1px solid rgba(255,255,255,0.08);">
 						<button
@@ -1643,7 +1622,7 @@
 	></div>
 	<div class="consume-prompt" role="dialog" aria-modal="true">
 		<div class="consume-prompt-icon">📦</div>
-		<h2 class="consume-prompt-title">¿Consumir del inventario?</h2>
+		<h2 class="consume-prompt-title">{t('add.consumeFromInventory')}</h2>
 		<p class="consume-prompt-sub">
 			Tienes <strong>{inventoryMatch.product_name}</strong> en tu inventario.
 		</p>
@@ -1682,8 +1661,8 @@
 {#if showMealConflictConfirm && mealConflict && partner}
 	<Modal
 		onClose={() => { showMealConflictConfirm = false; pendingLogAction = null; }}
-		title="🍽️ {partner.name} ya tiene {mealLabel(mealType).toLowerCase()}"
-		subtitle="{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal registrados hoy"
+		title={t('add.conflictTitle', { name: partner.name, meal: mealLabel(mealType).toLowerCase() })}
+		subtitle={tc('add.conflictSub', mealConflict.count, { kcal: Math.round(mealConflict.calories) })}
 	>
 		<div style="display:flex; flex-direction:column; gap:0.5rem;">
 			<button class="btn-submit" onclick={confirmMealConflictAndProceed}>

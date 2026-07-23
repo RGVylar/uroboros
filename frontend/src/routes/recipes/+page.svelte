@@ -4,7 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { mealLabel } from '$lib/i18n/index.svelte';
+	import { t, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
 	import { Modal } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
@@ -201,11 +201,11 @@
 		partner: 'friends',
 		friends: 'none',
 	};
-	const SCOPE_LABEL: Record<RecipeScope, string> = {
-		none: 'Privada',
-		partner: 'Solo mi pareja',
-		friends: 'Mis amigos',
-	};
+	let SCOPE_LABEL: Record<RecipeScope, string> = $derived({
+		none: t('recipes.scopeNone'),
+		partner: t('recipes.scopePartner'),
+		friends: t('recipes.scopeFriends'),
+	});
 	const SCOPE_ICON: Record<RecipeScope, string> = { none: '🔒', partner: '💚', friends: '🔗' };
 
 	let hasPartner = $state(false);
@@ -254,26 +254,6 @@
 
 	async function loadPartnerAllergies(partnerId: number) {
 		partnerAllergies = await api.get<AllergyInfo[]>(`/allergies?user_id=${partnerId}`).catch(() => []);
-	}
-
-	const ALLERGEN_LABELS: Record<string, string> = {
-		gluten:           'Gluten',
-		milk:             'Leche',
-		eggs:             'Huevos',
-		peanuts:          'Cacahuetes',
-		nuts:             'Frutos secos',
-		soybeans:         'Soja',
-		fish:             'Pescado',
-		crustaceans:      'Marisco',
-		celery:           'Apio',
-		mustard:          'Mostaza',
-		'sesame-seeds':   'Sésamo',
-		'sulphur-dioxide':'Sulfitos',
-		mollusks:         'Moluscos',
-		lupin:            'Altramuces',
-	};
-	function allergenLabel(key: string): string {
-		return ALLERGEN_LABELS[key] ?? key;
 	}
 
 	// Check recipe ingredients for allergen hits.
@@ -395,9 +375,9 @@
 		];
 		try {
 			await navigator.clipboard.writeText(lines.join('\n'));
-			toast.success('Receta copiada al portapapeles');
+			toast.success(t('recipes.okCopy'));
 		} catch {
-			toast.error('No se pudo copiar al portapapeles');
+			toast.error(t('recipes.errCopy'));
 		}
 	}
 
@@ -419,8 +399,8 @@
 <div class="page-header">
 	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; font-family:inherit; flex-shrink:0;">←</button>
 	<div style="flex:1;">
-		<div class="header-eyebrow">Biblioteca</div>
-		<div class="header-title">Recetas</div>
+		<div class="header-eyebrow">{t('recipes.eyebrow')}</div>
+		<div class="header-title">{t('recipes.title')}</div>
 	</div>
 	<button
 		class="btn-new"
@@ -428,7 +408,7 @@
 		style={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
 		title={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `Límite de ${FREE_RECIPE_LIMIT} recetas en plan gratuito` : ''}
 	>
-		{(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : '＋ Nueva'}
+		{(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : t('recipes.newShort')}
 	</button>
 </div>
 
@@ -437,24 +417,24 @@
 	<div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:center;">
 		<div style="text-align:center;">
 			<div style="font-size:1.375rem; font-weight:800; color:oklch(85% 0.15 160); letter-spacing:-0.03em;">{recipes.length}</div>
-			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">Propias</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">{t('recipes.tabOwn')}</div>
 		</div>
 		<div style="width:1px; height:2rem; background:rgba(255,255,255,0.08);"></div>
 		<div style="text-align:center;">
 			<div style="font-size:1.375rem; font-weight:800; color:oklch(80% 0.17 220); letter-spacing:-0.03em;">{recipes.filter(r => r.is_shared).length}</div>
-			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">Compartidas</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">{t('recipes.tabShared')}</div>
 		</div>
 		<div style="width:1px; height:2rem; background:rgba(255,255,255,0.08);"></div>
 		<div style="text-align:center;">
 			<div style="font-size:1.375rem; font-weight:800; color:oklch(80% 0.17 295); letter-spacing:-0.03em;">{sharedRecipes.length}</div>
-			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">De amigos</div>
+			<div style="font-size:0.625rem; font-weight:600; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.1rem;">{t('recipes.tabFriends')}</div>
 		</div>
 	</div>
 </div>
 
 <!-- Filter chips -->
 <div style="display:flex; gap:0.4rem; margin-bottom:1rem; overflow-x:auto; padding-bottom:0.1rem; scrollbar-width:none;">
-	{#each [['all','Todas'],['own','Propias'],['shared','Compartidas'],['friends','De amigos']] as [val, label]}
+	{#each [['all',t('recipes.tabAll')],['own',t('recipes.tabOwn')],['shared',t('recipes.tabShared')],['friends',t('recipes.tabFriends')]] as [val, label]}
 		<button
 			onclick={() => activeFilter = val as 'all'|'own'|'shared'|'friends'}
 			style="white-space:nowrap; font-size:0.75rem; padding:0.375rem 0.75rem; border-radius:99px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid {activeFilter===val ? 'oklch(75% 0.18 160 / 0.5)' : 'rgba(255,255,255,0.1)'}; background:{activeFilter===val ? 'oklch(75% 0.18 160 / 0.15)' : 'rgba(255,255,255,0.05)'}; color:{activeFilter===val ? 'oklch(85% 0.15 160)' : 'rgba(255,255,255,0.55)'}; flex-shrink:0;">
@@ -466,30 +446,30 @@
 <!-- ═══════════════════════════════════════ CREAR ═══════════════════════════ -->
 {#if showCreate}
 	<div class="glass-card" style="margin-bottom:1rem;">
-		<h2 style="margin-top:0; font-size:1rem; color:#fff;">Nueva receta</h2>
+		<h2 style="margin-top:0; font-size:1rem; color:#fff;">{t('recipes.new')}</h2>
 
 		<div class="form-group">
-			<label for="r-name">Nombre</label>
-			<input id="r-name" bind:value={recipeName} placeholder="Desayuno habitual" />
+			<label for="r-name">{t('recipes.name')}</label>
+			<input id="r-name" bind:value={recipeName} placeholder={t('recipes.namePlaceholder')} />
 		</div>
 
 		<!-- Búsqueda por nombre -->
 		<div class="form-group">
-			<label for="r-search">Buscar por nombre</label>
+			<label for="r-search">{t('recipes.searchByName')}</label>
 			<div style="display:flex; gap:0.5rem;">
-				<input id="r-search" bind:value={searchQuery} placeholder="Avena, pollo..."
+				<input id="r-search" bind:value={searchQuery} placeholder={t('recipes.searchPlaceholder')}
 					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }} style="flex:1;" />
-				<button onclick={searchProducts} style="color:black;">Buscar</button>
+				<button onclick={searchProducts} style="color:black;">{t('recipes.searchBtn')}</button>
 			</div>
 		</div>
 
 		<!-- Búsqueda por código de barras -->
 		<div class="form-group">
-			<label for="r-barcode">Código de barras</label>
+			<label for="r-barcode">{t('recipes.barcode')}</label>
 			<div style="display:flex; gap:0.5rem; align-items:center;">
 				<input id="r-barcode" value={barcodeQuery}
 					oninput={(e) => onBarcodeInput((e.target as HTMLInputElement).value, false)}
-					placeholder="Escanea o escribe el código..."
+					placeholder={t('recipes.barcodePlaceholder')}
 					inputmode="numeric" style="flex:1;" />
 				{#if barcodeLoading}
 					<span style="font-size:0.8rem; color:var(--text-muted);">...</span>
@@ -501,7 +481,7 @@
 		<!-- Resultados de búsqueda con macros -->
 		{#each searchResults as p (p.id)}
 			<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
-				aria-label="Añadir {p.name}{p.brand ? ` (${p.brand})` : ''} como ingrediente"
+				aria-label={t('recipes.addIngredientAria', { name: p.name, brand: p.brand ? ` (${p.brand})` : '' })}
 				onclick={() => addIngredient(p)}>
 				<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 				<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
@@ -529,8 +509,8 @@
 		{#if error}<p class="error">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; }} style="flex:1;">Cancelar</button>
-			<button class="action-btn action-btn-primary" onclick={createRecipe} style="flex:2;">Guardar receta</button>
+			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; }} style="flex:1;">{t('common.cancel')}</button>
+			<button class="action-btn action-btn-primary" onclick={createRecipe} style="flex:2;">{t('recipes.save')}</button>
 		</div>
 	</div>
 {/if}
@@ -538,8 +518,8 @@
 {#if recipes.length === 0 && !showCreate}
 	<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
 		<div style="font-size:2.5rem; margin-bottom:0.5rem;">🍳</div>
-		<div style="font-size:0.875rem; font-weight:600;">Sin recetas</div>
-		<div style="font-size:0.75rem; margin-top:0.25rem;">Crea una para registrar comidas más rápido</div>
+		<div style="font-size:0.875rem; font-weight:600;">{t('recipes.empty')}</div>
+		<div style="font-size:0.75rem; margin-top:0.25rem;">{t('recipes.emptySub')}</div>
 	</div>
 {/if}
 
@@ -549,12 +529,12 @@
 		<!-- Edición inline -->
 		<div class="glass-card" style="margin-bottom:0.75rem; border-color:oklch(75% 0.18 165 / 0.4);">
 			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-				<h2 style="margin:0; font-size:1rem; color:var(--text);">Editar receta</h2>
+				<h2 style="margin:0; font-size:1rem; color:var(--text);">{t('recipes.edit')}</h2>
 				<button class="btn-secondary" onclick={cancelEdit} style="font-size:0.75rem; padding:0.25rem 0.6rem;">✕</button>
 			</div>
 
 			<div class="form-group">
-				<label for="edit-name">Nombre</label>
+				<label for="edit-name">{t('recipes.name')}</label>
 				<input id="edit-name" bind:value={editName} />
 			</div>
 
@@ -577,21 +557,21 @@
 
 			<!-- Buscar por nombre -->
 			<div class="form-group" style="margin-bottom:0.4rem;">
-				<label for="edit-search">Buscar por nombre</label>
+				<label for="edit-search">{t('recipes.searchByName')}</label>
 				<div style="display:flex; gap:0.5rem;">
-					<input id="edit-search" bind:value={editSearchQuery} placeholder="Buscar..."
+					<input id="edit-search" bind:value={editSearchQuery} placeholder={t('recipes.searchPlaceholderShort')}
 						onkeydown={(e) => { if (e.key === 'Enter') searchEditProducts(); }} style="flex:1;" />
-					<button onclick={searchEditProducts} style="font-size:0.85rem; padding:0.4rem 0.7rem; color:black;">Buscar</button>
+					<button onclick={searchEditProducts} style="font-size:0.85rem; padding:0.4rem 0.7rem; color:black;">{t('recipes.searchBtn')}</button>
 				</div>
 			</div>
 
 			<!-- Buscar por barcode -->
 			<div class="form-group" style="margin-bottom:0.5rem;">
-				<label for="edit-barcode">Código de barras</label>
+				<label for="edit-barcode">{t('recipes.barcode')}</label>
 				<div style="display:flex; gap:0.5rem; align-items:center;">
 					<input id="edit-barcode" value={editBarcodeQuery}
 						oninput={(e) => onBarcodeInput((e.target as HTMLInputElement).value, true)}
-						placeholder="Escanea o escribe..." inputmode="numeric" style="flex:1;" />
+						placeholder={t('recipes.barcodePlaceholderShort')} inputmode="numeric" style="flex:1;" />
 					{#if editBarcodeLoading}
 						<span style="font-size:0.8rem; color:var(--text-muted);">...</span>
 					{/if}
@@ -601,7 +581,7 @@
 
 			{#each editSearchResults as p (p.id)}
 				<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
-					aria-label="Añadir {p.name}{p.brand ? ` (${p.brand})` : ''} como ingrediente"
+					aria-label={t('recipes.addIngredientAria', { name: p.name, brand: p.brand ? ` (${p.brand})` : '' })}
 					onclick={() => addEditIngredient(p)}>
 					<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 					<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
@@ -611,7 +591,7 @@
 			{#if editError}<p class="error">{editError}</p>{/if}
 
 			<button onclick={saveEdit} disabled={editSaving} style="width:100%; margin-top:0.5rem; color:black;">
-				{editSaving ? 'Guardando...' : 'Guardar cambios'}
+				{editSaving ? t('recipes.saving') : t('recipes.saveChanges')}
 			</button>
 		</div>
 	{:else}
@@ -641,16 +621,16 @@
 				</div>
 			</div>
 			<div style="display:flex; gap:0.375rem;">
-				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">Registrar</button>
-				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title="Copiar al portapapeles">📋</button>
-				<button class="icon-btn" onclick={() => startEdit(recipe)} title="Editar">✏️</button>
-				<button class="icon-btn" onclick={() => cycleScope(recipe)} title="{SCOPE_LABEL[recipe.share_scope]} · toca para cambiar" aria-label="Compartir: {SCOPE_LABEL[recipe.share_scope]}">
+				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">{t('recipes.log')}</button>
+				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title={t('recipes.copyClipboard')}>📋</button>
+				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')}>✏️</button>
+				<button class="icon-btn" onclick={() => cycleScope(recipe)} title={t('recipes.scopeTitle', { scope: SCOPE_LABEL[recipe.share_scope] })} aria-label={t('recipes.scopeAria', { scope: SCOPE_LABEL[recipe.share_scope] })}>
 					{SCOPE_ICON[recipe.share_scope]}
 				</button>
 				{#if confirmingDelete === recipe.id}
-					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title="Confirmar borrado">¿Borrar?</button>
+					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.confirmDelete')}>{t('recipes.deleteAsk')}</button>
 				{:else}
-					<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title="Borrar" aria-label="Borrar receta {recipe.name}">✕</button>
+					<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.delete')} aria-label={t('recipes.deleteAria', { name: recipe.name })}>✕</button>
 				{/if}
 			</div>
 		</div>
@@ -660,8 +640,8 @@
 <!-- ═══════════════════════════════════ RECETAS DE AMIGOS ═══════════════════ -->
 {#if sharedRecipes.length > 0 && showFriendRecipes}
 	<div class="section-header" style="margin:1.25rem 0.25rem 0.625rem;">
-		<div style="font-size:0.8125rem; font-weight:700; color:#fff;">De tus amigos</div>
-		<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">Cópialas o regístralas</div>
+		<div style="font-size:0.8125rem; font-weight:700; color:#fff;">{t('recipes.fromFriends')}</div>
+		<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{t('recipes.fromFriendsSub')}</div>
 	</div>
 	{#each sharedRecipes as recipe (recipe.id)}
 		{@const macros = totalMacros(recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams })))}
@@ -685,10 +665,10 @@
 				</div>
 			</div>
 			<div style="display:flex; gap:0.375rem;">
-				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">Registrar</button>
-				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title="Copiar al portapapeles">📋</button>
+				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">{t('recipes.log')}</button>
+				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title={t('recipes.copyClipboard')}>📋</button>
 				<button class="action-btn" style="padding:0 0.875rem; background:oklch(75% 0.18 295 / 0.2); color:oklch(85% 0.15 295); border:none; border-radius:10px; font-family:inherit; cursor:pointer; font-weight:700; font-size:0.75rem;"
-					onclick={() => copySharedRecipe(recipe.id)}>+ Guardar</button>
+					onclick={() => copySharedRecipe(recipe.id)}>{t('recipes.saveCopy')}</button>
 			</div>
 		</div>
 	{/each}
@@ -703,7 +683,7 @@
 
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}
-	<Modal onClose={() => logPendingRecipe = null} title="¿A qué comida lo añades?" subtitle={logPendingRecipe.name}>
+	<Modal onClose={() => logPendingRecipe = null} title={t('recipes.whichMeal')} subtitle={logPendingRecipe.name}>
 		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
 			{#each MEAL_ORDER as mt}
 				<button
@@ -718,7 +698,7 @@
 
 		<!-- Fecha: por defecto hoy, pero se puede elegir otro día -->
 		<div style="margin-bottom:1rem;">
-			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">Fecha</div>
+			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('recipes.date')}</div>
 			<input
 				type="date"
 				bind:value={logDate}
@@ -742,14 +722,14 @@
 				</div>
 				<div style="flex:1; min-width:0; text-align:left;">
 					{#if shareMode === null}
-						<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">Sin compartir</div>
-						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">Solo tu cuenta</div>
+						<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">{t('add.shareNone')}</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">{t('add.shareNoneSub')}</div>
 					{:else if shareMode === 'also'}
 						<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
-						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Se registra en las dos cuentas</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareBothSub')}</div>
 					{:else}
 						<div style="font-size:0.8125rem; font-weight:700; color:oklch(80% 0.18 45);">Solo para {partner.name}</div>
-						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">Tú no lo registras</div>
+						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareOnlyPartnerSub')}</div>
 					{/if}
 				</div>
 				<!-- Segmented pill con sliding thumb -->
@@ -763,11 +743,11 @@
 								: 'rgba(255,255,255,0.12)'};
 					"></div>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
-						onclick={() => shareMode = null} aria-label="Solo yo">👤</button>
+						onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}>👤</button>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
-						onclick={() => shareMode = 'also'} aria-label="Los dos">👥</button>
+						onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}>👥</button>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
-						onclick={() => shareMode = 'only'} aria-label="Solo {partner.name}">👤→</button>
+						onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}>👤→</button>
 				</div>
 			</div>
 		{/if}
@@ -777,10 +757,10 @@
 			<div class="allergy-banner" style="margin-bottom:1rem;">
 				<div class="allergy-banner-icon">⚠️</div>
 				<div class="allergy-banner-body">
-					<div class="allergy-banner-title">Alérgeno detectado</div>
+					<div class="allergy-banner-title">{t('add.allergenDetected')}</div>
 					{#if recipeAllergenWarnings.mine.length > 0}
 						<div class="allergy-banner-row">
-							<span class="allergy-banner-who">Tú:</span>
+							<span class="allergy-banner-who">{t('add.you')}</span>
 							{#each recipeAllergenWarnings.mine as a}
 								<span class="allergy-tag allergy-tag-mine">{allergenLabel(a)}</span>
 							{/each}
@@ -799,7 +779,7 @@
 		{/if}
 
 		<div style="display:flex; gap:0.5rem;">
-			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">Cancelar</button>
+			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">{t('common.cancel')}</button>
 			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging} style="flex:2;">
 				{#if logging}Registrando...{:else if shareMode === 'also'}Registrar · 👥{:else if shareMode === 'only'}Registrar solo para {partner?.name}{:else}Registrar{/if}
 			</button>

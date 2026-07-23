@@ -79,6 +79,13 @@ export function measureLabel(key: string): string {
 	return t(`measure.${key}` as TKey);
 }
 
+/** Alérgeno de Open Food Facts. La clave viene de la API (p. ej. "sesame-seeds");
+ *  si es una que no conocemos, se muestra tal cual en vez de romper. */
+export function allergenLabel(key: string): string {
+	const k = `allergen.${key}` as TKey;
+	return k in es ? t(k) : key;
+}
+
 /** Avatar predefinido de lib/avatars.ts. */
 export function avatarLabel(id: string): string {
 	return t(`avatar.${id}` as TKey);
