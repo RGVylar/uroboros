@@ -8,10 +8,10 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { APP_VERSION } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
-	import { t, i18n, setLocale, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
+	import { t, tc, i18n, setLocale, mealLabel, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
+	import Flag from '$lib/components/Flag.svelte';
 
 	const LOCALES: Locale[] = ['es', 'en', 'pt'];
-	const LOCALE_FLAGS: Record<Locale, string> = { es: '🇪🇸', en: '🇬🇧', pt: '🇵🇹' };
 	if (!auth.isLoggedIn) goto('/login');
 
 	// ── Percentil anónimo de constancia ─────────────────────────────────────────
@@ -41,7 +41,7 @@
 	// Enlaza a la landing /api/unete (con Open Graph → tarjeta con imagen en
 	// WhatsApp), no al APK a pelo: una redirección a un binario no puede tener preview.
 	const INVITE_URL = 'https://comida.mugrelore.com/api/unete';
-	const INVITE_TEXT = `Estoy usando uroboros 🐍 para llevar la comida (¡se puede registrar en pareja!). Únete: ${INVITE_URL}`;
+	let INVITE_TEXT = $derived(t('settings.inviteText', { url: INVITE_URL }));
 	let inviteCopied = $state(false);
 	async function shareApp() {
 		if (navigator.share) {
@@ -65,7 +65,7 @@
 			const ok = document.execCommand('copy');
 			ta.remove();
 			if (!ok) {
-				toast.error('No se pudo copiar el mensaje');
+				toast.error(t('settings.errCopy'));
 				return;
 			}
 		}
@@ -84,7 +84,7 @@
 			changelogOptOut = u.changelog_opt_out ?? next;
 			auth.updateUser(u);
 		} catch {
-			toast.error('No se pudo guardar la preferencia');
+			toast.error(t('settings.errSavePref'));
 		} finally {
 			savingChangelog = false;
 		}
@@ -135,7 +135,7 @@
 			prefs = await api.put<NotifPrefs>('/push/prefs', patch);
 			// Re-schedule local notifications on native whenever prefs change
 			await pushStore.reschedule();
-		} catch { toast.error('No se pudo guardar la preferencia'); } finally {
+		} catch { toast.error(t('settings.errSavePref')); } finally {
 			savingPrefs = false;
 		}
 	}
@@ -167,7 +167,7 @@
 	let allergyCount = $state(0);
 
 	async function deleteAccount() {
-		if (deleteConfirmText !== 'ELIMINAR') return;
+		if (deleteConfirmText !== t('settings.deleteConfirmWord')) return;
 		deletingAccount = true;
 		try {
 			await api.del('/users/me');
@@ -176,7 +176,7 @@
 		} catch {
 			deletingAccount = false;
 			showDeleteModal = false;
-			toast.error('No se pudo eliminar la cuenta. Inténtalo de nuevo.');
+			toast.error(t('settings.errDelete'));
 		}
 	}
 
@@ -198,7 +198,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, track_creatine: !goals.track_creatine });
 		} catch {
-			toast.error('No se pudo actualizar la configuración');
+			toast.error(t('settings.errSaveConfig'));
 		} finally {
 			savingCreatine = false;
 		}
@@ -210,7 +210,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, cheat_days_enabled: !goals.cheat_days_enabled });
 		} catch {
-			toast.error('No se pudo actualizar la configuración');
+			toast.error(t('settings.errSaveConfig'));
 		} finally {
 			savingCheatDays = false;
 		}
@@ -227,7 +227,7 @@
 			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false, macro_adjust_mode: 'off' as const };
 			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
 		} catch {
-			toast.error('No se pudo actualizar la configuración');
+			toast.error(t('settings.errSaveConfig'));
 		} finally {
 			savingInventory = false;
 		}
@@ -240,7 +240,7 @@
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, macro_adjust_mode: mode });
 		} catch {
-			toast.error('No se pudo actualizar la configuración');
+			toast.error(t('settings.errSaveConfig'));
 		} finally {
 			savingMacroMode = false;
 		}
@@ -255,20 +255,20 @@
 <!-- ── Header ── -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Ajustes</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Configuración y cuenta</div>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('settings.title')}</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('settings.subtitle')}</div>
 	</div>
 </div>
 
 <!-- ── Group: Objetivos ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Objetivos</div>
+	<div class="group-label">{t('settings.group.goals')}</div>
 	<div class="settings-group">
 		<!-- Kcal y macros -->
 		<button class="settings-row" onclick={() => goto('/goals')}>
 			<div class="icon-box">🎯</div>
 			<div class="row-content">
-				<div class="row-label">Kcal y macros</div>
+				<div class="row-label">{t('settings.kcalMacros')}</div>
 				{#if goals}
 					<div class="row-detail">{Math.round(goals.kcal)} kcal · P{Math.round(goals.protein ?? 0)} / C{Math.round(goals.carbs ?? 0)} / G{Math.round(goals.fat ?? 0)}</div>
 				{/if}
@@ -280,8 +280,8 @@
 		<button class="settings-row" onclick={() => goto('/supplements')}>
 			<div class="icon-box">💊</div>
 			<div class="row-content">
-				<div class="row-label">Suplementos</div>
-				<div class="row-detail">Gestiona tu lista diaria</div>
+				<div class="row-label">{t('settings.supplements')}</div>
+				<div class="row-detail">{t('settings.supplementsDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -290,15 +290,15 @@
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🍕</div>
 			<div class="row-content">
-				<div class="row-label">Cheat days</div>
-				<div class="row-detail">{goals?.cheat_days_enabled ? 'Activo' : 'Inactivo'}</div>
+				<div class="row-label">{t('settings.cheatDays')}</div>
+				<div class="row-detail">{goals?.cheat_days_enabled ? t('settings.active') : t('settings.inactive')}</div>
 			</div>
 			{#if goals}
 				<button
 					onclick={toggleCheatDays}
 					disabled={savingCheatDays}
 					class="toggle-btn"
-					aria-label="Cheat days"
+					aria-label={t('settings.cheatDays')}
 					aria-pressed={goals.cheat_days_enabled}
 					style="background:{goals.cheat_days_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.cheat_days_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 				>
@@ -312,16 +312,16 @@
 			<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
 				<div class="icon-box">⚡</div>
 				<div class="row-content">
-					<div class="row-label">Ajuste por ejercicio</div>
-					<div class="row-detail">Cómo subir objetivos al quemar calorías</div>
+					<div class="row-label">{t('settings.macroAdjust')}</div>
+					<div class="row-detail">{t('settings.macroAdjustDetail')}</div>
 				</div>
 			</div>
 			{#if goals}
 				<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.375rem; width:100%; padding-left:2.75rem;">
 					{#each [
-						{ value: 'off',          label: 'Fijo',           note: 'Sin ajuste',  pro: false },
-						{ value: 'proportional', label: 'Proporcional',   note: 'Sube todo',   pro: true  },
-						{ value: 'performance',  label: 'Rendimiento',    note: 'Solo carbs',  pro: true  },
+						{ value: 'off',          label: t('settings.macroOff'),          note: t('settings.macroOffNote'),          pro: false },
+						{ value: 'proportional', label: t('settings.macroProportional'), note: t('settings.macroProportionalNote'), pro: true  },
+						{ value: 'performance',  label: t('settings.macroPerformance'),  note: t('settings.macroPerformanceNote'),  pro: true  },
 					] as opt}
 						{@const locked = opt.pro && !subscription.is_premium}
 						<button
@@ -355,14 +355,14 @@
 
 <!-- ── Group: Social ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Social</div>
+	<div class="group-label">{t('settings.group.social')}</div>
 	<div class="settings-group">
 		<!-- Mi perfil (avatar y nombre: es lo que ven tus amigos) -->
 		<button class="settings-row" onclick={() => goto('/profile')}>
 			<div class="icon-box">👤</div>
 			<div class="row-content">
-				<div class="row-label">{auth.user?.name ?? 'Usuario'}</div>
-				<div class="row-detail">Tu perfil y avatar</div>
+				<div class="row-label">{auth.user?.name ?? t('settings.user')}</div>
+				<div class="row-detail">{t('settings.profileDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -371,12 +371,12 @@
 			<div class="icon-box">💑</div>
 			<div class="row-content">
 				<div class="row-label" style="display:flex; align-items:center; gap:0.4rem;">
-					Amigos y pareja
+					{t('settings.friends')}
 					{#if pendingFriends.count > 0}
 						<span style="background:oklch(55% 0.23 25); color:#fff; border-radius:99px; padding:0.05rem 0.4rem; font-size:0.625rem; font-weight:800; line-height:1.5;">{pendingFriends.count}</span>
 					{/if}
 				</div>
-				<div class="row-detail">Gestiona amigos, permisos y el duelo</div>
+				<div class="row-detail">{t('settings.friendsDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -385,16 +385,16 @@
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🏅</div>
 			<div class="row-content">
-				<div class="row-label">Tu constancia</div>
+				<div class="row-label">{t('settings.consistency')}</div>
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
 						{#if percentile.active_users > 1}
-							{percentile.pct}&nbsp;% de los días cumplidos ·<span class="rank-top">top {percentile.top_percent}&nbsp;%</span>de uroboros{#if rankMove}<span class="rank-move {rankMove.dir}">{rankMove.dir === 'up' ? '↑' : '↓'} del {rankMove.prev}&nbsp;%</span>{:else}{' esta semana'}{/if}
+							{t('settings.consistencyPct', { pct: percentile.pct ?? 0 })}<span class="rank-top">{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}</span>{t('settings.consistencyOf')}{#if rankMove}<span class="rank-move {rankMove.dir}">{t('settings.consistencyMove', { dir: rankMove.dir === 'up' ? '↑' : '↓', prev: rankMove.prev })}</span>{:else}{t('settings.consistencyThisWeek')}{/if}
 						{:else}
-							{percentile.pct}&nbsp;% de los días cumplidos esta semana
+							{t('settings.consistencyAlone', { pct: percentile.pct ?? 0 })}
 						{/if}
 					{:else if percentile}
-						Registra tus comidas esta semana para entrar en la comparativa
+						{t('settings.consistencyEmpty')}
 					{:else}
 						—
 					{/if}
@@ -406,8 +406,8 @@
 		<button class="settings-row" onclick={shareApp}>
 			<div class="icon-box">📤</div>
 			<div class="row-content">
-				<div class="row-label">{inviteCopied ? '✅ Mensaje copiado' : 'Invitar a uroboros'}</div>
-				<div class="row-detail">Comparte la app con quien quieras</div>
+				<div class="row-label">{inviteCopied ? t('settings.inviteCopied') : t('settings.invite')}</div>
+				<div class="row-detail">{t('settings.inviteDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -416,14 +416,14 @@
 
 <!-- ── Group: Salud ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Salud</div>
+	<div class="group-label">{t('settings.group.health')}</div>
 	<div class="settings-group">
 		<!-- Alergias (gratis: /premium promete que lo son y el backend no las restringe) -->
 		<button class="settings-row" onclick={() => goto('/allergies')}>
 			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
 			<div class="row-content">
-				<div class="row-label">Alergias e intolerancias</div>
-				<div class="row-detail">{allergyCount > 0 ? `${allergyCount} registrada${allergyCount > 1 ? 's' : ''}` : 'Alertas al añadir productos'}</div>
+				<div class="row-label">{t('settings.allergies')}</div>
+				<div class="row-detail">{allergyCount > 0 ? tc('settings.allergiesCount', allergyCount) : t('settings.allergiesEmpty')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -431,13 +431,13 @@
 </div>
 <!-- ── Group: Datos ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Datos</div>
+	<div class="group-label">{t('settings.group.data')}</div>
 	<div class="settings-group">
 		<button class="settings-row" onclick={() => goto('/weight')}>
 			<div class="icon-box">⚖️</div>
 			<div class="row-content">
-				<div class="row-label">Registro de peso</div>
-				<div class="row-detail">Seguimiento de evolución</div>
+				<div class="row-label">{t('settings.weightLog')}</div>
+				<div class="row-detail">{t('settings.weightLogDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -445,8 +445,8 @@
 		<button class="settings-row" onclick={() => goto('/measurements')}>
 			<div class="icon-box">📏</div>
 			<div class="row-content">
-				<div class="row-label">Medidas corporales</div>
-				<div class="row-detail">{subscription.is_premium ? 'Contornos y gráfica por zona' : 'Disponible en Premium'}</div>
+				<div class="row-label">{t('settings.measurements')}</div>
+				<div class="row-detail">{subscription.is_premium ? t('settings.measurementsDetail') : t('settings.premiumOnly')}</div>
 			</div>
 			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
@@ -454,8 +454,8 @@
 		<button class="settings-row" onclick={() => goto('/exercises')}>
 			<div class="icon-box">💪</div>
 			<div class="row-content">
-				<div class="row-label">Ejercicios</div>
-				<div class="row-detail">{subscription.is_premium ? 'Biblioteca y rutinas de entreno' : 'Disponible en Premium'}</div>
+				<div class="row-label">{t('settings.exercises')}</div>
+				<div class="row-detail">{subscription.is_premium ? t('settings.exercisesDetail') : t('settings.premiumOnly')}</div>
 			</div>
 			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
@@ -464,13 +464,13 @@
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🫥</div>
 			<div class="row-content">
-				<div class="row-label">Estado del día</div>
-				<div class="row-detail">{moodEnabled ? 'Visible en el diario' : 'Oculto en el diario'} · Energía, digestión y ánimo</div>
+				<div class="row-label">{t('settings.mood')}</div>
+				<div class="row-detail">{moodEnabled ? t('settings.moodVisible') : t('settings.moodHidden')}{t('settings.moodDetail')}</div>
 			</div>
 			<button
 				onclick={toggleMood}
 				class="toggle-btn"
-				aria-label="Estado del día"
+				aria-label={t('settings.mood')}
 				aria-pressed={moodEnabled}
 				style="background:{moodEnabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{moodEnabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 			>
@@ -483,14 +483,14 @@
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">🏠</div>
 			<div class="row-content">
-				<div class="row-label">Inventario doméstico</div>
-				<div class="row-detail">{goals?.inventory_enabled ? 'Activo' : 'Inactivo'}</div>
+				<div class="row-label">{t('settings.inventory')}</div>
+				<div class="row-detail">{goals?.inventory_enabled ? t('settings.active') : t('settings.inactive')}</div>
 			</div>
 			<button
 				onclick={toggleInventory}
 				disabled={savingInventory}
 				class="toggle-btn"
-				aria-label="Inventario doméstico"
+				aria-label={t('settings.inventory')}
 				aria-pressed={goals?.inventory_enabled ?? false}
 				style="background:{goals?.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals?.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 			>
@@ -502,8 +502,8 @@
 			<button class="settings-row" onclick={() => goto('/inventory')}>
 				<div class="icon-box">📦</div>
 				<div class="row-content">
-					<div class="row-label">Ver inventario</div>
-					<div class="row-detail">Stock, precios y alertas</div>
+					<div class="row-label">{t('settings.inventoryView')}</div>
+					<div class="row-detail">{t('settings.inventoryViewDetail')}</div>
 				</div>
 				<span class="chevron">›</span>
 			</button>
@@ -511,8 +511,8 @@
 			<button class="settings-row" onclick={() => goto('/shopping-list')}>
 				<div class="icon-box">🛒</div>
 				<div class="row-content">
-					<div class="row-label">Lista de la compra</div>
-					<div class="row-detail">Generada desde recetas</div>
+					<div class="row-label">{t('settings.shoppingList')}</div>
+					<div class="row-detail">{t('settings.shoppingListDetail')}</div>
 				</div>
 				<span class="chevron">›</span>
 			</button>
@@ -521,8 +521,8 @@
 		<button class="settings-row" onclick={() => goto('/history')}>
 			<div class="icon-box">📤</div>
 			<div class="row-content">
-				<div class="row-label">Exportar datos</div>
-				<div class="row-detail">CSV · Historial completo</div>
+				<div class="row-label">{t('settings.export')}</div>
+				<div class="row-detail">{t('settings.exportDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -531,31 +531,31 @@
 
 <!-- ── Group: Notificaciones ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Notificaciones</div>
+	<div class="group-label">{t('settings.group.notifs')}</div>
 	<div class="settings-group">
 		{#if isNativeApp && !pushStore.isSupported}
 			<!-- Native app but plugin not ready yet — show spinner / wait for init -->
 			<div class="settings-row" style="cursor:default; opacity:0.6;">
 				<div class="icon-box">🔔</div>
 				<div class="row-content">
-					<div class="row-label">Notificaciones</div>
-					<div class="row-sub">Inicializando…</div>
+					<div class="row-label">{t('settings.notifs')}</div>
+					<div class="row-sub">{t('settings.notifsInit')}</div>
 				</div>
 			</div>
 		{:else if !isNativeApp && !pushStore.isSupported}
 			<div class="settings-row" style="cursor:default; opacity:0.5;">
 				<div class="icon-box">🔔</div>
 				<div class="row-content">
-					<div class="row-label">No disponible</div>
-					<div class="row-sub">Tu navegador no soporta notificaciones push</div>
+					<div class="row-label">{t('settings.notifsUnsupported')}</div>
+					<div class="row-sub">{t('settings.notifsUnsupportedSub')}</div>
 				</div>
 			</div>
 		{:else if pushStore.permission === 'denied'}
 			<div class="settings-row" style="cursor:default;">
 				<div class="icon-box">🔕</div>
 				<div class="row-content">
-					<div class="row-label">Bloqueadas por el navegador</div>
-					<div class="row-sub">Actívalas en los ajustes del navegador</div>
+					<div class="row-label">{t('settings.notifsBlocked')}</div>
+					<div class="row-sub">{t('settings.notifsBlockedSub')}</div>
 				</div>
 			</div>
 		{:else}
@@ -563,7 +563,7 @@
 			<div class="settings-row" style="cursor:default;">
 				<div class="icon-box">🔔</div>
 				<div class="row-content">
-					<div class="row-label">Activar notificaciones</div>
+					<div class="row-label">{t('settings.notifsEnable')}</div>
 					<div class="row-sub">
 						{prefs?.enabled ? 'Activadas · Solo cuando tiene sentido' : 'Desactivadas'}
 					</div>
@@ -573,7 +573,7 @@
 					class:toggle-on={prefs?.enabled}
 					onclick={() => prefs?.enabled ? disableNotifs() : enableNotifs()}
 					disabled={savingPrefs}
-					aria-label="Activar notificaciones"
+					aria-label={t('settings.notifsEnable')}
 					aria-pressed={prefs?.enabled ?? false}
 				>
 					<span class="toggle-thumb"></span>
@@ -586,19 +586,19 @@
 					<button class="settings-row" onclick={() => goto('/premium')} style="border-top:1px solid rgba(255,255,255,0.06);">
 						<div class="icon-box">⚙️</div>
 						<div class="row-content">
-							<div class="row-label">Recordatorios personalizables</div>
-							<div class="row-detail">Horarios por comida, racha, agua y horas de silencio</div>
+							<div class="row-label">{t('settings.notifsCustom')}</div>
+							<div class="row-detail">{t('settings.notifsCustomDetail')}</div>
 						</div>
 						<span class="pro-badge-row">PRO</span>
 					</button>
 				{:else}
 				<!-- Meal reminders -->
 				<div class="notif-subsection">
-					<div class="notif-sub-label">Recordatorios de comida</div>
+					<div class="notif-sub-label">{t('settings.notifMeals')}</div>
 					{#each [
-						{ key: 'breakfast', label: 'Desayuno', emoji: '🍳', on: prefs.breakfast_on, time: prefs.breakfast_time },
-						{ key: 'lunch',     label: 'Almuerzo', emoji: '🥗', on: prefs.lunch_on,     time: prefs.lunch_time     },
-						{ key: 'dinner',    label: 'Cena',     emoji: '🍽️', on: prefs.dinner_on,    time: prefs.dinner_time    },
+						{ key: 'breakfast', label: mealLabel('breakfast'), emoji: '🍳', on: prefs.breakfast_on, time: prefs.breakfast_time },
+						{ key: 'lunch',     label: mealLabel('lunch'), emoji: '🥗', on: prefs.lunch_on,     time: prefs.lunch_time     },
+						{ key: 'dinner',    label: mealLabel('dinner'),     emoji: '🍽️', on: prefs.dinner_on,    time: prefs.dinner_time    },
 					] as meal}
 						<div class="notif-row">
 							<span class="notif-emoji">{meal.emoji}</span>
@@ -614,7 +614,7 @@
 								class="toggle-btn toggle-sm"
 								class:toggle-on={meal.on}
 								onclick={() => savePrefs({ [`${meal.key}_on`]: !meal.on } as Partial<NotifPrefs>)}
-								aria-label="Toggle {meal.label}"
+								aria-label={t('settings.notifToggle', { what: meal.label })}
 							><span class="toggle-thumb"></span></button>
 						</div>
 					{/each}
@@ -622,63 +622,63 @@
 
 				<!-- Streak alert -->
 				<div class="notif-subsection">
-					<div class="notif-sub-label">Racha</div>
+					<div class="notif-sub-label">{t('settings.notifStreak')}</div>
 					<div class="notif-row">
 						<span class="notif-emoji">🔥</span>
-						<span class="notif-meal-label">Racha en peligro</span>
+						<span class="notif-meal-label">{t('settings.notifStreakDanger')}</span>
 						<input type="time" class="time-input" value={prefs.streak_time} disabled={!prefs.streak_on}
 							onchange={(e) => savePrefs({ streak_time: (e.target as HTMLInputElement).value })} />
 						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.streak_on}
 							onclick={() => savePrefs({ streak_on: !prefs.streak_on })}
-							aria-label="Toggle racha"><span class="toggle-thumb"></span></button>
+							aria-label={t('settings.notifToggle', { what: t('settings.notifStreak') })}><span class="toggle-thumb"></span></button>
 					</div>
 					<div class="notif-row">
 						<span class="notif-emoji">🏆</span>
-						<span class="notif-meal-label">Hitos de racha</span>
+						<span class="notif-meal-label">{t('settings.notifStreakMilestones')}</span>
 						<span class="notif-hint">3, 7, 14, 30... días</span>
-						<span class="notif-always">Siempre</span>
+						<span class="notif-always">{t('settings.notifAlways')}</span>
 					</div>
 				</div>
 
 				<!-- Summary + water -->
 				<div class="notif-subsection">
-					<div class="notif-sub-label">Resumen y agua</div>
+					<div class="notif-sub-label">{t('settings.notifSummaryWater')}</div>
 					<div class="notif-row">
 						<span class="notif-emoji">📊</span>
-						<span class="notif-meal-label">Resumen del día</span>
+						<span class="notif-meal-label">{t('settings.notifDailySummary')}</span>
 						<input type="time" class="time-input" value={prefs.summary_time} disabled={!prefs.summary_on}
 							onchange={(e) => savePrefs({ summary_time: (e.target as HTMLInputElement).value })} />
 						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.summary_on}
 							onclick={() => savePrefs({ summary_on: !prefs.summary_on })}
-							aria-label="Toggle resumen"><span class="toggle-thumb"></span></button>
+							aria-label={t('settings.notifToggle', { what: t('settings.notifDailySummary') })}><span class="toggle-thumb"></span></button>
 					</div>
 					<div class="notif-row">
 						<span class="notif-emoji">💧</span>
-						<span class="notif-meal-label">Recordatorio agua</span>
+						<span class="notif-meal-label">{t('settings.notifWater')}</span>
 						<input type="time" class="time-input" value={prefs.water_time} disabled={!prefs.water_on}
 							onchange={(e) => savePrefs({ water_time: (e.target as HTMLInputElement).value })} />
 						<button class="toggle-btn toggle-sm" class:toggle-on={prefs.water_on}
 							onclick={() => savePrefs({ water_on: !prefs.water_on })}
-							aria-label="Toggle agua"><span class="toggle-thumb"></span></button>
+							aria-label={t('settings.notifToggle', { what: t('settings.notifWater') })}><span class="toggle-thumb"></span></button>
 					</div>
 				</div>
 
 				<!-- Quiet hours + Timezone -->
 				<div class="notif-subsection">
-					<div class="notif-sub-label">Horas de silencio</div>
+					<div class="notif-sub-label">{t('settings.notifQuiet')}</div>
 					<div class="notif-row" style="gap:0.5rem;">
 						<span class="notif-emoji">🌙</span>
-						<span class="notif-meal-label">Sin molestar de</span>
+						<span class="notif-meal-label">{t('settings.notifQuietFrom')}</span>
 						<input type="number" min="0" max="23" class="hour-input" value={prefs.quiet_start}
 							onchange={(e) => savePrefs({ quiet_start: Number((e.target as HTMLInputElement).value) })} />
-						<span style="color:var(--text-muted); font-size:0.8rem;">a</span>
+						<span style="color:var(--text-muted); font-size:0.8rem;">{t('settings.notifQuietTo')}</span>
 						<input type="number" min="0" max="23" class="hour-input" value={prefs.quiet_end}
 							onchange={(e) => savePrefs({ quiet_end: Number((e.target as HTMLInputElement).value) })} />
 						<span style="color:var(--text-muted); font-size:0.75rem;">h</span>
 					</div>
 					<div class="notif-row" style="gap:0.5rem; margin-top:0.25rem;">
 						<span class="notif-emoji">🌍</span>
-						<span class="notif-meal-label">Zona horaria</span>
+						<span class="notif-meal-label">{t('settings.notifTimezone')}</span>
 						<select
 							class="tz-select"
 							value={prefs.timezone}
@@ -695,8 +695,8 @@
 				<button class="settings-row" onclick={sendTestNotif} style="border-top:1px solid rgba(255,255,255,0.06);">
 					<div class="icon-box">📨</div>
 					<div class="row-content">
-						<div class="row-label">{testSent ? '✅ Enviada' : 'Enviar notificación de prueba'}</div>
-						<div class="row-sub">Comprueba que todo funciona</div>
+						<div class="row-label">{testSent ? t('settings.notifTestSent') : t('settings.notifTest')}</div>
+						<div class="row-sub">{t('settings.notifTestSub')}</div>
 					</div>
 					<div class="row-arrow">›</div>
 				</button>
@@ -713,7 +713,7 @@
 		{#each LOCALES as loc, i}
 			{#if i > 0}<div class="row-divider"></div>{/if}
 			<button class="settings-row" onclick={() => setLocale(loc)} aria-pressed={i18n.locale === loc}>
-				<div class="icon-box">{LOCALE_FLAGS[loc]}</div>
+				<div class="icon-box"><Flag locale={loc} /></div>
 				<div class="row-content">
 					<div class="row-label">{LOCALE_NAMES[loc]}</div>
 					{#if i18n.locale === loc}
@@ -731,19 +731,19 @@
 
 <!-- ── Group: Novedades ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Novedades</div>
+	<div class="group-label">{t('settings.group.news')}</div>
 	<div class="settings-group">
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">📣</div>
 			<div class="row-content">
-				<div class="row-label">Novedades y actualizaciones</div>
-				<div class="row-detail">{changelogOptOut ? 'Silenciadas · solo verás lanzamientos importantes' : 'Verás qué cambia en cada versión'}</div>
+				<div class="row-label">{t('settings.news')}</div>
+				<div class="row-detail">{changelogOptOut ? t('settings.newsOff') : t('settings.newsOn')}</div>
 			</div>
 			<button
 				onclick={toggleChangelog}
 				disabled={savingChangelog}
 				class="toggle-btn"
-				aria-label="Novedades y actualizaciones"
+				aria-label={t('settings.news')}
 				aria-pressed={!changelogOptOut}
 				style="background:{!changelogOptOut ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{!changelogOptOut ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
 			>
@@ -755,7 +755,7 @@
 
 <!-- ── Group: Plan ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Plan</div>
+	<div class="group-label">{t('settings.group.plan')}</div>
 	<div class="settings-group">
 		<!-- Tier status -->
 		<button class="settings-row" onclick={() => goto('/premium')}>
@@ -767,15 +767,15 @@
 			</div>
 			<div class="row-content">
 				<div class="row-label" style="color:{subscription.status === 'premium' ? 'oklch(85% 0.19 160)' : subscription.status === 'trial' ? 'oklch(85% 0.16 60)' : '#fff'};">
-					{subscription.status === 'premium' ? 'Premium activo' : subscription.status === 'trial' ? 'Prueba gratuita' : 'Versión gratuita'}
+					{subscription.status === 'premium' ? t('settings.planPremium') : subscription.status === 'trial' ? t('settings.planTrial') : t('settings.planFree')}
 				</div>
 				<div class="row-detail">
 					{#if subscription.status === 'trial' && subscription.trial_days_left !== null}
-						{subscription.trial_days_left === 0 ? 'Tu prueba termina hoy' : `${subscription.trial_days_left} día${subscription.trial_days_left === 1 ? '' : 's'} restante${subscription.trial_days_left === 1 ? '' : 's'}`}
+						{subscription.trial_days_left === 0 ? t('settings.trialEndsToday') : tc('settings.trialLeft', subscription.trial_days_left)}
 					{:else if subscription.status === 'premium'}
-						Todas las funciones desbloqueadas
+						{t('settings.planPremiumDetail')}
 					{:else}
-						Actualiza para desbloquear todo
+						{t('settings.planFreeDetail')}
 					{/if}
 				</div>
 			</div>
@@ -786,8 +786,8 @@
 		<button class="settings-row" onclick={() => goto('/onboarding')}>
 			<div class="icon-box">🧭</div>
 			<div class="row-content">
-				<div class="row-label">Ver introducción</div>
-				<div class="row-detail">Repasa cómo funciona uroboros</div>
+				<div class="row-label">{t('settings.onboarding')}</div>
+				<div class="row-detail">{t('settings.onboardingDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -796,28 +796,28 @@
 
 <!-- ── Group: Cuenta ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Cuenta</div>
+	<div class="group-label">{t('settings.group.account')}</div>
 	<div class="settings-group">
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box">✉️</div>
 			<div class="row-content">
 				<div class="row-label">{auth.user?.email ?? ''}</div>
-				<div class="row-detail">Sesión iniciada</div>
+				<div class="row-detail">{t('settings.signedIn')}</div>
 			</div>
 		</div>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={logout} style="cursor:pointer;">
 			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15);">→</div>
 			<div class="row-content">
-				<div class="row-label" style="color:oklch(75% 0.2 25);">Cerrar sesión</div>
+				<div class="row-label" style="color:oklch(75% 0.2 25);">{t('settings.logout')}</div>
 			</div>
 		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => { showDeleteModal = true; deleteConfirmText = ''; }} style="cursor:pointer;">
 			<div class="icon-box" style="background:oklch(40% 0.2 25 / 0.2);">🗑️</div>
 			<div class="row-content">
-				<div class="row-label" style="color:oklch(65% 0.2 25);">Eliminar cuenta</div>
-				<div class="row-detail">Borra todos tus datos permanentemente</div>
+				<div class="row-label" style="color:oklch(65% 0.2 25);">{t('settings.deleteAccount')}</div>
+				<div class="row-detail">{t('settings.deleteAccountDetail')}</div>
 			</div>
 		</button>
 	</div>
@@ -825,13 +825,13 @@
 
 <!-- ── Group: Legal ── -->
 <div style="margin-bottom:1.125rem;">
-	<div class="group-label">Legal</div>
+	<div class="group-label">{t('settings.group.legal')}</div>
 	<div class="settings-group">
 		<button class="settings-row" onclick={() => goto('/privacy')}>
 			<div class="icon-box">🔒</div>
 			<div class="row-content">
-				<div class="row-label">Política de privacidad</div>
-				<div class="row-detail">Cómo tratamos tus datos</div>
+				<div class="row-label">{t('settings.privacy')}</div>
+				<div class="row-detail">{t('settings.privacyDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -839,8 +839,8 @@
 		<button class="settings-row" onclick={() => goto('/terms')}>
 			<div class="icon-box">📜</div>
 			<div class="row-content">
-				<div class="row-label">Términos del servicio</div>
-				<div class="row-detail">Condiciones de uso</div>
+				<div class="row-label">{t('settings.terms')}</div>
+				<div class="row-detail">{t('settings.termsDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
@@ -852,25 +852,25 @@
 	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick={() => showDeleteModal = false}>
 		<div style="background:#0f1520; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:1.5rem; width:100%; max-width:360px;" onclick={(e) => e.stopPropagation()}>
 			<div style="font-size:2rem; text-align:center; margin-bottom:0.75rem;">⚠️</div>
-			<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.5rem; text-align:center;">Eliminar cuenta</h2>
+			<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.5rem; text-align:center;">{t('settings.deleteAccount')}</h2>
 			<p style="font-size:0.8125rem; color:rgba(255,255,255,0.6); margin:0 0 1.25rem; text-align:center; line-height:1.5;">
-				Esta acción es <strong style="color:#fff;">irreversible</strong>. Se borrarán todos tus datos: diario, recetas, inventario, peso y medidas.
+				{@html t('settings.deleteWarning')}
 			</p>
-			<p style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin:0 0 0.5rem;">Escribe <strong style="color:#fff;">ELIMINAR</strong> para confirmar:</p>
+			<p style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin:0 0 0.5rem;">{t('settings.deleteConfirmPre')} <strong style="color:#fff;">{t('settings.deleteConfirmWord')}</strong> {t('settings.deleteConfirmPost')}</p>
 			<input
 				bind:value={deleteConfirmText}
-				placeholder="ELIMINAR"
+				placeholder={t('settings.deleteConfirmWord')}
 				style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.75rem; color:#fff; font-family:inherit; font-size:0.875rem; box-sizing:border-box; margin-bottom:1rem; outline:none;"
 			/>
 			<div style="display:flex; gap:0.75rem;">
 				<button onclick={() => showDeleteModal = false}
 					style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.875rem; cursor:pointer; box-shadow:none;">
-					Cancelar
+					{t('common.cancel')}
 				</button>
 				<button onclick={deleteAccount}
-					disabled={deleteConfirmText !== 'ELIMINAR' || deletingAccount}
-					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:{deleteConfirmText === 'ELIMINAR' ? 'oklch(50% 0.22 25)' : 'rgba(255,255,255,0.05)'}; color:{deleteConfirmText === 'ELIMINAR' ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.875rem; font-weight:700; cursor:{deleteConfirmText === 'ELIMINAR' ? 'pointer' : 'not-allowed'}; transition:background 0.2s; box-shadow:none;">
-					{deletingAccount ? 'Eliminando...' : 'Eliminar'}
+					disabled={deleteConfirmText !== t('settings.deleteConfirmWord') || deletingAccount}
+					style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:{deleteConfirmText === t('settings.deleteConfirmWord') ? 'oklch(50% 0.22 25)' : 'rgba(255,255,255,0.05)'}; color:{deleteConfirmText === t('settings.deleteConfirmWord') ? '#fff' : 'rgba(255,255,255,0.3)'}; font-family:inherit; font-size:0.875rem; font-weight:700; cursor:{deleteConfirmText === t('settings.deleteConfirmWord') ? 'pointer' : 'not-allowed'}; transition:background 0.2s; box-shadow:none;">
+					{deletingAccount ? t('settings.deleting') : t('common.delete')}
 				</button>
 			</div>
 		</div>
@@ -881,7 +881,7 @@
 <div style="text-align:center; margin-top:1rem; padding-bottom:0.5rem;">
 	<a href="https://ko-fi.com/Z8Z81OW7UV" target="_blank" rel="noopener noreferrer"
 		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:rgba(255,255,255,0.45); text-decoration:none; padding:0.35rem 0.875rem; border-radius:99px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
-		☕ Invítame una
+		{t('settings.kofi')}
 	</a>
 </div>
 
