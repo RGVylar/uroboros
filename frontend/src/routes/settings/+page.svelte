@@ -8,6 +8,10 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { APP_VERSION } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
+	import { t, i18n, setLocale, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
+
+	const LOCALES: Locale[] = ['es', 'en', 'pt'];
+	const LOCALE_FLAGS: Record<Locale, string> = { es: '🇪🇸', en: '🇬🇧', pt: '🇵🇹' };
 	if (!auth.isLoggedIn) goto('/login');
 
 	// ── Percentil anónimo de constancia ─────────────────────────────────────────
@@ -702,6 +706,29 @@
 	</div>
 </div>
 
+<!-- ── Group: Idioma ── -->
+<div style="margin-bottom:1.125rem;">
+	<div class="group-label">{t('settings.language.group')}</div>
+	<div class="settings-group">
+		{#each LOCALES as loc, i}
+			{#if i > 0}<div class="row-divider"></div>{/if}
+			<button class="settings-row" onclick={() => setLocale(loc)} aria-pressed={i18n.locale === loc}>
+				<div class="icon-box">{LOCALE_FLAGS[loc]}</div>
+				<div class="row-content">
+					<div class="row-label">{LOCALE_NAMES[loc]}</div>
+					{#if i18n.locale === loc}
+						<div class="row-detail">{t('settings.language.active')}</div>
+					{/if}
+				</div>
+				{#if i18n.locale === loc}
+					<span style="color:oklch(80% 0.17 165); font-weight:800;">✓</span>
+				{/if}
+			</button>
+		{/each}
+	</div>
+	<div class="group-hint">{t('settings.language.hint')}</div>
+</div>
+
 <!-- ── Group: Novedades ── -->
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">Novedades</div>
@@ -869,6 +896,12 @@
 		text-transform: uppercase;
 		font-weight: 700;
 		padding: 0 0.375rem 0.5rem;
+	}
+	.group-hint {
+		font-size: 0.6875rem;
+		line-height: 1.45;
+		color: rgba(255,255,255,0.35);
+		padding: 0.5rem 0.375rem 0;
 	}
 	.settings-group {
 		background: rgba(255,255,255,0.05);

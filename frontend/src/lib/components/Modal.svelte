@@ -11,6 +11,8 @@
     {/if}
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
+
 	interface Props {
 		onClose: () => void;
 		title?: string;
@@ -51,7 +53,7 @@
 	onclick={(e) => { if (dismissable && e.target === e.currentTarget) onClose(); }}
 	role="dialog"
 	aria-modal="true"
-	aria-label={title ?? 'Modal'}
+	aria-label={title ?? t('common.modal')}
 >
 	<div class="sheet" style="max-width:{maxWidth}px;">
 		{#if title}
@@ -61,7 +63,7 @@
 					{#if subtitle}<div class="s">{subtitle}</div>{/if}
 				</div>
 				{#if dismissable}
-					<button class="close" aria-label="Cerrar" onclick={onClose}>✕</button>
+					<button class="close" aria-label={t('common.close')} onclick={onClose}>✕</button>
 				{/if}
 			</div>
 		{/if}

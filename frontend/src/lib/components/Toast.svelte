@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { toast } from '$lib/stores/toast.svelte';
+	// Alias: el bucle de abajo ya usa `t` para cada toast.
+	import { t as tr } from '$lib/i18n/index.svelte';
 </script>
 
 {#if toast.toasts.length > 0}
@@ -10,7 +12,7 @@
 					{#if t.type === 'error'}✕{:else if t.type === 'success'}✓{:else}i{/if}
 				</span>
 				<span class="toast-msg">{t.message}</span>
-				<button class="toast-close" onclick={() => toast.remove(t.id)} aria-label="Cerrar">×</button>
+				<button class="toast-close" onclick={() => toast.remove(t.id)} aria-label={tr('common.close')}>×</button>
 			</div>
 		{/each}
 	</div>

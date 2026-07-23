@@ -3,7 +3,8 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
-	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import { MEAL_ORDER } from '$lib/types';
+	import { mealLabel } from '$lib/i18n/index.svelte';
 	import { Modal } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
@@ -710,7 +711,7 @@
 					class="chip"
 					class:active={logMealType === mt}
 					style="font-size:0.78rem;">
-					{MEAL_LABELS[mt]}
+					{mealLabel(mt)}
 				</button>
 			{/each}
 		</div>

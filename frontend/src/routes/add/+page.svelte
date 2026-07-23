@@ -20,7 +20,8 @@
 		Goals,
 		InventoryItem,
 	} from '$lib/types';
-	import { MEAL_LABELS, MEAL_ORDER } from '$lib/types';
+	import { MEAL_ORDER } from '$lib/types';
+	import { mealLabel } from '$lib/i18n/index.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
@@ -961,7 +962,7 @@
 					onclick={() => (mealType = mt)}
 					class="meal-chip"
 					class:meal-chip-active={mealType === mt}
-				>{MEAL_LABELS[mt]}</button>
+				>{mealLabel(mt)}</button>
 			{/each}
 		</div>
 	</div>
@@ -1062,7 +1063,7 @@
 		<div class="meal-conflict-banner">
 			<div class="meal-conflict-icon">🍽️</div>
 			<div class="meal-conflict-body">
-				<div class="meal-conflict-title">{partner.name} ya tiene {MEAL_LABELS[mealType]?.toLowerCase()} registrado</div>
+				<div class="meal-conflict-title">{partner.name} ya tiene {mealLabel(mealType).toLowerCase()} registrado</div>
 				<div class="meal-conflict-detail">
 					{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal
 					{#if mealConflict.productNames.length}
@@ -1681,7 +1682,7 @@
 {#if showMealConflictConfirm && mealConflict && partner}
 	<Modal
 		onClose={() => { showMealConflictConfirm = false; pendingLogAction = null; }}
-		title="🍽️ {partner.name} ya tiene {MEAL_LABELS[mealType]?.toLowerCase()}"
+		title="🍽️ {partner.name} ya tiene {mealLabel(mealType).toLowerCase()}"
 		subtitle="{mealConflict.count} {mealConflict.count === 1 ? 'alimento' : 'alimentos'} · {Math.round(mealConflict.calories)} kcal registrados hoy"
 	>
 		<div style="display:flex; flex-direction:column; gap:0.5rem;">

@@ -32,13 +32,7 @@ export interface Product {
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export const MEAL_LABELS: Record<MealType, string> = {
-	breakfast: 'Desayuno',
-	lunch: 'Almuerzo',
-	dinner: 'Cena',
-	snack: 'Snack',
-};
-
+// Las etiquetas viven en el diccionario i18n: usa mealLabel() de $lib/i18n.
 export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 export interface DiaryEntry {

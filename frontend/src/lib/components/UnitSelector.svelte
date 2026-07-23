@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { InventoryUnit } from '$lib/types';
+	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		unit: InventoryUnit;
@@ -17,11 +18,11 @@
 		productHint
 	}: Props = $props();
 
-	const OPTIONS: { value: InventoryUnit; label: string }[] = [
-		{ value: 'g',    label: 'g'      },
-		{ value: 'ml',   label: 'ml'     },
-		{ value: 'unit', label: 'unidad' },
-	];
+	let OPTIONS = $derived<{ value: InventoryUnit; label: string }[]>([
+		{ value: 'g',    label: t('unit.g')    },
+		{ value: 'ml',   label: t('unit.ml')   },
+		{ value: 'unit', label: t('unit.unit') },
+	]);
 </script>
 
 <div class="unit-picker" class:unit-picker-sm={size === 'sm'}>
@@ -35,7 +36,7 @@
 				class="unit-chip"
 				class:unit-chip-active={unit === opt.value}
 				onclick={() => (unit = opt.value)}
-				aria-label="Unidad: {opt.label}"
+				aria-label={t('unit.aria', { unit: opt.label })}
 			>
 				{opt.label}
 			</button>

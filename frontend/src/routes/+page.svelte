@@ -10,7 +10,8 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
-	import { MEAL_LABELS, MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
+	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
+	import { mealLabel } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -74,7 +75,7 @@
 		for (const mt of MEAL_ORDER) {
 			const me = entries.filter(e => e.meal_type === mt);
 			if (me.length === 0) continue;
-			meals.push({ meal_type: mt, label: MEAL_LABELS[mt], totals: sumTotals(me), entries: me });
+			meals.push({ meal_type: mt, label: mealLabel(mt), totals: sumTotals(me), entries: me });
 		}
 		return meals;
 	}
@@ -327,7 +328,7 @@
 			items.sort((a, b) => new Date(a.entry.consumed_at).getTime() - new Date(b.entry.consumed_at).getTime());
 			out.push({
 				meal_type: mt,
-				label: MEAL_LABELS[mt],
+				label: mealLabel(mt),
 				hue: MEAL_HUES[mt] ?? 160,
 				headerKcal: mine?.totals.calories ?? 0,
 				headerProtein: mine?.totals.protein ?? 0,
@@ -1163,7 +1164,7 @@
 						onclick={() => editMealType = mt}
 						class:btn-secondary={editMealType !== mt}
 						style="font-size:0.75rem; padding:0.4rem 0.2rem;">
-						{MEAL_LABELS[mt]}
+						{mealLabel(mt)}
 					</button>
 				{/each}
 			</div>

@@ -5,6 +5,8 @@
 	import type { TokenResponse } from '$lib/types';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
+	import { t } from '$lib/i18n/index.svelte';
+	import { translateApiError } from '$lib/i18n/apiErrors';
 
 	let mode: 'login' | 'register' = $state('login');
 	let email = $state('');
@@ -28,13 +30,13 @@
 			goto(mode === 'register' ? '/onboarding' : '/');
 		} catch (e: unknown) {
 			// La API devuelve mensajes técnicos en inglés ("Unauthorized"):
-			// al usuario le mostramos siempre un error claro en español.
+			// al usuario le mostramos siempre un error claro en su idioma.
 			const raw = e instanceof Error ? e.message : '';
 			error = /unauthorized|401|credential/i.test(raw)
-				? 'Email o contraseña incorrectos'
+				? t('login.errBadCredentials')
 				: mode === 'register' && raw
-					? raw
-					: 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+					? translateApiError(raw)
+					: t('login.errGeneric');
 		} finally {
 			loading = false;
 		}
@@ -48,19 +50,19 @@
 	<div class="brand">
 		<img src="/logo-192.png" alt="uroboros" class="logo" />
 		<h1 class="title"><em>uroboros</em></h1>
-		<div class="tagline">Come mejor. Juntos.</div>
+		<div class="tagline">{t('login.tagline')}</div>
 	</div>
 
 	<!-- Tabs -->
 	<div class="tabs">
-		{#each [{ k: 'login' as const, l: 'Entrar' }, { k: 'register' as const, l: 'Crear cuenta' }] as t}
+		{#each [{ k: 'login' as const, l: t('login.signIn') }, { k: 'register' as const, l: t('login.createAccount') }] as tab}
 			<button
 				type="button"
 				class="tab"
-				class:active={mode === t.k}
-				aria-pressed={mode === t.k}
-				onclick={() => mode = t.k}
-			>{t.l}</button>
+				class:active={mode === tab.k}
+				aria-pressed={mode === tab.k}
+				onclick={() => mode = tab.k}
+			>{tab.l}</button>
 		{/each}
 	</div>
 
@@ -69,39 +71,39 @@
 		<form onsubmit={(e) => { e.preventDefault(); submit(); }}>
 			{#if mode === 'register'}
 				<label class="field">
-					<span>Nombre</span>
-					<input bind:value={name} placeholder="Rubén" required autocomplete="name" />
+					<span>{t('login.name')}</span>
+					<input bind:value={name} placeholder={t('login.namePlaceholder')} required autocomplete="name" />
 				</label>
 			{/if}
 
 			<label class="field">
-				<span>Email</span>
-				<input type="email" bind:value={email} placeholder="tu@email.com" required autocomplete="email" />
+				<span>{t('login.email')}</span>
+				<input type="email" bind:value={email} placeholder={t('login.emailPlaceholder')} required autocomplete="email" />
 			</label>
 
 			<label class="field">
-				<span>Contraseña</span>
+				<span>{t('login.password')}</span>
 				<input type="password" bind:value={password} placeholder="••••••••" minlength="8" required autocomplete={mode === 'login' ? 'current-password' : 'new-password'} />
 			</label>
 
 			{#if mode === 'login'}
 				<div class="forgot">
-					<a href="/forgot-password">¿Olvidaste la contraseña?</a>
+					<a href="/forgot-password">{t('login.forgot')}</a>
 				</div>
 			{/if}
 
 			{#if error}<p class="error-msg">{error}</p>{/if}
 
 			<button type="submit" class="submit-btn" disabled={loading}>
-				{loading ? '...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+				{loading ? '...' : mode === 'login' ? t('login.signIn') : t('login.createAccount')}
 			</button>
 
 			{#if mode === 'register'}
 				<p class="legal-fine">
-					Al crear una cuenta aceptas nuestros
-					<a href="/terms">términos</a>
-					y la
-					<a href="/privacy">política de privacidad</a>.
+					{t('login.legalPre')}
+					<a href="/terms">{t('login.legalTerms')}</a>
+					{t('login.legalMid')}
+					<a href="/privacy">{t('login.legalPrivacy')}</a>.
 				</p>
 			{/if}
 		</form>
@@ -109,9 +111,9 @@
 
 	<!-- Footer legal links -->
 	<div class="login-footer">
-		<a href="/privacy">Privacidad</a>
+		<a href="/privacy">{t('login.footerPrivacy')}</a>
 		<span>·</span>
-		<a href="/terms">Términos</a>
+		<a href="/terms">{t('login.footerTerms')}</a>
 	</div>
 </div>
 

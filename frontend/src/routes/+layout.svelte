@@ -20,6 +20,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { children } = $props();
 
@@ -115,25 +116,26 @@
 	type FabSlot = { fab: true };
 	type NavItem = NavLink | FabSlot;
 
-	const mobileNav: NavItem[] = [
-		{ href: '/', label: 'Diario' },
-		{ href: '/history', label: 'Historial', pro: true },
+	// $derived, no const: al cambiar de idioma en Ajustes la nav se retraduce sola.
+	let mobileNav = $derived<NavItem[]>([
+		{ href: '/', label: t('nav.diary') },
+		{ href: '/history', label: t('nav.history'), pro: true },
 		{ fab: true },
-		{ href: '/recipes', label: 'Recetas' },
-		{ href: '/settings', label: 'Ajustes' },
-	];
+		{ href: '/recipes', label: t('nav.recipes') },
+		{ href: '/settings', label: t('nav.settings') },
+	]);
 
 	// Escritorio: todos los ítems en el sidebar (con emoji como icono)
-	const sidebarNav = [
-		{ href: '/', label: 'Diario', icon: '📋' },
-		{ href: '/history', label: 'Historial', icon: '📅', pro: true },
-		{ href: '/recipes', label: 'Recetas', icon: '🍳' },
-		{ href: '/exercises', label: 'Ejercicios', icon: '💪', pro: true },
-		{ href: '/weight', label: 'Peso', icon: '⚖️' },
-		{ href: '/measurements', label: 'Medidas', icon: '📏', pro: true },
-		{ href: '/friends', label: 'Amigos', icon: '👥' },
-		{ href: '/settings', label: 'Ajustes', icon: '⚙️' },
-	];
+	let sidebarNav = $derived([
+		{ href: '/', label: t('nav.diary'), icon: '📋' },
+		{ href: '/history', label: t('nav.history'), icon: '📅', pro: true },
+		{ href: '/recipes', label: t('nav.recipes'), icon: '🍳' },
+		{ href: '/exercises', label: t('nav.exercises'), icon: '💪', pro: true },
+		{ href: '/weight', label: t('nav.weight'), icon: '⚖️' },
+		{ href: '/measurements', label: t('nav.measurements'), icon: '📏', pro: true },
+		{ href: '/friends', label: t('nav.friends'), icon: '👥' },
+		{ href: '/settings', label: t('nav.settings'), icon: '⚙️' },
+	]);
 
 	function isActive(href: string): boolean {
 		const p = page.url.pathname;
@@ -147,13 +149,13 @@
 {#if auth.isLoggedIn}
 	<div class="app-shell">
 		<!-- Sidebar (solo visible en escritorio ≥900px) -->
-		<aside class="sidebar" aria-label="Navegación lateral">
+		<aside class="sidebar" aria-label={t('nav.aria.sidebar')}>
 			<div class="sidebar-brand">
 				<img src="/logo-192.png" alt="uroboros" class="sidebar-logo" />
 				<div class="sidebar-brand-text">
 					<span class="sidebar-app-name">uroboros</span>
 					<span class="sidebar-user-name">
-						Hola, {auth.user?.name?.split(' ')[0] ?? 'tú'}
+						{t('layout.greeting', { name: auth.user?.name?.split(' ')[0] ?? t('layout.you') })}
 					</span>
 				</div>
 			</div>
@@ -168,7 +170,7 @@
 						<span class="icon" aria-hidden="true">{item.icon}</span>
 						<span>{item.label}</span>
 						{#if item.href === '/friends' && pendingFriends.count > 0}
-							<span class="sidebar-badge" aria-label="{pendingFriends.count} solicitudes">{pendingFriends.count}</span>
+							<span class="sidebar-badge" aria-label={t('nav.aria.requests', { count: pendingFriends.count })}>{pendingFriends.count}</span>
 						{:else if item.pro && !subscription.is_premium}
 							<span class="pro-badge">PRO</span>
 						{/if}
@@ -183,34 +185,34 @@
 				<!-- Server-driven update nudge: teaser of what the newer version brings. -->
 				<div class="update-nudge" role="alert">
 					<div class="update-nudge-body">
-						<div class="update-nudge-title">✨ Novedad en la v{updateInfo.version}: {updateInfo.title}</div>
+						<div class="update-nudge-title">{t('layout.update.new', { version: updateInfo.version, title: updateInfo.title })}</div>
 						{#if updateInfo.teaser.length}
 							<div class="update-nudge-teaser">
-								{updateInfo.teaser.join(' · ')}{#if updateInfo.more > 0} · y {updateInfo.more} más{/if}
+								{updateInfo.teaser.join(' · ')}{#if updateInfo.more > 0}{t('layout.update.more', { count: updateInfo.more })}{/if}
 							</div>
 						{/if}
 					</div>
 					<div class="update-nudge-actions">
 						{#if isNativeApp}
 							<!-- Android: el frontend va empaquetado en el APK; recargar no sirve. -->
-							<a class="update-nudge-cta" href={UPDATE_URL} target="_blank" rel="noopener noreferrer">Actualizar</a>
+							<a class="update-nudge-cta" href={UPDATE_URL} target="_blank" rel="noopener noreferrer">{t('layout.update.cta')}</a>
 						{:else}
 							<!-- Web: recargar ya trae el bundle nuevo tras un deploy. -->
-							<button class="update-nudge-cta" onclick={() => window.location.reload()}>Actualizar</button>
+							<button class="update-nudge-cta" onclick={() => window.location.reload()}>{t('layout.update.cta')}</button>
 						{/if}
-						<button class="update-nudge-later" aria-label="Más tarde" onclick={() => updateDismissed = true}>✕</button>
+						<button class="update-nudge-later" aria-label={t('layout.update.later')} onclick={() => updateDismissed = true}>✕</button>
 					</div>
 				</div>
 			{:else if updateAvailable}
 				<div class="update-strip" role="alert">
-					<span>✨ Nueva versión disponible</span>
-					<button onclick={() => window.location.reload()}>Actualizar</button>
+					<span>{t('layout.update.available')}</span>
+					<button onclick={() => window.location.reload()}>{t('layout.update.cta')}</button>
 				</div>
 			{/if}
 			{#if connectivity.isOffline}
 				<div class="offline-strip" role="alert" aria-live="assertive">
 					<span>⚽</span>
-					<span>Sin conexión — probablemente es el fútbol</span>
+					<span>{t('layout.offline')}</span>
 				</div>
 			{/if}
 			<div class="container page">
@@ -232,11 +234,11 @@
 {/if}
 
 {#if auth.isLoggedIn && !hideNav}
-	<nav class="bottom" aria-label="Navegación principal">
+	<nav class="bottom" aria-label={t('nav.aria.main')}>
 		{#each mobileNav as item}
 			{#if 'fab' in item}
 				<!-- FAB centrado, flota por encima del pill -->
-				<a href="/add" class="nav-fab-link" aria-label="Añadir comida">
+				<a href="/add" class="nav-fab-link" aria-label={t('nav.aria.addFood')}>
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 						<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 					</svg>
@@ -274,7 +276,7 @@
 					{/if}
 					<span>{link.label}</span>
 					{#if link.href === '/settings' && pendingFriends.count > 0}
-						<span class="nav-badge" aria-label="{pendingFriends.count} solicitudes pendientes">
+						<span class="nav-badge" aria-label={t('nav.aria.pendingRequests', { count: pendingFriends.count })}>
 							{pendingFriends.count}
 						</span>
 					{:else if link.pro && !subscription.is_premium}

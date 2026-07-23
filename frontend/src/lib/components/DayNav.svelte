@@ -11,6 +11,8 @@
     />
 -->
 <script lang="ts">
+	import { t, tc, fmtDate } from '$lib/i18n/index.svelte';
+
 	interface Props {
 		date: string;
 		streak?: number;
@@ -35,8 +37,8 @@
 	}
 
 	function fmt(iso: string): string {
-		if (iso === new Date().toISOString().slice(0, 10)) return 'Hoy';
-		return new Date(iso + 'T12:00').toLocaleDateString('es', {
+		if (iso === new Date().toISOString().slice(0, 10)) return t('common.today');
+		return fmtDate(new Date(iso + 'T12:00'), {
 			weekday: 'short',
 			day: 'numeric',
 			month: 'short',
@@ -44,18 +46,18 @@
 	}
 </script>
 
-<nav class="day-nav" aria-label="Navegación de día">
-	<button class="arrow" aria-label="Día anterior" onclick={() => change(-1)}>◀</button>
+<nav class="day-nav" aria-label={t('dayNav.aria')}>
+	<button class="arrow" aria-label={t('dayNav.prev')} onclick={() => change(-1)}>◀</button>
 	<div class="center">
 		<div class="date">{fmt(date)}</div>
 		{#if isToday && showStreakOnToday && streak > 0}
-			<div class="streak">🔥 {streak} {streak === 1 ? 'día' : 'días'}</div>
+			<div class="streak">🔥 {tc('common.day', streak)}</div>
 		{/if}
 	</div>
 	<button
 		class="arrow"
 		class:ghost={isToday}
-		aria-label="Día siguiente"
+		aria-label={t('dayNav.next')}
 		onclick={() => change(1)}
 		disabled={isToday}
 	>▶</button>
