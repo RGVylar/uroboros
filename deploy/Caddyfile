@@ -1,4 +1,8 @@
 # Uroboros — reverse proxy + static frontend
+#
+# OJO: install.sh lleva su propia copia en linea de esta config (un heredoc
+# que escribe /etc/caddy/Caddyfile). Este fichero es la referencia, pero el
+# que se despliega es aquel: si tocas uno, toca el otro.
 # Listens on all IPs on port 80 (ideal for local network or behind Cloudflare Tunnel)
 
 :80 {
