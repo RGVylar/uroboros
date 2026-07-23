@@ -9,7 +9,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
-	import { fmtDate, fmtTime as fmtTimeI18n, fmtNumber } from '$lib/i18n/index.svelte';
+	import { t, fmtDate, fmtTime as fmtTimeI18n, fmtNumber, monthNames, weekdayInitials, weekdayShort } from '$lib/i18n/index.svelte';
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -55,7 +55,7 @@
 		lines.push(`🍽 uroboros — ${rawDate.charAt(0).toUpperCase() + rawDate.slice(1)}`);
 		lines.push(`Total: ${Math.round(s.totals.calories)} kcal · P ${Math.round(s.totals.protein)}g · C ${Math.round(s.totals.carbs)}g · G ${Math.round(s.totals.fat)}g`);
 		if (s.calories_burned > 0) {
-			lines.push(`🔥 Ejercicio: ${Math.round(s.calories_burned)} kcal quemadas · neto ${Math.round(s.net_calories)} kcal`);
+			lines.push(t('history.exerciseLine', { burned: Math.round(s.calories_burned), net: Math.round(s.net_calories) }));
 		}
 		const macros = (x: { protein: number; carbs: number; fat: number }) =>
 			`P ${Math.round(x.protein)}g · C ${Math.round(x.carbs)}g · G ${Math.round(x.fat)}g`;
@@ -65,20 +65,20 @@
 			lines.push(`${meal.label} — ${Math.round(meal.totals.calories)} kcal · ${macros(meal.totals)}`);
 			for (const e of meal.entries) {
 				const unit = e.product ? productUnit(e.product) : 'g';
-				lines.push(`• ${e.product?.name ?? `Producto #${e.product_id}`} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
+				lines.push(`• ${e.product?.name ?? t('history.productFallback', { id: e.product_id })} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
 			}
 		}
 		// Agua del día (si hay): petición pequeña solo al copiar
 		const water = await api.get<{ total_ml: number }>(`/water/day?day=${selectedDay}`).catch(() => null);
 		if (water && water.total_ml > 0) {
 			lines.push('');
-			lines.push(`💧 Agua: ${water.total_ml} ml`);
+			lines.push(t('history.waterLine', { ml: water.total_ml }));
 		}
 		try {
 			await navigator.clipboard.writeText(lines.join('\n'));
-			toast.success('Día copiado al portapapeles');
+			toast.success(t('history.okCopy'));
 		} catch {
-			toast.error('No se pudo copiar al portapapeles');
+			toast.error(t('history.errCopy'));
 		} finally {
 			copyingDay = false;
 		}
@@ -112,15 +112,16 @@
 	let trendData: TrendEntry[] = $state([]);
 	let loadingTrend = $state(false);
 
-	const MACRO_CONFIG: Record<TrendMacro, { label: string; color: string; raw: string; unit: string }> = {
-		calories: { label: 'Calorías', color: 'var(--cal)',  raw: '80% 0.17 45',  unit: 'kcal' },
-		protein:  { label: 'Proteína', color: 'var(--prot)', raw: '75% 0.14 220', unit: 'g' },
-		carbs:    { label: 'Carbos',   color: 'var(--carb)', raw: '75% 0.16 295', unit: 'g' },
-		fat:      { label: 'Grasa',    color: 'var(--fat)',  raw: '72% 0.18 25',  unit: 'g' },
-	};
+	let MACRO_CONFIG: Record<TrendMacro, { label: string; color: string; raw: string; unit: string }> = $derived({
+		calories: { label: t('history.macroCalories'), color: 'var(--cal)',  raw: '80% 0.17 45',  unit: 'kcal' },
+		protein:  { label: t('history.macroProtein'),  color: 'var(--prot)', raw: '75% 0.14 220', unit: 'g' },
+		carbs:    { label: t('history.macroCarbs'),    color: 'var(--carb)', raw: '75% 0.16 295', unit: 'g' },
+		fat:      { label: t('history.macroFat'),      color: 'var(--fat)',  raw: '72% 0.18 25',  unit: 'g' },
+	});
 
-	const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-	const DAY_NAMES = ['L','M','X','J','V','S','D'];
+	// Vía Intl: se traducen solos y respetan el formato de cada idioma.
+	let MONTH_NAMES = $derived(monthNames());
+	let DAY_NAMES = $derived(weekdayInitials());
 
 	function getDaysInMonth(year: number, month: number) {
 		return new Date(year, month + 1, 0).getDate();
@@ -270,12 +271,12 @@
 	}
 
 	// Etiqueta y unidad de la tarjeta "Media" según el macro seleccionado
-	const TREND_STAT_META = {
-		calories: { label: 'Media kcal',     unit: 'kcal' },
-		protein:  { label: 'Media proteína', unit: 'g' },
-		carbs:    { label: 'Media carbos',   unit: 'g' },
-		fat:      { label: 'Media grasa',    unit: 'g' },
-	} as const;
+	let TREND_STAT_META = $derived({
+		calories: { label: t('history.avgCalories'), unit: 'kcal' },
+		protein:  { label: t('history.avgProtein'),  unit: 'g' },
+		carbs:    { label: t('history.avgCarbs'),    unit: 'g' },
+		fat:      { label: t('history.avgFat'),      unit: 'g' },
+	});
 
 	let trendValues = $derived(trendData.map(d => d[trendMacro]));
 	let trendMax = $derived.by(() => {
@@ -330,19 +331,19 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; padding:0; font-family:inherit; flex-shrink:0; font-size:1rem;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Historial</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Últimos 7 días</div>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('history.title')}</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('history.last7')}</div>
 	</div>
 	{#if subscription.is_premium}
 	<div style="display:flex; gap:0.3rem;">
-		<button class="csv-btn" onclick={() => exportZip(true)}>Exportar mes</button>
-		<button class="csv-btn" onclick={() => exportZip(false)}>Exportar todo</button>
+		<button class="csv-btn" onclick={() => exportZip(true)}>{t('history.exportMonth')}</button>
+		<button class="csv-btn" onclick={() => exportZip(false)}>{t('history.exportAll')}</button>
 	</div>
 	{/if}
 </div>
 
 {#if loadingTrend}
-	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">Cargando...</p>
+	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">{t('history.loading')}</p>
 {:else}
 
 <!-- ── Summary stats ── -->
@@ -356,23 +357,23 @@
 		</div>
 		{#if trendMacro === 'calories' && goals?.kcal}
 			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
-				{trendAvg < avgEffectiveKcalGoal ? '↓' : '↑'} {Math.abs(trendAvg - avgEffectiveKcalGoal)} vs objetivo
+				{trendAvg < avgEffectiveKcalGoal ? '↓' : '↑'} {Math.abs(trendAvg - avgEffectiveKcalGoal)} {t('history.vsGoal')}
 			</div>
 		{:else if trendMacro !== 'calories' && chartGoalVal()}
 			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
-				{trendAvg < chartGoalVal()! ? '↓' : '↑'} {Math.abs(trendAvg - chartGoalVal()!)} g vs objetivo
+				{trendAvg < chartGoalVal()! ? '↓' : '↑'} {Math.abs(trendAvg - chartGoalVal()!)} g {t('history.vsGoal')}
 			</div>
 		{/if}
 	</div>
 	<!-- Adherencia -->
 	<div class="glass-card">
-		<div class="stat-eyebrow">Adherencia</div>
+		<div class="stat-eyebrow">{t('history.adherence')}</div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
 			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendData.length > 0 ? Math.round(adherenceDays / trendData.length * 100) : 0}</div>
 			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>
 		</div>
 		<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); margin-top:0.25rem;">
-			{adherenceDays} de {trendData.length} días en rango
+			{t('history.adherenceDays', { done: adherenceDays, total: trendData.length })}
 		</div>
 	</div>
 </div>
@@ -398,7 +399,7 @@
 				text-align:center;
 			"
 		>
-			{locked ? '🔒 30 días' : `${days} días`}
+			{locked ? t('history.lockedDays') : t('history.daysN', { count: days })}
 		</button>
 	{/each}
 </div>
@@ -430,7 +431,7 @@
 
 <!-- ── Bar chart ── -->
 <div class="glass-card" style="margin-bottom:0.625rem;">
-	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">{MACRO_CONFIG[trendMacro].label} por día</div>
+	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">{t('history.perDay', { macro: MACRO_CONFIG[trendMacro].label })}</div>
 	{#if trendData.length > 0}
 		{@const goalVal = chartGoalVal() ?? 0}
 		{@const maxVal = trendMax}
@@ -445,7 +446,7 @@
 				{@const over = goalVal > 0 && val > goalVal + (trendMacro === 'calories' ? 100 : 10)}
 				{@const under = goalVal > 0 && val > 0 && val < goalVal - (trendMacro === 'calories' ? 350 : 20)}
 				{@const dayNum = parseInt(d.date.slice(8))}
-				{@const dayLabel = (() => { const dt = new Date(d.date + 'T12:00'); const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return names[dt.getDay()].slice(0,3); })()}
+				{@const dayLabel = weekdayShort(new Date(d.date + 'T12:00'))}
 				{@const showLabel = !is30 || dayNum % 7 === 1 || i === trendDays - 1}
 				<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:0.125rem; min-width:0;">
 					{#if !is30}
@@ -459,15 +460,15 @@
 		<!-- Legend -->
 		{@const legRaw = MACRO_CONFIG[trendMacro].raw}
 		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(85% 0.18 160 / 0.75);"></div> En rango</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.9);"></div> Exceso</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.35);"></div> Déficit</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(85% 0.18 160 / 0.75);"></div> {t('history.inRange')}</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.9);"></div> {t('history.over')}</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.35);"></div> {t('history.under')}</div>
 		</div>
 	{/if}
 </div>
 
 <!-- ── Day list ── -->
-<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:1.25rem 0.25rem 0.625rem;">Días</div>
+<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:1.25rem 0.25rem 0.625rem;">{t('history.days')}</div>
 <div class="glass-card" style="padding:0.375rem;">
 	{#each [...trendData].reverse() as d, i}
 		{@const goalKcal2 = goals?.kcal ?? 0}
@@ -487,7 +488,7 @@
 			</div>
 			<div style="flex:1; min-width:0;">
 				<div style="font-size:0.8125rem; font-weight:600; display:flex; align-items:center; gap:0.375rem;">
-					{isToday(d.date) ? 'Hoy' : fmtDate(new Date(d.date + 'T12:00'), { weekday:'short' })}
+					{isToday(d.date) ? t('common.today') : fmtDate(new Date(d.date + 'T12:00'), { weekday:'short' })}
 					<div style="width:6px; height:6px; border-radius:99px; background:{d.calories > 0 ? statusColor : 'rgba(255,255,255,0.2)'};"></div>
 				</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
@@ -511,15 +512,15 @@
 					<button
 						onclick={copyDayToClipboard}
 						disabled={copyingDay}
-						aria-label="Copiar resumen del día al portapapeles"
+						aria-label={t('history.copyDayAria')}
 						style="background:none; border:none; box-shadow:none; padding:0; font-size:0.75rem; color:oklch(85% 0.17 160); cursor:pointer; font-family:inherit; font-weight:600;"
-					>📋 {copyingDay ? 'Copiando…' : 'Copiar'}</button>
+					>📋 {copyingDay ? t('history.copying') : t('history.copy')}</button>
 				{/if}
-				<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">Ver diario →</a>
+				<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">{t('history.seeDiary')}</a>
 			</div>
 		</div>
 		{#if loadingDay}
-			<p style="color:rgba(255,255,255,0.45); font-size:0.85rem; text-align:center; padding:1rem 0;">Cargando...</p>
+			<p style="color:rgba(255,255,255,0.45); font-size:0.85rem; text-align:center; padding:1rem 0;">{t('history.loading')}</p>
 		{:else if selectedSummary && selectedSummary.entries.length > 0}
 			<div class="glass-card" style="margin-bottom:0.75rem;">
 				<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.5rem;">
@@ -528,15 +529,15 @@
 						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(85% 0.17 55);">{Math.round(selectedSummary.totals.calories)}</div>
 					</div>
 					<div style="text-align:center;">
-						<div class="stat-eyebrow">Prot</div>
+						<div class="stat-eyebrow">{t('diary.macroProtein')}</div>
 						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(78% 0.14 220);">{Math.round(selectedSummary.totals.protein)}g</div>
 					</div>
 					<div style="text-align:center;">
-						<div class="stat-eyebrow">Carb</div>
+						<div class="stat-eyebrow">{t('diary.macroCarbs')}</div>
 						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(78% 0.16 275);">{Math.round(selectedSummary.totals.carbs)}g</div>
 					</div>
 					<div style="text-align:center;">
-						<div class="stat-eyebrow">Grasa</div>
+						<div class="stat-eyebrow">{t('diary.macroFat')}</div>
 						<div style="font-size:1.125rem; font-weight:800; margin-top:0.25rem; color:oklch(75% 0.17 25);">{Math.round(selectedSummary.totals.fat)}g</div>
 					</div>
 				</div>
@@ -575,12 +576,12 @@
 <div style="margin-top:1.5rem;">
 {#if !subscription.is_premium}
 	<PaywallCard
-		title="Historial completo"
-		description="Consulta cualquier día pasado, el calendario mensual y las tendencias de 30 días."
+		title={t('history.paywallTitle')}
+		description={t('history.paywallDesc')}
 		onUpgrade={() => goto('/premium')}
 	/>
 {:else}
-	<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin-bottom:0.75rem;">Calendario</div>
+	<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin-bottom:0.75rem;">{t('history.calendar')}</div>
 
 	<!-- Month navigation -->
 	<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
@@ -599,7 +600,7 @@
 	<!-- Calendar grid -->
 	<div class="glass-card" style="padding:0.5rem;">
 		{#if loadingMonth}
-			<p style="text-align:center; color:rgba(255,255,255,0.4); padding:2rem 0; font-size:0.85rem;">Cargando...</p>
+			<p style="text-align:center; color:rgba(255,255,255,0.4); padding:2rem 0; font-size:0.85rem;">{t('history.loading')}</p>
 		{:else}
 			<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">
 				{#each calendarDays as cell}
@@ -645,9 +646,9 @@
 				{lbl}
 			</span>
 		{/each}
-		{#if suppEnabled}<span>💊 Suplementos</span>{/if}
-		<span>💪 Ejercicio</span>
-		{#if moodEnabled}<span>🫥 Estado del día</span>{/if}
+		{#if suppEnabled}<span>{t('history.legendSupplements')}</span>{/if}
+		<span>{t('history.legendExercise')}</span>
+		{#if moodEnabled}<span>{t('history.legendMood')}</span>{/if}
 	</div>
 {/if}
 </div>

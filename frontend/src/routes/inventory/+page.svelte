@@ -10,6 +10,7 @@
 		Product,
 	} from '$lib/types';
 	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import LocationPicker from '$lib/components/LocationPicker.svelte';
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
@@ -294,8 +295,8 @@
 
 {#if !subscription.is_premium}
 	<PaywallCard
-		title="Inventario doméstico"
-		description="Controla tu despensa, nevera y congelador. Comparte el stock con tu pareja en tiempo real."
+		title={t('inventory.paywallTitle')}
+		description={t('inventory.paywallDesc')}
 	/>
 {:else}
 
@@ -350,7 +351,7 @@
 <div style="position:relative; margin-bottom:0.625rem;">
 	<input
 		bind:value={invQuery}
-		placeholder="Buscar producto…"
+		placeholder={t('inventory.searchItem')}
 		style="width:100%; padding:0.8125rem 1rem 0.8125rem 2.625rem; border-radius:16px; font-size:0.8125rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; outline:none; font-family:inherit;"
 	/>
 	<div
@@ -389,15 +390,15 @@
 		<div style="margin-bottom:0.625rem;">
 			<BarcodeScanner
 				bind:bind_query={query}
-				placeholder="Buscar arroz, pollo..."
+				placeholder={t('inventory.searchProduct')}
 				onScan={searchByBarcode}
 				onSearch={searchProducts}
 			/>
 		</div>
 		{#if barcodeNotFound}
 			<div style="margin-bottom:0.625rem; background:oklch(65% 0.22 25 / 0.08); border:1px solid oklch(65% 0.22 25 / 0.2); border-radius:16px; padding:0.875rem;">
-				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">Producto no encontrado</div>
-				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">El código <span style="font-variant-numeric:tabular-nums;">{lastScannedBarcode}</span> no está en la base de datos.</div>
+				<div style="font-size:0.75rem; color:oklch(75% 0.18 25); font-weight:700; margin-bottom:0.25rem;">{t('inventory.notFound')}</div>
+				<div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-bottom:0.75rem;">{t('inventory.notFoundPre')} <span style="font-variant-numeric:tabular-nums;">{lastScannedBarcode}</span> {t('inventory.notFoundPost')}</div>
 				<div style="display:flex; gap:0.5rem;">
 					<button
 						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; query = ''; }}
@@ -433,7 +434,7 @@
 			style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;"
 		>
 			<div style="font-weight:700; font-size:0.875rem; color:#fff;">
-				{showManual ? 'Nuevo producto' : selectedProduct ? selectedProduct.name : 'Añadir al inventario'}
+				{showManual ? 'Nuevo producto' : selectedProduct ? selectedProduct.name : t('inventory.addToInventory')}
 			</div>
 			{#if !selectedProduct}
 				<button
@@ -446,7 +447,7 @@
 					}}
 					style="padding:0.3125rem 0.625rem; border-radius:99px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.6875rem; font-weight:700; cursor:pointer;"
 				>
-					{showManual ? '← Buscar' : '✏️ Manual'}
+					{showManual ? t('inventory.backToSearch') : t('inventory.manual')}
 				</button>
 			{/if}
 		</div>
@@ -458,11 +459,11 @@
 					<label
 						for="m-name"
 						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-					>Nombre *</label>
+					>{t('inventory.nameRequired')}</label>
 					<input
 						id="m-name"
 						bind:value={manualName}
-						placeholder="Ej. Garbanzos cocidos"
+						placeholder={t('inventory.namePlaceholder')}
 						class="inv-field"
 					/>
 				</div>
@@ -470,11 +471,11 @@
 					<label
 						for="m-brand"
 						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-					>Marca (opcional)</label>
+					>{t('inventory.brandOptional')}</label>
 					<input
 						id="m-brand"
 						bind:value={manualBrand}
-						placeholder="Ej. Mercadona"
+						placeholder={t('inventory.brandPlaceholder')}
 						class="inv-field"
 					/>
 				</div>
@@ -482,25 +483,25 @@
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
 						<label
 							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-						>Kcal / 100g</label>
+						>{t('inventory.kcal100')}</label>
 						<input type="number" bind:value={manualCal} min="0" step="any" class="inv-field" />
 					</div>
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
 						<label
 							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-						>Proteína / 100g</label>
+						>{t('inventory.prot100')}</label>
 						<input type="number" bind:value={manualProt} min="0" step="any" class="inv-field" />
 					</div>
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
 						<label
 							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-						>Carbs / 100g</label>
+						>{t('inventory.carbs100')}</label>
 						<input type="number" bind:value={manualCarbs} min="0" step="any" class="inv-field" />
 					</div>
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
 						<label
 							style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
-						>Grasa / 100g</label>
+						>{t('inventory.fat100')}</label>
 						<input type="number" bind:value={manualFat} min="0" step="any" class="inv-field" />
 					</div>
 				</div>
@@ -512,7 +513,7 @@
 					disabled={creatingManual || !manualName.trim()}
 					style="margin-top:0.25rem; padding:0.75rem; border-radius:12px; border:none; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-family:inherit; font-weight:700; font-size:0.8125rem; cursor:pointer;"
 				>
-					{creatingManual ? 'Creando...' : '+ Crear producto'}
+					{creatingManual ? t('inventory.creating') : t('inventory.createProduct')}
 				</button>
 			</div>
 		{:else}
@@ -537,12 +538,12 @@
 
 			<!-- Location -->
 			<div style="margin-bottom:0.75rem;">
-				<LocationPicker bind:location={addLocation} label="Ubicación" />
+				<LocationPicker bind:location={addLocation} label={t('inventory.location')} />
 			</div>
 
 			<!-- Unit -->
 			<div style="margin-bottom:0.75rem;">
-				<UnitSelector bind:unit={addUnit} label="Unidad" />
+				<UnitSelector bind:unit={addUnit} label={t('inventory.unit')} />
 			</div>
 
 			<!-- Quantity + price -->
@@ -571,7 +572,7 @@
 						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
 					>
 						€ / 100g
-						<span style="font-weight:400; text-transform:none;">(opc.)</span>
+						<span style="font-weight:400; text-transform:none;">{t('inventory.optShort')}</span>
 					</label>
 					<input
 						id="inv-price"
@@ -611,7 +612,7 @@
 					disabled={saving}
 					style="flex:2; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-family:inherit; padding:0.75rem; font-size:0.8125rem;"
 				>
-					{saving ? 'Guardando...' : 'Añadir al inventario'}
+					{saving ? t('inventory.saving') : t('inventory.addToInventory')}
 				</button>
 			</div>
 		{/if}
@@ -631,7 +632,7 @@
 		style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;"
 	>
 		<div style="font-size:2rem; margin-bottom:0.5rem;">🥫</div>
-		<div style="font-size:0.875rem; font-weight:600;">El inventario está vacío</div>
+		<div style="font-size:0.875rem; font-weight:600;">{t('inventory.empty')}</div>
 		<div
 			style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);"
 		>
@@ -685,7 +686,7 @@
 						<div class="form-group" style="margin:0;">
 							<label
 								style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;"
-							>€ / 100g</label>
+							>{t('inventory.per100g')}</label>
 							<input
 								type="number"
 								bind:value={editPrice}
@@ -786,7 +787,7 @@
 					<div style="display:flex; gap:0.1875rem; flex-shrink:0;">
 						<button
 							onclick={() => (consumingItem = item)}
-							title="Consumir del inventario"
+							title={t('inventory.consume')}
 							style="padding:0.25rem 0.4rem; font-size:0.625rem; border-radius:8px; border:1px solid oklch(75% 0.18 165 / 0.35); background:oklch(75% 0.18 165 / 0.15); color:oklch(85% 0.17 160); cursor:pointer; font-family:inherit;"
 						>
 							−

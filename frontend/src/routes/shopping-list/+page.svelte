@@ -9,6 +9,7 @@
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -39,7 +40,7 @@
 				});
 			}
 		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanError = e instanceof Error ? e.message : t('shopping.errCamera');
 			scanning = false;
 		}
 	}
@@ -54,13 +55,13 @@
 		try {
 			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
 			const { supported } = await BarcodeScanner.isSupported();
-			if (!supported) { scanError = 'Escáner no soportado en este dispositivo'; return; }
+			if (!supported) { scanError = t('shopping.errScannerUnsupported'); return; }
 			const granted = await BarcodeScanner.requestPermissions();
-			if (granted.camera !== 'granted') { scanError = 'Permiso de cámara denegado'; return; }
+			if (granted.camera !== 'granted') { scanError = t('shopping.errCameraDenied'); return; }
 			const { barcodes } = await BarcodeScanner.scan();
 			if (barcodes.length > 0) searchByBarcode(barcodes[0].rawValue);
 		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'Error del escáner';
+			scanError = e instanceof Error ? e.message : t('shopping.errScanner');
 		}
 	}
 
@@ -123,7 +124,7 @@
 			const p = await api.get<Product>(`/products/barcode/${code.trim()}`);
 			selectProduct(p);
 		} catch {
-			scanError = 'Producto no encontrado para ese código de barras';
+			scanError = t('shopping.errBarcodeNotFound');
 		} finally {
 			searching = false;
 		}
@@ -200,7 +201,7 @@
 		try {
 			const created = await api.post<ShoppingListItem[]>(`/shopping-list/from-recipe/${recipeId}`, {});
 			generateMsg = created.length === 0
-				? '¡Tienes todo en el inventario!'
+				? t('shopping.allInInventory')
 				: `${created.length} ingrediente${created.length > 1 ? 's' : ''} añadido${created.length > 1 ? 's' : ''}.`;
 			await load();
 		} finally {
@@ -221,18 +222,18 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/inventory')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Lista</h1>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('shopping.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{checked.length}/{items.length} completados</div>
 	</div>
 	{#if subscription.is_premium}
-	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5rem 0.875rem; border-radius:99px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.75rem; font-family:inherit; white-space:nowrap;">+ Añadir</button>
+	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5rem 0.875rem; border-radius:99px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('shopping.add')}</button>
 	{/if}
 </div>
 
 {#if !subscription.is_premium}
 	<PaywallCard
-		title="Lista de la compra"
-		description="Lista sincronizada con tu pareja. Genera automáticamente desde tus recetas y añade al inventario al volver."
+		title={t('shopping.paywallTitle')}
+		description={t('shopping.paywallDesc')}
 	/>
 {:else}
 
@@ -240,7 +241,7 @@
 {#if items.length > 0}
 	<div class="glass-card" style="margin-bottom:0.75rem; display:flex; align-items:center; gap:0.875rem;">
 		<div style="flex:1;">
-			<div style="font-size:0.625rem; letter-spacing:0.08em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:700;">Progreso</div>
+			<div style="font-size:0.625rem; letter-spacing:0.08em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:700;">{t('shopping.progress')}</div>
 			<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.25rem;">
 				<div style="font-size:2rem; font-weight:800; color:#fff; letter-spacing:-0.05em; font-family:'Lora','Georgia',serif;">{checked.length}</div>
 				<div style="font-size:0.875rem; color:rgba(255,255,255,0.5);">/ {items.length}</div>
@@ -251,7 +252,7 @@
 				<div style="height:100%; width:{items.length > 0 ? (checked.length/items.length)*100 : 0}%; background:linear-gradient(90deg, oklch(85% 0.18 160), oklch(72% 0.2 180)); border-radius:99px; transition:width 0.3s;"></div>
 			</div>
 			{#if checked.length > 0}
-				<button onclick={clearChecked} style="font-size:0.625rem; color:rgba(255,255,255,0.4); background:none; border:none; cursor:pointer; font-family:inherit; margin-top:0.375rem; padding:0;">🗑 Limpiar comprados</button>
+				<button onclick={clearChecked} style="font-size:0.625rem; color:rgba(255,255,255,0.4); background:none; border:none; cursor:pointer; font-family:inherit; margin-top:0.375rem; padding:0;">{t('shopping.clearBought')}</button>
 			{/if}
 		</div>
 	</div>
@@ -260,12 +261,12 @@
 <!-- ── Add form ── -->
 {#if showAddForm}
 	<div class="glass-card" style="margin-bottom:0.875rem;">
-		<div style="font-weight:700; font-size:0.875rem; margin-bottom:0.75rem; color:#fff;">Añadir elemento</div>
+		<div style="font-weight:700; font-size:0.875rem; margin-bottom:0.75rem; color:#fff;">{t('shopping.addItem')}</div>
 
 		<!-- Mode tabs -->
 		<div style="display:flex; padding:3px; background:rgba(255,255,255,0.04); border-radius:99px; margin-bottom:0.75rem; border:1px solid rgba(255,255,255,0.08);">
-			<button onclick={() => addMode = 'product'} style="flex:1; padding:0.5rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.75rem; background:{addMode==='product' ? 'rgba(255,255,255,0.09)' : 'transparent'}; color:{addMode==='product' ? '#fff' : 'rgba(255,255,255,0.5)'};">Por producto</button>
-			<button onclick={() => addMode = 'text'} style="flex:1; padding:0.5rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.75rem; background:{addMode==='text' ? 'rgba(255,255,255,0.09)' : 'transparent'}; color:{addMode==='text' ? '#fff' : 'rgba(255,255,255,0.5)'};">Texto libre</button>
+			<button onclick={() => addMode = 'product'} style="flex:1; padding:0.5rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.75rem; background:{addMode==='product' ? 'rgba(255,255,255,0.09)' : 'transparent'}; color:{addMode==='product' ? '#fff' : 'rgba(255,255,255,0.5)'};">{t('shopping.byProduct')}</button>
+			<button onclick={() => addMode = 'text'} style="flex:1; padding:0.5rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.75rem; background:{addMode==='text' ? 'rgba(255,255,255,0.09)' : 'transparent'}; color:{addMode==='text' ? '#fff' : 'rgba(255,255,255,0.5)'};">{t('shopping.freeText')}</button>
 		</div>
 
 		{#if addMode === 'product'}
@@ -277,14 +278,14 @@
 				</svg>
 				<input
 					bind:value={query}
-					placeholder="Buscar producto..."
+					placeholder={t('shopping.searchProduct')}
 					class="sl-search-input"
 					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }}
 				/>
 				<button
 					onclick={isNative ? scanNative : startWebScan}
 					class="sl-barcode-btn"
-					aria-label="Escanear código de barras"
+					aria-label={t('shopping.scanAria')}
 					disabled={scanning}
 				>
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -297,7 +298,7 @@
 				<div style="margin-bottom:0.75rem; position:relative;">
 					<!-- svelte-ignore a11y_media_has_caption -->
 					<video bind:this={videoEl} style="width:100%; border-radius:16px; background:#000;" playsinline></video>
-					<button onclick={stopWebScan} style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="Detener escáner">✕</button>
+					<button onclick={stopWebScan} style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label={t('shopping.scanStop')}>✕</button>
 				</div>
 			{/if}
 
@@ -325,23 +326,23 @@
 						<input id="sl-qty" type="number" bind:value={addQty} min="0" step="any" class="sl-field" />
 					</div>
 					<div style="display:flex; flex-direction:column; gap:0.25rem;">
-						<UnitSelector bind:unit={addUnit} label="Unidad" size="sm" />
+						<UnitSelector bind:unit={addUnit} label={t('shopping.unit')} size="sm" />
 					</div>
 				</div>
 			{/if}
 		{:else}
 			<div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.5rem;">
-				<label for="sl-text" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">Nombre del artículo</label>
-				<input id="sl-text" bind:value={freeText} placeholder="Pan de molde, detergente..." class="sl-field" />
+				<label for="sl-text" style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;">{t('shopping.itemName')}</label>
+				<input id="sl-text" bind:value={freeText} placeholder={t('shopping.itemPlaceholder')} class="sl-field" />
 			</div>
 		{/if}
 
 		{#if error}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin:0 0 0.5rem;">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-			<button onclick={() => openRecipeModal()} style="padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); cursor:pointer; font-family:inherit; font-size:0.75rem; white-space:nowrap;">🍳 Desde receta</button>
+			<button onclick={() => openRecipeModal()} style="padding:0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); cursor:pointer; font-family:inherit; font-size:0.75rem; white-space:nowrap;">{t('shopping.fromRecipe')}</button>
 			<button onclick={addItem} disabled={saving} style="flex:1; height:44px; border-radius:12px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.8125rem; font-family:inherit;">
-				{saving ? '...' : '+ Añadir'}
+				{saving ? '...' : t('shopping.add')}
 			</button>
 		</div>
 	</div>
@@ -349,7 +350,7 @@
 
 <!-- ── Shopping list ── -->
 {#if loading}
-	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">Cargando...</p>
+	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">{t('shopping.loading')}</p>
 {:else}
 	<!-- Pending items -->
 	{#if pending.length > 0}
@@ -357,7 +358,7 @@
 		<div class="glass-card" style="padding:0.375rem; margin-bottom:0.875rem;">
 			{#each pending as item, i (item.id)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < pending.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-					<button onclick={() => toggleCheck(item)} style="width:22px; height:22px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); background:transparent; cursor:pointer; flex-shrink:0;" aria-label="Marcar como comprado"></button>
+					<button onclick={() => toggleCheck(item)} style="width:22px; height:22px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); background:transparent; cursor:pointer; flex-shrink:0;" aria-label={t('shopping.markBought')}></button>
 					<div style="flex:1; min-width:0;">
 						<div style="font-weight:600; font-size:0.8125rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{item.product_name ?? '—'}</div>
 						{#if item.product_brand || item.quantity_g}
@@ -374,8 +375,8 @@
 	{:else if !loading}
 		<div class="glass-card" style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;">
 			<div style="font-size:2rem; margin-bottom:0.5rem;">🛍</div>
-			<div style="font-size:0.875rem; font-weight:600;">Lista vacía</div>
-			<div style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">¡A por ello!</div>
+			<div style="font-size:0.875rem; font-weight:600;">{t('shopping.empty')}</div>
+			<div style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">{t('shopping.emptySub')}</div>
 		</div>
 	{/if}
 
@@ -385,7 +386,7 @@
 		<div class="glass-card" style="padding:0.375rem; opacity:0.7;">
 			{#each checked as item, i (item.id)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < checked.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-					<button onclick={() => toggleCheck(item)} style="width:22px; height:22px; border-radius:50%; border:2px solid oklch(75% 0.18 165); background:oklch(75% 0.18 165 / 0.35); cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:0.625rem; color:oklch(90% 0.15 165); font-weight:800;" aria-label="Desmarcar">✓</button>
+					<button onclick={() => toggleCheck(item)} style="width:22px; height:22px; border-radius:50%; border:2px solid oklch(75% 0.18 165); background:oklch(75% 0.18 165 / 0.35); cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:0.625rem; color:oklch(90% 0.15 165); font-weight:800;" aria-label={t('shopping.unmark')}>✓</button>
 					<div style="flex:1; min-width:0;">
 						<div style="font-weight:600; font-size:0.8125rem; color:rgba(255,255,255,0.6); text-decoration:line-through; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{item.product_name ?? '—'}</div>
 						{#if item.quantity_g}
@@ -404,18 +405,18 @@
 
 <!-- Recipe modal -->
 {#if showRecipeModal}
-	<Modal onClose={() => { showRecipeModal = false; generateMsg = ''; }} title="Generar desde receta" subtitle="Se añadirán los ingredientes que falten en el inventario">
+	<Modal onClose={() => { showRecipeModal = false; generateMsg = ''; }} title={t('shopping.generateTitle')} subtitle={t('shopping.generateSub')}>
 		{#if generateMsg}
 			<div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:0.625rem 0.75rem; margin-bottom:0.75rem; font-size:0.8125rem; color:oklch(85% 0.17 160); font-weight:600;">
 				{generateMsg}
 			</div>
 		{/if}
 		{#if loadingRecipes}
-			<p style="text-align:center; color:rgba(255,255,255,0.4); font-size:0.85rem;">Cargando recetas...</p>
+			<p style="text-align:center; color:rgba(255,255,255,0.4); font-size:0.85rem;">{t('shopping.loadingRecipes')}</p>
 		{:else if recipes.length === 0}
 			<div style="text-align:center; padding:1.5rem 0; color:rgba(255,255,255,0.4);">
 				<div style="font-size:1.5rem; margin-bottom:0.375rem;">🍳</div>
-				<div style="font-size:0.8125rem;">Sin recetas. Crea una primero.</div>
+				<div style="font-size:0.8125rem;">{t('shopping.noRecipes')}</div>
 			</div>
 		{:else}
 			{#each recipes as recipe (recipe.id)}
@@ -425,7 +426,7 @@
 						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45);">{recipe.ingredients.length} ingredientes</div>
 					</div>
 					<button onclick={() => generateFromRecipe(recipe.id)} disabled={generatingId === recipe.id} style="font-size:0.75rem; padding:0.375rem 0.75rem; border-radius:10px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-family:inherit;">
-						{generatingId === recipe.id ? '...' : 'Añadir'}
+						{generatingId === recipe.id ? '...' : t('shopping.addBtn')}
 					</button>
 				</div>
 			{/each}

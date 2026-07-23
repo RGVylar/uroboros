@@ -68,6 +68,27 @@ export function fmtNumber(n: number, opts?: Intl.NumberFormatOptions): string {
 	return n.toLocaleString(getLocaleTag(), opts);
 }
 
+// Nombres de mes y día: los da Intl, que ya sabe hacerlo en los tres idiomas.
+// Escribirlos a mano en el diccionario sería 19 claves más para nada.
+export function monthNames(format: 'long' | 'short' = 'long'): string[] {
+	const fmt = new Intl.DateTimeFormat(getLocaleTag(), { month: format });
+	return Array.from({ length: 12 }, (_, m) =>
+		fmt.format(new Date(2000, m, 1)).replace(/^\p{Ll}/u, (c) => c.toUpperCase()),
+	);
+}
+
+/** Iniciales de los días, empezando en lunes (la semana europea). */
+export function weekdayInitials(): string[] {
+	const fmt = new Intl.DateTimeFormat(getLocaleTag(), { weekday: 'narrow' });
+	// 2024-01-01 fue lunes.
+	return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(2024, 0, 1 + i)).toUpperCase());
+}
+
+/** Día de la semana abreviado de una fecha concreta. */
+export function weekdayShort(d: Date): string {
+	return new Intl.DateTimeFormat(getLocaleTag(), { weekday: 'short' }).format(d);
+}
+
 // Sustituye al antiguo MEAL_LABELS de types.ts, que era un objeto constante y
 // por tanto no reaccionaba al cambio de idioma.
 export function mealLabel(mt: MealType): string {
