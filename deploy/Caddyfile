@@ -15,7 +15,8 @@
 
 	# Landing de invitación: la sirve el backend, no la SPA. Sin este bloque
 	# caería en el catch-all de abajo y SvelteKit respondería con su 404.
-	handle /unete /unete/* {
+	@unete path /unete /unete/*
+	handle @unete {
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__
 	}
 
