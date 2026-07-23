@@ -18,3 +18,7 @@ QA_TEST_ACCOUNT.md
 mockup-*.html
 PLAN_*.md
 QA_REVIEW_*.md
+
+# Boveda de Obsidian con la documentacion tecnica: menciona dominios, IDs de
+# contenedor, cuentas de prueba y comandos de produccion.
+/documentation/
