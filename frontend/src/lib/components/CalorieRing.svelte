@@ -4,6 +4,8 @@
   Macrobars van aparte debajo, en la página del diario.
 -->
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
+
 	interface Props {
 		consumed: number;
 		goal: number;
@@ -58,27 +60,27 @@
 		<div class="ring-center">
 			<div class="ring-label">kcal</div>
 			<div class="ring-value" class:over={isOver}>{Math.round(net)}</div>
-			<div class="ring-sub">de {goal}</div>
+			<div class="ring-sub">{t('ring.of', { goal })}</div>
 		</div>
 	</div>
 
 	<!-- Columna de stats -->
 	<div class="stats-col">
 		<div class="hero-stat">
-			<div class="stat-label">{remaining >= 0 ? 'Restantes' : 'Exceso'}</div>
+			<div class="stat-label">{remaining >= 0 ? t('ring.remaining') : t('ring.excess')}</div>
 			<div class="stat-val" style="color:{remaining >= 0 ? 'var(--primary)' : 'var(--danger)'}">
 				{Math.round(Math.abs(remaining))}<span class="stat-unit">kcal</span>
 			</div>
 		</div>
 		<div class="hero-stat">
-			<div class="stat-label">Consumidas</div>
+			<div class="stat-label">{t('ring.consumed')}</div>
 			<div class="stat-val" style="color:var(--cal)">
 				{Math.round(consumed)}<span class="stat-unit">kcal</span>
 			</div>
 		</div>
 		{#if burned > 0}
 			<div class="hero-stat">
-				<div class="stat-label">Quemadas</div>
+				<div class="stat-label">{t('ring.burned')}</div>
 				<div class="stat-val" style="color:var(--danger)">
 					-{Math.round(burned)}<span class="stat-unit">kcal</span>
 				</div>

@@ -216,7 +216,18 @@ export const pt: Dict = {
 	'login.footerPrivacy': 'Privacidade',
 	'login.footerTerms': 'Termos',
 
+	// ── anillo de calorías ──
+	'ring.of': 'de {goal}',
+	'ring.remaining': 'Restantes',
+	'ring.excess': 'Excesso',
+	'ring.consumed': 'Consumidas',
+	'ring.burned': 'Queimadas',
+
 	// ── diario ──
+	'diary.mealRecipe': '＋ Receita',
+	'diary.mealClear': '🗑 Esvaziar',
+	'diary.recipeSaved': 'Receita guardada.',
+	'diary.editingPartnerToo': 'A editar também o de {name}',
 	'diary.loading': 'A carregar...',
 	'diary.offlineSaved': 'Guardado localmente · sem ligação ao servidor',
 	'diary.pending_one': '{count} registo pendente',
@@ -273,6 +284,7 @@ export const pt: Dict = {
 	'diary.copyToMineTitle': 'Pôr também no meu',
 	'diary.deleteEntry': 'Apagar registo',
 	'diary.deleteAsk': 'Queres mesmo apagá-lo?',
+	'diary.deleteAskPartner': '{name} também o tem. De quem o tiro?',
 	'diary.deleteBoth': 'Para os dois',
 	'diary.deleteBothSub': 'Apaga-se nos dois diários',
 	'diary.deleteMine': 'Só para mim',

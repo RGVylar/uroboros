@@ -699,7 +699,7 @@
 		recipeSaveError = '';
 		try {
 			await api.post('/recipes', { name, ingredients, share_scope: 'friends' });
-			recipeSaveSuccess = 'Receta guardada.';
+			recipeSaveSuccess = t('diary.recipeSaved');
 			closeRecipeModal();
 			// Invalidate the frequent-recipes part of loadStatic (skipped on plain
 			// day navigation, but a new recipe should still show up promptly).
@@ -1073,7 +1073,7 @@
 										disabled={!meal.hasMyEntries}
 										style="font-size:0.72rem; padding:0.25rem 0.55rem;"
 									>
-										＋ Receta
+										{t('diary.mealRecipe')}
 									</button>
 									<button
 										class="btn-ghost"
@@ -1081,7 +1081,7 @@
 										disabled={!meal.hasMyEntries}
 										style="font-size:0.72rem; padding:0.25rem 0.55rem; color:oklch(70% 0.18 25);"
 									>
-										🗑 Vaciar
+										{t('diary.mealClear')}
 									</button>
 								{/snippet}
 							</MealHeader>
@@ -1177,7 +1177,7 @@
 				{#snippet plates()}
 					<div class="edit-plates">
 						<div class="edit-plate you">
-							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
+							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /></div>
 							<div class="edit-plate-who">{t('diary.you')}</div>
 							<div class="edit-plate-g">
 								<input type="number" bind:value={editGrams} min="1" step="1" aria-label={t('diary.yoursAria', { unit: editUnit })} />
@@ -1203,7 +1203,7 @@
 								Comida compartida
 								<span class="edit-has-badge">{t('diary.alreadyHasIt')}</span>
 							</div>
-							<div class="edit-share-sub" style="margin-top:0.1rem;">Editando también lo de {partner.name}</div>
+							<div class="edit-share-sub" style="margin-top:0.1rem;">{t('diary.editingPartnerToo', { name: partner.name })}</div>
 						</div>
 					</div>
 					{@render plates()}
@@ -1250,17 +1250,17 @@
 	>
 		<div class="del-q">
 			{deletingPartnerHas
-				? `${partner?.name} también lo tiene. ¿De quién lo quito?`
-				: '¿Seguro que quieres borrarla?'}
+				? t('diary.deleteAskPartner', { name: partner?.name ?? '' })
+				: t('diary.deleteAsk')}
 		</div>
 		<div class="del-cards">
 			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
-				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
 				<div class="del-txt"><div class="del-t">{t('diary.deleteBoth')}</div><div class="del-s">{t('diary.deleteBothSub')}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
-				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /></div>
 				<div class="del-txt"><div class="del-t">{t('diary.deleteMine')}</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
 				<div class="del-chev">›</div>
 			</button>
@@ -1355,7 +1355,7 @@
 			{#if shared}
 				<div class="shared-line">
 					<span class="shared-avs">
-						<span class="shared-av"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} identityHue={myHue} size={16} /></span>
+						<span class="shared-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} identityHue={myHue} size={16} /></span>
 						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={16} /></span>
 					</span>
 					<span class="shared-txt">Los dos · tú {Math.round(entry.grams)}{entry.product ? productUnit(entry.product) : 'g'} · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>

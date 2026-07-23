@@ -217,7 +217,18 @@ export const es = {
 	'login.footerPrivacy': 'Privacidad',
 	'login.footerTerms': 'Términos',
 
+	// ── anillo de calorías ──
+	'ring.of': 'de {goal}',
+	'ring.remaining': 'Restantes',
+	'ring.excess': 'Exceso',
+	'ring.consumed': 'Consumidas',
+	'ring.burned': 'Quemadas',
+
 	// ── diario ──
+	'diary.mealRecipe': '＋ Receta',
+	'diary.mealClear': '🗑 Vaciar',
+	'diary.recipeSaved': 'Receta guardada.',
+	'diary.editingPartnerToo': 'Editando también lo de {name}',
 	'diary.loading': 'Cargando...',
 	'diary.offlineSaved': 'Datos guardados · sin conexión con el servidor',
 	'diary.pending_one': '{count} entrada pendiente',
@@ -274,6 +285,7 @@ export const es = {
 	'diary.copyToMineTitle': 'Ponérmelo a mí también',
 	'diary.deleteEntry': 'Borrar entrada',
 	'diary.deleteAsk': '¿Seguro que quieres borrarla?',
+	'diary.deleteAskPartner': '{name} también lo tiene. ¿De quién lo quito?',
 	'diary.deleteBoth': 'Para los dos',
 	'diary.deleteBothSub': 'Se borra en ambos diarios',
 	'diary.deleteMine': 'Solo para mí',
