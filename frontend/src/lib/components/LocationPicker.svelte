@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import type { InventoryLocation } from '$lib/types';
 
 	interface Props {
@@ -9,11 +10,11 @@
 
 	let { location = $bindable('pantry'), size = 'md', label }: Props = $props();
 
-	const OPTIONS: { value: InventoryLocation; label: string; emoji: string }[] = [
-		{ value: 'pantry',   label: 'Despensa',    emoji: '🏠' },
-		{ value: 'fridge',   label: 'Nevera',      emoji: '❄️' },
-		{ value: 'freezer',  label: 'Congelador',  emoji: '🧊' },
-	];
+	let OPTIONS: { value: InventoryLocation; label: string; emoji: string }[] = $derived([
+		{ value: 'pantry',   label: t('location.pantry'),   emoji: '🏠' },
+		{ value: 'fridge',   label: t('location.fridge'),   emoji: '❄️' },
+		{ value: 'freezer',  label: t('location.freezer'),  emoji: '🧊' },
+	]);
 </script>
 
 <div class="loc-picker" class:loc-picker-sm={size === 'sm'}>
@@ -27,7 +28,7 @@
 				class="loc-chip"
 				class:loc-chip-active={location === opt.value}
 				onclick={() => (location = opt.value)}
-				aria-label="Ubicación: {opt.label}"
+				aria-label={t('location.aria', { label: opt.label })}
 			>
 				<span class="loc-emoji">{opt.emoji}</span>
 				<span>{opt.label}</span>

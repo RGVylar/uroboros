@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t, tc } from '$lib/i18n/index.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 
 	let days = $derived(subscription.trial_days_left);
@@ -11,12 +12,12 @@
 		<span class="emoji">⏳</span>
 		<span class="text">
 			{#if days === 0}
-				Tu prueba termina hoy
+				{t('trial.endsToday')}
 			{:else}
-				{days} {days === 1 ? 'día' : 'días'} de prueba restantes
+				{tc('trial.left', days ?? 0)}
 			{/if}
 		</span>
-		<a href="/premium" class="cta">Ver planes</a>
+		<a href="/premium" class="cta">{t('trial.seePlans')}</a>
 	</div>
 {/if}
 

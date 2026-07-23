@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import { goto } from '$app/navigation';
 
 	interface Props {
@@ -21,7 +22,7 @@
 	</button>
 	<!-- Sin promesa de prueba: /premium aún es "Próximamente" y no se puede
 	     iniciar ningún trial. Reponer el hint cuando exista la compra real. -->
-	<div class="hint">Muy pronto · mientras tanto sigue gratis</div>
+	<div class="hint">{t('paywall.soon')}</div>
 </div>
 
 <style>

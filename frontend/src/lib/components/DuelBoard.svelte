@@ -12,7 +12,7 @@
 <script lang="ts">
 	import Avatar from './Avatar.svelte';
 	import type { DuelData, DuelDay, DuelSide } from '$lib/duel-example';
-	import { fmtDate } from '$lib/i18n/index.svelte';
+	import { t, fmtDate } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		duel: DuelData;
@@ -37,7 +37,7 @@
 		sun.setDate(mon.getDate() + 6);
 		const short = (d: Date) => fmtDate(d, { day: 'numeric', month: 'short' });
 		const sameMonth = mon.getMonth() === sun.getMonth();
-		return sameMonth ? `Semana del ${mon.getDate()} al ${short(sun)}` : `Semana del ${short(mon)} al ${short(sun)}`;
+		return t('duel.weekRange', { from: sameMonth ? String(mon.getDate()) : short(mon), to: short(sun) });
 	})();
 </script>
 
@@ -82,10 +82,10 @@
 		</div>
 		{#if !compact}
 			<div class="legend">
-				<i>✓ en objetivo</i>
-				<i>· fuera de rango</i>
-				<i>○ sin registrar</i>
-				<i>🍕 comodín</i>
+				<i>{t('duel.inGoal')}</i>
+				<i>{t('duel.outOfRange')}</i>
+				<i>{t('duel.notLogged')}</i>
+				<i>{t('duel.joker')}</i>
 			</div>
 		{/if}
 	</div>
@@ -93,7 +93,7 @@
 	{#if !compact}
 		<!-- ── Histórico de temporadas ── -->
 		<div class="hist">
-			<div class="eyebrow">Temporadas ganadas</div>
+			<div class="eyebrow">{t('duel.seasonsWon')}</div>
 			<div class="tally">
 				<div>
 					<div class="n win">{duel.seasonsWon.me}</div>
@@ -111,12 +111,12 @@
 				{/each}
 			</div>
 			{#if duel.streakWeeks > 1}
-				<div class="streak">Llevas <b>{duel.streakWeeks} semanas seguidas</b> 🔥</div>
+				<div class="streak">{t('duel.streakPre')} <b>{t('duel.streakWeeks', { count: duel.streakWeeks })}</b> 🔥</div>
 			{/if}
 		</div>
 
 		<!-- ── Insignias ── -->
-		<div class="eyebrow badges-label">Insignias de duelo</div>
+		<div class="eyebrow badges-label">{t('duel.badges')}</div>
 		<div class="badges">
 			{#each duel.badges as b}
 				<div class="badge" class:on={b.unlocked}>

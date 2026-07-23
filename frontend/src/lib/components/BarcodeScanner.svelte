@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import { onDestroy } from 'svelte';
 	import { Capacitor } from '@capacitor/core';
 
@@ -36,7 +37,7 @@
 				});
 			}
 		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'No se pudo acceder a la cámara';
+			scanError = e instanceof Error ? e.message : t('shopping.errCamera');
 			scanning = false;
 		}
 	}
@@ -51,13 +52,13 @@
 		try {
 			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
 			const { supported } = await BarcodeScanner.isSupported();
-			if (!supported) { scanError = 'Escáner no soportado'; return; }
+			if (!supported) { scanError = t('shopping.errScannerUnsupported'); return; }
 			const granted = await BarcodeScanner.requestPermissions();
-			if (granted.camera !== 'granted') { scanError = 'Permiso de cámara denegado'; return; }
+			if (granted.camera !== 'granted') { scanError = t('shopping.errCameraDenied'); return; }
 			const { barcodes } = await BarcodeScanner.scan();
 			if (barcodes.length > 0) onScan(barcodes[0].rawValue);
 		} catch (e: unknown) {
-			scanError = e instanceof Error ? e.message : 'Error del escáner';
+			scanError = e instanceof Error ? e.message : t('shopping.errScanner');
 		}
 	}
 
@@ -79,7 +80,7 @@
 	<button
 		onclick={isNative ? scanNative : startWebScan}
 		disabled={scanning}
-		aria-label="Escanear código de barras"
+		aria-label={t('scanner.aria')}
 		style="width:38px; height:38px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:oklch(85% 0.15 160); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.15s; padding:0;"
 	>
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -96,7 +97,7 @@
 		<button
 			onclick={stopScan}
 			style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"
-			aria-label="Detener escáner"
+			aria-label={t('scanner.stopAria')}
 		>✕</button>
 	</div>
 {/if}

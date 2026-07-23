@@ -4,6 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Friendship, FriendshipKind } from '$lib/types';
 	import { Modal, Avatar } from '$lib/components';
+	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -172,17 +173,17 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Amigos</h1>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('friends.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{friends.length} conectad@s</div>
 	</div>
-	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">＋ Añadir</button>
+	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>
 </div>
 
 <!-- ── Add friend form ── -->
 {#if showAddForm}
 	<div class="glass-card" style="margin-bottom:1rem;">
-		<div style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.625rem;">Enviar solicitud</div>
-		<input type="email" placeholder="Email de la persona..." bind:value={addEmail}
+		<div style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.625rem;">{t('friends.sendRequest')}</div>
+		<input type="email" placeholder={t('friends.emailPlaceholder')} bind:value={addEmail}
 			onkeydown={(e) => { if (e.key === 'Enter') sendRequest(); }} style="width:100%; margin-bottom:0.75rem;" />
 
 		<!-- El tipo se elige, no se deduce de un permiso suelto -->
@@ -193,8 +194,8 @@
 				aria-pressed={addKind === 'partner'}
 				style="flex:1; text-align:left; padding:0.8125rem; border-radius:14px; cursor:{partner ? 'not-allowed' : 'pointer'}; opacity:{partner ? 0.4 : 1}; font-family:inherit; border:1px solid {addKind === 'partner' ? 'oklch(80% 0.17 165 / 0.55)' : 'rgba(255,255,255,0.1)'}; background:{addKind === 'partner' ? 'oklch(75% 0.15 160 / 0.1)' : 'rgba(255,255,255,0.03)'};">
 				<div style="font-size:1.0625rem;">💚</div>
-				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'partner' ? 'oklch(88% 0.15 160)' : '#fff'};">Pareja</div>
-				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">Despensa y lista de la compra en común. Podéis apuntaros comida.</div>
+				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'partner' ? 'oklch(88% 0.15 160)' : '#fff'};">{t('friends.kindPartner')}</div>
+				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">{t('friends.kindPartnerSub')}</div>
 				{#if partner}
 					<div style="font-size:0.5938rem; color:oklch(80% 0.13 85); margin-top:0.4375rem; line-height:1.4;">🔒 Ya tienes a {friendName(partner)} como pareja</div>
 				{/if}
@@ -204,13 +205,13 @@
 				aria-pressed={addKind === 'friend'}
 				style="flex:1; text-align:left; padding:0.8125rem; border-radius:14px; cursor:pointer; font-family:inherit; border:1px solid {addKind === 'friend' ? 'oklch(80% 0.17 165 / 0.55)' : 'rgba(255,255,255,0.1)'}; background:{addKind === 'friend' ? 'oklch(75% 0.15 160 / 0.1)' : 'rgba(255,255,255,0.03)'};">
 				<div style="font-size:1.0625rem;">👋</div>
-				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'friend' ? 'oklch(88% 0.15 160)' : '#fff'};">Amigo</div>
-				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">Recetas y duelo semanal. Cada uno con su despensa.</div>
+				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'friend' ? 'oklch(88% 0.15 160)' : '#fff'};">{t('friends.kindFriend')}</div>
+				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">{t('friends.kindFriendSub')}</div>
 			</button>
 		</div>
 
 		<button onclick={sendRequest} disabled={addLoading || !addEmail.trim()} style="width:100%; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; border:none; padding:0.6875rem; border-radius:13px; font-family:inherit; cursor:pointer; font-size:0.8125rem;">
-			{addLoading ? '...' : 'Enviar solicitud'}
+			{addLoading ? '...' : t('friends.sendRequest')}
 		</button>
 		{#if addError}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin-top:0.375rem;">{addError}</p>{/if}
 		{#if addSuccess}<p style="color:oklch(85% 0.17 160); font-size:0.75rem; margin-top:0.375rem;">{addSuccess}</p>{/if}
@@ -218,7 +219,7 @@
 {/if}
 
 {#if loading}
-	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">Cargando...</p>
+	<p style="text-align:center; color:rgba(255,255,255,0.4); padding:3rem 0; font-size:0.85rem;">{t('friends.loading')}</p>
 {:else}
 
 <!-- ── Partner spotlight ── -->
@@ -229,7 +230,7 @@
 			<Avatar name={pName} avatarId={friendAvatar(partner)} size={52} ring="2px solid oklch(80% 0.17 165)" />
 		</div>
 		<div style="flex:1; min-width:0;">
-			<div style="font-size:0.625rem; letter-spacing:0.075em; color:oklch(85% 0.15 160); text-transform:uppercase; font-weight:800;">Empareja@</div>
+			<div style="font-size:0.625rem; letter-spacing:0.075em; color:oklch(85% 0.15 160); text-transform:uppercase; font-weight:800;">{t('friends.pairUp')}</div>
 			<div style="font-size:0.9375rem; font-weight:700; color:#fff; margin-top:0.125rem;">{pName}</div>
 			<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.125rem;">{friendEmail(partner)}</div>
 		</div>
@@ -252,8 +253,8 @@
 	{#if friends.length === 0}
 		<div class="glass-card" style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;">
 			<div style="font-size:2rem; margin-bottom:0.5rem;">👥</div>
-			<div style="font-size:0.875rem; font-weight:600;">Sin amigos aún</div>
-			<div style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.35);">Usa el botón ＋ Añadir para enviar una solicitud</div>
+			<div style="font-size:0.875rem; font-weight:600;">{t('friends.empty')}</div>
+			<div style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.35);">{t('friends.emptySub')}</div>
 		</div>
 	{:else}
 		<div class="glass-card" style="padding:0.375rem;">
@@ -272,17 +273,17 @@
 						</button>
 						<div style="flex:1; min-width:0;">
 							{#if f.kind === 'partner'}
-								<div style="font-size:0.5625rem; font-weight:800; letter-spacing:0.075em; text-transform:uppercase; color:oklch(85% 0.15 160);">Pareja</div>
+								<div style="font-size:0.5625rem; font-weight:800; letter-spacing:0.075em; text-transform:uppercase; color:oklch(85% 0.15 160);">{t('friends.kindPartner')}</div>
 							{/if}
 							<div style="font-size:0.8125rem; font-weight:700; color:#fff;">{fName}</div>
 							<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{friendEmail(f)}</div>
 						</div>
 						{#if f.kind !== 'partner' && !partner}
 							<button onclick={() => proposePartner(f)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid oklch(80% 0.17 165 / 0.4); background:oklch(75% 0.15 160 / 0.1); color:oklch(85% 0.15 160); cursor:pointer; font-family:inherit; white-space:nowrap;">
-								{f.partner_proposed_by === auth.user?.id ? 'Propuesto ✓' : f.partner_proposed_by ? 'Quiere ser tu pareja' : 'Hacer pareja'}
+								{f.partner_proposed_by === auth.user?.id ? t('friends.partnerProposed') : f.partner_proposed_by ? t('friends.partnerWants') : t('friends.makePartner')}
 							</button>
 						{/if}
-						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">Eliminar</button>
+						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">{t('friends.remove')}</button>
 					</div>
 					{#if f.partner_proposed_by && f.partner_proposed_by !== auth.user?.id && f.kind !== 'partner'}
 						<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.5rem;">👆 {fName} quiere que seáis pareja. Toca para aceptar.</div>
@@ -292,7 +293,7 @@
 					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
 						<div style="display:flex; align-items:center; justify-content:space-between;">
 							<div>
-								<div style="font-size:0.75rem; font-weight:600; color:#fff;">🏠 Inventario compartido</div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.sharedInventory')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.shared_inventory}
 										Un inventario y lista de compra para los dos ✓
@@ -305,12 +306,12 @@
 									{/if}
 								</div>
 							</div>
-							<button onclick={() => toggleSharedInventory(f)} role="switch" aria-checked={mySharedFlag(f)} aria-label="Compartir inventario con {partnerName(f)}" style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{mySharedFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {mySharedFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
+							<button onclick={() => toggleSharedInventory(f)} role="switch" aria-checked={mySharedFlag(f)} aria-label={t('friends.shareAria', { name: partnerName(f) })} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{mySharedFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {mySharedFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 								<div style="position:absolute; top:2px; left:{mySharedFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
 							</button>
 						</div>
 						{#if theirSharedFlag(f) && !mySharedFlag(f)}
-							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar a compartir</div>
+							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">{t('friends.enableYourSide')}</div>
 						{/if}
 					</div>
 					{/if}
@@ -318,7 +319,7 @@
 					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
 						<div style="display:flex; align-items:center; justify-content:space-between;">
 							<div>
-								<div style="font-size:0.75rem; font-weight:600; color:#fff;">⚔️ Duelo semanal</div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.duel')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.duel_active}
 										Compitiendo en adherencia ✓
@@ -331,24 +332,24 @@
 									{/if}
 								</div>
 							</div>
-							<button onclick={() => toggleDuel(f)} role="switch" aria-checked={myDuelFlag(f)} aria-label="Duelo semanal con {partnerName(f)}" style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myDuelFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myDuelFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
+							<button onclick={() => toggleDuel(f)} role="switch" aria-checked={myDuelFlag(f)} aria-label={t('friends.duelAria', { name: partnerName(f) })} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myDuelFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myDuelFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 								<div style="position:absolute; top:2px; left:{myDuelFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
 							</button>
 						</div>
 						{#if theirDuelFlag(f) && !myDuelFlag(f)}
-							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">👆 Activa tu lado para empezar el duelo</div>
+							<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.375rem;">{t('friends.enableYourSideDuel')}</div>
 						{/if}
 					</div>
 					<!-- Diary access is partner-only, like the household above -->
 					{#if f.kind === 'partner'}
 					<div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
 						<div>
-							<div style="font-size:0.75rem; font-weight:600; color:#fff;">Permitir añadir a mi diario</div>
+							<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.allowDiary')}</div>
 							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 								{myCanAddFlag(f) ? `${partnerName(f)} puede registrar en tu diario` : 'Solo lectura para ellos'}
 							</div>
 						</div>
-						<button onclick={() => togglePermission(f)} role="switch" aria-checked={myCanAddFlag(f)} aria-label="Permitir que {partnerName(f)} añada a mi diario" style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
+						<button onclick={() => togglePermission(f)} role="switch" aria-checked={myCanAddFlag(f)} aria-label={t('friends.allowDiaryAria', { name: partnerName(f) })} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 							<div style="position:absolute; top:2px; left:{myCanAddFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>
 						</button>
 					</div>
@@ -367,7 +368,7 @@
 	{#if pending.length === 0}
 		<div class="glass-card" style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;">
 			<div style="font-size:2rem; margin-bottom:0.5rem;">✉️</div>
-			<div style="font-size:0.875rem; font-weight:600;">Sin solicitudes pendientes</div>
+			<div style="font-size:0.875rem; font-weight:600;">{t('friends.noPending')}</div>
 		</div>
 	{:else}
 		<div class="glass-card" style="padding:0.375rem;">
@@ -378,7 +379,7 @@
 						<div style="flex:1; min-width:0;">
 							<div style="font-size:0.8125rem; font-weight:700; color:#fff;">{f.requester.name}</div>
 							<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45);">
-								te quiere añadir como <span style="font-weight:700; color:{f.kind === 'partner' ? 'oklch(85% 0.15 160)' : 'rgba(255,255,255,0.75)'};">{f.kind === 'partner' ? 'pareja' : 'amigo'}</span>
+								te quiere añadir como <span style="font-weight:700; color:{f.kind === 'partner' ? 'oklch(85% 0.15 160)' : 'rgba(255,255,255,0.75)'};">{f.kind === 'partner' ? t('friends.asPartner') : t('friends.asFriend')}</span>
 							</div>
 						</div>
 					</div>
@@ -391,13 +392,13 @@
 								· juntar despensa y lista de la compra<br>
 								· apuntaros comida el uno al otro<br>
 								· veros las alergias<br>
-								<span style="color:rgba(255,255,255,0.35);">Cada cosa se activa aparte. Nada se enciende solo.</span>
+								<span style="color:rgba(255,255,255,0.35);">{t('friends.eachSeparate')}</span>
 							{:else}
 								{f.requester.name} podrá:<br>
 								· ver tu racha y cuántas recetas tienes<br>
-								· ver las recetas que marques <em>para amigos</em><br>
+								· ver las recetas que marques <em>{t('friends.forFriends')}</em><br>
 								· proponerte duelo semanal (solo el %)<br>
-								<span style="color:rgba(255,255,255,0.35);">No verá tu diario ni podrá escribir en él.</span>
+								<span style="color:rgba(255,255,255,0.35);">{t('friends.wontSeeDiary')}</span>
 							{/if}
 						</div>
 					</div>
@@ -449,7 +450,7 @@
 	<Modal onClose={() => confirmDeleteId = null} title="¿Eliminar amigo?" subtitle="Se eliminará la amistad y los permisos asociados.">
 		<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
 			<button class="btn-secondary" onclick={() => confirmDeleteId = null} style="flex:1;">Cancelar</button>
-			<button class="btn-danger" onclick={confirmRemove} style="flex:1;">Eliminar</button>
+			<button class="btn-danger" onclick={confirmRemove} style="flex:1;">{t('friends.remove')}</button>
 		</div>
 	</Modal>
 {/if}

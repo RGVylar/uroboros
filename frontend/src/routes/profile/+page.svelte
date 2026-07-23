@@ -8,7 +8,7 @@
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import { Avatar, Modal } from '$lib/components';
 	import { AVATARS, IDENTITY_HUES, identityColor } from '$lib/avatars';
-	import { avatarLabel } from '$lib/i18n/index.svelte';
+	import { t, avatarLabel } from '$lib/i18n/index.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -25,7 +25,7 @@
 			auth.updateUser({ avatar_id: id });
 			showAvatarPicker = false;
 		} catch {
-			toast.error('No se pudo cambiar el avatar');
+			toast.error(t('profile.errAvatar'));
 		} finally {
 			savingAvatar = false;
 		}
@@ -38,7 +38,7 @@
 			await api.patch('/users/me/identity-color', { identity_hue: hue });
 			auth.updateUser({ identity_hue: hue });
 		} catch {
-			toast.error('No se pudo cambiar el color');
+			toast.error(t('profile.errColour'));
 		} finally {
 			savingColor = false;
 		}
@@ -55,14 +55,14 @@
 	// Los logros se evalúan en cliente con los datos disponibles (no se
 	// persisten en el servidor), así que las condiciones son aproximadas
 	// pero deben reflejar el progreso real del usuario.
-	const ACHIEVEMENTS = [
-		{ id: 1, label: 'Primer log',  desc: 'Primera comida registrada', hue: 160, unlocked: () => totalDays >= 1 || streak >= 1 },
-		{ id: 2, label: '7 días',      desc: 'Racha de 7 días',           hue:  45, unlocked: () => streak >= 7 },
-		{ id: 3, label: 'Recetas',     desc: '3 recetas creadas',         hue: 295, unlocked: () => ownRecipes >= 3 },
-		{ id: 4, label: 'Peso',        desc: 'Primer registro de peso',   hue: 220, unlocked: () => weightLogs >= 1 },
-		{ id: 5, label: 'Amigos',      desc: 'Primer amigo añadido',      hue: 330, unlocked: () => friendCount >= 1 },
-		{ id: 6, label: '30 días',     desc: 'Racha de 30 días',          hue:  25, unlocked: () => streak >= 30 },
-	];
+	let ACHIEVEMENTS = $derived([
+		{ id: 1, label: t('profile.achFirstLog'), desc: t('profile.achFirstLogDesc'), hue: 160, unlocked: () => totalDays >= 1 || streak >= 1 },
+		{ id: 2, label: t('profile.ach7'),        desc: t('profile.ach7Desc'),        hue:  45, unlocked: () => streak >= 7 },
+		{ id: 3, label: t('profile.achRecipes'),  desc: t('profile.achRecipesDesc'),  hue: 295, unlocked: () => ownRecipes >= 3 },
+		{ id: 4, label: t('profile.achWeight'),   desc: t('profile.achWeightDesc'),   hue: 220, unlocked: () => weightLogs >= 1 },
+		{ id: 5, label: t('profile.achFriends'),  desc: t('profile.achFriendsDesc'),  hue: 330, unlocked: () => friendCount >= 1 },
+		{ id: 6, label: t('profile.ach30'),       desc: t('profile.ach30Desc'),       hue:  25, unlocked: () => streak >= 30 },
+	]);
 
 	async function load() {
 		loading = true;
@@ -87,7 +87,7 @@
 
 	$effect(() => { load(); });
 
-	const userName = $derived(auth.user?.name ?? 'Usuario');
+	const userName = $derived(auth.user?.name ?? t('settings.user'));
 	const userEmail = $derived(auth.user?.email ?? '');
 	const userAvatar = $derived(auth.user?.avatar_id ?? null);
 	const userColorHue = $derived(auth.user?.identity_hue ?? null);
@@ -98,10 +98,10 @@
 	})());
 
 	const stats = $derived([
-		{ l: 'Racha',           v: streak > 0 ? String(streak) : '—',                       u: streak === 1 ? 'día' : 'días', hue: 45 },
-		{ l: 'Activo este mes', v: String(totalDays),                                       u: '/30',    hue: 160 },
-		{ l: 'Meta kcal',       v: goals?.kcal    ? String(Math.round(goals.kcal))    : '—', u: 'kcal',   hue: 220 },
-		{ l: 'Proteína meta',   v: goals?.protein ? String(Math.round(goals.protein)) : '—', u: 'g/día',  hue: 295 },
+		{ l: t('profile.statStreak'),  v: streak > 0 ? String(streak) : '—',                       u: streak === 1 ? t('profile.unitDay') : t('profile.unitDays'), hue: 45 },
+		{ l: t('profile.statActive'),  v: String(totalDays),                                       u: '/30',                  hue: 160 },
+		{ l: t('profile.statKcal'),    v: goals?.kcal    ? String(Math.round(goals.kcal))    : '—', u: 'kcal',                 hue: 220 },
+		{ l: t('profile.statProtein'), v: goals?.protein ? String(Math.round(goals.protein)) : '—', u: t('profile.unitGDay'),  hue: 295 },
 	]);
 </script>
 
@@ -109,15 +109,15 @@
 
 <div class="page">
 	<ScreenHeader
-		title="Perfil"
-		sub="Tu progreso y logros"
+		title={t('profile.title')}
+		sub={t('profile.sub')}
 		onBack={() => goto('/settings')}
 	/>
 
 	<!-- Hero -->
 	<GlassCard padding={22}>
 		<div class="hero">
-			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title="Cambiar avatar">
+			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title={t('profile.changeAvatar')}>
 				<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
 					<Avatar name={userName} avatarId={userAvatar} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
 				</div>
@@ -139,13 +139,13 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="loading">Cargando…</div>
+				<div class="loading">{t('profile.loading')}</div>
 			{/if}
 		</div>
 	</GlassCard>
 
 	<!-- Achievements -->
-	<div class="section-title">Logros</div>
+	<div class="section-title">{t('profile.achievements')}</div>
 	<div class="ach-grid">
 		{#each ACHIEVEMENTS as a}
 			{@const unlocked = !loading && a.unlocked()}
@@ -161,7 +161,7 @@
 </div>
 
 {#if showAvatarPicker}
-	<Modal onClose={() => showAvatarPicker = false} title="Elige tu avatar" subtitle="Toca uno para usarlo en tu perfil">
+	<Modal onClose={() => showAvatarPicker = false} title={t('profile.pickAvatar')} subtitle={t('profile.pickAvatarSub')}>
 		<div class="avatar-grid">
 			{#each AVATARS as a}
 				<button
@@ -176,12 +176,12 @@
 			{/each}
 		</div>
 		<button class="avatar-clear" disabled={savingAvatar || !userAvatar} onclick={() => pickAvatar(null)}>
-			Usar inicial ({userName[0]?.toUpperCase() ?? 'U'})
+			{t('profile.useInitial', { initial: userName[0]?.toUpperCase() ?? 'U' })}
 		</button>
 
 		<div class="color-section">
-			<div class="color-title">Tu color</div>
-			<div class="color-sub">El aro de tu avatar y el tono con el que te ve tu pareja.</div>
+			<div class="color-title">{t('profile.yourColour')}</div>
+			<div class="color-sub">{t('profile.yourColourSub')}</div>
 			<div class="color-row">
 				{#each IDENTITY_HUES as hue}
 					<button
@@ -190,7 +190,7 @@
 						disabled={savingColor}
 						style="background:{identityColor(userName, hue)};"
 						onclick={() => pickColor(hue)}
-						aria-label="Color {hue}"
+						aria-label={t('profile.colourAria', { hue })}
 					></button>
 				{/each}
 				<button
@@ -198,8 +198,8 @@
 					class:selected={userColorHue === null}
 					disabled={savingColor}
 					onclick={() => pickColor(null)}
-					aria-label="Color automático"
-					title="Automático (según tu nombre)"
+					aria-label={t('profile.autoColourAria')}
+					title={t('profile.autoColourTitle')}
 				>A</button>
 			</div>
 		</div>

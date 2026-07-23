@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import { api } from '$lib/api';
 	import type { InventoryItem, InventoryUnit } from '$lib/types';
 	import UnitSelector from './UnitSelector.svelte';
@@ -59,20 +60,20 @@
 </script>
 
 <div class="backdrop" onclick={onclose} role="presentation"></div>
-<div class="modal" role="dialog" aria-modal="true" aria-label="Consumir del inventario">
+<div class="modal" role="dialog" aria-modal="true" aria-label={t('consume.aria')}>
 	<div class="modal-icon">📦</div>
-	<h2 class="modal-title">Consumir del inventario</h2>
+	<h2 class="modal-title">{t('consume.title')}</h2>
 	<p class="modal-sub">{item.product_name}</p>
 
 	<div class="stock-info">
-		<div class="stock-label">Stock actual</div>
+		<div class="stock-label">{t('consume.currentStock')}</div>
 		<div class="stock-value">
 			{item.quantity_base.toLocaleString()} <span class="stock-unit">{item.unit}</span>
 		</div>
 	</div>
 
 	<div class="field-group">
-		<label for="cf-qty" class="field-label">Cantidad a restar</label>
+		<label for="cf-qty" class="field-label">{t('consume.amount')}</label>
 		<input
 			id="cf-qty"
 			type="number"
@@ -88,19 +89,19 @@
 	</div>
 
 	<div class="field-group">
-		<label for="cf-notes" class="field-label">Notas (opcional)</label>
+		<label for="cf-notes" class="field-label">{t('consume.notes')}</label>
 		<input
 			id="cf-notes"
 			type="text"
 			bind:value={notes}
-			placeholder="Ej. desayuno, sobras..."
+			placeholder={t('consume.notesPlaceholder')}
 			class="notes-input"
 		/>
 	</div>
 
 	{#if unit === item.unit}
 		<div class="preview">
-			Quedará: <strong>{remaining.toLocaleString()} {item.unit}</strong>
+			{t('consume.remaining')} <strong>{remaining.toLocaleString()} {item.unit}</strong>
 		</div>
 	{/if}
 
@@ -113,7 +114,7 @@
 			Cancelar
 		</button>
 		<button type="button" class="btn-confirm" onclick={confirm} disabled={saving}>
-			{saving ? 'Restando…' : '✓ Restar del stock'}
+			{saving ? t('consume.subtracting') : t('consume.subtract')}
 		</button>
 	</div>
 </div>

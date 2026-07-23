@@ -5,6 +5,7 @@
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import Slider from '$lib/components/uro/Slider.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let step = $state(0);
 
@@ -17,18 +18,18 @@
 	let bodyActivity = $state('moderate');
 	let saving = $state(false);
 
-	const objectives = [
-		{ key: 'lose'     as const, emoji: '🔥', label: 'Perder peso',   sub: 'Déficit controlado',         kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
-		{ key: 'maintain' as const, emoji: '⚖️', label: 'Mantenerme',    sub: 'Equilibrio',                 kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hue: 165 },
-		{ key: 'gain'     as const, emoji: '💪', label: 'Ganar músculo', sub: 'Superávit para crecer',      kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hue: 220 },
-	];
+	let objectives = $derived([
+		{ key: 'lose'     as const, emoji: '🔥', label: t('onb.objLose'),     sub: t('onb.objLoseSub'),     kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
+		{ key: 'maintain' as const, emoji: '⚖️', label: t('onb.objMaintain'), sub: t('onb.objMaintainSub'), kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hue: 165 },
+		{ key: 'gain'     as const, emoji: '💪', label: t('onb.objGain'),     sub: t('onb.objGainSub'),     kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hue: 220 },
+	]);
 
-	const activities = [
-		{ key: 'sedentary', label: 'Sedentario', sub: 'Sin ejercicio', factor: 1.2 },
-		{ key: 'light',     label: 'Ligero',     sub: '1–3 días/sem',  factor: 1.375 },
-		{ key: 'moderate',  label: 'Moderado',   sub: '3–5 días/sem',  factor: 1.55 },
-		{ key: 'active',    label: 'Activo',     sub: '6–7 días/sem',  factor: 1.725 },
-	];
+	let activities = $derived([
+		{ key: 'sedentary', label: t('onb.actSedentary'), sub: t('onb.actSedentarySub'), factor: 1.2 },
+		{ key: 'light',     label: t('onb.actLight'),     sub: t('onb.actLightSub'),     factor: 1.375 },
+		{ key: 'moderate',  label: t('onb.actModerate'),  sub: t('onb.actModerateSub'),  factor: 1.55 },
+		{ key: 'active',    label: t('onb.actActive'),    sub: t('onb.actActiveSub'),    factor: 1.725 },
+	]);
 
 	// TDEE en vivo (Mifflin–St Jeor)
 	let calculated = $derived((() => {
@@ -97,7 +98,7 @@
 				></div>
 			{/each}
 		</div>
-		<button class="ob-skip" onclick={skip} disabled={saving}>Saltar</button>
+		<button class="ob-skip" onclick={skip} disabled={saving}>{t('onb.skip')}</button>
 	</div>
 
 	<!-- Slide -->
@@ -107,14 +108,14 @@
 		{#if step === 0}
 			<div class="center">
 				<div class="logo">U</div>
-				<h1 class="serif big">Bienvenido a <em>uroboros</em></h1>
-				<p class="sub">Vamos a ajustar tus calorías y macros en 6 pasos rápidos. Podrás cambiarlo todo más adelante.</p>
+				<h1 class="serif big">{t('onb.welcomeTo')} <em>uroboros</em></h1>
+				<p class="sub">{t('onb.welcomeSub')}</p>
 			</div>
 
 		<!-- Step 1: Objetivo -->
 		{:else if step === 1}
-			<h1 class="serif">¿Cuál es tu objetivo?</h1>
-			<p class="sub">Ajustaremos calorías y macros en base a esto.</p>
+			<h1 class="serif">{t('onb.goalQ')}</h1>
+			<p class="sub">{t('onb.goalSub')}</p>
 			<div class="stack">
 				{#each objectives as o}
 					{@const active = objective === o.key}
@@ -136,8 +137,8 @@
 
 		<!-- Step 2: Cuerpo -->
 		{:else if step === 2}
-			<h1 class="serif">Cuéntanos sobre ti</h1>
-			<p class="sub">Lo usamos para calcular tu metabolismo basal.</p>
+			<h1 class="serif">{t('onb.aboutYou')}</h1>
+			<p class="sub">{t('onb.aboutYouSub')}</p>
 
 			<div class="sex-grid">
 				{#each [{ k: 'male' as const, l: 'Hombre', e: '♂' }, { k: 'female' as const, l: 'Mujer', e: '♀' }] as s}
@@ -149,14 +150,14 @@
 				{/each}
 			</div>
 
-			<Slider label="Peso" bind:value={bodyWeight} min={40} max={150} unit="kg"/>
-			<Slider label="Altura" bind:value={bodyHeight} min={140} max={210} unit="cm"/>
-			<Slider label="Edad" bind:value={bodyAge} min={14} max={90} unit="años"/>
+			<Slider label={t('onb.weight')} bind:value={bodyWeight} min={40} max={150} unit="kg"/>
+			<Slider label={t('onb.height')} bind:value={bodyHeight} min={140} max={210} unit="cm"/>
+			<Slider label={t('onb.age')} bind:value={bodyAge} min={14} max={90} unit="años"/>
 
 		<!-- Step 3: Actividad -->
 		{:else if step === 3}
-			<h1 class="serif">¿Cómo te mueves?</h1>
-			<p class="sub">Tu nivel de actividad semanal.</p>
+			<h1 class="serif">{t('onb.moveQ')}</h1>
+			<p class="sub">{t('onb.moveSub')}</p>
 			<div class="act-grid">
 				{#each activities as a}
 					{@const active = bodyActivity === a.key}
@@ -170,8 +171,8 @@
 
 		<!-- Step 4: Resumen -->
 		{:else if step === 4}
-			<h1 class="serif">Tu plan diario</h1>
-			<p class="sub">Calculado con Mifflin–St Jeor. Lo puedes ajustar después.</p>
+			<h1 class="serif">{t('onb.planTitle')}</h1>
+			<p class="sub">{t('onb.planSub')}</p>
 
 			<GlassCard padding={20}>
 				<div class="summary">
@@ -183,7 +184,7 @@
 
 			<div class="macro-grid">
 				{#each [
-					{ l:'Proteína', v: calculated.protein, hue: 220 },
+					{ l:t('onb.protein'), v: calculated.protein, hue: 220 },
 					{ l:'Carbs',    v: calculated.carbs,   hue: 275 },
 					{ l:'Grasa',    v: calculated.fat,     hue: 355 },
 				] as m}
@@ -202,18 +203,18 @@
 					<div class="pair-bubble pair-right">?</div>
 					<div class="pair-badge">2×</div>
 				</div>
-				<h1 class="serif">¿Comes con alguien?</h1>
-				<p class="sub">Empareja vuestras cuentas para registrar una comida para los dos a la vez.</p>
-				<button class="ghost-btn" onclick={() => { finish(); goto('/friends'); }}>＋ Invitar pareja</button>
-				<div class="hint">O hazlo más tarde desde Ajustes.</div>
+				<h1 class="serif">{t('onb.partnerQ')}</h1>
+				<p class="sub">{t('onb.partnerSub')}</p>
+				<button class="ghost-btn" onclick={() => { finish(); goto('/friends'); }}>{t('onb.invitePartner')}</button>
+				<div class="hint">{t('onb.partnerLater')}</div>
 			</div>
 
 		<!-- Step 6: Listo -->
 		{:else if step === 6}
 			<div class="center">
 				<div class="check-big">✓</div>
-				<h1 class="serif">Todo listo</h1>
-				<p class="sub">Empieza añadiendo tu primera comida desde el botón ＋. Te enseñaré el resto sobre la marcha.</p>
+				<h1 class="serif">{t('onb.doneTitle')}</h1>
+				<p class="sub">{t('onb.doneSub')}</p>
 			</div>
 		{/if}
 	</div>
@@ -221,10 +222,10 @@
 	<!-- Bottom CTAs -->
 	<div class="ob-actions">
 		{#if step > 0}
-			<button class="btn-back" onclick={back} disabled={saving}>Atrás</button>
+			<button class="btn-back" onclick={back} disabled={saving}>{t('onb.back')}</button>
 		{/if}
 		<button class="btn-next" onclick={next} disabled={saving}>
-			{saving ? 'Guardando…' : step === TOTAL_STEPS - 1 ? 'Entrar a uroboros' : 'Siguiente'}
+			{saving ? t('onb.saving') : step === TOTAL_STEPS - 1 ? t('onb.enter') : t('onb.next')}
 		</button>
 	</div>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { api } from '$lib/api';
 
@@ -40,38 +41,38 @@
 <!-- Backdrop -->
 <div class="backdrop" onclick={dismiss} role="presentation"></div>
 
-<div class="modal" role="dialog" aria-modal="true" aria-label="Activar notificaciones">
+<div class="modal" role="dialog" aria-modal="true" aria-label={t('notifModal.enableAria')}>
 	<div class="modal-icon">🔔</div>
-	<h2 class="modal-title">Recordatorios inteligentes</h2>
-	<p class="modal-sub">Solo te avisamos cuando tiene sentido</p>
+	<h2 class="modal-title">{t('notifModal.title')}</h2>
+	<p class="modal-sub">{t('notifModal.sub')}</p>
 
 	<ul class="feature-list">
 		<li>
 			<span class="feat-emoji">🍳</span>
 			<div>
-				<strong>Recordatorio de comida</strong>
-				<span>Solo si esa comida no está registrada aún</span>
+				<strong>{t('notifModal.meal')}</strong>
+				<span>{t('notifModal.mealSub')}</span>
 			</div>
 		</li>
 		<li>
 			<span class="feat-emoji">🔥</span>
 			<div>
-				<strong>Racha en peligro</strong>
-				<span>Si llevas ≥3 días y no has registrado nada hoy</span>
+				<strong>{t('notifModal.streak')}</strong>
+				<span>{t('notifModal.streakSub')}</span>
 			</div>
 		</li>
 		<li>
 			<span class="feat-emoji">🏆</span>
 			<div>
-				<strong>Hitos de racha</strong>
-				<span>Al llegar a 7, 14, 30 días seguidos...</span>
+				<strong>{t('notifModal.milestones')}</strong>
+				<span>{t('notifModal.milestonesSub')}</span>
 			</div>
 		</li>
 		<li>
 			<span class="feat-emoji">📊</span>
 			<div>
-				<strong>Resumen del día</strong>
-				<span>Un vistazo rápido a tus macros al final del día</span>
+				<strong>{t('notifModal.summary')}</strong>
+				<span>{t('notifModal.summarySub')}</span>
 			</div>
 		</li>
 	</ul>
@@ -92,9 +93,9 @@
 
 	<div class="modal-actions">
 		<button class="btn-activate" onclick={activate} disabled={loading}>
-			{loading ? 'Activando…' : '🔔 Activar recordatorios'}
+			{loading ? t('notifModal.enabling') : t('notifModal.enable')}
 		</button>
-		<button class="btn-dismiss" onclick={dismiss}>Ahora no</button>
+		<button class="btn-dismiss" onclick={dismiss}>{t('notifModal.notNow')}</button>
 	</div>
 </div>
 

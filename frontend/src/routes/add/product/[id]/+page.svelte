@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Product } from '$lib/types';
+	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -54,10 +55,10 @@
 	}
 </script>
 
-<h1>Editar producto</h1>
+<h1>{t('editProduct.title')}</h1>
 
 {#if !product && !error}
-	<p style="color:var(--text-muted);">Cargando...</p>
+	<p style="color:var(--text-muted);">{t('editProduct.loading')}</p>
 {:else if error && !product}
 	<p class="error">{error}</p>
 {:else}
@@ -67,19 +68,19 @@
 		</div>
 	</div>
 
-	<div class="form-group"><label for="e-name">Nombre</label><input id="e-name" bind:value={name} /></div>
-	<div class="form-group"><label for="e-brand">Marca</label><input id="e-brand" bind:value={brand} /></div>
-	<div class="form-group"><label for="e-cal">Kcal / 100g</label><input id="e-cal" type="number" bind:value={cal} min="0" step="0.1" /></div>
-	<div class="form-group"><label for="e-prot">Proteína / 100g</label><input id="e-prot" type="number" bind:value={prot} min="0" step="0.1" /></div>
-	<div class="form-group"><label for="e-carb">Carbos / 100g</label><input id="e-carb" type="number" bind:value={carbs} min="0" step="0.1" /></div>
-	<div class="form-group"><label for="e-fat">Grasa / 100g</label><input id="e-fat" type="number" bind:value={fat} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="e-name">{t('editProduct.name')}</label><input id="e-name" bind:value={name} /></div>
+	<div class="form-group"><label for="e-brand">{t('editProduct.brand')}</label><input id="e-brand" bind:value={brand} /></div>
+	<div class="form-group"><label for="e-cal">{t('editProduct.kcal')}</label><input id="e-cal" type="number" bind:value={cal} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="e-prot">{t('editProduct.protein')}</label><input id="e-prot" type="number" bind:value={prot} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="e-carb">{t('editProduct.carbs')}</label><input id="e-carb" type="number" bind:value={carbs} min="0" step="0.1" /></div>
+	<div class="form-group"><label for="e-fat">{t('editProduct.fat')}</label><input id="e-fat" type="number" bind:value={fat} min="0" step="0.1" /></div>
 
 	{#if error}<p class="error">{error}</p>{/if}
 
 	<div style="display:flex; gap:0.5rem;">
-		<button class="btn-secondary" onclick={() => history.back()} style="flex:1;">Cancelar</button>
+		<button class="btn-secondary" onclick={() => history.back()} style="flex:1;">{t('common.cancel')}</button>
 		<button onclick={save} disabled={saving} style="flex:2;">
-			{saved ? 'Guardado!' : saving ? 'Guardando...' : 'Guardar cambios'}
+			{saved ? t('editProduct.saved') : saving ? t('editProduct.saving') : t('editProduct.save')}
 		</button>
 	</div>
 {/if}

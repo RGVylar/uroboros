@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	// Premium features shown as a teaser. Pricing and purchase are intentionally
 	// NOT here yet: Google Play rejects apps that show prices with a buy button
@@ -20,26 +21,26 @@
 </script>
 
 <svelte:head>
-	<title>Premium — uroboros</title>
+	<title>{t('premium.pageTitle')}</title>
 </svelte:head>
 
 <Aurora />
 
 <div class="shell">
-	<button class="back-btn" onclick={() => goto('/')}>← Atrás</button>
+	<button class="back-btn" onclick={() => goto('/')}>{t('premium.back')}</button>
 
 	<!-- Header -->
 	<div class="hero">
 		<div class="crown">👑</div>
 		<h1>uroboros <span class="premium-label">Premium</span></h1>
-		<p class="sub">Todo lo que necesitas para cuidarte de verdad</p>
+		<p class="sub">{t('premium.tagline')}</p>
 	</div>
 
 	{#if subscription.is_premium}
 		<!-- Grandfathered / premium users already have everything -->
 		<div class="status-box ok">
-			<div class="status-title">✅ Tienes acceso completo</div>
-			<div class="status-sub">Disfrutas de todas las funciones de uroboros. Gracias por estar desde el principio 💚</div>
+			<div class="status-title">{t('premium.haveAccess')}</div>
+			<div class="status-sub">{t('premium.haveAccessSub')}</div>
 		</div>
 
 		<div class="features">
@@ -53,8 +54,8 @@
 	{:else}
 		<!-- Free users: teaser of what's coming -->
 		<div class="status-box soon">
-			<div class="status-title">✨ Próximamente</div>
-			<div class="status-sub">Estamos afinando la versión Premium. Mientras tanto, disfruta de uroboros gratis — el diario, el escáner, el peso, las alergias y el registro para la pareja son y seguirán siendo gratuitos.</div>
+			<div class="status-title">{t('premium.soon')}</div>
+			<div class="status-sub">{t('premium.soonSub')}</div>
 		</div>
 
 		<div class="features">

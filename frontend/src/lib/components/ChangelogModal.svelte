@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
 	import { APP_VERSION, markSeen, type ReleaseNote } from '$lib/changelog';
 
 	// Notes come from the server (newest first). May span several versions if the
@@ -31,13 +32,13 @@
 <div class="backdrop" role="presentation" onclick={dismiss}></div>
 
 <!-- Sheet -->
-<div class="sheet" role="dialog" aria-modal="true" aria-label="Novedades de la versión">
+<div class="sheet" role="dialog" aria-modal="true" aria-label={t('changelog.aria')}>
 	<div class="handle"></div>
 
 	<div class="header">
 		<div class="icon">🐍</div>
 		<div class="header-text">
-			<div class="eyebrow">Novedades</div>
+			<div class="eyebrow">{t('changelog.title')}</div>
 			<div class="version-title">Versión {topVersion}</div>
 		</div>
 	</div>
@@ -62,7 +63,7 @@
 	<div class="divider"></div>
 
 	<div class="footer">
-		<button class="btn-primary" onclick={dismiss}>¡Entendido!</button>
+		<button class="btn-primary" onclick={dismiss}>{t('changelog.gotIt')}</button>
 	</div>
 </div>
 
