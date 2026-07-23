@@ -6,6 +6,7 @@
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
+	import { t, tc } from '$lib/i18n/index.svelte';
 	if (!auth.isLoggedIn) goto('/login');
 
 	const LS_KEY = 'supplements_enabled';
@@ -74,8 +75,8 @@
 	}
 
 	function dayLabel(days: number[] | null): string {
-		if (!days || days.length === 7) return 'Todos los días';
-		return `${days.length} días/sem`;
+		if (!days || days.length === 7) return t('supp.everyDay');
+		return t('supp.daysPerWeek', { count: days.length });
 	}
 
 	function toggleExistingDay(s: UserSupplement, d: number) {
@@ -98,8 +99,8 @@
 
 <div class="page">
 	<ScreenHeader
-		title="Suplementos"
-		sub={enabled ? `${supplements.length} ${supplements.length === 1 ? 'activo' : 'activos'} · checks en el diario` : 'Tracking pausado'}
+		title={t('supp.title')}
+		sub={enabled ? tc('supp.active', supplements.length) + t('supp.diaryChecks') : t('supp.paused')}
 		onBack={() => goto('/settings')}
 	/>
 
@@ -107,10 +108,10 @@
 	<div class="master">
 		<div class="master-icon" class:on={enabled}>💊</div>
 		<div class="master-text">
-			<div class="master-title">Mostrar en el diario</div>
-			<div class="master-sub">Checks rápidos según el día de la semana</div>
+			<div class="master-title">{t('supp.showInDiary')}</div>
+			<div class="master-sub">{t('supp.showInDiarySub')}</div>
 		</div>
-		<button class="switch" class:on={enabled} onclick={toggleEnabled} aria-label="Activar suplementos">
+		<button class="switch" class:on={enabled} onclick={toggleEnabled} aria-label={t('supp.toggleAria')}>
 			<span class="knob"></span>
 		</button>
 	</div>
@@ -127,7 +128,7 @@
 								<div class="row-name">{s.name}</div>
 								<div class="row-sub">{dayLabel(s.days_of_week)}</div>
 							</div>
-							<button class="row-remove" onclick={() => remove(s.id)} aria-label="Eliminar">✕</button>
+							<button class="row-remove" onclick={() => remove(s.id)} aria-label={t('supp.deleteAria')}>✕</button>
 						</div>
 						<div class="days">
 							{#each DAY_LABELS as l, d}
@@ -141,20 +142,20 @@
 		{:else}
 			<div class="empty">
 				<div class="empty-icon">💊</div>
-				<div class="empty-title">Sin suplementos aún</div>
-				<div class="empty-sub">Añade el primero abajo</div>
+				<div class="empty-title">{t('supp.empty')}</div>
+				<div class="empty-sub">{t('supp.emptySub')}</div>
 			</div>
 		{/if}
 
 		<!-- Añadir nuevo -->
 		<div class="add-card" accent>
-			<div class="add-label">Nuevo suplemento</div>
+			<div class="add-label">{t('supp.new')}</div>
 			<input
 				bind:value={newName}
-				placeholder="Ej. Vitamina C"
+				placeholder={t('supp.namePlaceholder')}
 				onkeydown={(e) => e.key === 'Enter' && add()}
 			/>
-			<div class="days-label">Días</div>
+			<div class="days-label">{t('supp.days')}</div>
 			<div class="days">
 				{#each DAY_LABELS as l, d}
 					{@const a = isDayActive(newDays, d)}
@@ -163,7 +164,7 @@
 			</div>
 			<div class="days-hint">{dayLabel(newDays)}</div>
 			<button class="add-btn" onclick={add} disabled={adding || !newName.trim()}>
-				{adding ? '…' : '＋ Añadir'}
+				{adding ? '…' : t('supp.add')}
 			</button>
 		</div>
 	{/if}

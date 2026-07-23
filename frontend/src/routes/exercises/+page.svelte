@@ -5,6 +5,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
+	import { t, exerciseLabel, exerciseUnit } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -63,7 +64,7 @@
 	// ── CRUD mis ejercicios ──────────────────────────────────────────────────
 	async function createExercise() {
 		if (!newName.trim() || newKcal <= 0) {
-			createError = 'Rellena nombre y calorías por unidad';
+			createError = t('ex.errFields');
 			return;
 		}
 		createError = '';
@@ -177,8 +178,8 @@
 
 {#if !subscription.is_premium}
 	<PaywallCard
-		title="Sesiones de ejercicio"
-		description="Registra tus entrenos, quema calorías y llévalos al historial. Disponible en Premium."
+		title={t('ex.paywallTitle')}
+		description={t('ex.paywallDesc')}
 		onUpgrade={() => goto('/premium')}
 	/>
 {:else}
@@ -187,8 +188,8 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">Ejercicios</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">Energía gastada hoy</div>
+		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('ex.title')}</h1>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('ex.subtitle')}</div>
 	</div>
 </div>
 
@@ -216,12 +217,12 @@
 		</div>
 		<!-- Stats -->
 		<div style="flex:1;">
-			<div style="font-size:0.625rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700;">Quemadas hoy</div>
+			<div style="font-size:0.625rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700;">{t('ex.burnedToday')}</div>
 			<div style="font-size:2.25rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin-top:0.25rem; font-family:'Lora','Georgia',serif;">
 				{totalKcal} <span style="font-size:0.875rem; color:rgba(255,255,255,0.5); font-weight:400;">kcal</span>
 			</div>
 			<div style="display:flex; gap:0.625rem; margin-top:0.625rem; font-size:0.6875rem;">
-				<div><span style="color:rgba(255,255,255,0.5);">Sesiones:</span> <span style="color:#fff; font-weight:600;">{totalSessions}</span></div>
+				<div><span style="color:rgba(255,255,255,0.5);">{t('ex.sessions')}</span> <span style="color:#fff; font-weight:600;">{totalSessions}</span></div>
 			</div>
 		</div>
 	</div>
@@ -229,19 +230,19 @@
 
 <!-- ── Tab switcher ── -->
 <div style="display:flex; gap:0.375rem; margin-bottom:1rem; padding:3px; border-radius:99px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
-	{#each [{ id:'today', label:'Hoy' }, { id:'catalog', label:'Catálogo' }] as t}
-		<button onclick={() => activeTab = t.id as 'today'|'catalog'} style="
+	{#each [{ id:'today', label:t('common.today') }, { id:'catalog', label:t('ex.catalog') }] as tab}
+		<button onclick={() => activeTab = tab.id as 'today'|'catalog'} style="
 			flex:1; padding:0.5625rem 0.75rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit;
-			background:{activeTab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent'};
-			color:{activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.5)'};
+			background:{activeTab === tab.id ? 'rgba(255,255,255,0.1)' : 'transparent'};
+			color:{activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.5)'};
 			font-size:0.75rem; font-weight:700; transition:all 0.15s;
-		">{t.label}</button>
+		">{tab.label}</button>
 	{/each}
 </div>
 
 <!-- ── TAB: HOY ── -->
 {#if activeTab === 'today'}
-	<div style="font-size:0.625rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.625rem;">Sesiones registradas</div>
+	<div style="font-size:0.625rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.625rem;">{t('ex.loggedSessions')}</div>
 
 	{#if session && session.entries.length > 0}
 		<div class="glass-card" style="padding:0.375rem;">
@@ -267,13 +268,13 @@
 	{:else}
 		<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
 			<div style="font-size:2rem; margin-bottom:0.5rem;">🏃</div>
-			<div style="font-size:0.8125rem; font-weight:600; color:rgba(255,255,255,0.5);">Sin actividad registrada hoy</div>
-			<div style="font-size:0.6875rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">Ve al Catálogo para añadir</div>
+			<div style="font-size:0.8125rem; font-weight:600; color:rgba(255,255,255,0.5);">{t('ex.emptyToday')}</div>
+			<div style="font-size:0.6875rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">{t('ex.emptyTodaySub')}</div>
 		</div>
 	{/if}
 
 	<!-- Quick add from catalog button -->
-	<button onclick={() => activeTab = 'catalog'} style="width:100%; margin-top:0.875rem; padding:0.875rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); font-family:inherit; font-size:0.8125rem; cursor:pointer;">+ Añadir actividad</button>
+	<button onclick={() => activeTab = 'catalog'} style="width:100%; margin-top:0.875rem; padding:0.875rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); font-family:inherit; font-size:0.8125rem; cursor:pointer;">{t('ex.addActivity')}</button>
 
 <!-- ── TAB: CATÁLOGO ── -->
 {:else}
@@ -282,29 +283,29 @@
 		<div style="position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.4); pointer-events:none; font-size:0.875rem;">🔍</div>
 		<input
 			bind:value={catalogQuery}
-			placeholder="Buscar ejercicio…"
+			placeholder={t('ex.searchPlaceholder')}
 			style="width:100%; padding:0.8125rem 1rem 0.8125rem 2.5rem; border-radius:16px; font-size:0.8125rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; outline:none; font-family:inherit; box-sizing:border-box;"
 		/>
 	</div>
 
 	<!-- Add new exercise button -->
 	<button onclick={() => { showNewForm = !showNewForm; createError = ''; }} style="width:100%; margin-bottom:0.75rem; padding:0.75rem; border-radius:14px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);">
-		{showNewForm ? '✕ Cancelar' : '+ Crear ejercicio propio'}
+		{showNewForm ? t('ex.cancelNew') : t('ex.createOwn')}
 	</button>
 
 	{#if showNewForm}
 		<div class="glass-card" style="margin-bottom:0.875rem;">
-			<div style="font-size:0.75rem; font-weight:700; color:#fff; margin-bottom:0.75rem;">Nuevo ejercicio</div>
+			<div style="font-size:0.75rem; font-weight:700; color:#fff; margin-bottom:0.75rem;">{t('ex.newExercise')}</div>
 			<div style="display:flex; flex-direction:column; gap:0.625rem;">
-				<input bind:value={newName} placeholder="Nombre" style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
+				<input bind:value={newName} placeholder={t('ex.namePlaceholder')} style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
 				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-					<input type="number" bind:value={newKcal} min="0.1" step="0.1" placeholder="Kcal / unidad" style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
+					<input type="number" bind:value={newKcal} min="0.1" step="0.1" placeholder={t('ex.kcalPlaceholder')} style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;" />
 					<select bind:value={newUnit} style="width:100%; padding:0.625rem 0.75rem; border-radius:10px; background:rgba(18,20,26,0.95); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; outline:none; box-sizing:border-box;">
 						{#each UNIT_SUGGESTIONS as u}<option value={u}>{u}</option>{/each}
 					</select>
 				</div>
 				{#if createError}<div style="font-size:0.6875rem; color:oklch(75% 0.2 25);">{createError}</div>{/if}
-				<button onclick={createExercise} style="padding:0.75rem; border-radius:12px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer;">Guardar</button>
+				<button onclick={createExercise} style="padding:0.75rem; border-radius:12px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer;">{t('common.save')}</button>
 			</div>
 		</div>
 	{/if}
@@ -321,10 +322,10 @@
 					transition:background 0.15s;
 				">
 					<div style="font-size:1.75rem;">{exerciseEmoji(ex.name)}</div>
-					<div style="font-size:0.8125rem; font-weight:600; color:#fff; line-height:1.2;">{ex.name}</div>
-					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{ex.kcal_per_unit} kcal/{ex.unit}</div>
+					<div style="font-size:0.8125rem; font-weight:600; color:#fff; line-height:1.2;">{exerciseLabel(ex.name)}</div>
+					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{ex.kcal_per_unit} kcal/{exerciseUnit(ex.unit)}</div>
 					{#if !ex.is_predefined}
-						<div style="font-size:0.5625rem; color:oklch(80% 0.15 160); font-weight:600;">· Personalizado</div>
+						<div style="font-size:0.5625rem; color:oklch(80% 0.15 160); font-weight:600;">{t('ex.custom')}</div>
 					{/if}
 				</button>
 			{/each}
@@ -354,12 +355,12 @@
 			<div style="font-size:2.5rem;">{exerciseEmoji(showDetail.name)}</div>
 			<div>
 				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:'Lora','Georgia',serif;">{showDetail.name}</div>
-				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{showDetail.kcal_per_unit} kcal / {showDetail.unit}</div>
+				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{showDetail.kcal_per_unit} kcal / {exerciseUnit(showDetail.unit)}</div>
 			</div>
 		</div>
 
 		<!-- Quantity -->
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-bottom:0.5rem; font-weight:600; letter-spacing:0.05em;">CANTIDAD ({showDetail.unit})</div>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-bottom:0.5rem; font-weight:600; letter-spacing:0.05em;">{t('ex.quantityCaps')} ({exerciseUnit(showDetail.unit)})</div>
 		<input
 			type="range"
 			min="1"
@@ -370,14 +371,14 @@
 		/>
 		<div style="display:flex; justify-content:space-between; font-size:0.625rem; color:rgba(255,255,255,0.4); margin-bottom:1.25rem;">
 			<span>1</span>
-			<span style="color:#fff; font-weight:700; font-size:0.875rem;">{detailQuantity} {showDetail.unit}</span>
+			<span style="color:#fff; font-weight:700; font-size:0.875rem;">{detailQuantity} {exerciseUnit(showDetail.unit)}</span>
 			<span>{showDetail.unit === 'minutos' ? 180 : showDetail.unit === 'segundos' ? 600 : 100}</span>
 		</div>
 
 		<!-- Kcal preview -->
 		<div style="display:flex; gap:0.625rem; margin-bottom:1.25rem;">
 			<div style="flex:1; padding:0.875rem 1rem; border-radius:18px; background:oklch(75% 0.18 30 / 0.12); border:1px solid oklch(75% 0.18 30 / 0.25);">
-				<div style="font-size:0.5625rem; letter-spacing:0.1em; color:rgba(255,255,255,0.5); text-transform:uppercase; font-weight:700;">Gasto estimado</div>
+				<div style="font-size:0.5625rem; letter-spacing:0.1em; color:rgba(255,255,255,0.5); text-transform:uppercase; font-weight:700;">{t('ex.estimated')}</div>
 				<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.375rem;">
 					<div style="font-size:2rem; font-weight:400; color:#fff; letter-spacing:-0.04em; font-family:'Lora','Georgia',serif;">{Math.round(showDetail.kcal_per_unit * detailQuantity)}</div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
@@ -388,7 +389,7 @@
 		{#if addError}<div style="font-size:0.6875rem; color:oklch(75% 0.2 25); margin-bottom:0.75rem;">{addError}</div>{/if}
 
 		<button onclick={registerFromDetail} disabled={sessionLoading} style="width:100%; padding:0.875rem; border-radius:16px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.9375rem; font-family:inherit; box-shadow:0 10px 30px -8px oklch(75% 0.22 165 / 0.55), inset 0 1px 0 rgba(255,255,255,0.4);">
-			{sessionLoading ? 'Registrando...' : 'Registrar sesión'}
+			{sessionLoading ? t('ex.logging') : t('ex.logSession')}
 		</button>
 	</div>
 {/if}

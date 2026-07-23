@@ -4,24 +4,32 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
+	import { t, tc, allergenLabel } from '$lib/i18n/index.svelte';
 	if (!auth.isLoggedIn) goto('/login');
 
+	// La etiqueta sale de allergenLabel() y la nota de allergenNote.*; aquí solo
+	// van la clave (que viaja a la API) y el emoji.
 	const ALLERGENS = [
-		{ key: 'gluten',          label: 'Gluten',         emoji: '🌾', note: 'Trigo, cebada, centeno, avena' },
-		{ key: 'milk',            label: 'Leche',          emoji: '🥛', note: 'Lactosa y derivados lácteos' },
-		{ key: 'eggs',            label: 'Huevos',         emoji: '🥚', note: null },
-		{ key: 'peanuts',         label: 'Cacahuetes',     emoji: '🥜', note: null },
-		{ key: 'nuts',            label: 'Frutos secos',   emoji: '🌰', note: 'Almendras, avellanas, nueces…' },
-		{ key: 'soybeans',        label: 'Soja',           emoji: '🫘', note: null },
-		{ key: 'fish',            label: 'Pescado',        emoji: '🐟', note: null },
-		{ key: 'crustaceans',     label: 'Marisco',        emoji: '🦐', note: 'Crustáceos' },
-		{ key: 'celery',          label: 'Apio',           emoji: '🥬', note: null },
-		{ key: 'mustard',         label: 'Mostaza',        emoji: '🌿', note: null },
-		{ key: 'sesame-seeds',    label: 'Sésamo',         emoji: '🌱', note: null },
-		{ key: 'sulphur-dioxide', label: 'Sulfitos',       emoji: '🍷', note: 'Dióxido de azufre' },
-		{ key: 'mollusks',        label: 'Moluscos',       emoji: '🦑', note: null },
-		{ key: 'lupin',           label: 'Altramuces',     emoji: '🌻', note: null },
+		{ key: 'gluten',          emoji: '🌾' },
+		{ key: 'milk',            emoji: '🥛' },
+		{ key: 'eggs',            emoji: '🥚' },
+		{ key: 'peanuts',         emoji: '🥜' },
+		{ key: 'nuts',            emoji: '🌰' },
+		{ key: 'soybeans',        emoji: '🫘' },
+		{ key: 'fish',            emoji: '🐟' },
+		{ key: 'crustaceans',     emoji: '🦐' },
+		{ key: 'celery',          emoji: '🥬' },
+		{ key: 'mustard',         emoji: '🌿' },
+		{ key: 'sesame-seeds',    emoji: '🌱' },
+		{ key: 'sulphur-dioxide', emoji: '🍷' },
+		{ key: 'mollusks',        emoji: '🦑' },
+		{ key: 'lupin',           emoji: '🌻' },
 	] as const;
+
+	const NOTED = new Set(['gluten', 'milk', 'nuts', 'crustaceans', 'sulphur-dioxide']);
+	function allergenNote(key: string): string | null {
+		return NOTED.has(key) ? t(`allergenNote.${key}` as Parameters<typeof t>[0]) : null;
+	}
 
 	type AllergenKey = typeof ALLERGENS[number]['key'];
 
@@ -83,8 +91,8 @@
 
 <div class="page">
 	<ScreenHeader
-		title="Alergias"
-		sub={active.size > 0 ? `${active.size} marcad${active.size === 1 ? 'a' : 'as'} · te avisaremos al añadir productos` : 'Te avisaremos si un producto contiene alguna'}
+		title={t('allergies.title')}
+		sub={active.size > 0 ? tc('allergies.marked', active.size) + t('allergies.willWarn') : t('allergies.none')}
 		onBack={() => goto('/settings')}
 	/>
 
@@ -95,8 +103,8 @@
 	<div class="banner">
 		<div class="banner-icon">⚠️</div>
 		<div class="banner-text">
-			<div class="banner-title">Detectaremos alérgenos automáticamente</div>
-			<div class="banner-sub">Al escanear o buscar productos en Open Food Facts.</div>
+			<div class="banner-title">{t('allergies.autoDetect')}</div>
+			<div class="banner-sub">{t('allergies.autoDetectSub')}</div>
 		</div>
 	</div>
 
@@ -111,8 +119,8 @@
 			>
 				<div class="chip-icon" class:on>{a.emoji}</div>
 				<div class="chip-texts">
-					<div class="chip-label">{a.label}</div>
-					{#if a.note}<div class="chip-note">{a.note}</div>{/if}
+					<div class="chip-label">{allergenLabel(a.key)}</div>
+					{#if allergenNote(a.key)}<div class="chip-note">{allergenNote(a.key)}</div>{/if}
 				</div>
 				<div class="chip-check" class:on>
 					{#if on}✓{/if}

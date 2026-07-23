@@ -6,7 +6,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { BodyMeasurementLog } from '$lib/types';
-	import { fmtDate, measureLabel } from '$lib/i18n/index.svelte';
+	import { t, fmtDate, measureLabel } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -164,8 +164,8 @@
 
 {#if !subscription.is_premium}
 	<PaywallCard
-		title="Medidas corporales"
-		description="Registra cintura, cadera, pecho y más. Visualiza tu evolución con gráficas y exporta a Excel."
+		title={t('meas.paywallTitle')}
+		description={t('meas.paywallDesc')}
 		onUpgrade={() => goto('/premium')}
 	/>
 {:else}
@@ -173,10 +173,10 @@
 <!-- Page header -->
 <div class="trk-header">
 	<div style="flex:1; min-width:0;">
-		<h1 class="trk-title">Medidas</h1>
-		<div class="trk-sub">Control corporal · mensual</div>
+		<h1 class="trk-title">{t('meas.title')}</h1>
+		<div class="trk-sub">{t('meas.subtitle')}</div>
 	</div>
-	<button class="btn-reg" onclick={() => { showAdd = true; }}>+ Nueva</button>
+	<button class="btn-reg" onclick={() => { showAdd = true; }}>{t('meas.new')}</button>
 </div>
 
 <!-- 2-column grid of measurement cards -->
@@ -228,10 +228,10 @@
 {/if}
 
 <!-- Body silhouette map -->
-<div class="section-eyebrow" style="margin:1.5rem 0.25rem 0.75rem;">Registro corporal</div>
+<div class="section-eyebrow" style="margin:1.5rem 0.25rem 0.75rem;">{t('meas.bodyLog')}</div>
 <div class="glass-card body-card">
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<svg viewBox="0 0 200 210" width="100%" style="max-width:340px; display:block; margin:0 auto; overflow:visible;" aria-label="Mapa corporal de medidas">
+	<svg viewBox="0 0 200 210" width="100%" style="max-width:340px; display:block; margin:0 auto; overflow:visible;" aria-label={t('meas.bodyMapAria')}>
 		<defs>
 			<linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
 				<stop offset="0%" stop-color="oklch(80% 0.14 165 / 0.5)"/>
@@ -330,14 +330,14 @@
 		{/each}
 	</svg>
 	<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); text-align:center; margin-top:0.75rem;">
-		Toca un punto o <button onclick={() => showAdd = true}
-			style="all:unset; color:oklch(78% 0.18 165); cursor:pointer; font-weight:700; font-size:inherit;">+ Nueva</button> para registrar
+		{t('meas.emptyPre')} <button onclick={() => showAdd = true}
+			style="all:unset; color:oklch(78% 0.18 165); cursor:pointer; font-weight:700; font-size:inherit;">{t('meas.new')}</button> {t('meas.emptyPost')}
 	</div>
 </div>
 
 <!-- History log -->
 {#if logs.length > 0}
-<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">Registros</div>
+<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">{t('meas.records')}</div>
 <div class="glass-card entry-list">
 	{#each logs.slice(0, 10) as row, i (row.id)}
 		<div class="entry-row" style="border-bottom:{i < Math.min(logs.length, 10) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
@@ -356,7 +356,7 @@
 					{/each}
 				</div>
 			</div>
-			<button class="del-btn" onclick={() => deleteLog(row.id)} aria-label="Eliminar">✕</button>
+			<button class="del-btn" onclick={() => deleteLog(row.id)} aria-label={t('meas.deleteAria')}>✕</button>
 		</div>
 	{/each}
 </div>
@@ -369,8 +369,8 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div class="modal-sheet" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-handle"></div>
-			<div class="modal-title">Registrar medidas</div>
-			<div class="modal-sub">Introduce los valores actuales</div>
+			<div class="modal-title">{t('meas.logTitle')}</div>
+			<div class="modal-sub">{t('meas.logSub')}</div>
 
 			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.625rem 0.75rem; margin-bottom:6rem; max-height:50dvh; overflow-y:auto;">
 				{#each MEASUREMENT_FIELDS as f}
@@ -394,7 +394,7 @@
 			</div>
 
 			<button class="btn-submit" onclick={addEntry} disabled={saving}>
-				{saving ? 'Guardando...' : 'Guardar medidas'}
+				{saving ? t('weight.saving') : t('meas.save')}
 			</button>
 		</div>
 	</div>

@@ -6,6 +6,7 @@
 	import type { Goals } from '$lib/types';
 	import { GlassHeader } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -46,7 +47,7 @@
 				const newC = Math.round((kcal * cPct) / 100 / 4);
 				const newF = Math.round((kcal * fPct) / 100 / 9);
 				if (Math.abs(macroKcal - kcal) > 25) {
-					toast.info(`Reparto ajustado al 100% de ${kcal} kcal: P${newP}g · C${newC}g · G${newF}g`);
+					toast.info(t('goals.adjusted', { kcal, p: newP, c: newC, f: newF }));
 				}
 			}
 		} else {
@@ -67,19 +68,19 @@
 	let tdeeObjective = $state('maintain');
 	let tdeeResult: { tdee: number; bmr: number; target: number } | null = $state(null);
 
-	const activityFactors: Record<string, { label: string; factor: number }> = {
-		sedentary:    { label: 'Sedentario (sin ejercicio)',        factor: 1.2 },
-		light:        { label: 'Ligero (1–3 días/semana)',          factor: 1.375 },
-		moderate:     { label: 'Moderado (3–5 días/semana)',        factor: 1.55 },
-		active:       { label: 'Activo (6–7 días/semana)',          factor: 1.725 },
-		very_active:  { label: 'Muy activo (doble turno / físico)', factor: 1.9 },
-	};
+	let activityFactors: Record<string, { label: string; factor: number }> = $derived({
+		sedentary:    { label: t('goals.actSedentary'),  factor: 1.2 },
+		light:        { label: t('goals.actLight'),      factor: 1.375 },
+		moderate:     { label: t('goals.actModerate'),   factor: 1.55 },
+		active:       { label: t('goals.actActive'),     factor: 1.725 },
+		very_active:  { label: t('goals.actVeryActive'), factor: 1.9 },
+	});
 
-	const objectives: Record<string, { label: string; emoji: string; kcalDelta: number; pPct: number; cPct: number; fPct: number; hint: string }> = {
-		lose:     { label: 'Perder peso',     emoji: '🔥', kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hint: 'Déficit de 400 kcal · más proteína para preservar músculo' },
-		maintain: { label: 'Mantener',        emoji: '⚖️', kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hint: 'Mantenimiento · distribución equilibrada' },
-		gain:     { label: 'Ganar músculo',   emoji: '💪', kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hint: 'Superávit de 300 kcal · más carbohidratos para el entrenamiento' },
-	};
+	let objectives: Record<string, { label: string; emoji: string; kcalDelta: number; pPct: number; cPct: number; fPct: number; hint: string }> = $derived({
+		lose:     { label: t('goals.objLose'),     emoji: '🔥', kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hint: t('goals.objLoseHint') },
+		maintain: { label: t('goals.objMaintain'), emoji: '⚖️', kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hint: t('goals.objMaintainHint') },
+		gain:     { label: t('goals.objGain'),     emoji: '💪', kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hint: t('goals.objGainHint') },
+	});
 
 	function calcTdee() {
 		// Mifflin-St Jeor
@@ -137,14 +138,14 @@
 {#if isOnboarding}
 	<div style="text-align:center; margin-bottom:1.5rem;">
 		<div style="font-size:2rem; margin-bottom:0.5rem;">Hola, {auth.user?.name}!</div>
-		<p style="color:var(--text-muted);">Configura tus objetivos diarios para empezar a trackear</p>
+		<p style="color:var(--text-muted);">{t('goals.setup')}</p>
 	</div>
 {:else}
-	<GlassHeader title="Objetivos diarios" />
+	<GlassHeader title={t('goals.title')} />
 {/if}
 
 {#if loading}
-	<p style="color:var(--text-muted);">Cargando...</p>
+	<p style="color:var(--text-muted);">{t('goals.loading')}</p>
 {:else}
 
 	<!-- TDEE Calculator -->
@@ -156,8 +157,8 @@
 			<div style="display:flex; align-items:center; gap:0.6rem;">
 				<span style="font-size:1.2rem;">🧮</span>
 				<div style="text-align:left;">
-					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">Calculadora TDEE / BMR</div>
-					<div style="font-size:0.75rem; color:var(--text-muted);">Calcula tus calorías según tu metabolismo</div>
+					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{t('goals.tdeeTitle')}</div>
+					<div style="font-size:0.75rem; color:var(--text-muted);">{t('goals.tdeeSub')}</div>
 				</div>
 			</div>
 			<span style="color:var(--text-muted); font-size:1rem; transition:transform 0.2s; transform:{showTdee ? 'rotate(90deg)' : 'rotate(0)'};">›</span>
@@ -167,28 +168,28 @@
 			<div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
 				<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
 					<div class="form-group" style="margin-bottom:0;">
-						<label for="tdee-weight">Peso (kg)</label>
+						<label for="tdee-weight">{t('goals.weightKg')}</label>
 						<input id="tdee-weight" type="number" bind:value={tdeeWeight} min="30" max="300" step="0.5" />
 					</div>
 					<div class="form-group" style="margin-bottom:0;">
-						<label for="tdee-height">Altura (cm)</label>
+						<label for="tdee-height">{t('goals.heightCm')}</label>
 						<input id="tdee-height" type="number" bind:value={tdeeHeight} min="100" max="250" step="1" />
 					</div>
 					<div class="form-group" style="margin-bottom:0;">
-						<label for="tdee-age">Edad</label>
+						<label for="tdee-age">{t('goals.age')}</label>
 						<input id="tdee-age" type="number" bind:value={tdeeAge} min="10" max="120" step="1" />
 					</div>
 					<div class="form-group" style="margin-bottom:0;">
-						<label for="tdee-sex">Sexo</label>
+						<label for="tdee-sex">{t('goals.sex')}</label>
 						<select id="tdee-sex" bind:value={tdeeSex} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
-							<option value="male">Hombre</option>
-							<option value="female">Mujer</option>
+							<option value="male">{t('goals.male')}</option>
+							<option value="female">{t('goals.female')}</option>
 						</select>
 					</div>
 				</div>
 
 				<div class="form-group" style="margin-bottom:0.75rem;">
-					<label for="tdee-activity">Nivel de actividad</label>
+					<label for="tdee-activity">{t('goals.activityLevel')}</label>
 					<select id="tdee-activity" bind:value={tdeeActivity} style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text);">
 						{#each Object.entries(activityFactors) as [key, val]}
 							<option value={key}>{val.label}</option>
@@ -197,7 +198,7 @@
 				</div>
 
 				<div class="form-group" style="margin-bottom:0.75rem;">
-					<label>Objetivo</label>
+					<label>{t('goals.objective')}</label>
 					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
 						{#each Object.entries(objectives) as [key, obj]}
 							<button
@@ -210,7 +211,7 @@
 					</div>
 				</div>
 
-				<button onclick={calcTdee} style="width:100%; margin-bottom:0.75rem; color: black;">Calcular</button>
+				<button onclick={calcTdee} style="width:100%; margin-bottom:0.75rem; color: black;">{t('goals.calculate')}</button>
 
 				{#if tdeeResult}
 					{@const obj = objectives[tdeeObjective]}
@@ -219,17 +220,17 @@
 							<div>
 								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">BMR</div>
 								<div style="font-size:1.2rem; font-weight:800; color:var(--text);">{tdeeResult.bmr}</div>
-								<div style="font-size:0.65rem; color:var(--text-muted);">metabolismo base</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">{t('goals.bmrSub')}</div>
 							</div>
 							<div>
 								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">TDEE</div>
 								<div style="font-size:1.2rem; font-weight:800; color:var(--text);">{tdeeResult.tdee}</div>
-								<div style="font-size:0.65rem; color:var(--text-muted);">con actividad</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">{t('goals.tdeeWithActivity')}</div>
 							</div>
 							<div>
-								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">OBJETIVO</div>
+								<div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">{t('goals.goalCaps')}</div>
 								<div style="font-size:1.2rem; font-weight:800; color:var(--primary);">{tdeeResult.target}</div>
-								<div style="font-size:0.65rem; color:var(--text-muted);">kcal/día</div>
+								<div style="font-size:0.65rem; color:var(--text-muted);">{t('goals.kcalDay')}</div>
 							</div>
 						</div>
 					</div>
@@ -247,13 +248,13 @@
 	<!-- Manual goals -->
 	<div class="card">
 		<div class="form-group">
-			<label for="g-kcal">Calorías (kcal)</label>
+			<label for="g-kcal">{t('goals.calories')}</label>
 			<input id="g-kcal" type="number" bind:value={kcal} min="0" step="50" />
 		</div>
 
 		<!-- Macro input mode toggle -->
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin-bottom:1rem;">
-			{#each [['grams', 'Gramos'], ['percent', '% de calorías']] as [key, label]}
+			{#each [['grams', t('goals.grams')], ['percent', t('goals.percentKcal')]] as [key, label]}
 				<button
 					onclick={() => switchMode(key as 'grams' | 'percent')}
 					style="padding:0.5rem; border-radius:8px; border:1px solid {macroMode === key ? 'var(--primary)' : 'var(--border)'}; background:{macroMode === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); box-shadow:none; cursor:pointer; font-size:0.82rem; font-weight:600;">
@@ -264,15 +265,15 @@
 
 		{#if macroMode === 'grams'}
 			<div class="form-group">
-				<label for="g-prot">Proteína (g)</label>
+				<label for="g-prot">{t('goals.protein')}</label>
 				<input id="g-prot" type="number" bind:value={protein} min="0" step="5" />
 			</div>
 			<div class="form-group">
-				<label for="g-carb">Carbohidratos (g)</label>
+				<label for="g-carb">{t('goals.carbs')}</label>
 				<input id="g-carb" type="number" bind:value={carbs} min="0" step="5" />
 			</div>
 			<div class="form-group">
-				<label for="g-fat">Grasa (g)</label>
+				<label for="g-fat">{t('goals.fat')}</label>
 				<input id="g-fat" type="number" bind:value={fat} min="0" step="5" />
 			</div>
 			<p style="font-size:0.75rem; margin:-0.25rem 0 1rem; color:{Math.abs(macroKcal - kcal) > kcal * 0.05 ? 'var(--warning, #f0a840)' : 'var(--text-muted)'};">
@@ -283,7 +284,7 @@
 			</p>
 		{:else}
 			<div class="form-group">
-				<label for="g-pct-prot">Proteína (%)</label>
+				<label for="g-pct-prot">{t('goals.proteinPct')}</label>
 				<div style="display:flex; align-items:center; gap:0.6rem;">
 					<input id="g-pct-prot" type="number" bind:value={pPct} min="0" max="100" step="5" style="flex:1;" />
 					<span style="min-width:4rem; text-align:right; font-weight:700; color:var(--text);">{pGrams} g</span>

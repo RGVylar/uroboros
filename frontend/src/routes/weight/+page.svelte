@@ -3,7 +3,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { WeightLog } from '$lib/types';
-	import { fmtDate } from '$lib/i18n/index.svelte';
+	import { t, fmtDate } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -116,8 +116,8 @@
 <!-- Page header -->
 <div class="trk-header">
 	<div style="flex:1; min-width:0;">
-		<h1 class="trk-title">Peso</h1>
-		<div class="trk-sub">Seguimiento mensual</div>
+		<h1 class="trk-title">{t('weight.title')}</h1>
+		<div class="trk-sub">{t('weight.subtitle')}</div>
 	</div>
 	<button class="btn-reg" onclick={() => { newWeightValue = current ?? 75; showAdd = true; }}>
 		+ Registrar
@@ -128,7 +128,7 @@
 {#if current !== null}
 <div class="glass-card hero-card">
 	<div style="display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.25rem;">
-		<div class="eyebrow">Hoy</div>
+		<div class="eyebrow">{t('common.today')}</div>
 		<div style="flex:1;"></div>
 		<div class="unit-label">kg</div>
 	</div>
@@ -146,12 +146,12 @@
 
 	<div class="hero-stats-row">
 		<div class="mini-stat">
-			<div class="mini-stat-label">Registros</div>
-			<div class="mini-stat-val">{records}<span class="mini-stat-unit">total</span></div>
+			<div class="mini-stat-label">{t('weight.records')}</div>
+			<div class="mini-stat-val">{records}<span class="mini-stat-unit">{t('weight.total')}</span></div>
 		</div>
 		{#if change !== null}
 			<div class="mini-stat">
-				<div class="mini-stat-label">Cambio total</div>
+				<div class="mini-stat-label">{t('weight.totalChange')}</div>
 				<div class="mini-stat-val" style="color:{change < 0 ? 'oklch(85% 0.17 160)' : 'oklch(75% 0.18 30)'};">
 					{change < 0 ? '' : '+'}{change.toFixed(1)}<span class="mini-stat-unit">kg</span>
 				</div>
@@ -159,7 +159,7 @@
 		{/if}
 		{#if weights.length > 0}
 			<div class="mini-stat">
-				<div class="mini-stat-label">Inicio</div>
+				<div class="mini-stat-label">{t('weight.start')}</div>
 				<div class="mini-stat-val">{weights[weights.length - 1].weight.toFixed(1)}<span class="mini-stat-unit">kg</span></div>
 			</div>
 		{/if}
@@ -169,9 +169,9 @@
 <!-- Estado vacío: antes la pantalla quedaba completamente en blanco -->
 <div class="glass-card" style="text-align:center; padding:2.5rem 1.25rem;">
 	<div style="font-size:2rem; margin-bottom:0.625rem;">⚖️</div>
-	<div style="font-size:0.9375rem; font-weight:700; color:#fff;">Sin registros de peso</div>
+	<div style="font-size:0.9375rem; font-weight:700; color:#fff;">{t('weight.empty')}</div>
 	<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.375rem; line-height:1.5;">
-		Registra tu peso de hoy con el botón <strong>+ Registrar</strong> y aquí verás tu evolución con gráfica.
+		Registra tu peso de hoy con el botón <strong>{t('weight.add')}</strong> y aquí verás tu evolución con gráfica.
 	</div>
 </div>
 {/if}
@@ -180,7 +180,7 @@
 {#if chartData.length >= 2}
 <div class="glass-card" style="margin-top:0.75rem;">
 	<div style="display:flex; align-items:center; margin-bottom:0.875rem;">
-		<div class="section-title">Evolución</div>
+		<div class="section-title">{t('weight.evolution')}</div>
 		<div style="flex:1;"></div>
 		<!-- Range selector -->
 		<div class="range-selector">
@@ -240,7 +240,7 @@
 
 <!-- Recent entries -->
 {#if weights.length > 0}
-<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">Registros recientes</div>
+<div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">{t('weight.recent')}</div>
 <div class="glass-card entry-list">
 	{#each weights.slice(0, 8) as w, i (w.id)}
 		<div class="entry-row" style="border-bottom:{i < Math.min(weights.length, 8) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
@@ -250,9 +250,9 @@
 				<div class="entry-date">{fmt(w.logged_at)}</div>
 			</div>
 			{#if confirmingDelete === w.id}
-				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>¿Borrar?</button>
+				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>{t('weight.deleteAsk')}</button>
 			{:else}
-				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label="Eliminar registro de {w.weight.toFixed(1)} kg">✕</button>
+				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: w.weight.toFixed(1) })}>✕</button>
 			{/if}
 		</div>
 	{/each}
@@ -266,8 +266,8 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div class="modal-sheet" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-handle"></div>
-			<div class="modal-title">Registrar peso</div>
-			<div class="modal-sub">Introduce el valor actual</div>
+			<div class="modal-title">{t('weight.logTitle')}</div>
+			<div class="modal-sub">{t('weight.logSub')}</div>
 
 			<div class="modal-stepper">
 				<button class="stepper-btn" onclick={() => (newWeightValue = Math.max(0, +(newWeightValue - 0.1).toFixed(1)))}>−</button>
@@ -290,7 +290,7 @@
 			</div>
 
 			<button class="btn-submit" onclick={addWeight} disabled={saving}>
-				{saving ? 'Guardando...' : 'Guardar'}
+				{saving ? t('weight.saving') : t('common.save')}
 			</button>
 		</div>
 	</div>

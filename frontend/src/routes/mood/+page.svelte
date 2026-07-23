@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import type { MoodEntry, MoodLevel } from '$lib/types';
-	import { fmtDate } from '$lib/i18n/index.svelte';
+	import { t, fmtDate } from '$lib/i18n/index.svelte';
 
 	const day = $derived($page.url.searchParams.get('day') ?? new Date().toISOString().slice(0, 10));
 
@@ -50,21 +50,21 @@
 		history.back();
 	}
 
-	const ENERGY = [
-		{ level: 1 as MoodLevel, emoji: '🪫', label: 'Sin energía' },
-		{ level: 2 as MoodLevel, emoji: '⚡', label: 'Normal' },
-		{ level: 3 as MoodLevel, emoji: '🔥', label: 'Con energía' },
-	];
-	const DIGESTION = [
-		{ level: 1 as MoodLevel, emoji: '🤢', label: 'Mal' },
-		{ level: 2 as MoodLevel, emoji: '😐', label: 'Normal' },
-		{ level: 3 as MoodLevel, emoji: '✅', label: 'Bien' },
-	];
-	const MOOD = [
-		{ level: 1 as MoodLevel, emoji: '😞', label: 'Bajo' },
-		{ level: 2 as MoodLevel, emoji: '🙂', label: 'Normal' },
-		{ level: 3 as MoodLevel, emoji: '😄', label: 'Bien' },
-	];
+	let ENERGY = $derived([
+		{ level: 1 as MoodLevel, emoji: '🪫', label: t('mood.energy1') },
+		{ level: 2 as MoodLevel, emoji: '⚡', label: t('mood.energy2') },
+		{ level: 3 as MoodLevel, emoji: '🔥', label: t('mood.energy3') },
+	]);
+	let DIGESTION = $derived([
+		{ level: 1 as MoodLevel, emoji: '🤢', label: t('mood.digestion1') },
+		{ level: 2 as MoodLevel, emoji: '😐', label: t('mood.digestion2') },
+		{ level: 3 as MoodLevel, emoji: '✅', label: t('mood.digestion3') },
+	]);
+	let MOOD = $derived([
+		{ level: 1 as MoodLevel, emoji: '😞', label: t('mood.mood1') },
+		{ level: 2 as MoodLevel, emoji: '🙂', label: t('mood.mood2') },
+		{ level: 3 as MoodLevel, emoji: '😄', label: t('mood.mood3') },
+	]);
 
 	const hasAny = $derived(energy !== null || digestion !== null || mood !== null);
 
@@ -78,7 +78,7 @@
 </script>
 
 <svelte:head>
-	<title>Estado del día — uroboros</title>
+	<title>{t('mood.pageTitle')}</title>
 </svelte:head>
 
 <Aurora />
@@ -86,19 +86,19 @@
 <div class="shell">
 	<!-- Header -->
 	<div class="header">
-		<button class="back-btn" onclick={goBack}>← Atrás</button>
+		<button class="back-btn" onclick={goBack}>{t('mood.back')}</button>
 		<div class="header-text">
-			<div class="label">Estado del día</div>
+			<div class="label">{t('mood.title')}</div>
 			<div class="date">{dateLabel()}</div>
 		</div>
 	</div>
 
 	{#if !loaded}
-		<div class="loading">Cargando...</div>
+		<div class="loading">{t('mood.loading')}</div>
 	{:else}
 		<!-- Energy -->
 		<section class="card">
-			<div class="cat-label">Energía</div>
+			<div class="cat-label">{t('mood.energy')}</div>
 			<div class="options">
 				{#each ENERGY as opt}
 					<button
@@ -116,7 +116,7 @@
 
 		<!-- Digestion -->
 		<section class="card">
-			<div class="cat-label">Digestión</div>
+			<div class="cat-label">{t('mood.digestion')}</div>
 			<div class="options">
 				{#each DIGESTION as opt}
 					<button
@@ -134,7 +134,7 @@
 
 		<!-- Mood -->
 		<section class="card">
-			<div class="cat-label">Ánimo</div>
+			<div class="cat-label">{t('mood.mood')}</div>
 			<div class="options">
 				{#each MOOD as opt}
 					<button
@@ -152,18 +152,18 @@
 
 		<!-- Notes -->
 		<section class="card">
-			<div class="cat-label">Notas <span class="optional">(opcional)</span></div>
+			<div class="cat-label">{t('mood.notes')} <span class="optional">{t('mood.optional')}</span></div>
 			<textarea
 				class="notes"
 				bind:value={notes}
-				placeholder="¿Algo que quieras recordar de hoy?"
+				placeholder={t('mood.notesPlaceholder')}
 				rows="3"
 			></textarea>
 		</section>
 
 		<!-- Save -->
 		<button class="save-btn" onclick={save} disabled={saving || !hasAny}>
-			{saving ? 'Guardando...' : 'Guardar'}
+			{saving ? t('mood.saving') : t('common.save')}
 		</button>
 	{/if}
 </div>
