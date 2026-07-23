@@ -11,7 +11,7 @@
 	import { productUnit } from '$lib/drink';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
-	import { mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
+	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
 
 	const MEAL_HUES: Record<string, number> = { breakfast: 45, lunch: 165, dinner: 285, snack: 220 };
@@ -352,10 +352,10 @@
 				// punto del día que la suya en vez de "ahora" (que descoloca la tarjeta).
 				consumed_at: entry.consumed_at,
 			});
-			toast.success('Añadido a tu diario');
+			toast.success(t('diary.okAdd'));
 			await loadDay();
 		} catch {
-			toast.error('No se pudo añadir');
+			toast.error(t('diary.errAdd'));
 		}
 	}
 
@@ -437,7 +437,7 @@
 			await api.del(url);
 			if (mode === 'partner') toast.success(`Quitado del diario de ${partner?.name}`);
 		} catch {
-			toast.error('No se pudo borrar');
+			toast.error(t('diary.errDelete'));
 			loadDay();
 		}
 	}
@@ -518,11 +518,11 @@
 					}
 				}
 			} catch {
-				toast.error('No se pudo guardar el cambio');
+				toast.error(t('diary.errSave'));
 				loadDay();
 			}
 		} catch {
-			toast.error('No se pudo guardar el cambio');
+			toast.error(t('diary.errSave'));
 		} finally {
 			editSaving = false;
 		}
@@ -541,7 +541,7 @@
 
 	async function removeWater() {
 		if (connectivity.isOffline) {
-			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: 'Agua ↩' });
+			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: t('diary.waterUndo') });
 			if (water) water = { ...water, total_ml: Math.max(0, water.total_ml - lastWaterMl) };
 			return;
 		}
@@ -558,10 +558,10 @@
 				refreshStreak();
 			} else {
 				// Antes esto no daba ningún feedback y parecía que el botón no hacía nada
-				toast.info('Ayer no registraste nada que copiar');
+				toast.info(t('diary.nothingYesterday'));
 			}
 		} catch {
-			toast.error('No se pudo copiar de ayer');
+			toast.error(t('diary.errCopyYesterday'));
 		} finally {
 			copyingYesterday = false;
 		}
@@ -587,7 +587,7 @@
 				creatine = await api.post<CreatineToday>('/creatine/log', {});
 			}
 		} catch {
-			toast.error('No se pudo actualizar la creatina');
+			toast.error(t('diary.errCreatine'));
 		} finally {
 			togglingCreatine = false;
 		}
@@ -609,7 +609,7 @@
 			} else {
 				supplements = await api.post<SupplementToday[]>(`/supplements/log/${suppId}`, {});
 			}
-		} catch { toast.error('No se pudo actualizar el suplemento'); }
+		} catch { toast.error(t('diary.errSupplement')); }
 	}
 
 	async function addSupp() {
@@ -619,7 +619,7 @@
 			await api.post<UserSupplement>('/supplements', { name: newSuppName.trim() });
 			newSuppName = '';
 			supplements = await api.get<SupplementToday[]>('/supplements/today');
-		} catch { toast.error('No se pudo añadir el suplemento'); } finally {
+		} catch { toast.error(t('diary.errAddSupplement')); } finally {
 			addingSuppName = false;
 		}
 	}
@@ -640,7 +640,7 @@
 		try {
 			await api.del(`/supplements/${suppId}`);
 			supplements = await api.get<SupplementToday[]>('/supplements/today');
-		} catch { toast.error('No se pudo eliminar el suplemento'); }
+		} catch { toast.error(t('diary.errDeleteSupplement')); }
 	}
 
 	async function toggleCheatDay() {
@@ -655,7 +655,7 @@
 				await refreshStreak();
 			}
 		} catch {
-			toast.error('No se pudo actualizar el cheat day');
+			toast.error(t('diary.errCheatDay'));
 		} finally {
 			togglingCheatDay = false;
 		}
@@ -731,20 +731,20 @@
 
 
 {#if loading}
-		<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">Cargando...</p>
+		<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">{t('diary.loading')}</p>
 	{:else if summary}
 
 		{#if fromCache}
 			<div class="cache-notice">
 				<span>📦</span>
-				<span>Datos guardados · sin conexión con el servidor</span>
+				<span>{t('diary.offlineSaved')}</span>
 			</div>
 		{/if}
 		{#if syncQueue.count > 0}
 			<div class="cache-notice" style="border-color: oklch(75% 0.18 55 / 0.25); background: oklch(75% 0.18 55 / 0.06);">
 				<span>⏳</span>
 				<span style="color: oklch(82% 0.15 55);">
-					{syncQueue.count} {syncQueue.count === 1 ? 'entrada pendiente' : 'entradas pendientes'} de sincronizar
+					{syncQueue.count} {tc('diary.pending', syncQueue.count)} de sincronizar
 					{#if syncQueue.isSyncing}· sincronizando…{/if}
 				</span>
 			</div>
@@ -767,9 +767,9 @@
 					/>
 					<div style="height:1rem;"></div>
 					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
-						<MacroBar label="Prot"  value={summary.totals.protein} goal={effectiveGoals.protein} color="var(--prot)" />
-						<MacroBar label="Carb"  value={summary.totals.carbs}   goal={effectiveGoals.carbs}   color="var(--carb)" />
-						<MacroBar label="Grasa" value={summary.totals.fat}     goal={effectiveGoals.fat}     color="var(--fat)" />
+						<MacroBar label={t('diary.macroProtein')}  value={summary.totals.protein} goal={effectiveGoals.protein} color="var(--prot)" />
+						<MacroBar label={t('diary.macroCarbs')}  value={summary.totals.carbs}   goal={effectiveGoals.carbs}   color="var(--carb)" />
+						<MacroBar label={t('diary.macroFat')} value={summary.totals.fat}     goal={effectiveGoals.fat}     color="var(--fat)" />
 					</div>
 				{:else}
 					<div style="display:flex; justify-content:space-between; align-items:center;">
@@ -789,7 +789,7 @@
 				<div class="card" style="padding:0.85rem;">
 					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
 						<span style="font-size:0.95rem;">💧</span>
-						<span style="font-size:0.82rem; color:var(--water); font-weight:700;">Agua</span>
+						<span style="font-size:0.82rem; color:var(--water); font-weight:700;">{t('diary.water')}</span>
 						{#if water}
 							<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
 								{Math.round(water.total_ml)} / {water.goal_ml} ml
@@ -832,7 +832,7 @@
 									onclick={(e) => { e.stopPropagation(); toggleSupp(supplements[0].supplement_id, supplements[0].taken); }}
 									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), toggleSupp(supplements[0].supplement_id, supplements[0].taken))}
 									style="cursor:pointer; padding:0.2rem 0.1rem;">
-									{supplements[0].taken ? 'Deshacer' : 'Marcar'}
+									{supplements[0].taken ? t('diary.suppUndo') : t('diary.suppMark')}
 								</span>
 								<span aria-hidden="true">·</span>
 								<span role="button" tabindex="0"
@@ -860,15 +860,15 @@
 									{suppTaken}/{suppCount}
 								</div>
 							</div>
-							<div style="font-weight:700; font-size:0.82rem; color:#fff;">Suplementos</div>
-							<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? '¡Todo tomado! ✓' : 'Toca para marcar'}</div>
+							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{t('diary.supplements')}</div>
+							<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? t('diary.suppAllTaken') : t('diary.suppTapToMark')}</div>
 						</button>
 					{:else}
 						<!-- No supplements yet -->
 						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
 							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">＋</div>
-							<div style="font-weight:700; font-size:0.82rem; color:#fff;">Suplementos</div>
-							<div style="font-size:0.7rem; color:var(--text-muted);">Añadir suplemento</div>
+							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{t('diary.supplements')}</div>
+							<div style="font-size:0.7rem; color:var(--text-muted);">{t('diary.addSupplement')}</div>
 						</button>
 					{/if}
 				{/if}
@@ -882,10 +882,10 @@
 							{moodEntry?.worst ? MOOD_WORST_EMOJI[moodEntry.worst] : '🫥'}
 						</div>
 						<div style="flex:1; min-width:0;">
-							<div style="font-weight:700; font-size:0.85rem; color:#fff;">Estado del día</div>
+							<div style="font-weight:700; font-size:0.85rem; color:#fff;">{t('diary.moodTitle')}</div>
 							<div style="font-size:0.75rem; color:var(--text-muted);">
 								{#if moodEntry?.worst}
-									{moodEntry.energy ? '⚡' : ''}{moodEntry.digestion ? ' · digestión' : ''}{moodEntry.mood ? ' · ánimo' : ''} — toca para editar
+									{moodEntry.energy ? '⚡' : ''}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''} — toca para editar
 								{:else}
 									¿Cómo te has sentido hoy?
 								{/if}
@@ -909,9 +909,9 @@
 								font-size:1.1rem;
 							">🍕</div>
 							<div style="min-width:0;">
-								<div style="font-weight:700; font-size:0.88rem;">Cheat day</div>
+								<div style="font-weight:700; font-size:0.88rem;">{t('diary.cheatDay')}</div>
 								<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-									{cheatDay.active ? 'Racha protegida hoy 🔥' : 'Úsalo si hoy no registras'}
+									{cheatDay.active ? t('diary.cheatDayOn') : t('diary.cheatDayOff')}
 								</div>
 							</div>
 						</div>
@@ -920,7 +920,7 @@
 							disabled={togglingCheatDay}
 							class:btn-secondary={cheatDay.active}
 							style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay ? '0.6' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
-						>{cheatDay.active ? 'Cancelar' : 'Activar'}</button>
+						>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
 					</div>
 				</div>
 			{/if}
@@ -928,7 +928,7 @@
 			<!-- Frequent products (desktop: show in left panel when there are entries) -->
 			{#if frequent.length > 0 && summary.entries.length > 0}
 				<div class="diary-frequent-desktop">
-					<div style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:0.5rem;">Frecuentes</div>
+					<div style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:0.5rem;">{t('diary.frequent')}</div>
 					<div style="display:flex; flex-direction:column; gap:0.35rem;">
 						{#each frequent as freq (freq.product.id)}
 							<a href="/add?date={today}&product={freq.product.id}" style="text-decoration:none;">
@@ -966,10 +966,10 @@
 								{#if partnerSummary}
 									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} P</span></span>
 								{:else}
-									<span class="pc-mac pc-hint">Ver su día</span>
+									<span class="pc-mac pc-hint">{t('diary.seeTheirDay')}</span>
 								{/if}
 							</span>
-							<span class="pc-state">{showPartner ? 'Ocultar' : 'Mostrar'}</span>
+							<span class="pc-state">{showPartner ? t('diary.hide') : t('diary.show')}</span>
 						</button>
 					{/if}
 					{#if isToday && summary.entries.length > 0}
@@ -978,7 +978,7 @@
 							onclick={copyFromYesterday}
 							disabled={copyingYesterday}
 							style="font-size:0.75rem; padding:0.3rem 0.7rem; margin-left:auto;">
-							{copyingYesterday ? '...' : '↩ Igual que ayer'}
+							{copyingYesterday ? '...' : t('diary.sameAsYesterday')}
 						</button>
 					{/if}
 				</div>
@@ -987,9 +987,9 @@
 			{#if summary.entries.length === 0 && !partnerHasEntries}
 				<EmptyState
 					icon="🥣"
-					title="Sin registros"
-					description={isToday ? 'Añade tu primera comida del día' : 'Este día está vacío'}
-					actionLabel={isToday ? 'Añadir comida' : undefined}
+					title={t('diary.emptyTitle')}
+					description={isToday ? t('diary.emptyToday') : t('diary.emptyOther')}
+					actionLabel={isToday ? t('diary.addFood') : undefined}
 					actionHref={isToday ? `/add?date=${today}` : undefined}
 				/>
 				{#if isToday}
@@ -998,15 +998,15 @@
 						onclick={copyFromYesterday}
 						disabled={copyingYesterday}
 						style="width:100%; margin-top:0.75rem; margin-bottom:1rem;">
-						{copyingYesterday ? 'Copiando...' : '↩ Igual que ayer'}
+						{copyingYesterday ? t('diary.copying') : t('diary.sameAsYesterday')}
 					</button>
 				{/if}
 				{#if frequentRecipes.length > 0 || frequent.length > 0}
 					<div style="margin-top:0.5rem;">
-						<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">Usados frecuentemente</div>
+						<div style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">{t('diary.frequentlyUsed')}</div>
 
 						{#if frequentRecipes.length > 0}
-							<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">🍳 Recetas</div>
+							<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">{t('diary.recipes')}</div>
 							<div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem;">
 								{#each frequentRecipes as freq (freq.recipe.id)}
 									{@const totalKcal = freq.recipe.ingredients.reduce((s, i) => s + (i.product.calories_per_100g * i.grams / 100), 0)}
@@ -1017,7 +1017,7 @@
 													<span style="font-size:1.2rem; flex-shrink:0;">🍳</span>
 													<div style="min-width:0;">
 														<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.recipe.name}</div>
-														<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem;">Usada {freq.count} {freq.count === 1 ? 'vez' : 'veces'}</div>
+														<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem;">Usada {freq.count} {tc('diary.time', freq.count)}</div>
 													</div>
 												</div>
 												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap; flex-shrink:0;">
@@ -1032,7 +1032,7 @@
 
 						{#if frequent.length > 0}
 							{#if frequentRecipes.length > 0}
-								<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">🥦 Alimentos</div>
+								<div style="font-size:0.72rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); opacity:0.6; margin-bottom:0.35rem; padding-left:0.25rem;">{t('diary.foods')}</div>
 							{/if}
 							<div style="display:flex; flex-direction:column; gap:0.4rem;">
 								{#each frequent as freq (freq.product.id)}
@@ -1042,7 +1042,7 @@
 												<div style="flex:1;">
 													<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
 													{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
-													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} {freq.count === 1 ? 'vez' : 'veces'}</div>
+													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} {tc('diary.time', freq.count)}</div>
 												</div>
 												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
 													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
@@ -1114,11 +1114,11 @@
 {#if recipeMealToSave}
 	<Modal
 		onClose={closeRecipeModal}
-		title="Guardar receta"
-		subtitle="{recipeMealToSave.label} · {recipeMealToSave.entries.length} ingredientes"
+		title={t('diary.saveRecipe')}
+		subtitle={t('diary.saveRecipeSub', { meal: recipeMealToSave.label, count: recipeMealToSave.entries.length })}
 	>
 		<div class="form-group">
-			<label for="recipe-name">Nombre</label>
+			<label for="recipe-name">{t('diary.recipeName')}</label>
 			<input
 				id="recipe-name"
 				type="text"
@@ -1134,9 +1134,9 @@
 		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.9rem;">
-			<button class="btn-secondary" onclick={closeRecipeModal} style="flex:1;" disabled={savingRecipe}>Cancelar</button>
+			<button class="btn-secondary" onclick={closeRecipeModal} style="flex:1;" disabled={savingRecipe}>{t('common.cancel')}</button>
 			<button onclick={confirmSaveMealAsRecipe} style="flex:2;" disabled={savingRecipe}>
-				{savingRecipe ? 'Guardando...' : 'Guardar receta'}
+				{savingRecipe ? t('diary.saving') : t('diary.saveRecipe')}
 			</button>
 		</div>
 	</Modal>
@@ -1146,8 +1146,8 @@
 {#if editingEntry}
 	<Modal
 		onClose={() => editingEntry = null}
-		title={editingEntry.product?.name ?? 'Editar'}
-		subtitle="Editar entrada"
+		title={editingEntry.product?.name ?? t('diary.edit')}
+		subtitle={t('diary.editEntry')}
 	>
 		{#if !(partner && !connectivity.isOffline && (partnerEntry || sharePartner))}
 			<div class="form-group">
@@ -1157,7 +1157,7 @@
 		{/if}
 
 		<div class="form-group">
-			<label>Comida</label>
+			<label>{t('diary.mealField')}</label>
 			<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem;">
 				{#each MEAL_ORDER as mt}
 					<button
@@ -1172,15 +1172,15 @@
 
 		{#if partner && !connectivity.isOffline}
 			<div class="form-group">
-				<label>Pareja</label>
+				<label>{t('diary.partnerField')}</label>
 
 				{#snippet plates()}
 					<div class="edit-plates">
 						<div class="edit-plate you">
 							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
-							<div class="edit-plate-who">Tú</div>
+							<div class="edit-plate-who">{t('diary.you')}</div>
 							<div class="edit-plate-g">
-								<input type="number" bind:value={editGrams} min="1" step="1" aria-label="Tus {editUnit}" />
+								<input type="number" bind:value={editGrams} min="1" step="1" aria-label={t('diary.yoursAria', { unit: editUnit })} />
 								<span>{editUnit}</span>
 							</div>
 						</div>
@@ -1188,7 +1188,7 @@
 							<div class="edit-plate-av"><Avatar name={partner.name} avatarId={partner.avatar_id} size={34} /></div>
 							<div class="edit-plate-who">{partner.name}</div>
 							<div class="edit-plate-g">
-								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label="{editUnit} de {partner.name}" />
+								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label={t('diary.partnerAria', { unit: editUnit, name: partner.name })} />
 								<span>{editUnit}</span>
 							</div>
 						</div>
@@ -1201,17 +1201,17 @@
 						<div style="flex:1; min-width:0;">
 							<div style="font-weight:700; font-size:0.85rem;">
 								Comida compartida
-								<span class="edit-has-badge">ya lo tiene</span>
+								<span class="edit-has-badge">{t('diary.alreadyHasIt')}</span>
 							</div>
 							<div class="edit-share-sub" style="margin-top:0.1rem;">Editando también lo de {partner.name}</div>
 						</div>
 					</div>
 					{@render plates()}
-					<div class="edit-share-sub" style="margin-top:0.5rem;">Para quitarla de su diario, usa la ✕ de la entrada.</div>
+					<div class="edit-share-sub" style="margin-top:0.5rem;">{t('diary.removeHint')}</div>
 				{:else}
 					<div class="edit-share-row" class:on={sharePartner}>
 						<div style="flex:1; min-width:0;">
-							<div style="font-weight:700; font-size:0.85rem;">Comida compartida</div>
+							<div style="font-weight:700; font-size:0.85rem;">{t('diary.sharedMeal')}</div>
 							<div class="edit-share-sub" style="margin-top:0.1rem;">
 								{sharePartner ? `Cada uno con sus ${editUnit}` : `Añadirla también para ${partner.name}`}
 							</div>
@@ -1223,7 +1223,7 @@
 							onclick={toggleSharePartner}
 							role="switch"
 							aria-checked={sharePartner}
-							aria-label="Comida compartida con {partner.name}"></button>
+							aria-label={t('diary.sharedMealAria', { name: partner.name })}></button>
 					</div>
 					{#if sharePartner}
 						{@render plates()}
@@ -1233,7 +1233,7 @@
 		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">Cancelar</button>
+			<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">{t('common.cancel')}</button>
 			<button onclick={saveEdit} disabled={editSaving} style="flex:2;">
 				{editSaving ? 'Guardando...' : 'Guardar'}
 			</button>
@@ -1245,7 +1245,7 @@
 {#if deletingEntry}
 	<Modal
 		onClose={() => deletingEntry = null}
-		title="Borrar entrada"
+		title={t('diary.deleteEntry')}
 		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}{deletingEntry.product ? productUnit(deletingEntry.product) : 'g'}"
 	>
 		<div class="del-q">
@@ -1256,45 +1256,45 @@
 		<div class="del-cards">
 			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
 				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
-				<div class="del-txt"><div class="del-t">Para los dos</div><div class="del-s">Se borra en ambos diarios</div></div>
+				<div class="del-txt"><div class="del-t">{t('diary.deleteBoth')}</div><div class="del-s">{t('diary.deleteBothSub')}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
 				<div class="del-avs"><Avatar name={auth.user?.name ?? 'Tú'} avatarId={auth.user?.avatar_id} size={34} /></div>
-				<div class="del-txt"><div class="del-t">Solo para mí</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
+				<div class="del-txt"><div class="del-t">{t('diary.deleteMine')}</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			{#if deletingPartnerHas}
 				<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
 					<div class="del-avs"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
-					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">Tú lo conservas</div></div>
+					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">{t('diary.deleteMineSub')}</div></div>
 					<div class="del-chev">›</div>
 				</button>
 			{/if}
 		</div>
-		<button class="btn-secondary" style="width:100%; margin-top:0.6rem;" onclick={() => deletingEntry = null}>Cancelar</button>
+		<button class="btn-secondary" style="width:100%; margin-top:0.6rem;" onclick={() => deletingEntry = null}>{t('common.cancel')}</button>
 		</Modal>
 {/if}
 
 <!-- Clear meal modal -->
 {#if clearingMeal}
-	<Modal onClose={() => clearingMeal = null} title="🗑 Vaciar {clearingMeal.label}" subtitle="Se borrarán tus alimentos de esta comida{showPartner && partner ? ` — los de ${partner.name} no se tocan` : ''}">
+	<Modal onClose={() => clearingMeal = null} title={t('diary.clearMeal', { meal: clearingMeal.label })} subtitle={showPartner && partner ? t('diary.clearMealSubPartner', { name: partner.name }) : t('diary.clearMealSub')}>
 		<div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
-			<button class="btn-danger" onclick={confirmClearMeal}>Vaciar</button>
-			<button class="btn-secondary" onclick={() => clearingMeal = null}>Cancelar</button>
+			<button class="btn-danger" onclick={confirmClearMeal}>{t('diary.clear')}</button>
+			<button class="btn-secondary" onclick={() => clearingMeal = null}>{t('common.cancel')}</button>
 		</div>
 	</Modal>
 {/if}
 
 <!-- Supplements modal -->
 {#if showSupplModal}
-	<Modal onClose={() => showSupplModal = false} title="💊 Suplementos" subtitle="Marca los que has tomado hoy">
+	<Modal onClose={() => showSupplModal = false} title={t('diary.suppModalTitle')} subtitle={t('diary.suppModalSub')}>
 		<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
 			{#each supplements as s (s.supplement_id)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.07);">
 					<button
 						onclick={() => toggleSupp(s.supplement_id, s.taken)}
-						aria-label="{s.taken ? 'Desmarcar' : 'Marcar'} {s.name}"
+						aria-label="{s.taken ? t('diary.suppUncheck') : t('diary.suppCheck')} {s.name}"
 						aria-pressed={s.taken}
 						style="
 							width:44px; height:44px; border-radius:50%; flex-shrink:0; cursor:pointer;
@@ -1309,12 +1309,12 @@
 						<button
 							onclick={() => deleteSupp(s.supplement_id)}
 							style="background:oklch(65% 0.22 25 / 0.12); border:1px solid oklch(65% 0.22 25 / 0.4); border-radius:8px; color:oklch(75% 0.2 25); font-size:0.6875rem; font-weight:700; cursor:pointer; padding:0.375rem 0.5rem; box-shadow:none; line-height:1;"
-						>¿Eliminar?</button>
+						>{t('diary.suppDeleteAsk')}</button>
 					{:else}
 						<button
 							onclick={() => deleteSupp(s.supplement_id)}
 							style="background:none; border:none; color:rgba(255,255,255,0.25); font-size:1rem; cursor:pointer; padding:0.625rem; box-shadow:none; line-height:1;"
-							aria-label="Eliminar {s.name}">✕</button>
+							aria-label={t('diary.suppDelete', { name: s.name })}>✕</button>
 					{/if}
 				</div>
 			{/each}
@@ -1327,7 +1327,7 @@
 		<div style="display:flex; gap:0.5rem;">
 			<input
 				bind:value={newSuppName}
-				placeholder="Nombre del suplemento..."
+				placeholder={t('diary.supplementName')}
 				onkeydown={(e) => { if (e.key === 'Enter') addSupp(); }}
 				style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; padding:0.5rem 0.75rem; font-size:0.875rem; font-family:inherit; outline:none;"
 			/>
@@ -1396,7 +1396,7 @@
 				<span style="color:oklch(75% 0.17 25);"> G{Math.round(entry.fat)}</span>
 			</div>
 		</div>
-		<button class="pe-copy" title="Ponérmelo a mí también" aria-label="Copiar a mi diario"
+		<button class="pe-copy" title={t('diary.copyToMineTitle')} aria-label={t('diary.copyToMine')}
 			onclick={() => copyToMe(entry)}>＋</button>
 	</div>
 {/snippet}
