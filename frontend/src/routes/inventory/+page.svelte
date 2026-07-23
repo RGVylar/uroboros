@@ -10,7 +10,7 @@
 		Product,
 	} from '$lib/types';
 	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
-	import { t } from '$lib/i18n/index.svelte';
+	import { t, tc } from '$lib/i18n/index.svelte';
 	import LocationPicker from '$lib/components/LocationPicker.svelte';
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
@@ -65,11 +65,11 @@
 	let locationFilter = $state<'Todo' | InventoryLocation>('Todo');
 	let invQuery = $state('');
 
-	const LOCATION_LABEL: Record<InventoryLocation, string> = {
-		pantry: 'Despensa',
-		fridge: 'Nevera',
-		freezer: 'Congelador',
-	};
+	let LOCATION_LABEL: Record<InventoryLocation, string> = $derived({
+		pantry: t('location.pantry'),
+		fridge: t('location.fridge'),
+		freezer: t('location.freezer'),
+	});
 
 	async function load() {
 		loading = true;
@@ -275,12 +275,12 @@
 		<h1
 			style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;"
 		>
-			Inventario
+			{t('inventory.title')}
 		</h1>
 		<div
 			style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;"
 		>
-			{items.length} productos
+			{tc('inventory.count', items.length)}
 		</div>
 	</div>
 	{#if subscription.is_premium}
@@ -288,7 +288,7 @@
 		onclick={() => (showAddForm = !showAddForm)}
 		style="padding:0.5rem 0.875rem; border-radius:99px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:700; font-size:0.75rem; font-family:inherit; white-space:nowrap;"
 	>
-		+ Añadir
+		{t('inventory.add')}
 	</button>
 	{/if}
 </div>
@@ -366,7 +366,7 @@
 	style="display:flex; gap:0.375rem; margin-bottom:0.875rem; overflow-x:auto; scrollbar-width:none;"
 >
 	{#each ['Todo', 'fridge', 'pantry', 'freezer'] as f}
-		{@const label = f === 'Todo' ? 'Todo' : LOCATION_LABEL[f as InventoryLocation]}
+		{@const label = f === 'Todo' ? t('inventory.filterAll') : LOCATION_LABEL[f as InventoryLocation]}
 		<button
 			onclick={() => (locationFilter = f as 'Todo' | InventoryLocation)}
 			style="padding:0.4375rem 0.875rem; border-radius:99px; border:{locationFilter ===
@@ -636,7 +636,7 @@
 		<div
 			style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);"
 		>
-			Añade los alimentos que tienes en casa
+			{t('inventory.emptySub')}
 		</div>
 	</div>
 {:else}
@@ -826,7 +826,7 @@
 		onclick={() => goto('/shopping-list')}
 		style="display:inline-flex; align-items:center; gap:0.375rem; font-size:0.75rem; color:rgba(255,255,255,0.55); padding:0.5rem 1rem; border-radius:99px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); cursor:pointer; font-family:inherit;"
 	>
-		🛒 Ver lista de la compra
+		{t('inventory.seeShoppingList')}
 	</button>
 </div>
 

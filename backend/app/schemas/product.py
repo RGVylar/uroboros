@@ -45,7 +45,11 @@ class RecommendedProduct(BaseModel):
     product: ProductOut
     suggested_grams: int
     estimated_calories: float
-    reason: str
+    # El motivo va estructurado, no como frase: el cliente lo redacta en su
+    # idioma. reason_kind es "freq" (comido N veces) o "macro" (X g por 100 g).
+    reason_kind: str
+    reason_freq: int
+    reason_macro_per_100g: float | None = None
 
 
 class FrequentProduct(BaseModel):

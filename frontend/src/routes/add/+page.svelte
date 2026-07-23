@@ -70,6 +70,21 @@
 		fat:     t('add.recSubFat'),
 	};
 
+	// El backend manda el motivo en piezas; la frase se monta aquí para que salga
+	// en el idioma activo.
+	function recReason(rec: RecommendedProduct): string {
+		if (rec.reason_kind === 'macro' && rec.reason_macro_per_100g != null) {
+			const macro = recFocus === 'protein' ? t('add.macroProt')
+				: recFocus === 'carbs' ? t('add.macroCarbs') : t('add.macroFat');
+			return t('add.reasonMacro', {
+				grams: rec.reason_macro_per_100g,
+				macro,
+				count: rec.reason_freq,
+			});
+		}
+		return tc('add.reasonFreq', rec.reason_freq);
+	}
+
 	function recMacroGrams(rec: RecommendedProduct): number {
 		const per100 = recFocus === 'protein' ? rec.product.protein_per_100g
 			: recFocus === 'carbs' ? rec.product.carbs_per_100g
@@ -1372,14 +1387,14 @@
 							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(rec.product.name)} / 0.35), oklch(60% 0.12 {hashHue(rec.product.name)} / 0.15));">{productGlyph(rec.product.name)}</div>
 							<div style="flex:1; min-width:0; text-align:left;">
 								<div class="product-name">{rec.product.name}</div>
-								<div class="product-brand">{rec.reason}</div>
+								<div class="product-brand">{recReason(rec)}</div>
 							</div>
 							<div style="text-align:right; flex-shrink:0;">
 								{#if recFocus === 'kcal'}
 									<div class="product-kcal">{Math.round(rec.estimated_calories)}<span class="product-kcal-unit">kcal</span></div>
-									<div class="product-per">{rec.suggested_grams}g sugerido</div>
+									<div class="product-per">{t('add.suggested', { grams: rec.suggested_grams })}</div>
 								{:else}
-									<div class="product-kcal">{recMacroGrams(rec)}<span class="product-kcal-unit">g {recFocus === 'protein' ? 'prot' : recFocus === 'carbs' ? 'carbs' : 'grasa'}</span></div>
+									<div class="product-kcal">{recMacroGrams(rec)}<span class="product-kcal-unit">g {recFocus === 'protein' ? t('add.macroProt') : recFocus === 'carbs' ? t('add.macroCarbs') : t('add.macroFat')}</span></div>
 									<div class="product-per">{rec.suggested_grams}g · {Math.round(rec.estimated_calories)} kcal</div>
 								{/if}
 							</div>
@@ -1637,10 +1652,10 @@
 		</div>
 		<div class="consume-prompt-actions">
 			<button class="consume-prompt-no" onclick={dismissConsumePrompt}>
-				No, solo registrar
+				{t('add.consumeNo')}
 			</button>
 			<button class="consume-prompt-yes" onclick={openConsumeModal}>
-				Sí, restar del stock
+				{t('add.consumeYes')}
 			</button>
 		</div>
 	</div>

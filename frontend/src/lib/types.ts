@@ -203,7 +203,11 @@ export interface RecommendedProduct {
 	product: Product;
 	suggested_grams: number;
 	estimated_calories: number;
-	reason: string;
+	// El motivo llega estructurado, no como frase hecha: el backend no sabe en
+	// qué idioma está el usuario, así que la redacta el cliente (recReason()).
+	reason_kind: 'freq' | 'macro';
+	reason_freq: number;
+	reason_macro_per_100g: number | null;
 }
 
 export interface FrequentProduct {
@@ -291,8 +295,8 @@ export interface SupplementToday {
 	days_of_week: number[] | null;
 }
 
-// L M X J V S D
-export const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+// Las iniciales de los días salen de weekdayInitials() del módulo i18n:
+// dependen del idioma (L M X J V S D en es, M T W T F S S en en).
 
 // ── Mood ──────────────────────────────────────────────────────────────────────
 export type MoodLevel = 1 | 2 | 3; // 1=bad, 2=neutral, 3=good

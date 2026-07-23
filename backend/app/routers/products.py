@@ -31,7 +31,9 @@ def get_product_recommendations(
             "product": ProductOut.model_validate(rec.product),
             "suggested_grams": rec.suggested_grams,
             "estimated_calories": rec.estimated_calories,
-            "reason": rec.reason,
+            "reason_kind": rec.reason_kind,
+            "reason_freq": rec.reason_freq,
+            "reason_macro_per_100g": rec.reason_macro_per_100g,
         }
         for rec in recommendations
     ]

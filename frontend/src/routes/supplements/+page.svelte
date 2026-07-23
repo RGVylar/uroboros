@@ -2,11 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { DAY_LABELS, type UserSupplement } from '$lib/types';
+	import { type UserSupplement } from '$lib/types';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
-	import { t, tc } from '$lib/i18n/index.svelte';
+	import { t, tc, weekdayInitials } from '$lib/i18n/index.svelte';
+
+	let DAY_LABELS = $derived(weekdayInitials());
 	if (!auth.isLoggedIn) goto('/login');
 
 	const LS_KEY = 'supplements_enabled';

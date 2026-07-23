@@ -15,10 +15,13 @@ class FrequentlyUsedProduct:
 
 class ProductRecommendation:
     """Recommendation with suggested portion size"""
-    def __init__(self, product: Product, suggested_grams: int, reason: str):
+    def __init__(self, product: Product, suggested_grams: int, reason_kind: str,
+                 reason_freq: int, reason_macro_per_100g: float | None = None):
         self.product = product
         self.suggested_grams = suggested_grams
-        self.reason = reason
+        self.reason_kind = reason_kind
+        self.reason_freq = reason_freq
+        self.reason_macro_per_100g = reason_macro_per_100g
         self.estimated_calories = product.calories_per_100g * suggested_grams / 100
 
 
@@ -144,7 +147,10 @@ def get_recommendations(
                 )
             suggested_grams = int(min(300, max(50, suggested_grams)))
 
-            reason = f"{macro_per_100g:g} g {label}/100 g · comido {freq}×"
+            # El texto lo monta el cliente: aqui solo salen los datos, para que
+            # la frase pueda estar en el idioma del usuario sin que el backend
+            # sepa cual es.
+            reason_kind = "macro"
         else:
             # Suggest portion size based on remaining calories
             # Try to stay under 1/3 of remaining calories
@@ -163,10 +169,11 @@ def get_recommendations(
                 # derived from calories, use a standard serving
                 suggested_grams = 100
 
-            reason = f"Comido {freq} veces en los últimos 30 días"
+            reason_kind = "freq"
+            macro_per_100g = None
 
         recommendations.append(
-            ProductRecommendation(product, suggested_grams, reason)
+            ProductRecommendation(product, suggested_grams, reason_kind, freq, macro_per_100g)
         )
 
         if len(recommendations) >= 5:

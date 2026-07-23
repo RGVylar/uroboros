@@ -174,7 +174,7 @@
 	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
 		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('friends.title')}</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{friends.length} conectad@s</div>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('friends.connected', { count: friends.length })}</div>
 	</div>
 	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>
 </div>
@@ -239,7 +239,7 @@
 
 <!-- ── Tabs ── -->
 <div style="display:flex; gap:0.375rem; margin-bottom:0.875rem;">
-	{#each [['lista','Lista'],['solicitudes',`Solicitudes${pending.length > 0 ? ' · '+pending.length : ''}`]] as [id, label]}
+	{#each [['lista',t('friends.tabList')],['solicitudes',t('friends.tabRequests') + (pending.length > 0 ? ' · '+pending.length : '')]] as [id, label]}
 		<button
 			onclick={() => activeTab = id as 'lista'|'solicitudes'}
 			style="flex:1; padding:0.5rem; border-radius:99px; border:1px solid {activeTab===id ? 'oklch(75% 0.18 160 / 0.4)' : 'rgba(255,255,255,0.1)'}; background:{activeTab===id ? 'oklch(75% 0.18 160 / 0.12)' : 'rgba(255,255,255,0.04)'}; color:{activeTab===id ? 'oklch(85% 0.15 160)' : 'rgba(255,255,255,0.55)'}; font-weight:700; font-size:0.75rem; font-family:inherit; cursor:pointer; text-align:center;">
@@ -296,13 +296,13 @@
 								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.sharedInventory')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.shared_inventory}
-										Un inventario y lista de compra para los dos ✓
+										{t('friends.sharedOn')}
 									{:else if mySharedFlag(f) && !theirSharedFlag(f)}
-										Esperando a {f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name}...
+										{t('friends.waitingFor', { name: partnerName(f) })}
 									{:else if !mySharedFlag(f) && theirSharedFlag(f)}
-										{f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name} quiere compartir
+										{t('friends.wantsToShare', { name: partnerName(f) })}
 									{:else}
-										Inventarios separados
+										{t('friends.separateInventories')}
 									{/if}
 								</div>
 							</div>
@@ -322,13 +322,13 @@
 								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.duel')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.duel_active}
-										Compitiendo en adherencia ✓
+										{t('friends.duelOn')}
 									{:else if myDuelFlag(f) && !theirDuelFlag(f)}
-										Esperando a {f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name}...
+										{t('friends.waitingFor', { name: partnerName(f) })}
 									{:else if !myDuelFlag(f) && theirDuelFlag(f)}
-										{f.requester.id === auth.user?.id ? f.receiver.name : f.requester.name} quiere competir
+										{t('friends.wantsToCompete', { name: partnerName(f) })}
 									{:else}
-										Solo se comparte el %, nunca el diario
+										{t('friends.duelOff')}
 									{/if}
 								</div>
 							</div>
@@ -346,7 +346,7 @@
 						<div>
 							<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.allowDiary')}</div>
 							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
-								{myCanAddFlag(f) ? `${partnerName(f)} puede registrar en tu diario` : 'Solo lectura para ellos'}
+								{myCanAddFlag(f) ? t('friends.canAddOn', { name: partnerName(f) }) : t('friends.canAddOff')}
 							</div>
 						</div>
 						<button onclick={() => togglePermission(f)} role="switch" aria-checked={myCanAddFlag(f)} aria-label={t('friends.allowDiaryAria', { name: partnerName(f) })} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
@@ -354,7 +354,7 @@
 						</button>
 					</div>
 						<button onclick={() => (confirmBreakupId = f.id)} style="width:100%; margin-top:0.375rem; padding:0.5rem; border-radius:10px; border:1px solid oklch(65% 0.18 25 / 0.3); background:oklch(60% 0.16 25 / 0.08); color:oklch(85% 0.12 25); font-weight:600; font-size:0.6875rem; font-family:inherit; cursor:pointer;">
-							Ya no somos pareja
+							{t('friends.breakUp')}
 						</button>
 					{/if}
 				</div>

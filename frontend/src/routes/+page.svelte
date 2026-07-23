@@ -839,7 +839,7 @@
 									onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
 									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
 									style="cursor:pointer; padding:0.2rem 0.1rem;">
-									Gestionar
+									{t('diary.suppManage')}
 								</span>
 							</div>
 						</div>
@@ -885,9 +885,9 @@
 							<div style="font-weight:700; font-size:0.85rem; color:#fff;">{t('diary.moodTitle')}</div>
 							<div style="font-size:0.75rem; color:var(--text-muted);">
 								{#if moodEntry?.worst}
-									{moodEntry.energy ? '⚡' : ''}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''} — toca para editar
+									{moodEntry.energy ? '⚡' : ''}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''}{t('diary.moodEdit')}
 								{:else}
-									¿Cómo te has sentido hoy?
+									{t('diary.moodAsk')}
 								{/if}
 							</div>
 						</div>
@@ -1017,7 +1017,7 @@
 													<span style="font-size:1.2rem; flex-shrink:0;">🍳</span>
 													<div style="min-width:0;">
 														<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{freq.recipe.name}</div>
-														<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem;">Usada {freq.count} {tc('diary.time', freq.count)}</div>
+														<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem;">{t('diary.usedFem', { count: freq.count, times: tc('diary.time', freq.count) })}</div>
 													</div>
 												</div>
 												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap; flex-shrink:0;">
@@ -1042,7 +1042,7 @@
 												<div style="flex:1;">
 													<div style="font-weight:600; font-size:0.9rem;">{freq.product.name}</div>
 													{#if freq.product.brand}<div style="font-size:0.8rem; color:var(--text-muted);">{freq.product.brand}</div>{/if}
-													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Usado {freq.count} {tc('diary.time', freq.count)}</div>
+													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">{t('diary.usedMasc', { count: freq.count, times: tc('diary.time', freq.count) })}</div>
 												</div>
 												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
 													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
