@@ -177,7 +177,7 @@
 {/if}
 
 <!-- Chart card -->
-{#if chartData.length >= 2}
+{#if weights.length >= 2}
 <div class="glass-card" style="margin-top:0.75rem;">
 	<div style="display:flex; align-items:center; margin-bottom:0.875rem;">
 		<div class="section-title">{t('weight.evolution')}</div>
@@ -190,6 +190,11 @@
 		</div>
 	</div>
 
+	{#if chartData.length < 2}
+		<div style="text-align:center; padding:1.5rem 0.5rem; color:rgba(255,255,255,0.4); font-size:0.8125rem;">
+			{t('weight.empty')}
+		</div>
+	{:else}
 	<svg viewBox="0 0 {W} {H}" style="width:100%; height:{H}px; overflow:visible; display:block;">
 		<defs>
 			<linearGradient id="wgt-grad" x1="0" y1="0" x2="0" y2="1">
@@ -235,6 +240,7 @@
 			</text>
 		{/if}
 	</svg>
+	{/if}
 </div>
 {/if}
 
