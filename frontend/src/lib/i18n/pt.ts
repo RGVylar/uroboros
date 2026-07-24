@@ -955,6 +955,7 @@ export const pt: Dict = {
 	'diary.time_one': 'vez',
 	'diary.time_other': 'vezes',
 	'diary.seeTheirDay': 'Ver o dia dele',
+	'diary.partnerSupplementsDone': 'Já tomou os suplementos de hoje',
 	'diary.hide': 'Esconder',
 	'diary.show': 'Mostrar',
 	'diary.sameAsYesterday': '↩ Igual a ontem',

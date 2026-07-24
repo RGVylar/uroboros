@@ -953,6 +953,7 @@ export const en: Dict = {
 	'diary.time_one': 'time',
 	'diary.time_other': 'times',
 	'diary.seeTheirDay': 'See their day',
+	'diary.partnerSupplementsDone': 'Already took their supplements today',
 	'diary.hide': 'Hide',
 	'diary.show': 'Show',
 	'diary.sameAsYesterday': '↩ Same as yesterday',

@@ -13,6 +13,7 @@ from app.models import DiaryEntry, Product, User, ExerciseSession
 from app.models.cheat_day import CheatDayLog
 from app.models.diary import MealType
 from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
+from app.models.supplement import SupplementLog, UserSupplement
 from app.schemas.diary import (
     MEAL_LABELS,
     MEAL_ORDER,
@@ -419,6 +420,25 @@ def day_summary(
     )
     calories_burned = exercise_session.total_calories if exercise_session else 0.0
 
+    # Estado de suplementos: solo tiene sentido para "hoy" (los logs son diarios).
+    supplements_done: bool | None = None
+    if day == datetime.now(timezone.utc).date():
+        weekday = day.weekday()
+        all_supps = list(db.scalars(
+            select(UserSupplement)
+            .where(UserSupplement.user_id == target_id)
+            .order_by(UserSupplement.position, UserSupplement.id)
+        ))
+        scheduled = [s for s in all_supps if s.active_today(weekday)]
+        if scheduled:
+            taken_ids = set(db.scalars(
+                select(SupplementLog.supplement_id).where(
+                    SupplementLog.user_id == target_id,
+                    SupplementLog.logged_date == day,
+                )
+            ))
+            supplements_done = all(s.id in taken_ids for s in scheduled)
+
     return DaySummary(
         date=day.isoformat(),
         totals=totals,
@@ -427,6 +447,7 @@ def day_summary(
         calories_burned=calories_burned,
         net_calories=totals.calories - calories_burned,
         has_exercise=exercise_session is not None,
+        supplements_done=supplements_done,
     )
 
 

@@ -963,8 +963,8 @@
 							<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
 							<span class="pc-body">
 								<span class="pc-name">{partner.name}</span>
-								{#if partnerSummary}
-									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} P</span></span>
+								{#if partnerSummary && goals}
+									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} / {Math.round(goals.kcal)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} / {Math.round(goals.protein)} P</span>{#if partnerSummary.supplements_done}<span class="pc-supp" title={t('diary.partnerSupplementsDone')}>💊</span>{/if}</span>
 								{:else}
 									<span class="pc-mac pc-hint">{t('diary.seeTheirDay')}</span>
 								{/if}
@@ -1439,6 +1439,7 @@
 	.pc-mac { font-size: 0.68rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-muted); margin-top: 0.05rem; }
 	.pc-mac .pc-k { color: var(--cal); }
 	.pc-mac .pc-p { color: oklch(78% 0.14 220); }
+	.pc-supp { margin-left: 0.3rem; font-size: 0.8rem; }
 	.pc-hint { color: var(--text-muted); font-weight: 600; }
 	.pc-state { margin-left: auto; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 	.partner-chip.on .pc-state { color: oklch(78% 0.15 var(--phue)); }

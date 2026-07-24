@@ -72,6 +72,7 @@ export interface DaySummary {
 	calories_burned: number;
 	net_calories: number;
 	has_exercise: boolean;
+	supplements_done: boolean | null;
 }
 
 export interface Goals {

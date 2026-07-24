@@ -956,6 +956,7 @@ export const es = {
 	'diary.time_one': 'vez',
 	'diary.time_other': 'veces',
 	'diary.seeTheirDay': 'Ver su día',
+	'diary.partnerSupplementsDone': 'Ya se ha tomado los suplementos de hoy',
 	'diary.hide': 'Ocultar',
 	'diary.show': 'Mostrar',
 	'diary.sameAsYesterday': '↩ Igual que ayer',
