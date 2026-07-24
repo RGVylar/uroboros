@@ -48,11 +48,15 @@ export function avatarUrl(id: string | null | undefined): string | null {
  */
 export const IDENTITY_HUES: number[] = [320, 350, 290, 265, 235, 195];
 
-/** Same name→hue derivation Avatar.svelte uses for the fallback initial disc. */
+/**
+ * Same name→hue derivation Avatar.svelte uses for the fallback initial disc.
+ * Snapped to IDENTITY_HUES (not a raw %360) so the automatic colour never
+ * lands on the reserved green/amber/red the curated picker avoids on purpose.
+ */
 export function nameHue(name: string): number {
 	let h = 0;
 	for (const c of name || '?') h = (h * 31 + c.charCodeAt(0)) % 360;
-	return h;
+	return IDENTITY_HUES[h % IDENTITY_HUES.length];
 }
 
 /** A user's identity hue: their chosen colour, or the name-derived fallback. */
