@@ -144,6 +144,32 @@
 		</div>
 	</GlassCard>
 
+	<!-- Color de identidad: propia sección, siempre visible (antes vivía escondida dentro del modal de avatar) -->
+	<div class="section-title">{t('profile.yourColour')}</div>
+	<GlassCard padding={18}>
+		<div class="color-sub">{t('profile.yourColourSub')}</div>
+		<div class="color-row">
+			{#each IDENTITY_HUES as hue}
+				<button
+					class="color-opt"
+					class:selected={userColorHue === hue}
+					disabled={savingColor}
+					style="background:{identityColor(userName, hue)};"
+					onclick={() => pickColor(hue)}
+					aria-label={t('profile.colourAria', { hue })}
+				></button>
+			{/each}
+			<button
+				class="color-opt color-auto"
+				class:selected={userColorHue === null}
+				disabled={savingColor}
+				onclick={() => pickColor(null)}
+				aria-label={t('profile.autoColourAria')}
+				title={t('profile.autoColourTitle')}
+			>A</button>
+		</div>
+	</GlassCard>
+
 	<!-- Achievements -->
 	<div class="section-title">{t('profile.achievements')}</div>
 	<div class="ach-grid">
@@ -178,31 +204,6 @@
 		<button class="avatar-clear" disabled={savingAvatar || !userAvatar} onclick={() => pickAvatar(null)}>
 			{t('profile.useInitial', { initial: userName[0]?.toUpperCase() ?? 'U' })}
 		</button>
-
-		<div class="color-section">
-			<div class="color-title">{t('profile.yourColour')}</div>
-			<div class="color-sub">{t('profile.yourColourSub')}</div>
-			<div class="color-row">
-				{#each IDENTITY_HUES as hue}
-					<button
-						class="color-opt"
-						class:selected={userColorHue === hue}
-						disabled={savingColor}
-						style="background:{identityColor(userName, hue)};"
-						onclick={() => pickColor(hue)}
-						aria-label={t('profile.colourAria', { hue })}
-					></button>
-				{/each}
-				<button
-					class="color-opt color-auto"
-					class:selected={userColorHue === null}
-					disabled={savingColor}
-					onclick={() => pickColor(null)}
-					aria-label={t('profile.autoColourAria')}
-					title={t('profile.autoColourTitle')}
-				>A</button>
-			</div>
-		</div>
 	</Modal>
 {/if}
 
@@ -388,9 +389,7 @@
 	.avatar-clear:disabled { opacity: 0.4; cursor: default; }
 
 	/* Color picker */
-	.color-section { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
-	.color-title { font-size: 13px; font-weight: 700; }
-	.color-sub { font-size: 11.5px; color: rgba(255,255,255,0.5); margin: 3px 0 12px; line-height: 1.4; }
+	.color-sub { font-size: 11.5px; color: rgba(255,255,255,0.5); margin: 0 0 12px; line-height: 1.4; }
 	.color-row { display: flex; gap: 12px; flex-wrap: wrap; }
 	.color-opt {
 		width: 36px;

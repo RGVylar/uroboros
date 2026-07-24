@@ -1340,7 +1340,7 @@
 
 {#snippet entryCard(entry: DiaryEntry, shared: DiaryEntry | null = null)}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-	<div class="card" class:shared-card={!!shared} style="--phue:{partnerHue}; --mhue:{myHue}; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+	<div class="card" class:shared-card={!!shared} class:mine-card={!shared && showPartner && !!partner} style="--phue:{partnerHue}; --mhue:{myHue}; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
 		onclick={() => startEdit(entry)}
 		role="button"
 		tabindex="0"
@@ -1487,6 +1487,17 @@
 				oklch(72% 0.15 var(--phue) / 0.15)),
 			var(--surface, rgba(255,255,255,0.055));
 		border: 1px solid oklch(72% 0.15 var(--phue) / 0.28);
+	}
+	/* Tus propias entradas cuando el modo pareja está activo: mismo tratamiento
+	   que .partner-card pero con tu color, para distinguir "mío" de "suyo" de un
+	   vistazo sin depender solo del texto. */
+	.mine-card {
+		background:
+			linear-gradient(100deg,
+				transparent,
+				oklch(72% 0.15 var(--mhue) / 0.15)),
+			var(--surface, rgba(255,255,255,0.055));
+		border: 1px solid oklch(72% 0.15 var(--mhue) / 0.28);
 	}
 	.pe-av { display: flex; flex-shrink: 0; }
 	.pe-tag {
