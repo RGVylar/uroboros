@@ -1452,16 +1452,16 @@
 		margin: -0.15rem 0.15rem 0.4rem;
 	}
 
-	/* Lo que tenéis los dos: UNA tarjeta (la tuya) con un degradado de DOS tonos,
-	   del tuyo al suyo. La de solo-ella usa el mismo gesto pero de UN tono, así se
-	   lee "dos tonos = los dos / un tono = una persona". El color va en el fondo,
-	   muy tenue, para no comerse el contraste de las kcal ni de los macros. */
+	/* Lo que tenéis los dos: resplandor radial desde cada borde (el tuyo desde la
+	   izquierda, el suyo desde la derecha) que se funde solo en el centro — sin
+	   parada transparente explícita, así no queda un "valle" oscuro entre los dos
+	   tonos. La de solo-ella/solo-mío usa el mismo gesto pero con un único
+	   resplandor. Ninguna lleva borde de color: el sistema entero vive solo en el
+	   relleno, muy tenue, para no comerse el contraste de las kcal ni de los macros. */
 	.shared-card {
 		background:
-			linear-gradient(100deg,
-				oklch(72% 0.15 var(--mhue) / 0.13),
-				transparent 45%,
-				oklch(72% 0.15 var(--phue) / 0.13)),
+			radial-gradient(110% 100% at 0% 50%,   oklch(72% 0.15 var(--mhue) / 0.16), transparent 60%),
+			radial-gradient(110% 100% at 100% 50%, oklch(72% 0.15 var(--phue) / 0.16), transparent 60%),
 			var(--surface, rgba(255,255,255,0.055));
 		border-color: rgba(255, 255, 255, 0.12);
 	}
@@ -1482,22 +1482,18 @@
 
 	.partner-card {
 		background:
-			linear-gradient(100deg,
-				transparent,
-				oklch(72% 0.15 var(--phue) / 0.15)),
+			radial-gradient(130% 100% at 0% 50%, oklch(72% 0.15 var(--phue) / 0.18), transparent 65%),
 			var(--surface, rgba(255,255,255,0.055));
-		border: 1px solid oklch(72% 0.15 var(--phue) / 0.28);
+		border-color: rgba(255, 255, 255, 0.12);
 	}
 	/* Tus propias entradas cuando el modo pareja está activo: mismo tratamiento
 	   que .partner-card pero con tu color, para distinguir "mío" de "suyo" de un
 	   vistazo sin depender solo del texto. */
 	.mine-card {
 		background:
-			linear-gradient(100deg,
-				transparent,
-				oklch(72% 0.15 var(--mhue) / 0.15)),
+			radial-gradient(130% 100% at 0% 50%, oklch(72% 0.15 var(--mhue) / 0.18), transparent 65%),
 			var(--surface, rgba(255,255,255,0.055));
-		border: 1px solid oklch(72% 0.15 var(--mhue) / 0.28);
+		border-color: rgba(255, 255, 255, 0.12);
 	}
 	.pe-av { display: flex; flex-shrink: 0; }
 	.pe-tag {
