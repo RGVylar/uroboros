@@ -265,8 +265,8 @@
 						</svg>
 					{:else if link.href === '/recipes'}
 						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M12 3C8 3 5 6 5 9c0 2.4 1.4 4.5 3.5 5.6V17h7v-2.4C17.6 13.5 19 11.4 19 9c0-3-3-6-7-6z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M9 17h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M12 7c-1.6-1.4-4-2-7-2v12c3 0 5.4.6 7 2c1.6-1.4 4-2 7-2V5c-3 0-5.4.6-7 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M12 7v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
 						</svg>
 					{:else if link.href === '/settings'}
 						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
