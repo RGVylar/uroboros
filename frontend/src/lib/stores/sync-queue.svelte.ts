@@ -22,6 +22,12 @@ export interface PendingWrite {
 	 */
 	chainedPath?: string;
 	chainedBody?: Record<string, unknown>;
+	/**
+	 * Shared key for a pair of opposite actions (add/undo, mark/unmark). If the
+	 * write at the tail of the queue has the same toggleKey, the two cancel out
+	 * instead of piling up two writes that would sync as a no-op.
+	 */
+	toggleKey?: string;
 }
 
 function load(): PendingWrite[] {
@@ -48,6 +54,14 @@ export const syncQueue = {
 	get isSyncing(): boolean { return _syncing; },
 
 	enqueue(write: Omit<PendingWrite, 'id' | 'createdAt'>) {
+		const tail = _queue[_queue.length - 1];
+		if (write.toggleKey && tail && tail.toggleKey === write.toggleKey) {
+			// This write undoes the one still sitting at the tail — drop both
+			// instead of syncing a no-op pair and inflating the pending count.
+			_queue = _queue.slice(0, -1);
+			persist(_queue);
+			return tail.id;
+		}
 		const entry: PendingWrite = {
 			...write,
 			id: crypto.randomUUID(),

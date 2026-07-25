@@ -532,7 +532,7 @@
 	async function addWater(ml: number) {
 		lastWaterMl = ml;
 		if (connectivity.isOffline) {
-			syncQueue.enqueue({ method: 'POST', path: '/water/log', body: { ml, logged_date: today }, label: `Agua +${ml}ml` });
+			syncQueue.enqueue({ method: 'POST', path: '/water/log', body: { ml, logged_date: today }, label: `Agua +${ml}ml`, toggleKey: `water:${today}` });
 			if (water) water = { ...water, total_ml: water.total_ml + ml };
 			else water = { total_ml: ml, goal_ml: goals?.water_ml ?? 2000 };
 			return;
@@ -542,7 +542,7 @@
 
 	async function removeWater() {
 		if (connectivity.isOffline) {
-			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: t('diary.waterUndo') });
+			syncQueue.enqueue({ method: 'DELETE', path: `/water/log/last?day=${today}`, label: t('diary.waterUndo'), toggleKey: `water:${today}` });
 			if (water) water = { ...water, total_ml: Math.max(0, water.total_ml - lastWaterMl) };
 			return;
 		}
@@ -591,10 +591,10 @@
 		try {
 			if (connectivity.isOffline) {
 				if (creatine?.taken) {
-					syncQueue.enqueue({ method: 'DELETE', path: '/creatine/today', label: 'Creatina — desmarcar' });
+					syncQueue.enqueue({ method: 'DELETE', path: '/creatine/today', label: 'Creatina — desmarcar', toggleKey: `creatine:${today}` });
 					creatine = { ...creatine!, taken: false };
 				} else {
-					syncQueue.enqueue({ method: 'POST', path: '/creatine/log', body: {}, label: 'Creatina ✓' });
+					syncQueue.enqueue({ method: 'POST', path: '/creatine/log', body: {}, label: 'Creatina ✓', toggleKey: `creatine:${today}` });
 					creatine = { taken: true, logged_date: today };
 				}
 				return;
@@ -614,9 +614,9 @@
 	async function toggleSupp(suppId: number, taken: boolean) {
 		if (connectivity.isOffline) {
 			if (taken) {
-				syncQueue.enqueue({ method: 'DELETE', path: `/supplements/log/${suppId}`, label: 'Suplemento — desmarcar' });
+				syncQueue.enqueue({ method: 'DELETE', path: `/supplements/log/${suppId}`, label: 'Suplemento — desmarcar', toggleKey: `supplement:${suppId}:${today}` });
 			} else {
-				syncQueue.enqueue({ method: 'POST', path: `/supplements/log/${suppId}`, body: {}, label: 'Suplemento ✓' });
+				syncQueue.enqueue({ method: 'POST', path: `/supplements/log/${suppId}`, body: {}, label: 'Suplemento ✓', toggleKey: `supplement:${suppId}:${today}` });
 			}
 			supplements = supplements.map(s => s.supplement_id === suppId ? { ...s, taken: !taken } : s);
 			return;
@@ -762,7 +762,7 @@
 			<div class="cache-notice" style="border-color: oklch(75% 0.18 55 / 0.25); background: oklch(75% 0.18 55 / 0.06);">
 				<span>⏳</span>
 				<span style="color: oklch(82% 0.15 55);">
-					{syncQueue.count} {tc('diary.pending', syncQueue.count)} de sincronizar
+					{tc('diary.pending', syncQueue.count)} de sincronizar
 					{#if syncQueue.isSyncing}· sincronizando…{/if}
 				</span>
 			</div>

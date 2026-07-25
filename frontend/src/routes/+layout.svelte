@@ -129,7 +129,7 @@
 	let sidebarNav = $derived([
 		{ href: '/', label: t('nav.diary'), icon: '📋' },
 		{ href: '/history', label: t('nav.history'), icon: '📅', pro: true },
-		{ href: '/recipes', label: t('nav.recipes'), icon: '🍳' },
+		{ href: '/recipes', label: t('nav.recipes'), icon: '📖' },
 		{ href: '/exercises', label: t('nav.exercises'), icon: '💪', pro: true },
 		{ href: '/weight', label: t('nav.weight'), icon: '⚖️' },
 		{ href: '/measurements', label: t('nav.measurements'), icon: '📏', pro: true },
