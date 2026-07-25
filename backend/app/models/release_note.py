@@ -22,6 +22,12 @@ class ReleaseNote(Base):
     `items` is a JSON list of `{type, title, desc}` (type ∈ nuevo|mejora|fix),
     the same shape the modal already renders. `importance` gates the opt-out:
     'major' notes show even to users who muted the changelog, 'minor' don't.
+
+    `title` and each item's `title`/`desc` accept either a plain string (old
+    rows, pre-1.11 — Spanish only) or a `{"es": ..., "en": ..., "pt": ...}`
+    dict. The router resolves whichever shape it finds down to a single string
+    for the requested `lang`, falling back to Spanish. See `_resolve_text` in
+    `app/routers/release_notes.py`.
     """
 
     __tablename__ = "release_notes"
@@ -29,7 +35,7 @@ class ReleaseNote(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     # Dotted version string, e.g. "1.5". Unique — one row per version.
     version: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
-    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    title: Mapped[dict | str] = mapped_column(JSON, nullable=False)
     items: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     # 'minor' (respects opt-out) | 'major' (always shown)
     importance: Mapped[str] = mapped_column(String(10), nullable=False, server_default="minor")

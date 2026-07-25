@@ -38,3 +38,45 @@ def test_release_notes_tolerates_unknown_type(client, db, make_user):
     assert r.status_code == 200, r.text
     note = next(n for n in r.json()["news"] if n["version"] == "1.6")
     assert note["items"][0]["type"] in {"nuevo", "mejora", "fix"}
+
+
+def test_release_notes_resolves_translated_dict_by_lang(client, db, make_user):
+    user = make_user("Amaia")
+    _seed(db, version="1.10", title={"es": "Título", "en": "Title", "pt": "Título PT"},
+          importance="minor", published=True,
+          items=[{
+              "type": "nuevo",
+              "title": {"es": "Nuevo ES", "en": "New EN", "pt": "Novo PT"},
+              "desc": {"es": "Desc ES", "en": "Desc EN", "pt": "Desc PT"},
+          }])
+
+    r = client.get(f"{API}/release-notes?current=1.10&seen=&lang=en", headers=auth(user))
+    assert r.status_code == 200, r.text
+    note = next(n for n in r.json()["news"] if n["version"] == "1.10")
+    assert note["title"] == "Title"
+    assert note["items"][0]["title"] == "New EN"
+    assert note["items"][0]["desc"] == "Desc EN"
+
+
+def test_release_notes_falls_back_to_spanish_when_translation_missing(client, db, make_user):
+    user = make_user("Bea")
+    # Old-shape row: plain strings, no translations at all (pre-1.11 note).
+    _seed(db, version="1.9", title="Solo en español", importance="major", published=True,
+          items=[{"type": "mejora", "title": "Título ES", "desc": "Descripción ES"}])
+
+    r = client.get(f"{API}/release-notes?current=1.9&seen=&lang=en", headers=auth(user))
+    assert r.status_code == 200, r.text
+    note = next(n for n in r.json()["news"] if n["version"] == "1.9")
+    assert note["title"] == "Solo en español"
+    assert note["items"][0]["title"] == "Título ES"
+
+
+def test_release_notes_rejects_unknown_lang(client, db, make_user):
+    user = make_user("Carlos")
+    _seed(db, version="1.10", title={"es": "Título", "en": "Title"}, importance="minor",
+          published=True, items=[])
+
+    r = client.get(f"{API}/release-notes?current=1.10&seen=&lang=fr", headers=auth(user))
+    assert r.status_code == 200, r.text
+    note = next(n for n in r.json()["news"] if n["version"] == "1.10")
+    assert note["title"] == "Título", "un lang desconocido debe caer a español, no tumbar el endpoint"

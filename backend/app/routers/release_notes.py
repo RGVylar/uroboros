@@ -43,18 +43,36 @@ _TEASER_MAX = 2
 _VALID_TYPES = {"nuevo", "mejora", "fix"}
 _TYPE_ALIASES = {"arreglo": "fix"}
 
+_LANGS = {"es", "en", "pt"}
 
-def _norm_item(it: dict) -> dict:
+
+def _resolve_text(value: dict | str, lang: str) -> str:
+    """`title`/`desc` are either a plain string (pre-1.11, Spanish only) or a
+    `{lang: text}` dict. Either way, collapse to one string for `lang`,
+    falling back to Spanish (or whatever's there) if the translation is
+    missing — old notes stay readable instead of disappearing."""
+    if isinstance(value, dict):
+        return value.get(lang) or value.get("es") or next(iter(value.values()), "")
+    return value
+
+
+def _norm_item(it: dict, lang: str) -> dict:
     t = _TYPE_ALIASES.get(it.get("type"), it.get("type"))
     if t not in _VALID_TYPES:
         t = "mejora"
-    return {**it, "type": t}
+    return {
+        **it,
+        "type": t,
+        "title": _resolve_text(it.get("title", ""), lang),
+        "desc": _resolve_text(it.get("desc", ""), lang),
+    }
 
 
 @router.get("", response_model=ChangelogResponse)
 def get_changelog(
     current: str = "",
     seen: str = "",
+    lang: str = "es",
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ChangelogResponse:
@@ -62,7 +80,11 @@ def get_changelog(
 
     - `current`: the version the app build reports it is running.
     - `seen`: the last version the user dismissed (from localStorage).
+    - `lang`: the app's current UI language (`es`/`en`/`pt`); notes without a
+      translation for it fall back to Spanish (see `_resolve_text`).
     """
+    if lang not in _LANGS:
+        lang = "es"
     cur = _parse(current) if current else (10**9,)  # no version → treat as newest
     last_seen = _parse(seen)
 
@@ -84,9 +106,9 @@ def get_changelog(
     news_out = [
         ReleaseNoteOut(
             version=n.version,
-            title=n.title,
+            title=_resolve_text(n.title, lang),
             importance=n.importance,
-            items=[ReleaseNoteItem(**_norm_item(it)) for it in (n.items or [])],
+            items=[ReleaseNoteItem(**_norm_item(it, lang)) for it in (n.items or [])],
         )
         for n in news
     ]
@@ -99,10 +121,10 @@ def get_changelog(
         # A minor update is just noise to a muted user; a major one still nudges.
         if not (opted_out and latest.importance != "major"):
             items = latest.items or []
-            teaser = [it["title"] for it in items[:_TEASER_MAX]]
+            teaser = [_resolve_text(it.get("title", ""), lang) for it in items[:_TEASER_MAX]]
             update = UpdateInfo(
                 version=latest.version,
-                title=latest.title,
+                title=_resolve_text(latest.title, lang),
                 teaser=teaser,
                 more=max(0, len(items) - len(teaser)),
             )

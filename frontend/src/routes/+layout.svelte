@@ -20,7 +20,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
-	import { t } from '$lib/i18n/index.svelte';
+	import { t, i18n } from '$lib/i18n/index.svelte';
 
 	let { children } = $props();
 
@@ -89,7 +89,7 @@
 	$effect(() => {
 		if (!auth.isLoggedIn) return;
 		untrack(() => {
-			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(getSeen())}`;
+			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(getSeen())}&lang=${i18n.locale}`;
 			api.get<ChangelogResponse>(`/release-notes?${q}`)
 				.then((res) => {
 					changelogNotes = res.news;
