@@ -909,8 +909,9 @@ export const pt: Dict = {
 	'ring.burned': 'Queimadas',
 
 	// ── diario ──
-	'diary.mealRecipe': '＋ Receita',
-	'diary.mealClear': '🗑 Esvaziar',
+	'diary.mealRecipe': 'Guardar receita',
+	'diary.mealClear': 'Esvaziar refeição',
+	'diary.copyMeal': 'Copiar para hoje',
 	'diary.recipeSaved': 'Receita guardada.',
 	'diary.editingPartnerToo': 'A editar também o de {name}',
 	'diary.loading': 'A carregar...',

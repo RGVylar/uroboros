@@ -49,6 +49,7 @@
 	let loading = $state(true);
 	let fromCache = $state(false);
 	let copyingYesterday = $state(false);
+	let copyingMealType: string | null = $state(null);
 	let creatine: CreatineToday | null = $state(null);
 	let togglingCreatine = $state(false);
 	let supplements: SupplementToday[] = $state([]);
@@ -567,6 +568,23 @@
 		}
 	}
 
+	async function copyMeal(mealType: string) {
+		if (copyingMealType) return;
+		copyingMealType = mealType;
+		try {
+			const res = await api.post<{ copied: number }>(`/diary/copy-meal?source_date=${today}&meal_type=${mealType}`, {});
+			if (res.copied > 0) {
+				toast.success(`Copiado a hoy: ${res.copied} ${res.copied === 1 ? 'alimento' : 'alimentos'}`);
+			} else {
+				toast.info(t('diary.nothingYesterday'));
+			}
+		} catch {
+			toast.error(t('diary.errCopyYesterday'));
+		} finally {
+			copyingMealType = null;
+		}
+	}
+
 	async function toggleCreatine() {
 		if (togglingCreatine) return;
 		togglingCreatine = true;
@@ -1066,22 +1084,47 @@
 								hasEntries={meal.hasMyEntries}
 								hue={meal.hue}
 							>
+								{#snippet iconRepeat()}
+									<svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a5 5 0 0 1 5-4h5M14 3v4h-4"/><path d="M16 13a5 5 0 0 1-5 4H6M6 17v-4h4"/></svg>
+								{/snippet}
+								{#snippet iconBook()}
+									<svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5.5c-1.2-1-3-1.5-5.5-1.5v11c2.5 0 4.3.5 5.5 1.5c1.2-1 3-1.5 5.5-1.5V4c-2.5 0-4.3.5-5.5 1.5z"/><path d="M10 5.5v11"/></svg>
+								{/snippet}
+								{#snippet iconTrash()}
+									<svg viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6h11M8 6V4.5h4V6M6 6l.6 9.5a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9L14 6"/><path d="M8.5 9v4M11.5 9v4"/></svg>
+								{/snippet}
 								{#snippet actions()}
+									{#if !isToday}
+										<button
+											class="btn-ghost"
+											onclick={(e) => { e.stopPropagation(); copyMeal(meal.meal_type); }}
+											disabled={!meal.hasMyEntries || copyingMealType === meal.meal_type}
+											aria-label={t('diary.copyMeal')}
+											title={t('diary.copyMeal')}
+											style="display:inline-flex; align-items:center; padding:0.3rem 0.4rem; line-height:1;"
+										>
+											{#if copyingMealType === meal.meal_type}…{:else}{@render iconRepeat()}{/if}
+										</button>
+									{/if}
 									<button
 										class="btn-ghost"
 										onclick={(e) => { e.stopPropagation(); if (meal.mySection) startSaveMealAsRecipe(meal.mySection); }}
 										disabled={!meal.hasMyEntries}
-										style="font-size:0.72rem; padding:0.25rem 0.55rem;"
+										aria-label={t('diary.mealRecipe')}
+										title={t('diary.mealRecipe')}
+										style="display:inline-flex; align-items:center; padding:0.3rem 0.4rem; line-height:1;"
 									>
-										{t('diary.mealRecipe')}
+										{@render iconBook()}
 									</button>
 									<button
 										class="btn-ghost"
 										onclick={(e) => { e.stopPropagation(); if (meal.mySection) clearingMeal = meal.mySection; }}
 										disabled={!meal.hasMyEntries}
-										style="font-size:0.72rem; padding:0.25rem 0.55rem; color:oklch(70% 0.18 25);"
+										aria-label={t('diary.mealClear')}
+										title={t('diary.mealClear')}
+										style="display:inline-flex; align-items:center; padding:0.3rem 0.4rem; line-height:1; color:oklch(70% 0.18 25);"
 									>
-										{t('diary.mealClear')}
+										{@render iconTrash()}
 									</button>
 								{/snippet}
 							</MealHeader>

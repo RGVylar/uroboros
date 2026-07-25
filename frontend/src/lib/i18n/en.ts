@@ -907,8 +907,9 @@ export const en: Dict = {
 	'ring.burned': 'Burned',
 
 	// ── diario ──
-	'diary.mealRecipe': '＋ Recipe',
-	'diary.mealClear': '🗑 Clear',
+	'diary.mealRecipe': 'Save recipe',
+	'diary.mealClear': 'Clear meal',
+	'diary.copyMeal': 'Copy to today',
 	'diary.recipeSaved': 'Recipe saved.',
 	'diary.editingPartnerToo': "Editing {name}'s too",
 	'diary.loading': 'Loading...',

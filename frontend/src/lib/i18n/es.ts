@@ -910,8 +910,9 @@ export const es = {
 	'ring.burned': 'Quemadas',
 
 	// ── diario ──
-	'diary.mealRecipe': '＋ Receta',
-	'diary.mealClear': '🗑 Vaciar',
+	'diary.mealRecipe': 'Guardar receta',
+	'diary.mealClear': 'Vaciar comida',
+	'diary.copyMeal': 'Copiar a hoy',
 	'diary.recipeSaved': 'Receta guardada.',
 	'diary.editingPartnerToo': 'Editando también lo de {name}',
 	'diary.loading': 'Cargando...',

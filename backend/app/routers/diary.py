@@ -649,6 +649,48 @@ def copy_from_yesterday(
     return {"copied": len(new_entries)}
 
 
+@router.post("/copy-meal", status_code=status.HTTP_201_CREATED)
+def copy_meal(
+    source_date: date = Query(...),
+    meal_type: MealTypeLiteral = Query(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Copy one meal's entries from any past day into today, preserving meal type."""
+    s_start = datetime.combine(source_date, time.min, tzinfo=timezone.utc)
+    s_end = datetime.combine(source_date, time.max, tzinfo=timezone.utc)
+    source_entries = list(db.scalars(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user.id,
+            DiaryEntry.meal_type == meal_type,
+            DiaryEntry.consumed_at >= s_start,
+            DiaryEntry.consumed_at <= s_end,
+        )
+    ))
+
+    if not source_entries:
+        return {"copied": 0}
+
+    now = datetime.now(timezone.utc)
+    new_entries = [
+        DiaryEntry(
+            user_id=e.user_id,
+            product_id=e.product_id,
+            grams=e.grams,
+            calories=e.calories,
+            protein=e.protein,
+            carbs=e.carbs,
+            fat=e.fat,
+            meal_type=e.meal_type,
+            consumed_at=now,
+        )
+        for e in source_entries
+    ]
+    db.add_all(new_entries)
+    db.commit()
+    return {"copied": len(new_entries)}
+
+
 @router.patch("/{entry_id}", response_model=DiaryEntryOut)
 def update_entry(
     entry_id: int,
