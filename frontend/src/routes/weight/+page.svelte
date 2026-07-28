@@ -72,9 +72,16 @@
 
 	// Stats
 	let current = $derived(weights.length ? weights[0].weight : null);
+	// Cambio desde el inicio del historial (primera pesada registrada).
 	let change = $derived(
 		weights.length >= 2
 			? weights[0].weight - weights[weights.length - 1].weight
+			: null
+	);
+	// Cambio desde la medición anterior — el dato del día a día, no el acumulado.
+	let sinceLast = $derived(
+		weights.length >= 2
+			? weights[0].weight - weights[1].weight
 			: null
 	);
 	let records = $derived(weights.length);
@@ -133,16 +140,21 @@
 		<div class="unit-label">kg</div>
 	</div>
 
-	<div style="display:flex; align-items:flex-end; gap:0.875rem; margin-bottom:1.125rem;">
+	<div style="display:flex; align-items:flex-end; gap:0.875rem; margin-bottom:{sinceLast !== null ? '0.375rem' : '1.125rem'};">
 		<div class="big-weight">{current.toFixed(1)}</div>
-		{#if change !== null}
+		{#if sinceLast !== null}
 			<div style="padding-bottom:0.75rem;">
-				<div class="delta-badge" class:delta-down={change < 0} class:delta-up={change > 0}>
-					{change < 0 ? '↓' : '↑'} {Math.abs(change).toFixed(1)} kg
+				<div class="delta-badge" class:delta-down={sinceLast < 0} class:delta-up={sinceLast > 0}>
+					{sinceLast < 0 ? '↓' : '↑'} {Math.abs(sinceLast).toFixed(1)} kg
 				</div>
 			</div>
 		{/if}
 	</div>
+	{#if sinceLast !== null}
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-bottom:0.75rem;">
+			{t('weight.sinceLast', { date: fmtShort(weights[1].logged_at) })}
+		</div>
+	{/if}
 
 	<div class="hero-stats-row">
 		<div class="mini-stat">

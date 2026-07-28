@@ -11,7 +11,14 @@
       "Bash(pip install:*)",
       "Bash(python -c \"from app.main import app; from app.routers.auth import router; print\\('Import OK'\\)\")",
       "Bash(curl -s http://127.0.0.1:8000/health)",
-      "Bash(curl -s -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"demo@demo.com\",\"password\":\"demo1234\"}')"
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"demo@demo.com\",\"password\":\"demo1234\"}')",
+      "Bash(Get-ChildItem -Path \"C:\\\\Repositories\\\\uroboros\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "PowerShell(Head-Object)",
+      "PowerShell(Get-ChildItem \"C:\\\\Repositories\\\\uroboros\\\\frontend\\\\src\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -First 30 | Select-Object FullName)",
+      "Bash(awk 'NR==967' \"C:/Repositories/uroboros/frontend/src/routes/+page.svelte\")",
+      "Bash(xxd)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

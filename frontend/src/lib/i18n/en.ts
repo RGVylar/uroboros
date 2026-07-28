@@ -586,6 +586,7 @@ export const en: Dict = {
 	'weight.records': 'Entries',
 	'weight.total': 'total',
 	'weight.totalChange': 'Total change',
+	'weight.sinceLast': 'since your last measurement ({date})',
 	'weight.start': 'Start',
 	'weight.empty': 'No weight entries',
 	'weight.add': '+ Log',

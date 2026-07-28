@@ -589,6 +589,7 @@ export const es = {
 	'weight.records': 'Registros',
 	'weight.total': 'total',
 	'weight.totalChange': 'Cambio total',
+	'weight.sinceLast': 'desde tu última medición ({date})',
 	'weight.start': 'Inicio',
 	'weight.empty': 'Sin registros de peso',
 	'weight.add': '+ Registrar',

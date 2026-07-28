@@ -588,6 +588,7 @@ export const pt: Dict = {
 	'weight.records': 'Registos',
 	'weight.total': 'total',
 	'weight.totalChange': 'Variação total',
+	'weight.sinceLast': 'desde a tua última medição ({date})',
 	'weight.start': 'Início',
 	'weight.empty': 'Sem registos de peso',
 	'weight.add': '+ Registar',

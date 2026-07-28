@@ -46,6 +46,7 @@
 	// si sus comidas se intercalan entre las tuyas.
 	let showPartner = $state(typeof localStorage !== 'undefined' && localStorage.getItem('uro_show_partner') === '1');
 	let partnerSummary: DaySummary | null = $state(null);
+	let partnerGoals: Goals | null = $state(null);
 	let loading = $state(true);
 	let fromCache = $state(false);
 	let copyingYesterday = $state(false);
@@ -291,6 +292,18 @@
 	}
 	// Refresca el día de la pareja al cambiar de día o cuando aparece la pareja.
 	$effect(() => { const p = partner; today; if (auth.isLoggedIn && p) loadPartnerDay(); });
+
+	async function loadPartnerGoals() {
+		if (!partner || connectivity.isOffline) { partnerGoals = null; return; }
+		try {
+			partnerGoals = await api.get<Goals>(`/goals?user_id=${partner.id}`);
+		} catch {
+			partnerGoals = null;
+		}
+	}
+	// Los objetivos no cambian por día, así que solo hace falta recargarlos
+	// cuando aparece (o cambia) la pareja, no en cada cambio de fecha.
+	$effect(() => { const p = partner; if (auth.isLoggedIn && p) loadPartnerGoals(); else partnerGoals = null; });
 
 	function toggleShowPartner() {
 		showPartner = !showPartner;
@@ -981,8 +994,8 @@
 							<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
 							<span class="pc-body">
 								<span class="pc-name">{partner.name}</span>
-								{#if partnerSummary && goals}
-									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} / {Math.round(goals.kcal)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} / {Math.round(goals.protein)} P</span>{#if partnerSummary.supplements_done}<span class="pc-supp" title={t('diary.partnerSupplementsDone')}>💊</span>{/if}</span>
+								{#if partnerSummary && partnerGoals}
+									<span class="pc-mac"><span class="pc-k">{Math.round(partnerSummary.totals.calories)} / {Math.round(partnerGoals.kcal)} kc</span> · <span class="pc-p">{Math.round(partnerSummary.totals.protein)} / {Math.round(partnerGoals.protein)} P</span>{#if partnerSummary.supplements_done}<span class="pc-supp" title={t('diary.partnerSupplementsDone')}>💊</span>{/if}</span>
 								{:else}
 									<span class="pc-mac pc-hint">{t('diary.seeTheirDay')}</span>
 								{/if}
