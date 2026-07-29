@@ -1411,8 +1411,8 @@
 			{#if shared}
 				<div class="shared-line">
 					<span class="shared-avs">
-						<span class="shared-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} identityHue={myHue} size={16} /></span>
-						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={16} /></span>
+						<span class="shared-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} identityHue={myHue} size={16} /></span>
+						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} identityHue={partnerHue} size={16} /></span>
 					</span>
 					<span class="shared-txt">Los dos · tú {Math.round(entry.grams)}{entry.product ? productUnit(entry.product) : 'g'} · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>
 				</div>

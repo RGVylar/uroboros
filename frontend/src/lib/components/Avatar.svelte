@@ -22,11 +22,11 @@
 		identityHue?: number | null; // overrides the name-derived disc hue
 	} = $props();
 
-	// Por debajo de esto una cara es una mancha, y los avatares ilustrados están
-	// dibujados para leerse justo a ese tamaño. El chip del diario compartido se
-	// pinta a 16px: ahí no entra ninguna foto.
-	const MIN_PHOTO_PX = 24;
-
+	// La foto se enseña a cualquier tamaño, también en los chips de 16px del
+	// diario compartido. A ese tamaño una cara se distingue mal, pero se decidió
+	// que era peor lo contrario: que la misma persona apareciera como su foto en
+	// un sitio y como su dibujo de comida en otro, dentro de la misma pantalla.
+	//
 	// La foto viene del servidor, no del bundle: sin cobertura no carga. Cuando
 	// falla se vuelve al preset o al disco en vez de dejar el icono roto.
 	let photoFailed = $state(false);
@@ -35,9 +35,7 @@
 		photoFailed = false;
 	});
 
-	const photo = $derived(
-		size >= MIN_PHOTO_PX && !photoFailed ? photoUrl(avatarPhoto) : null
-	);
+	const photo = $derived(photoFailed ? null : photoUrl(avatarPhoto));
 	const url = $derived(photo ?? avatarUrl(avatarId));
 
 	const h = $derived(identityHue ?? nameHue(name || '?'));

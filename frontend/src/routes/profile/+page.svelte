@@ -233,10 +233,16 @@
 	<Modal onClose={() => showAvatarPicker = false} title={t('profile.pickAvatar')} subtitle={t('profile.pickAvatarSub')}>
 		<!-- La foto primero: es lo que la mayoría viene buscando -->
 		<div class="photo-row">
+			<!--
+				Sin image/heic en el accept a propósito, aunque sea lo que dispara
+				un iPhone por defecto: Pillow no lo decodifica. Y al no declararlo,
+				iOS entrega la foto ya convertida a JPEG en vez del HEIC original,
+				que es justo lo que nos conviene.
+			-->
 			<input
 				bind:this={photoInput}
 				type="file"
-				accept="image/jpeg,image/png,image/webp,image/heic"
+				accept="image/jpeg,image/png,image/webp"
 				onchange={uploadPhoto}
 				style="display:none"
 			/>
