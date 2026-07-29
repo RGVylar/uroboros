@@ -126,7 +126,8 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> None:
+@limiter.limit("5/hour")
+def reset_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> None:
     if len(payload.new_password) < 8:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "La contraseña debe tener al menos 8 caracteres")
 
