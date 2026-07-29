@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     vapid_email: str = "mailto:admin@uroboros.app"
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    # Secreto que Telegram devuelve en X-Telegram-Bot-Api-Secret-Token al llamar
+    # al webhook. Es lo único que autentica esa ruta, que es pública: vacío =
+    # webhook desactivado (responde 404), que es lo que se quiere en local.
+    telegram_webhook_secret: str = ""
+    # Dónde viven las fotos de perfil. Fuera del repo a propósito: el deploy es
+    # un `git pull`. Vacío = un directorio temporal, que es lo que quieres en
+    # local y lo que NO quieres en producción (ponlo en el .env).
+    media_dir: str = ""
 
 
 settings = Settings()

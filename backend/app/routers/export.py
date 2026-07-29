@@ -9,6 +9,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user, require_premium
 from app.models.body_measurement import BodyMeasurementLog
@@ -74,6 +75,30 @@ def export_full_xlsx(
     uid = user.id
     wb = Workbook()
     wb.remove(wb.active)  # remove default empty sheet
+
+    # ── Perfil ────────────────────────────────────────────────────────────────
+    # Portabilidad: la foto de perfil es un dato personal y tiene que salir del
+    # export. Va como enlace y no incrustada en el .xlsx porque un enlace se
+    # abre, se descarga y se comparte; una imagen dentro de una hoja de cálculo
+    # no sirve para nada de eso.
+    photo_url = (
+        f"{settings.app_url}/api/media/avatars/{user.avatar_photo}"
+        if user.avatar_photo
+        else ""
+    )
+    ws = wb.create_sheet("Perfil")
+    _write_sheet(
+        ws,
+        ["Campo", "Valor"],
+        [
+            ["Nombre", user.name],
+            ["Email", user.email],
+            ["Avatar predefinido", user.avatar_id or ""],
+            ["Foto de perfil", photo_url],
+            ["Código de invitación", user.invite_code or ""],
+            ["Alta", user.created_at.strftime("%Y-%m-%d") if user.created_at else ""],
+        ],
+    )
 
     # ── Diario ────────────────────────────────────────────────────────────────
     stmt = (

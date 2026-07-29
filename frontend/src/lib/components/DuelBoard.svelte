@@ -44,7 +44,7 @@
 <!-- ── Marcador ── -->
 {#snippet scoreRow(side: DuelSide, lead: boolean)}
 	<div class="row" class:lead>
-		<div class="ava"><Avatar name={side.name} avatarId={side.avatarId} size={34} /></div>
+		<div class="ava"><Avatar name={side.name} avatarId={side.avatarId} avatarPhoto={side.avatarPhoto} size={34} /></div>
 		<div class="rowmid">
 			<div class="name">{side.name}{#if lead}<span class="crown">👑</span>{/if}</div>
 			<div class="bar"><span style="width:{side.pct ?? 0}%"></span></div>

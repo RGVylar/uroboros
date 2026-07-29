@@ -1,14 +1,20 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
+from app.services.invite_service import resolve_code
 from app.models import User, InventoryItem, ShoppingListItem, SharedInventoryItem, SharedShoppingListItem
 from app.models.friendship import Friendship, FriendshipKind, FriendshipStatus
-from app.schemas.friendship import FriendshipOut, FriendshipRequest, FriendshipUpdate
+from app.schemas.friendship import (
+    FriendshipOut, FriendshipReport, FriendshipRequest, FriendshipUpdate,
+)
+from app.services.avatar_photo_service import read_thumbnail_jpeg
+from app.services.telegram_alerts import send_report_alert
 
 router = APIRouter(prefix="/friends", tags=["friends"])
 
@@ -135,14 +141,23 @@ def pending_count(
 # POST /friends  — send a friend request by email
 # ---------------------------------------------------------------------------
 @router.post("", response_model=FriendshipOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/hour")
 def send_request(
+    request: Request,
     payload: FriendshipRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Friendship:
-    target = db.scalar(select(User).where(User.email == payload.email))
-    if not target:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No existe ningún usuario con ese email")
+    # El rate limit es lo que hace que el código no sea enumerable: 32⁸ posibles
+    # y 10 intentos por hora. Sin él, la entropía del código no sirve de nada.
+    if payload.code:
+        target = resolve_code(db, payload.code)
+        if not target:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Ese código no es de nadie")
+    else:
+        target = db.scalar(select(User).where(User.email == payload.email))
+        if not target:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No existe ningún usuario con ese email")
     if target.id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No puedes añadirte a ti mismo")
 
@@ -160,6 +175,13 @@ def send_request(
         )
     )
     if existing:
+        # El bloqueo se comprueba antes que nada: la rama de "rejected" de abajo
+        # reabre la solicitud, y sin esto sería justo por donde volvería a
+        # colarse la persona bloqueada.
+        if existing.blocked_by is not None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "No puedes enviar una solicitud a esta persona"
+            )
         if existing.status == FriendshipStatus.accepted:
             raise HTTPException(status.HTTP_409_CONFLICT, "Ya sois amigos")
         if existing.status == FriendshipStatus.pending:
@@ -314,6 +336,10 @@ def update_friendship(
     user: User = Depends(get_current_user),
 ) -> Friendship:
     f = _get_friendship(db, friendship_id, user)
+    # Una relación bloqueada no se toca por ninguno de los dos lados: sin esto,
+    # la persona bloqueada podría revivirla con un {status: accepted}.
+    if f.blocked_by is not None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Esta relación está bloqueada")
     other_id = f.receiver_id if f.requester_id == user.id else f.requester_id
 
     # Kind is handled before status on purpose: "I accept, but only as a friend"
@@ -457,7 +483,65 @@ def delete_friendship(
     — it deletes it, and both people lose the stock. Split first, then drop.
     """
     f = _get_friendship(db, friendship_id, user)
+    # Quien está bloqueado no puede borrar la fila: es la fila la que sostiene
+    # el bloqueo, y borrarla dejaría libre el hueco para volver a solicitar.
+    # Quien bloqueó sí puede — eso es desbloquear.
+    if f.blocked_by is not None and f.blocked_by != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "No puedes eliminar esta relación")
     if f.shared_inventory:
         _split_from_shared(db, f)
     db.delete(f)
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# POST /friends/{id}/report  — denunciar y bloquear
+# ---------------------------------------------------------------------------
+@router.post("/{friendship_id}/report", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("10/hour")
+async def report_friendship(
+    request: Request,
+    friendship_id: int,
+    payload: FriendshipReport,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    """Denuncia a la otra persona y la bloquea en el mismo gesto.
+
+    Play exige poder denunciar y bloquear desde dentro de la app en cuanto una
+    persona puede enseñarle contenido a otra. Aquí la denuncia llega al chat de
+    admin con la foto, que es donde se revisa.
+    """
+    f = _get_friendship(db, friendship_id, user)
+    other = f.receiver if f.requester_id == user.id else f.requester
+
+    # Se deshace el hogar compartido antes de bloquear, igual que al eliminar:
+    # si no, cada uno se queda sin la despensa que aportó.
+    if f.shared_inventory:
+        _split_from_shared(db, f)
+
+    f.blocked_by = user.id
+    f.status = FriendshipStatus.rejected
+    f.kind = FriendshipKind.friend
+    f.partner_proposed_by = None
+    # Todos los permisos a cero: bloquear y dejar viva la escritura en el diario
+    # sería lo peor de los dos mundos.
+    f.can_add_food = False
+    f.can_add_food_requester = False
+    f.shared_inventory_requester = False
+    f.shared_inventory_receiver = False
+    f.duel_opt_in_requester = False
+    f.duel_opt_in_receiver = False
+    db.commit()
+
+    background.add_task(
+        send_report_alert,
+        user.id,
+        user.name,
+        other.id,
+        other.name,
+        other.email,
+        payload.reason,
+        read_thumbnail_jpeg(other.avatar_photo) if other.avatar_photo else None,
+    )

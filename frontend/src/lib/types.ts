@@ -3,6 +3,7 @@ export interface User {
 	email: string;
 	name: string;
 	avatar_id?: string | null;
+	avatar_photo?: string | null;
 	identity_hue?: number | null;
 	changelog_opt_out?: boolean;
 }
@@ -228,6 +229,8 @@ export interface UserMinimal {
 	name: string;
 	email: string;
 	avatar_id?: string | null;
+	/** Null mientras la relación no esté aceptada — lo impone el backend. */
+	avatar_photo?: string | null;
 }
 
 /** What the relationship *is*. The flags below are what's switched on within it. */

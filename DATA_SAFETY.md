@@ -32,6 +32,24 @@ se indique opcional.
 | **Email address** | Sí (requerido) | No* | App functionality, Account management | `User.email` |
 | **User IDs** | Sí | No | App functionality | `User.id` (JWT `sub`) |
 
+### Photos and videos  ← **cambió el 2026-07-29, hay que reenviar el formulario**
+| Tipo de dato | ¿Recogido? | ¿Compartido? | Propósito | Origen en el código |
+|---|---|---|---|---|
+| **Photos** | Sí (**opcional**) | No | App functionality (foto de perfil) | `User.avatar_photo` |
+
+> Marca **"Is this data required?" → No**: la foto es opcional y hay 18 avatares
+> predefinidos como alternativa.
+>
+> **No** se marca como *shared*: solo la ven las personas cuya solicitud has
+> aceptado, y eso es una transferencia nacida de una acción explícita del usuario
+> (misma lógica que el resto de lo compartido, ver la nota más abajo).
+>
+> Lo que se guarda **no es el fichero que sube el usuario**: se reencodea a WebP
+> 256×256 y se descarta el original con todo su EXIF, incluido el GPS
+> ([avatar_photo_service.py](backend/app/services/avatar_photo_service.py)). Esto
+> es lo que permite seguir marcando **Location → NO recogida** aunque ahora se
+> acepten fotos de móvil.
+
 \* Ver nota sobre Telegram/Resend más abajo — técnicamente el email/nombre salen a
 proveedores como encargados del tratamiento; Google lo considera "processing", no
 "sharing", si es solo para operar el servicio. Ver sección "Terceros".
@@ -73,8 +91,9 @@ proveedores como encargados del tratamiento; Google lo considera "processing", n
   horaria (`NotificationPrefs.timezone`, IANA) NO es ubicación.
 - **Financial info** — no hay pagos implementados aún. Cuando se active Google Play
   Billing, Google gestiona el pago y **no** debes declararlo aquí como recogido por ti.
-- **Photos and videos** — la cámara se usa solo para escanear códigos de barras en
-  tiempo real; no se captura ni almacena ninguna imagen.
+- ~~**Photos and videos**~~ — **ya no aplica**: desde 2026-07-29 hay foto de perfil
+  opcional, declarada arriba. La cámara sigue usándose además para escanear códigos
+  de barras en tiempo real, y de eso no se almacena ninguna imagen.
 - **Contacts, Calendar, SMS, Call logs, Audio, Files** — no se accede.
 - **Web browsing history, Search history** — no.
 
@@ -124,7 +143,27 @@ sí dice *"no se transfieren a terceros países"*. Dos opciones para quedar cohe
 ## Checklist antes de enviar el formulario
 
 - [ ] Marcar Health info y Fitness info (lo más fácil de olvidar y lo más sensible).
+- [ ] **Marcar Photos** (nuevo, opcional) y confirmar que sigue SIN marcarse Location:
+      el reencodeo borra el GPS, por eso una cosa no arrastra la otra.
 - [ ] Confirmar "encrypted in transit = Sí" y "deletion available = Sí".
 - [ ] NO marcar Location ni Financial.
 - [ ] URL de Privacy Policy publicada (`https://comida.mugrelore.com/privacy`).
 - [ ] Resolver el aviso de Telegram (opción 1 recomendada) antes de publicar en abierto.
+
+---
+
+## Contenido generado por usuarios (política aparte del formulario)
+
+Desde que hay foto de perfil, una persona puede enseñarle una imagen a otra, y eso
+activa de lleno la **User Generated Content policy** de Play. Lo que exige y dónde
+está resuelto:
+
+| Requisito de Play | Estado |
+|---|---|
+| Mecanismo de denuncia dentro de la app | ✅ `POST /friends/{id}/report` + botón en la pantalla de Amigos |
+| Poder bloquear a otro usuario | ✅ la denuncia bloquea; `Friendship.blocked_by` impide volver a solicitar |
+| Moderación del contenido | ⚠️ **manual**: cada foto subida llega al chat de admin con miniatura (`send_avatar_photo_alert`). Escala hasta unas pocas subidas al día, no más. |
+
+> La foto **no se muestra en solicitudes pendientes**, solo entre relaciones
+> aceptadas. La regla vive en un `model_validator` de `FriendshipOut`, no repartida
+> por los endpoints, para que no se pueda olvidar al añadir uno nuevo.

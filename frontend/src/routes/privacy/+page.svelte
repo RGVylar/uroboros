@@ -60,9 +60,14 @@
 			<li><strong style="color:#fff;">Actividad física:</strong> sesiones de ejercicio registradas (opcional)</li>
 			<li><strong style="color:#fff;">Inventario:</strong> productos y cantidades en tu despensa (opcional)</li>
 			<li><strong style="color:#fff;">Recetas:</strong> recetas personales que crees en la app (opcional)</li>
+			<li><strong style="color:#fff;">Foto de perfil:</strong> la imagen que subas como avatar (opcional)</li>
 		</ul>
 		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			No recogemos datos de localización, contactos, ni ningún otro dato del dispositivo.
+			<strong style="color:#fff;">Si subes una foto de perfil, la reprocesamos al recibirla</strong>: se recorta
+			en cuadrado, se reduce a 256×256 píxeles y se eliminan todos sus metadatos, incluidas
+			las coordenadas GPS que suelen incorporar las fotos hechas con el móvil. El archivo
+			original no se almacena en ningún momento.
 		</p>
 	</section>
 
@@ -87,6 +92,18 @@
 		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">4. Compartir datos con otros usuarios</h2>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			{appName} permite compartir tu diario e inventario con otros usuarios (pareja, amigos). Esta funcionalidad es <strong style="color:#fff;">completamente opcional</strong> y requiere que tú la actives explícitamente. Puedes revocar el acceso en cualquier momento desde la sección "Amigos" de la app.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Tu foto de perfil, si la subes, solo se muestra dentro de la app a las personas cuya
+			solicitud hayas aceptado: nunca aparece en una solicitud pendiente. La imagen se
+			almacena en una dirección con nombre aleatorio no enumerable; quien reciba esa
+			dirección podría abrirla sin iniciar sesión, igual que ocurre con un enlace no listado.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			<strong style="color:#fff;">Denunciar y bloquear:</strong> desde la sección "Amigos" puedes
+			denunciar a cualquier persona con la que tengas una relación. La denuncia se revisa
+			manualmente y la relación queda bloqueada de inmediato: dejáis de veros y no podréis
+			volver a enviaros solicitudes.
 		</p>
 	</section>
 

@@ -23,6 +23,16 @@ class User(Base):
     # user's rows in a partner's diary. Null falls back to the name-derived hue
     # that Avatar.svelte already computes, so old rows need no backfill.
     identity_hue: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Nombre del WebP subido por el usuario (app/services/avatar_photo_service.py).
+    # Tiene prioridad sobre avatar_id: quien sube foto quiere ver su foto.
+    avatar_photo: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Código de invitación que se comparte en vez del email para añadir amigos.
+    # Nullable y generado la primera vez que se pide (app/invite_codes.py): las
+    # filas antiguas no necesitan backfill y el alta no depende de acertar a la
+    # primera con el índice único.
+    invite_code: Mapped[str | None] = mapped_column(
+        String(12), unique=True, index=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -86,8 +86,11 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "friendships", "duel_opt_in_receiver", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "kind", "VARCHAR(20) NOT NULL DEFAULT 'friend'")
                 _sqlite_add_column_if_missing(conn, "friendships", "partner_proposed_by", "INTEGER")
+                _sqlite_add_column_if_missing(conn, "friendships", "blocked_by", "INTEGER")
                 _sqlite_add_column_if_missing(conn, "recipes", "share_scope", "VARCHAR(20) NOT NULL DEFAULT 'none'")
                 _sqlite_add_column_if_missing(conn, "users", "identity_hue", "INTEGER")
+                _sqlite_add_column_if_missing(conn, "users", "invite_code", "VARCHAR(12)")
+                _sqlite_add_column_if_missing(conn, "users", "avatar_photo", "VARCHAR(64)")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]

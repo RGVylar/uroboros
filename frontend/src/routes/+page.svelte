@@ -991,7 +991,7 @@
 							onclick={toggleShowPartner}
 							aria-pressed={showPartner}
 						>
-							<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
+							<span class="pc-av"><Avatar name={partner.name} avatarId={partner.avatar_id} avatarPhoto={partner.avatar_photo} identityHue={partnerHue} size={28} ring="2px solid {identityColor(partner.name, partner.identity_hue)}" /></span>
 							<span class="pc-body">
 								<span class="pc-name">{partner.name}</span>
 								{#if partnerSummary && partnerGoals}
@@ -1233,7 +1233,7 @@
 				{#snippet plates()}
 					<div class="edit-plates">
 						<div class="edit-plate you">
-							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /></div>
+							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /></div>
 							<div class="edit-plate-who">{t('diary.you')}</div>
 							<div class="edit-plate-g">
 								<input type="number" bind:value={editGrams} min="1" step="1" aria-label={t('diary.yoursAria', { unit: editUnit })} />
@@ -1241,7 +1241,7 @@
 							</div>
 						</div>
 						<div class="edit-plate her">
-							<div class="edit-plate-av"><Avatar name={partner.name} avatarId={partner.avatar_id} size={34} /></div>
+							<div class="edit-plate-av"><Avatar name={partner.name} avatarId={partner.avatar_id} avatarPhoto={partner.avatar_photo} size={34} /></div>
 							<div class="edit-plate-who">{partner.name}</div>
 							<div class="edit-plate-g">
 								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label={t('diary.partnerAria', { unit: editUnit, name: partner.name })} />
@@ -1311,18 +1311,18 @@
 		</div>
 		<div class="del-cards">
 			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
-				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} size={34} /></div>
 				<div class="del-txt"><div class="del-t">{t('diary.deleteBoth')}</div><div class="del-s">{t('diary.deleteBothSub')}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
-				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} size={34} /></div>
+				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /></div>
 				<div class="del-txt"><div class="del-t">{t('diary.deleteMine')}</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			{#if deletingPartnerHas}
 				<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
-					<div class="del-avs"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} size={34} /></div>
+					<div class="del-avs"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} size={34} /></div>
 					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">{t('diary.deleteMineSub')}</div></div>
 					<div class="del-chev">›</div>
 				</button>
@@ -1434,7 +1434,7 @@
 {#snippet partnerEntryCard(entry: DiaryEntry)}
 	<!-- La entrada de la pareja: solo lectura, con su color. El ＋ te la copia a ti. -->
 	<div class="card partner-card" style="--phue:{partnerHue}; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.6rem;">
-		<span class="pe-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} identityHue={partnerHue} size={30} /></span>
+		<span class="pe-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} identityHue={partnerHue} size={30} /></span>
 		<div style="flex:1; min-width:0;">
 			<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
 				{entry.product?.name ?? `Producto #${entry.product_id}`}

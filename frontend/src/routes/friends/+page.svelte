@@ -3,7 +3,9 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Friendship, FriendshipKind } from '$lib/types';
-	import { Modal, Avatar } from '$lib/components';
+	import { Capacitor } from '@capacitor/core';
+	import { page } from '$app/state';
+	import { Modal, Avatar, QrCode } from '$lib/components';
 	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -11,11 +13,32 @@
 	let friends: Friendship[] = $state([]);
 	let pending: Friendship[] = $state([]);
 	let loading = $state(true);
-	let addEmail = $state('');
+	let addCode = $state('');
 	let addError = $state('');
 	let addLoading = $state(false);
 	let addSuccess = $state('');
+	let myCode = $state('');
+	let codeCopied = $state(false);
 	let confirmDeleteId: number | null = $state(null);
+	const isNativeApp = Capacitor.isNativePlatform();
+	let reportId: number | null = $state(null);
+	let reportReason = $state('');
+	let reporting = $state(false);
+
+	async function confirmReport() {
+		if (reportId === null || reporting) return;
+		reporting = true;
+		try {
+			await api.post(`/friends/${reportId}/report`, { reason: reportReason.trim() });
+			reportId = null;
+			reportReason = '';
+			load();
+		} catch (e: unknown) {
+			addError = e instanceof Error ? e.message : t('friends.requestError');
+		} finally {
+			reporting = false;
+		}
+	}
 
 	async function load() {
 		loading = true;
@@ -35,19 +58,82 @@
 
 	let addKind = $state<FriendshipKind>('friend');
 
+	// Lo que lleva el QR. El esquema uroboros:// ya lo entiende el handler de
+	// deep links del layout, que lo convierte en /friends?code=XXXX.
+	const myCodeLink = $derived(myCode ? `uroboros://friends?code=${myCode.replace('-', '')}` : '');
+	let showQr = $state(false);
+
+	// Llegar con ?code= (por QR escaneado o por enlace compartido) abre el
+	// formulario con el código puesto: escanear y luego teclear no tendría gracia.
+	$effect(() => {
+		const incoming = page.url.searchParams.get('code');
+		if (incoming && !addCode) {
+			addCode = incoming.toUpperCase();
+			showAddForm = true;
+			loadMyCode();
+		}
+	});
+
+	async function scanFriendCode() {
+		addError = '';
+		try {
+			const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+			const { supported } = await BarcodeScanner.isSupported();
+			if (!supported) {
+				addError = t('friends.scanUnsupported');
+				return;
+			}
+			const granted = await BarcodeScanner.requestPermissions();
+			if (granted.camera !== 'granted') {
+				addError = t('friends.scanNoCamera');
+				return;
+			}
+			const { barcodes } = await BarcodeScanner.scan();
+			if (!barcodes.length) return;
+			// Se acepta tanto el enlace completo del QR como un código pelado,
+			// por si alguien apunta a un QR generado por otro medio.
+			const raw = barcodes[0].rawValue ?? '';
+			const fromLink = raw.match(/code=([A-Za-z0-9-]+)/);
+			addCode = (fromLink ? fromLink[1] : raw).toUpperCase();
+		} catch (e: unknown) {
+			addError = e instanceof Error ? e.message : t('friends.scanError');
+		}
+	}
+
+	// El código se pide solo al abrir el formulario: es lo único que hay que
+	// enseñar aquí, y no hace falta cargarlo en cada visita a la pantalla.
+	async function loadMyCode() {
+		if (myCode) return;
+		try {
+			myCode = (await api.get<{ formatted: string }>('/users/me/invite-code')).formatted;
+		} catch {
+			// Sin código a la vista el formulario sigue sirviendo para enviar.
+		}
+	}
+
+	async function copyMyCode() {
+		try {
+			await navigator.clipboard.writeText(myCode);
+			codeCopied = true;
+			setTimeout(() => (codeCopied = false), 1600);
+		} catch {
+			// Sin permiso de portapapeles queda en pantalla para copiarlo a mano.
+		}
+	}
+
 	async function sendRequest() {
 		addError = '';
 		addSuccess = '';
-		if (!addEmail.trim()) return;
+		if (!addCode.trim()) return;
 		addLoading = true;
 		try {
-			await api.post('/friends', { email: addEmail.trim(), kind: addKind });
-			addSuccess = `Solicitud enviada a ${addEmail.trim()}`;
-			addEmail = '';
+			const created = await api.post<Friendship>('/friends', { code: addCode.trim(), kind: addKind });
+			addSuccess = t('friends.requestSent', { name: created.receiver.name });
+			addCode = '';
 			addKind = 'friend';
 			load();
 		} catch (e: unknown) {
-			addError = e instanceof Error ? e.message : 'Error al enviar solicitud';
+			addError = e instanceof Error ? e.message : t('friends.requestError');
 		} finally {
 			addLoading = false;
 		}
@@ -159,6 +245,10 @@
 		return f.requester.id === auth.user?.id ? f.receiver.avatar_id : f.requester.avatar_id;
 	}
 
+	function friendPhoto(f: Friendship) {
+		return f.requester.id === auth.user?.id ? f.receiver.avatar_photo : f.requester.avatar_photo;
+	}
+
 	let activeTab = $state<'lista' | 'solicitudes'>('lista');
 	let showAddForm = $state(false);
 
@@ -176,15 +266,45 @@
 		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('friends.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('friends.connected', { count: friends.length })}</div>
 	</div>
-	<button onclick={() => showAddForm = !showAddForm} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>
+	<button onclick={() => { showAddForm = !showAddForm; if (showAddForm) loadMyCode(); }} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>
 </div>
 
 <!-- ── Add friend form ── -->
 {#if showAddForm}
 	<div class="glass-card" style="margin-bottom:1rem;">
+		<!-- Tu código primero: lo normal es venir aquí a enseñarlo, no a teclear otro -->
+		{#if myCode}
+			<div style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem;">{t('friends.myCode')}</div>
+			<button onclick={copyMyCode}
+				style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.75rem 0.875rem; margin-bottom:0.375rem; border-radius:14px; cursor:pointer; font-family:inherit; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03);">
+				<span style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:1.25rem; font-weight:800; letter-spacing:0.12em; color:oklch(88% 0.15 160);">{myCode}</span>
+				<span style="font-size:0.6875rem; color:rgba(255,255,255,0.5); white-space:nowrap;">{codeCopied ? t('friends.codeCopied') : t('friends.copyCode')}</span>
+			</button>
+			<button onclick={() => (showQr = !showQr)} style="width:100%; margin-bottom:0.5rem; padding:0.5rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.6); font-family:inherit; font-size:0.6875rem; cursor:pointer;">
+				{showQr ? t('friends.qrHide') : t('friends.qrShow')}
+			</button>
+			{#if showQr}
+				<div style="display:flex; justify-content:center; margin-bottom:0.625rem;">
+					<QrCode value={myCodeLink} size={180} />
+				</div>
+			{/if}
+			<p style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin:0 0 1rem; line-height:1.45;">{t('friends.myCodeHint')}</p>
+		{/if}
+
 		<div style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.625rem;">{t('friends.sendRequest')}</div>
-		<input type="email" placeholder={t('friends.emailPlaceholder')} bind:value={addEmail}
-			onkeydown={(e) => { if (e.key === 'Enter') sendRequest(); }} style="width:100%; margin-bottom:0.75rem;" />
+		<div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+			<input type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9"
+				placeholder={t('friends.codePlaceholder')} bind:value={addCode}
+				oninput={(e) => (addCode = e.currentTarget.value.toUpperCase())}
+				onkeydown={(e) => { if (e.key === 'Enter') sendRequest(); }}
+				style="flex:1; min-width:0; font-family:ui-monospace,'SF Mono',Menlo,monospace; letter-spacing:0.12em; text-transform:uppercase;" />
+			<!-- Escanear solo en la app: el escáner es un plugin nativo -->
+			{#if isNativeApp}
+				<button onclick={scanFriendCode} style="flex:0 0 auto; padding:0 0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; cursor:pointer;">
+					{t('friends.scan')}
+				</button>
+			{/if}
+		</div>
 
 		<!-- El tipo se elige, no se deduce de un permiso suelto -->
 		<div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
@@ -210,7 +330,7 @@
 			</button>
 		</div>
 
-		<button onclick={sendRequest} disabled={addLoading || !addEmail.trim()} style="width:100%; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; border:none; padding:0.6875rem; border-radius:13px; font-family:inherit; cursor:pointer; font-size:0.8125rem;">
+		<button onclick={sendRequest} disabled={addLoading || !addCode.trim()} style="width:100%; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; border:none; padding:0.6875rem; border-radius:13px; font-family:inherit; cursor:pointer; font-size:0.8125rem;">
 			{addLoading ? '...' : t('friends.sendRequest')}
 		</button>
 		{#if addError}<p style="color:oklch(75% 0.2 25); font-size:0.75rem; margin-top:0.375rem;">{addError}</p>{/if}
@@ -227,7 +347,7 @@
 	{@const pName = friendName(partner)}
 	<div class="glass-card" style="margin-bottom:0.875rem; display:flex; align-items:center; gap:0.875rem; border-color:oklch(75% 0.18 160 / 0.3); background:oklch(75% 0.15 160 / 0.07);">
 		<div style="border-radius:50%; box-shadow:0 0 20px oklch(75% 0.2 165 / 0.4); flex-shrink:0; line-height:0;">
-			<Avatar name={pName} avatarId={friendAvatar(partner)} size={52} ring="2px solid oklch(80% 0.17 165)" />
+			<Avatar name={pName} avatarId={friendAvatar(partner)} avatarPhoto={friendPhoto(partner)} size={52} ring="2px solid oklch(80% 0.17 165)" />
 		</div>
 		<div style="flex:1; min-width:0;">
 			<div style="font-size:0.625rem; letter-spacing:0.075em; color:oklch(85% 0.15 160); text-transform:uppercase; font-weight:800;">{t('friends.pairUp')}</div>
@@ -266,7 +386,7 @@
 					<div style="display:flex; align-items:center; gap:0.75rem;">
 						<!-- Avatar — toca para ver perfil -->
 						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer; box-shadow:none; border-radius:50%; line-height:0;">
-							<Avatar name={fName} avatarId={friendAvatar(f)} size={46} />
+							<Avatar name={fName} avatarId={friendAvatar(f)} avatarPhoto={friendPhoto(f)} size={46} />
 							{#if f.kind === 'partner'}
 								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;">★</div>
 							{/if}
@@ -284,6 +404,7 @@
 							</button>
 						{/if}
 						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">{t('friends.remove')}</button>
+						<button onclick={() => { reportId = f.id; reportReason = ''; }} title={t('friends.reportTitle')} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:oklch(72% 0.16 30); cursor:pointer; font-family:inherit;">{t('friends.report')}</button>
 					</div>
 					{#if f.partner_proposed_by && f.partner_proposed_by !== auth.user?.id && f.kind !== 'partner'}
 						<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.5rem;">👆 {fName} quiere que seáis pareja. Toca para aceptar.</div>
@@ -441,6 +562,28 @@
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
 			<button class="btn-secondary" onclick={() => (confirmBreakupId = null)} style="flex:1;">{t('common.cancel')}</button>
 			<button class="btn-danger" onclick={confirmBreakup} style="flex:1;">{t('common.confirm')}</button>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Denunciar y bloquear -->
+{#if reportId !== null}
+	<Modal onClose={() => (reportId = null)} title={t('friends.reportTitle')} subtitle={t('friends.reportSub')}>
+		<textarea
+			bind:value={reportReason}
+			placeholder={t('friends.reportPlaceholder')}
+			maxlength="500"
+			rows="3"
+			style="width:100%; resize:vertical; font-family:inherit;"
+		></textarea>
+		<p style="font-size:0.6875rem; color:rgba(255,255,255,0.45); margin:0.5rem 0 0; line-height:1.45;">
+			{t('friends.reportWarn')}
+		</p>
+		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+			<button class="btn-secondary" onclick={() => (reportId = null)} style="flex:1;">{t('common.cancel')}</button>
+			<button class="btn-danger" disabled={reporting} onclick={confirmReport} style="flex:1;">
+				{reporting ? '...' : t('friends.reportConfirm')}
+			</button>
 		</div>
 	</Modal>
 {/if}

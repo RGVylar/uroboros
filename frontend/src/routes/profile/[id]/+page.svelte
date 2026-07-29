@@ -13,6 +13,7 @@
 		id: number;
 		name: string;
 		avatar_id: string | null;
+		avatar_photo: string | null;
 		streak: number;
 		active_days: number;
 		recipe_count: number;
@@ -61,8 +62,8 @@
 		friend_name: string;
 		week?: number;
 		phase?: string;
-		me?: { name: string; avatar_id: string | null; pct: number | null; days: string[] };
-		them?: { name: string; avatar_id: string | null; pct: number | null; days: string[] };
+		me?: { name: string; avatar_id: string | null; avatar_photo: string | null; pct: number | null; days: string[] };
+		them?: { name: string; avatar_id: string | null; avatar_photo: string | null; pct: number | null; days: string[] };
 		seasons_won?: { me: number; them: number };
 		history?: { week: number; winner: string }[];
 		streak_weeks?: number;
@@ -85,8 +86,8 @@
 			? {
 				week: duelApi.week ?? 0,
 				phase: duelApi.phase ?? '',
-				me: { name: duelApi.me.name, avatarId: duelApi.me.avatar_id, pct: duelApi.me.pct, days: duelApi.me.days as DuelData['me']['days'] },
-				them: { name: duelApi.them.name, avatarId: duelApi.them.avatar_id, pct: duelApi.them.pct, days: duelApi.them.days as DuelData['them']['days'] },
+				me: { name: duelApi.me.name, avatarId: duelApi.me.avatar_id, avatarPhoto: duelApi.me.avatar_photo, pct: duelApi.me.pct, days: duelApi.me.days as DuelData['me']['days'] },
+				them: { name: duelApi.them.name, avatarId: duelApi.them.avatar_id, avatarPhoto: duelApi.them.avatar_photo, pct: duelApi.them.pct, days: duelApi.them.days as DuelData['them']['days'] },
 				seasonsWon: duelApi.seasons_won ?? { me: 0, them: 0 },
 				history: (duelApi.history ?? []) as DuelData['history'],
 				streakWeeks: duelApi.streak_weeks ?? 0,
@@ -114,7 +115,7 @@
 	<!-- Hero card -->
 	<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem; text-align:center;">
 		<div style="width:92px; height:92px; margin:0 auto 0.625rem; border-radius:50%; box-shadow:0 10px 32px oklch(72% 0.18 {nameHue} / 0.3); line-height:0;">
-			<Avatar name={profile.name} avatarId={profile.avatar_id} size={92} />
+			<Avatar name={profile.name} avatarId={profile.avatar_id} avatarPhoto={profile.avatar_photo} size={92} />
 		</div>
 		<div style="font-size:1.1875rem; font-weight:700; color:#fff;">{profile.name}</div>
 

@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Goals, Recipe, WeightLog, Friendship } from '$lib/types';
+	import type { Goals, Recipe, User, WeightLog, Friendship } from '$lib/types';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
@@ -21,6 +21,12 @@
 		if (savingAvatar) return;
 		savingAvatar = true;
 		try {
+			// Si hay foto, la foto gana: elegir un dibujo sin quitarla antes no
+			// cambiaría nada en pantalla y parecería que el botón está roto.
+			if (auth.user?.avatar_photo) {
+				await api.del<User>('/users/me/avatar-photo');
+				auth.updateUser({ avatar_photo: null });
+			}
 			await api.patch('/users/me/avatar', { avatar_id: id });
 			auth.updateUser({ avatar_id: id });
 			showAvatarPicker = false;
@@ -28,6 +34,42 @@
 			toast.error(t('profile.errAvatar'));
 		} finally {
 			savingAvatar = false;
+		}
+	}
+
+	let photoInput = $state<HTMLInputElement | null>(null);
+	let uploadingPhoto = $state(false);
+
+	async function uploadPhoto(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file || uploadingPhoto) return;
+		uploadingPhoto = true;
+		try {
+			const form = new FormData();
+			form.append('file', file);
+			const updated = await api.upload<User>('/users/me/avatar-photo', form);
+			auth.updateUser({ avatar_photo: updated.avatar_photo });
+			showAvatarPicker = false;
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : t('profile.errPhoto'));
+		} finally {
+			uploadingPhoto = false;
+			// Sin esto, volver a elegir el mismo fichero no dispara el change.
+			input.value = '';
+		}
+	}
+
+	async function removePhoto() {
+		if (uploadingPhoto) return;
+		uploadingPhoto = true;
+		try {
+			await api.del<User>('/users/me/avatar-photo');
+			auth.updateUser({ avatar_photo: null });
+		} catch {
+			toast.error(t('profile.errPhoto'));
+		} finally {
+			uploadingPhoto = false;
 		}
 	}
 
@@ -90,6 +132,7 @@
 	const userName = $derived(auth.user?.name ?? t('settings.user'));
 	const userEmail = $derived(auth.user?.email ?? '');
 	const userAvatar = $derived(auth.user?.avatar_id ?? null);
+	const userPhoto = $derived(auth.user?.avatar_photo ?? null);
 	const userColorHue = $derived(auth.user?.identity_hue ?? null);
 	const nameHue = $derived((() => {
 		let h = 0;
@@ -119,7 +162,7 @@
 		<div class="hero">
 			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title={t('profile.changeAvatar')}>
 				<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
-					<Avatar name={userName} avatarId={userAvatar} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
+					<Avatar name={userName} avatarId={userAvatar} avatarPhoto={userPhoto} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
 				</div>
 				<div class="edit-badge">✏️</div>
 				{#if streak > 0}
@@ -188,11 +231,31 @@
 
 {#if showAvatarPicker}
 	<Modal onClose={() => showAvatarPicker = false} title={t('profile.pickAvatar')} subtitle={t('profile.pickAvatarSub')}>
+		<!-- La foto primero: es lo que la mayoría viene buscando -->
+		<div class="photo-row">
+			<input
+				bind:this={photoInput}
+				type="file"
+				accept="image/jpeg,image/png,image/webp,image/heic"
+				onchange={uploadPhoto}
+				style="display:none"
+			/>
+			<button class="photo-btn" disabled={uploadingPhoto} onclick={() => photoInput?.click()}>
+				{uploadingPhoto ? t('profile.photoUploading') : userPhoto ? t('profile.photoChange') : t('profile.photoUpload')}
+			</button>
+			{#if userPhoto}
+				<button class="photo-btn ghost" disabled={uploadingPhoto} onclick={removePhoto}>
+					{t('profile.photoRemove')}
+				</button>
+			{/if}
+		</div>
+		<p class="photo-hint">{t('profile.photoHint')}</p>
+
 		<div class="avatar-grid">
 			{#each AVATARS as a}
 				<button
 					class="avatar-opt"
-					class:selected={userAvatar === a.id}
+					class:selected={userAvatar === a.id && !userPhoto}
 					disabled={savingAvatar}
 					onclick={() => pickAvatar(a.id)}
 					title={avatarLabel(a.id)}
@@ -387,6 +450,35 @@
 		cursor: pointer;
 	}
 	.avatar-clear:disabled { opacity: 0.4; cursor: default; }
+
+	/* Subir foto */
+	.photo-row { display: flex; gap: 8px; margin-bottom: 8px; }
+	.photo-btn {
+		flex: 1;
+		padding: 12px;
+		border-radius: 12px;
+		border: none;
+		background: linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
+		color: #041010;
+		font-family: inherit;
+		font-size: 13px;
+		font-weight: 800;
+		cursor: pointer;
+	}
+	.photo-btn.ghost {
+		flex: 0 0 auto;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		background: rgba(255, 255, 255, 0.05);
+		color: rgba(255, 255, 255, 0.75);
+		font-weight: 600;
+	}
+	.photo-btn:disabled { opacity: 0.5; cursor: default; }
+	.photo-hint {
+		font-size: 11.5px;
+		color: rgba(255, 255, 255, 0.45);
+		margin: 0 0 16px;
+		line-height: 1.45;
+	}
 
 	/* Color picker */
 	.color-sub { font-size: 11.5px; color: rgba(255,255,255,0.5); margin: 0 0 12px; line-height: 1.4; }

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -11,8 +12,9 @@ from app.limiter import client_ip, limiter
 from app.routers import (
     auth, cheat_days, creatine, diary, downloads, duel, exercises, exercise_sessions,
     export, favorites, friends, goals, inventory, measurements, mood, products,
-    push, recipes, release_notes, shopping_list, supplements, users, water, weight, allergies,
+    push, recipes, release_notes, shopping_list, supplements, telegram, users, water, weight, allergies,
 )
+from app.services.avatar_photo_service import media_root
 from app.services.notification_scheduler import start_scheduler, stop_scheduler
 from app.services.telegram_alerts import (
     send_brute_force_alert,
@@ -77,8 +79,15 @@ def health() -> dict[str, str]:
 
 
 api_prefix = "/api"
+
+# Fotos de perfil. Van bajo /api porque el Caddyfile ya manda /api/* al backend
+# y así no hace falta tocar el reverse proxy. Servirlas desde Caddy directamente
+# sería más rápido — es una optimización pendiente, no un requisito.
+app.mount(f"{api_prefix}/media/avatars", StaticFiles(directory=media_root()), name="avatars")
+
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
+app.include_router(telegram.router, prefix=api_prefix)
 app.include_router(products.router, prefix=api_prefix)
 app.include_router(diary.router, prefix=api_prefix)
 app.include_router(goals.router, prefix=api_prefix)

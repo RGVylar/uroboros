@@ -2,6 +2,8 @@
  * Preset profile avatars. Image files live in static/avatars/<id>.webp.
  * Keep this list in sync with backend/app/avatars.py.
  */
+import { MEDIA_BASE } from '$lib/api';
+
 export interface AvatarOption {
 	id: string;
 	emoji: string;
@@ -38,6 +40,15 @@ export function isAvatarId(id: string | null | undefined): id is string {
 
 export function avatarUrl(id: string | null | undefined): string | null {
 	return isAvatarId(id) ? `/avatars/${id}.webp` : null;
+}
+
+/**
+ * URL de la foto subida por el usuario. A diferencia de los avatares
+ * predefinidos, esto NO va dentro del APK: viene del servidor, así que sin
+ * cobertura no carga y Avatar.svelte tiene que saber caerse con elegancia.
+ */
+export function photoUrl(file: string | null | undefined): string | null {
+	return file ? `${MEDIA_BASE}/avatars/${file}` : null;
 }
 
 /**

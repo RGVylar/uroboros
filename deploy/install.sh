@@ -135,6 +135,9 @@ JWT_SECRET=$JWT_SECRET
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=10080
 OFF_BASE_URL=https://world.openfoodfacts.org
+# Fotos de perfil. Sin esto caen en /tmp, y como el servicio lleva
+# PrivateTmp=true ese /tmp se vacía en cada reinicio: se perderían todas.
+MEDIA_DIR=/var/lib/uroboros/media
 EOF
 chown "$APP_USER:$APP_USER" "$APP_DIR/backend/.env"
 chmod 600 "$APP_DIR/backend/.env"
@@ -163,6 +166,16 @@ msg "Configuring Caddy…"
 cat > /etc/caddy/Caddyfile << EOF
 :80 {
 	encode gzip
+
+	# Subida de foto de perfil: tope de tamaño antes de que el backend
+	# bufferice nada. Va antes del /api/* porque gana el primer handle que casa.
+	@avatar_upload path /api/users/me/avatar-photo
+	handle @avatar_upload {
+		request_body {
+			max_size 5MB
+		}
+		reverse_proxy 127.0.0.1:$BACKEND_PORT
+	}
 
 	# API — reverse proxy to backend
 	handle /api/* {

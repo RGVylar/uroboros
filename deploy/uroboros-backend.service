@@ -13,12 +13,21 @@ ExecStart=/opt/uroboros/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 
 Restart=on-failure
 RestartSec=3
 
+# Fotos de perfil. StateDirectory crea /var/lib/uroboros con el dueño correcto
+# y lo añade solo a las rutas escribibles, así que no hace falta ni mkdir ni
+# chown en el instalador. Fuera de /opt a propósito: allí manda git, y un
+# `git clean -fd` durante un deploy torcido se llevaría las fotos por delante.
+StateDirectory=uroboros
+
 # hardening
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/uroboros
+# Sin /var/lib/uroboros aquí el backend no arranca: monta el directorio de
+# fotos al importar main.py y ProtectSystem=strict le deja el resto en solo
+# lectura. Falla en el systemctl status, que es donde se quiere fallar.
+ReadWritePaths=/opt/uroboros /var/lib/uroboros
 
 [Install]
 WantedBy=multi-user.target

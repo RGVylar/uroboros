@@ -15,6 +15,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db
+from app.limiter import limiter
 from app.main import app
 from app.models import User
 from app.security import create_access_token, hash_password
@@ -40,6 +41,19 @@ def db(tmp_path):
     finally:
         session.close()
         engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _no_rate_limits():
+    """Los límites van por IP y el TestClient es siempre la misma.
+
+    Sin esto, el 10/hour de POST /friends se agota a mitad de la suite y los
+    tests que vienen después fallan por el orden en que se ejecutan, no por lo
+    que comprueban. Los límites se prueban aparte, no de refilón.
+    """
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
 
 
 @pytest.fixture()

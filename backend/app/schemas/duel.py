@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class DuelSideOut(BaseModel):
     name: str
     avatar_id: str | None = None
+    avatar_photo: str | None = None
     pct: int | None
     days: list[str]  # 7 states Mon→Sun: hit|miss|empty|joker|today
 

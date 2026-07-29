@@ -210,9 +210,9 @@ def get_duel(
 
     base.week = iso_week
     base.phase = phase
-    base.me = DuelSideOut(name="Tú", avatar_id=user.avatar_id, pct=my_cur.pct, days=my_cur.states)
+    base.me = DuelSideOut(name="Tú", avatar_id=user.avatar_id, avatar_photo=user.avatar_photo, pct=my_cur.pct, days=my_cur.states)
     base.them = DuelSideOut(
-        name=friend.name, avatar_id=friend.avatar_id, pct=their_cur.pct, days=their_cur.states
+        name=friend.name, avatar_id=friend.avatar_id, avatar_photo=friend.avatar_photo, pct=their_cur.pct, days=their_cur.states
     )
     base.seasons_won = seasons
     base.history = history

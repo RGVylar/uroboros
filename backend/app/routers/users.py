@@ -1,10 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, Response, UploadFile, status,
+)
 from pydantic import BaseModel
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.avatars import AVATAR_IDS, IDENTITY_HUES
 from app.database import get_db
+from app.limiter import limiter
+from app.services.avatar_photo_service import (
+    MAX_UPLOAD_BYTES,
+    InvalidImage,
+    delete_photo,
+    process_and_store,
+    read_thumbnail_jpeg,
+)
+from app.services.telegram_alerts import send_avatar_photo_alert
+from app.services.invite_service import ensure_invite_code
+from app.invite_codes import format_code
 from app.deps import get_current_user
 from app.models import User
 from app.models.allergy import UserAllergy
@@ -53,6 +66,92 @@ def update_avatar(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.post("/me/avatar-photo", response_model=UserOut)
+@limiter.limit("10/hour")
+async def upload_avatar_photo(
+    request: Request,
+    background: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Sube una foto de perfil. Lo que se guarda es un WebP nuestro, no su fichero."""
+    # Content-Length primero: rechaza lo grande sin haberlo leído. No es fiable
+    # por sí solo (se puede mentir u omitir), por eso el read() de abajo también
+    # tiene tope; es un atajo, no la comprobación.
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "La foto pesa demasiado")
+
+    raw = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "La foto pesa demasiado")
+    if not raw:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No has enviado ninguna foto")
+
+    try:
+        stored = process_and_store(raw)
+    except InvalidImage:
+        # Ni el content-type ni la extensión deciden nada: decide si Pillow ha
+        # sabido abrirlo. Un .jpg que no es un jpg cae aquí.
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "No hemos podido leer esa imagen")
+
+    previous = user.avatar_photo
+    user.avatar_photo = stored
+    db.commit()
+    db.refresh(user)
+    # El fichero viejo se borra después del commit: si el commit falla, no hemos
+    # dejado al usuario sin la foto que sí tenía.
+    delete_photo(previous)
+
+    # En segundo plano, no con await: subir ya es la petición más lenta que hay
+    # y no vamos a sumarle un viaje a Telegram antes de responder.
+    background.add_task(
+        send_avatar_photo_alert,
+        user.id,
+        user.name,
+        user.email,
+        read_thumbnail_jpeg(stored),
+        stored,
+    )
+    return user
+
+
+@router.delete("/me/avatar-photo", response_model=UserOut)
+def delete_avatar_photo(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Quita la foto. Vuelve al avatar predefinido o al disco de la inicial."""
+    previous = user.avatar_photo
+    user.avatar_photo = None
+    db.commit()
+    db.refresh(user)
+    delete_photo(previous)
+    return user
+
+
+@router.get("/me/invite-code")
+def get_invite_code(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """El código de invitación del usuario, generándolo si aún no tiene."""
+    code = ensure_invite_code(db, user)
+    return {"code": code, "formatted": format_code(code)}
+
+
+@router.post("/me/invite-code/rotate")
+def rotate_invite_code(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Cambia el código. Para cuando lo has compartido de más y te arrepientes."""
+    user.invite_code = None
+    code = ensure_invite_code(db, user)
+    return {"code": code, "formatted": format_code(code)}
 
 
 class IdentityColorUpdate(BaseModel):
@@ -171,6 +270,9 @@ def get_friend_profile(
         "id": target.id,
         "name": target.name,
         "avatar_id": target.avatar_id,
+        # Este endpoint ya exige amistad aceptada más arriba, así que aquí la
+        # foto sí se enseña.
+        "avatar_photo": target.avatar_photo,
         "identity_hue": target.identity_hue,
         "streak": streak,
         "active_days": active_days,
@@ -219,7 +321,11 @@ def delete_account(
     ))
 
     db.execute(delete(UserGoals).where(UserGoals.user_id == uid))
+    photo = user.avatar_photo
     db.execute(delete(User).where(User.id == uid))
     db.commit()
+    # La fila ya no está, así que el fichero tampoco puede quedarse: quien pide
+    # que le borren la cuenta no espera que su cara siga en un disco.
+    delete_photo(photo)
 
     return Response(status_code=204)

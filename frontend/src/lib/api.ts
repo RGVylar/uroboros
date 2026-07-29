@@ -9,18 +9,27 @@ const BASE = Capacitor.isNativePlatform()
 	? (import.meta.env.VITE_API_URL || 'https://comida.mugrelore.com/api')
 	: '/api';
 
+// Las fotos de perfil las sirve el backend, no el bundle: en la app nativa hay
+// que apuntar al servidor, no a la ruta local del APK.
+export const MEDIA_BASE = `${BASE}/media`;
+
 // AbortController timeout only on web — Capacitor's native fetch bridge on Android
 // adds significant latency when a signal is passed, so we skip it on native.
 const REQUEST_TIMEOUT_MS = 6000;
+// Subir una foto por datos móviles no cabe en los 6s del resto de llamadas.
+const UPLOAD_TIMEOUT_MS = 30000;
 const isNative = Capacitor.isNativePlatform();
 
-async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+async function request<T>(path: string, opts: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+	const headers: Record<string, string> = {};
+	// Con FormData el Content-Type lo pone el navegador, que es el único que
+	// sabe el boundary del multipart; ponerlo a mano rompe la petición.
+	if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 	const token = auth.token;
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 
 	const controller = isNative ? null : new AbortController();
-	const timer = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
+	const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
 	let res: Response;
 	try {
@@ -53,7 +62,10 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		let message: string;
-		if (res.status === 422) {
+		if (res.status === 422 && typeof body.detail !== 'string') {
+			// Los errores de validación de FastAPI traen una lista de campos que
+			// no se le puede enseñar a nadie. Cuando el detail es un texto
+			// nuestro ("no hemos podido leer esa imagen") sí se enseña.
 			message = t('net.badFormat');
 		} else if (typeof body.detail === 'string') {
 			message = body.detail;
@@ -71,5 +83,7 @@ export const api = {
 	post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
 	put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 	patch: <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-	del: <T>(path: string) => request<T>(path, { method: 'DELETE' })
+	del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+	upload: <T>(path: string, form: FormData) =>
+		request<T>(path, { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS)
 };

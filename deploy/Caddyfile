@@ -8,6 +8,21 @@
 :80 {
 	encode gzip
 
+	# Subida de foto de perfil. Va ANTES del /api/* de abajo porque los handle
+	# se evalúan en orden y el primero que casa gana.
+	#
+	# Este es el tope de verdad del tamaño de subida: corta la conexión sin que
+	# el backend llegue a bufferizar nada. El límite de la app (4 MB) es la
+	# segunda línea. 5 MB y no 4 para que el multipart quepa con su envoltorio y
+	# el usuario vea nuestro 413 con mensaje, no un error seco de Caddy.
+	@avatar_upload path /api/users/me/avatar-photo
+	handle @avatar_upload {
+		request_body {
+			max_size 5MB
+		}
+		reverse_proxy 127.0.0.1:__BACKEND_PORT__
+	}
+
 	# API — note: use 'handle', not 'handle_path', to preserve /api prefix
 	handle /api/* {
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__

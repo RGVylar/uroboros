@@ -18,6 +18,7 @@ export type DuelDay = 'hit' | 'miss' | 'empty' | 'joker' | 'today';
 export interface DuelSide {
 	name: string;
 	avatarId: string | null;
+	avatarPhoto?: string | null;
 	/** % de adherencia de la semana (aciertos / días contados, comodín excluido). */
 	pct: number | null; // null = semana sin empezar
 	/** 7 posiciones, lunes → domingo. */

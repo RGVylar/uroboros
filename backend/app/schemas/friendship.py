@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.friendship import FriendshipKind, FriendshipStatus
 
@@ -11,6 +11,7 @@ class UserMinimal(BaseModel):
     name: str
     email: str
     avatar_id: str | None = None
+    avatar_photo: str | None = None
     identity_hue: int | None = None
 
     class Config:
@@ -37,11 +38,47 @@ class FriendshipOut(BaseModel):
     class Config:
         from_attributes = True
 
+    @model_validator(mode="after")
+    def _photos_only_between_accepted(self) -> "FriendshipOut":
+        """La foto solo se ve cuando la relación está aceptada.
+
+        Aquí y no en cada endpoint a propósito: una solicitud pendiente la puede
+        mandar cualquiera que tenga tu código, y hasta que dices que sí no vas a
+        ver una imagen que ha elegido un desconocido. El avatar predefinido sí
+        se enseña — son 18 dibujos nuestros, no puede haber sorpresa.
+        """
+        if self.status is not FriendshipStatus.accepted:
+            self.requester.avatar_photo = None
+            self.receiver.avatar_photo = None
+        return self
+
 
 class FriendshipRequest(BaseModel):
-    """Send a friend request by email."""
-    email: str
+    """Send a friend request, by invite code or (legacy) by email.
+
+    `code` es el camino nuevo: enseñar un código es mejor UX que pedir el email y
+    evita que baste con conocer tu dirección para dejarte una solicitud delante.
+    `email` sigue aceptado porque los APK ya instalados solo saben mandar eso;
+    en cuanto no queden clientes viejos se puede quitar.
+    """
+    email: str | None = None
+    code: str | None = None
     kind: Literal["friend", "partner"] = "friend"
+
+    @model_validator(mode="after")
+    def _exactly_one(self) -> "FriendshipRequest":
+        if bool(self.email) == bool(self.code):
+            raise ValueError("Indica un código de invitación o un email, no ambos")
+        return self
+
+
+class FriendshipReport(BaseModel):
+    """Denunciar a la otra persona de una relación (y bloquearla).
+
+    Van juntos a propósito: quien denuncia no quiere seguir viendo a esa persona
+    mientras alguien revisa la denuncia.
+    """
+    reason: str = Field(default="", max_length=500)
 
 
 class FriendshipUpdate(BaseModel):

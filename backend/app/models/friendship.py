@@ -61,6 +61,12 @@ class Friendship(Base):
     partner_proposed_by: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
+    # Quién bloqueó a quién. La fila se queda (no se borra) justo para esto: el
+    # UNIQUE del par es lo que impide que la persona bloqueada vuelva a mandar
+    # solicitud. Null = relación normal.
+    blocked_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
     # Every flag below is server_default=false() rather than the string "false".
     # A Python string becomes a quoted SQL literal: Postgres casts DEFAULT 'false'
     # to boolean and it works, but SQLite stores the *text* "false", which reads
