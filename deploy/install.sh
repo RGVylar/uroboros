@@ -177,6 +177,15 @@ cat > /etc/caddy/Caddyfile << EOF
 		reverse_proxy 127.0.0.1:$BACKEND_PORT
 	}
 
+	# Fotos de perfil: las sirve Caddy desde disco, sin molestar al backend.
+	# Un año de caché es seguro porque el nombre es un UUID irrepetible.
+	# Esta ruta duplica MEDIA_DIR del .env: si cambias una, cambia la otra.
+	handle_path /api/media/avatars/* {
+		root * /var/lib/uroboros/media/avatars
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
 	# API — reverse proxy to backend
 	handle /api/* {
 		reverse_proxy 127.0.0.1:$BACKEND_PORT
@@ -192,6 +201,10 @@ cat > /etc/caddy/Caddyfile << EOF
 	# Static SvelteKit build
 	handle {
 		root * $APP_DIR/frontend/build
+		# /_app/immutable/ lleva hash en cada nombre: mismo nombre = mismo
+		# contenido, siempre. El resto (index.html, manifest) no lo lleva y se
+		# queda sin esta cabecera a propósito.
+		header /_app/immutable/* Cache-Control "public, max-age=31536000, immutable"
 		try_files {path} /index.html
 		file_server
 	}

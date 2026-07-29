@@ -23,6 +23,25 @@
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__
 	}
 
+	# Fotos de perfil: las da Caddy desde disco, sin pasar por el backend. Antes
+	# las servía uvicorn (StaticFiles), o sea un proceso de Python leyendo un
+	# fichero de 20 KB que este file_server despacha solo.
+	#
+	# handle_path (no handle) porque hay que quitar el prefijo: la URL es
+	# /api/media/avatars/<uuid>.webp y el fichero está en la raíz de root.
+	#
+	# El año de caché es seguro porque el nombre es un UUID que no se reutiliza:
+	# cambiar de foto genera otro nombre, así que nadie puede quedarse servido
+	# con una versión vieja de la misma URL.
+	#
+	# OJO: esta ruta duplica MEDIA_DIR del .env del backend. Si cambias una,
+	# cambia la otra o las fotos dejarán de verse.
+	handle_path /api/media/avatars/* {
+		root * /var/lib/uroboros/media/avatars
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
 	# API — note: use 'handle', not 'handle_path', to preserve /api prefix
 	handle /api/* {
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__
@@ -38,6 +57,11 @@
 	# Static SvelteKit build (adapter-static output)
 	handle {
 		root * __APP_DIR__/frontend/build
+		# /_app/immutable/ hace honor a su nombre: SvelteKit mete un hash en cada
+		# nombre de fichero, así que un mismo nombre nunca cambia de contenido.
+		# Un año de caché. El resto (index.html, manifest, iconos) NO lleva hash
+		# y se queda sin esta cabecera a propósito: ahí sí hace falta revalidar.
+		header /_app/immutable/* Cache-Control "public, max-age=31536000, immutable"
 		try_files {path} /index.html
 		file_server
 	}
