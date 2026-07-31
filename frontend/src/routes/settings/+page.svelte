@@ -10,6 +10,8 @@
 	import type { Goals, User } from '$lib/types';
 	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
 	import Flag from '$lib/components/Flag.svelte';
+	import { Avatar } from '$lib/components';
+	import { identityColor } from '$lib/avatars';
 
 	const LOCALES: Locale[] = ['es', 'en', 'pt'];
 	if (!auth.isLoggedIn) goto('/login');
@@ -389,7 +391,17 @@
 	<div class="settings-group">
 		<!-- Mi perfil (avatar y nombre: es lo que ven tus amigos) -->
 		<button class="settings-row" onclick={() => goto('/profile')}>
-			<div class="icon-box">👤</div>
+			<!-- Su cara, no un icono: es la fila que lleva al perfil, y de paso se
+			     ve de un vistazo qué avatar tienen puesto tus amigos de ti. El aro
+			     va en su color de identidad, como en el propio perfil. -->
+			<Avatar
+				name={auth.user?.name ?? t('settings.user')}
+				avatarId={auth.user?.avatar_id ?? null}
+				avatarPhoto={auth.user?.avatar_photo ?? null}
+				size={32}
+				identityHue={auth.user?.identity_hue ?? null}
+				ring="1.5px solid {identityColor(auth.user?.name ?? '?', auth.user?.identity_hue ?? null)}"
+			/>
 			<div class="row-content">
 				<div class="row-label">{auth.user?.name ?? t('settings.user')}</div>
 				<div class="row-detail">{t('settings.profileDetail')}</div>
