@@ -21,20 +21,51 @@
 		rank?: number;
 		active_users: number;
 		top_percent?: number;
+		gap_to_next?: number | null;
+		medal?: number | null;
+		prev_rank?: number | null;
+		prev_active_users?: number | null;
 		prev_top_percent?: number | null;
 		week: number;
 	}
 	let percentile = $state<Percentile | null>(null);
 	api.get<Percentile>('/duel/me/percentile').then((p) => (percentile = p)).catch(() => {});
 
-	// Movement vs last week's band. Lower top_percent = better, so a drop is a rise
-	// in standing. Null when I didn't rank last week or the band didn't change.
-	let rankMove = $derived.by(() => {
+	const MEDALS = ['🥇', '🥈', '🥉'];
+
+	// A band needs a crowd to mean anything: with 4 people active, the best
+	// possible band is "top 25%", which reads like mediocrity when you're
+	// actually first. Under this many the row shows the exact position; above
+	// it only the podium keeps it, because "37.º de 412" tells you less than
+	// "top 9%" does.
+	const SMALL_POPULATION = 10;
+	let showRank = $derived(
+		!!percentile?.in_ranking && (percentile.active_users < SMALL_POPULATION || !!percentile.medal)
+	);
+
+	function ordinal(n: number): string {
+		if (i18n.locale !== 'en') return `${n}.º`;
+		const teens = n % 100;
+		if (teens >= 11 && teens <= 13) return `${n}th`;
+		return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+	}
+
+	// Only rises get a chip. A fall never gets its own badge: the position is
+	// already on screen, so stamping it red adds no information — the row shows
+	// `gap_to_next` instead, which says the same thing pointing forwards.
+	//
+	// Measured on whatever the row displays (raw position in rank mode, share of
+	// people strictly above me in band mode) and never on the band itself: #1 of
+	// 5 is top 20% and #1 of 4 is top 25%, so a week where someone stopped
+	// logging would invent a movement that never happened.
+	let rise = $derived.by(() => {
 		const p = percentile;
-		if (!p?.in_ranking || p.top_percent == null || p.prev_top_percent == null) return null;
-		if (p.top_percent < p.prev_top_percent) return { dir: 'up' as const, prev: p.prev_top_percent };
-		if (p.top_percent > p.prev_top_percent) return { dir: 'down' as const, prev: p.prev_top_percent };
-		return null;
+		if (!p?.in_ranking || p.rank == null || p.prev_rank == null || !p.prev_active_users) return null;
+		const [now, before] = showRank
+			? [p.rank, p.prev_rank]
+			: [(p.rank - 1) / p.active_users, (p.prev_rank - 1) / p.prev_active_users];
+		if (now >= before) return null;
+		return showRank ? ordinal(p.prev_rank) : `${p.prev_top_percent ?? 0} %`;
 	});
 
 	// ── Compartir la app ─────────────────────────────────────────────────────────
@@ -389,13 +420,13 @@
 		<div class="row-divider"></div>
 		<!-- Percentil anónimo de constancia -->
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">🏅</div>
+			<div class="icon-box medal-{percentile?.medal ?? 0}">{percentile?.medal ? MEDALS[percentile.medal - 1] : '🏅'}</div>
 			<div class="row-content">
-				<div class="row-label">{t('settings.consistency')}</div>
+				<div class="row-label">{t('settings.consistency')}{#if percentile?.in_ranking && percentile.active_users > 1}<span class="rank-chip medal-{percentile.medal ?? 0}">{#if showRank}{ordinal(percentile.rank ?? 1)}<span class="of">{t('settings.consistencyOfTotal', { total: percentile.active_users })}</span>{:else}{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}{/if}</span>{/if}</div>
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
 						{#if percentile.active_users > 1}
-							{t('settings.consistencyPct', { pct: percentile.pct ?? 0 })}<span class="rank-top">{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}</span>{t('settings.consistencyOf')}{#if rankMove}<span class="rank-move {rankMove.dir}">{t('settings.consistencyMove', { dir: rankMove.dir === 'up' ? '↑' : '↓', prev: rankMove.prev })}</span>{:else}{t('settings.consistencyThisWeek')}{/if}
+							{t('settings.consistencyPct', { pct: percentile.pct ?? 0 })}{#if rise}<span class="rank-move">{t(showRank ? 'settings.consistencyMoveRank' : 'settings.consistencyMove', { prev: rise })}</span>{:else if percentile.gap_to_next != null}<span class="rank-gap">{t('settings.consistencyGap', { points: percentile.gap_to_next })}</span>{t('settings.consistencyGapOf', { rank: ordinal((percentile.rank ?? 2) - 1) })}{:else}{t('settings.consistencyThisWeek')}{/if}
 						{:else}
 							{t('settings.consistencyAlone', { pct: percentile.pct ?? 0 })}
 						{/if}
@@ -960,8 +991,9 @@
 		color: rgba(255,255,255,0.45);
 		margin-top: 0.125rem;
 	}
-	.rank-top,
-	.rank-move {
+	.rank-chip,
+	.rank-move,
+	.rank-gap {
 		display: inline-flex;
 		align-items: center;
 		padding: 0.05rem 0.4rem;
@@ -970,14 +1002,34 @@
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
 	}
-	.rank-top {
+	/* The position is information: same place, same size, whatever it says. The
+	   medal tint is the reward, and only lands when the podium was earned. */
+	.rank-chip {
+		margin-left: 0.4rem;
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.55);
+		background: rgba(255,255,255,0.07);
+	}
+	/* The chip is an inline-flex row, so the gap has to be a margin: whitespace
+	   between flex items is dropped. */
+	.rank-chip .of { font-weight: 400; color: rgba(255,255,255,0.32); margin-left: 0.25rem; }
+	.rank-chip.medal-1 { color: oklch(88% 0.15 95); background: oklch(88% 0.15 95 / 0.16); }
+	.rank-chip.medal-2 { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.11); }
+	.rank-chip.medal-3 { color: oklch(78% 0.12 55); background: oklch(78% 0.12 55 / 0.16); }
+	.icon-box.medal-1 { background: oklch(88% 0.15 95 / 0.15); }
+	.icon-box.medal-2 { background: rgba(255,255,255,0.11); }
+	.icon-box.medal-3 { background: oklch(70% 0.12 55 / 0.16); }
+	/* Only rises are chipped, so this is always the good-news green. */
+	.rank-move {
+		margin-left: 0.35rem;
+		color: oklch(82% 0.16 165);
+		background: oklch(82% 0.16 165 / 0.15);
+	}
+	.rank-gap {
 		margin: 0 0.3rem;
 		color: oklch(82% 0.14 70);
 		background: oklch(82% 0.14 70 / 0.15);
 	}
-	.rank-move { margin-left: 0.35rem; }
-	.rank-move.up { color: oklch(82% 0.16 165); background: oklch(82% 0.16 165 / 0.15); }
-	.rank-move.down { color: oklch(80% 0.14 70); background: oklch(80% 0.14 70 / 0.15); }
 	.chevron {
 		color: rgba(255,255,255,0.3);
 		font-size: 0.875rem;

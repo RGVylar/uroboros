@@ -67,8 +67,9 @@ def my_percentile(
 
     My own number is computed live (cheap: one user); the population comes from
     the precomputed snapshot, so cost never grows with the user count per view.
-    Also returns last week's band so the client can show the movement
-    ("top 12% ↑ del 20%"). No names ever leave the server — just counts."""
+    Also returns last week's rank and population so the client can show the
+    movement ("top 12% ↑ del 20%"). No names ever leave the server — just
+    counts, so a small population is reported as a plain position instead."""
     from datetime import datetime as _dt, timedelta
     from math import ceil
 
@@ -81,17 +82,24 @@ def my_percentile(
             select(func.count()).select_from(WeeklyAdherence).where(WeeklyAdherence.week_start == week_start)
         ) or 0
 
-    def _top_band(week_start, mine: int) -> int:
-        """Percentile band `mine` sits in — smaller is better; ties count as ahead."""
+    def _standing(week_start, mine: int) -> tuple[int, int, int]:
+        """(rank, population, top band) for adherence `mine` that week.
+
+        Rank is competition-style: only *strictly better* rows push you down, so
+        a pack tied at the top all share position 1 instead of burying each
+        other. The band follows from the rank, and is only meaningful with a
+        decent population — with 4 users the best possible band is 25%, which is
+        why the client shows the raw position below `SMALL_POPULATION`."""
         n = _population(week_start)
         if not n:
-            return 100
-        ahead_or_tied = db.scalar(
+            return 1, 0, 100
+        better = db.scalar(
             select(func.count()).select_from(WeeklyAdherence).where(
-                WeeklyAdherence.week_start == week_start, WeeklyAdherence.pct >= mine,
+                WeeklyAdherence.week_start == week_start, WeeklyAdherence.pct > mine,
             )
         ) or 0
-        return ceil(ahead_or_tied / n * 100)
+        rank = better + 1
+        return rank, n, ceil(rank / n * 100)
 
     today = _dt.now(timezone.utc).date()
     ws = week_start_for(today)
@@ -106,16 +114,30 @@ def my_percentile(
         # Nothing counted yet this week (e.g. it's Monday) — no standing to show.
         return {"in_ranking": False, "active_users": _population(ws), "week": today.isocalendar().week}
 
-    n = _population(ws)
-    rank = 1 + (db.scalar(
-        select(func.count()).select_from(WeeklyAdherence).where(
-            WeeklyAdherence.week_start == ws, WeeklyAdherence.pct > mine.pct,
-        )
-    ) or 0)
-    top_percent = _top_band(ws, mine.pct)
+    rank, n, top_percent = _standing(ws, mine.pct)
 
-    # Week-over-week movement: my band last week, only if I ranked then.
-    prev_top_percent = None
+    # Points to whoever is immediately ahead — the row's "next step" for anyone
+    # who isn't first. Anonymous: a distance, never who it belongs to.
+    gap_to_next = None
+    if rank > 1:
+        next_pct = db.scalar(
+            select(func.min(WeeklyAdherence.pct)).where(
+                WeeklyAdherence.week_start == ws, WeeklyAdherence.pct > mine.pct,
+            )
+        )
+        if next_pct is not None:
+            gap_to_next = next_pct - mine.pct
+
+    # A medal has to be earned, not handed out: podium *and* top half. Third of
+    # four is not a bronze, it's third from last — and dressing it as an award
+    # is what made the row read badly in the first place.
+    medal = rank if rank <= 3 and rank * 2 <= n else None
+
+    # Week-over-week movement: my position last week, only if I ranked then.
+    # Both rank and population go out because the band alone can't tell "I got
+    # worse" from "the population shrank" — #1 of 5 is top 20%, #1 of 4 is top
+    # 25%, and calling that a drop would be a lie.
+    prev_rank = prev_active_users = prev_top_percent = None
     prev_ws = ws - timedelta(days=7)
     my_prev = db.scalar(
         select(WeeklyAdherence.pct).where(
@@ -124,7 +146,7 @@ def my_percentile(
         )
     )
     if my_prev is not None:
-        prev_top_percent = _top_band(prev_ws, my_prev)
+        prev_rank, prev_active_users, prev_top_percent = _standing(prev_ws, my_prev)
 
     return {
         "in_ranking": True,
@@ -132,6 +154,10 @@ def my_percentile(
         "rank": rank,
         "active_users": n,
         "top_percent": top_percent,
+        "gap_to_next": gap_to_next,
+        "medal": medal,
+        "prev_rank": prev_rank,
+        "prev_active_users": prev_active_users,
         "prev_top_percent": prev_top_percent,
         "week": today.isocalendar().week,
     }
