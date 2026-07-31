@@ -189,8 +189,12 @@
 	// desborda, y entonces `margin:auto` deja de centrar y todo se va de lado.
 	// Cada lado se ancla además por su borde interior, así que una etiqueta
 	// larga («1.º de 412») crece hacia fuera y nunca se come el aro del avatar.
-	const ORBIT_L = [{ dx: -58, y: 56 }, { dx: -68, y: 95 }, { dx: -58, y: 134 }];
-	const ORBIT_R = [{ dx: 58, y: 56 }, { dx: 68, y: 95 }, { dx: 58, y: 134 }];
+	// La `y` es la del centro de cada pieza dentro del lienzo, que mide justo lo
+	// que ocupa el conjunto (106): el avatar va de 14 a 106 y los 14 de arriba
+	// son para el lápiz. Cualquier alto de más se convierte en un hueco entre la
+	// foto y el nombre.
+	const ORBIT_L = [{ dx: -58, y: 21 }, { dx: -68, y: 60 }, { dx: -58, y: 99 }];
+	const ORBIT_R = [{ dx: 58, y: 21 }, { dx: 68, y: 60 }, { dx: 58, y: 99 }];
 	// Con una sola pieza va al centro; con dos, arriba y abajo — nunca dos
 	// seguidas dejando el hueco del medio a la vista.
 	const slots = (n: number) => (n === 1 ? [1] : n === 2 ? [0, 2] : [0, 1, 2]);
@@ -354,13 +358,15 @@
 	.orbit-stage {
 		position: relative;
 		width: 100%;
-		height: 190px;
+		/* Justo el alto del conjunto: 92 del avatar + 14 que asoma el lápiz. Con
+		   más, el sobrante sale como un hueco entre la foto y el nombre. */
+		height: 106px;
 		margin: 0 0 10px;
 	}
 	.orbit-stage .avatar-wrap {
 		position: absolute;
 		left: 50%;
-		top: 95px;
+		top: 60px;
 		transform: translate(-50%, -50%);
 		margin: 0;
 	}
