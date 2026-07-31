@@ -8,7 +8,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { APP_VERSION } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
-	import { t, tc, i18n, setLocale, mealLabel, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
+	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
 	import Flag from '$lib/components/Flag.svelte';
 
 	const LOCALES: Locale[] = ['es', 'en', 'pt'];
@@ -42,13 +42,6 @@
 	let showRank = $derived(
 		!!percentile?.in_ranking && (percentile.active_users < SMALL_POPULATION || !!percentile.medal)
 	);
-
-	function ordinal(n: number): string {
-		if (i18n.locale !== 'en') return `${n}.º`;
-		const teens = n % 100;
-		if (teens >= 11 && teens <= 13) return `${n}th`;
-		return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
-	}
 
 	// Only rises get a chip. A fall never gets its own badge: the position is
 	// already on screen, so stamping it red adds no information — the row shows

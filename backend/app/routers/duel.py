@@ -163,6 +163,99 @@ def my_percentile(
     }
 
 
+# Weeks of history the awards look back on. Bounded so the query stays one
+# indexed read no matter how long someone has been using the app.
+AWARDS_WEEKS = 26
+
+
+@router.get("/me/awards")
+def my_awards(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Weekly podiums among the friends you duel with.
+
+    Deliberately *not* the global podium: that one hands out three places a week
+    however many people are playing, so it stops being winnable for almost
+    everyone as uroboros grows. A pool of friends doesn't grow without bound, so
+    a podium there stays reachable forever.
+
+    Restricted to friendships with the duel switched on by both sides. A rank
+    within a named pool leaks how you compare to specific people, and that
+    opt-in is exactly what governs sharing adherence with them.
+    """
+    from datetime import datetime as _dt, timedelta
+
+    from app.models.weekly_adherence import WeeklyAdherence
+    from app.services.adherence_snapshot import upsert_snapshot
+    from app.services.duel_service import week_start_for
+
+    today = _dt.now(timezone.utc).date()
+    this_week = week_start_for(today)
+
+    # Refresh my own row first or "this week" would show whatever the scheduler
+    # last saw. Writes only when the value actually moved.
+    _, changed = upsert_snapshot(db, user.id, today)
+    if changed:
+        db.commit()
+
+    friendships = db.scalars(
+        select(Friendship).where(
+            or_(Friendship.requester_id == user.id, Friendship.receiver_id == user.id),
+            Friendship.status == FriendshipStatus.accepted,
+            Friendship.blocked_by.is_(None),
+        )
+    ).all()
+    pool = {
+        f.receiver_id if f.requester_id == user.id else f.requester_id
+        for f in friendships
+        if f.duel_active
+    }
+
+    empty = {
+        "gold": 0, "silver": 0, "bronze": 0,
+        "current_rank": None, "current_total": 0,
+        "best_rank": None, "best_total": None,
+        "pool": len(pool),
+    }
+    if not pool:
+        return empty
+
+    rows = db.execute(
+        select(WeeklyAdherence.user_id, WeeklyAdherence.week_start, WeeklyAdherence.pct).where(
+            WeeklyAdherence.user_id.in_(pool | {user.id}),
+            WeeklyAdherence.week_start >= this_week - timedelta(weeks=AWARDS_WEEKS),
+        )
+    ).all()
+
+    by_week: dict[object, dict[int, int]] = {}
+    for uid, week_start, pct in rows:
+        by_week.setdefault(week_start, {})[uid] = pct
+
+    result = dict(empty)
+    for week_start, pcts in by_week.items():
+        mine = pcts.get(user.id)
+        if mine is None:
+            continue
+        total = len(pcts)
+        # Same rules as the settings row: only *strictly better* pushes you down
+        # (a tie at the top shares first place), and a medal has to be earned —
+        # podium *and* top half, so third of four is not a bronze.
+        rank = sum(1 for pct in pcts.values() if pct > mine) + 1
+        if week_start == this_week:
+            result["current_rank"], result["current_total"] = rank, total
+            continue  # the week in progress never mints metal
+        if rank <= 3 and rank * 2 <= total:
+            result[("gold", "silver", "bronze")[rank - 1]] += 1
+        # Best ever: the highest place, and among equal places the one won
+        # against the most people.
+        best, best_total = result["best_rank"], result["best_total"]
+        if best is None or rank < best or (rank == best and total > (best_total or 0)):
+            result["best_rank"], result["best_total"] = rank, total
+
+    return result
+
+
 @router.get("/{friend_id}", response_model=DuelOut)
 def get_duel(
     friend_id: int,

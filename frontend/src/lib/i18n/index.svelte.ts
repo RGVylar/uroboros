@@ -50,6 +50,15 @@ export function tc(base: string, count: number, params?: Record<string, string |
 	return t(`${base}${count === 1 ? '_one' : '_other'}` as TKey, { count, ...params });
 }
 
+// Ordinal corto: «3.º» en es/pt, «3rd» en inglés (con el 11-13 a mano, que es
+// donde falla la regla del último dígito).
+export function ordinal(n: number): string {
+	if (i18n.locale !== 'en') return `${n}.º`;
+	const teens = n % 100;
+	if (teens >= 11 && teens <= 13) return `${n}th`;
+	return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}
+
 // pt es portugués europeo (pequeno-almoço, sumo, ementa). Un brasileño lo
 // entiende sin problema; si algún día compensa un pt-BR propio, se parte el dict.
 export function getLocaleTag(): string {

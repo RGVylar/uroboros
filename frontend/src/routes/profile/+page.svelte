@@ -8,7 +8,7 @@
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import { Avatar, Modal } from '$lib/components';
 	import { AVATARS, IDENTITY_HUES, identityColor } from '$lib/avatars';
-	import { t, avatarLabel } from '$lib/i18n/index.svelte';
+	import { t, avatarLabel, ordinal } from '$lib/i18n/index.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -106,15 +106,26 @@
 		{ id: 6, label: t('profile.ach30'),       desc: t('profile.ach30Desc'),       hue:  25, unlocked: () => streak >= 30 },
 	]);
 
+	// Podios semanales entre los amigos con los que dueles. Todo lo que rodea al
+	// avatar sale de aquí menos la racha, que ya la traía el perfil.
+	interface Awards {
+		gold: number; silver: number; bronze: number;
+		current_rank: number | null; current_total: number;
+		best_rank: number | null; best_total: number | null;
+		pool: number;
+	}
+	let awards = $state<Awards | null>(null);
+
 	async function load() {
 		loading = true;
 		try {
-			const [g, streakData, recipes, weights, friends] = await Promise.all([
+			const [g, streakData, recipes, weights, friends, aw] = await Promise.all([
 				api.get<Goals>('/goals').catch(() => null),
 				api.get<{ streak: number; active_days: number }>('/diary/streak').catch(() => ({ streak: 0, active_days: 0 })),
 				api.get<Recipe[]>('/recipes').catch(() => []),
 				api.get<WeightLog[]>('/weight').catch(() => []),
 				api.get<Friendship[]>('/friends').catch(() => []),
+				api.get<Awards>('/duel/me/awards').catch(() => null),
 			]);
 			goals = g;
 			streak = streakData.streak ?? 0;
@@ -122,6 +133,7 @@
 			ownRecipes = recipes.filter(r => r.owner_id === auth.user?.id).length;
 			weightLogs = weights.length;
 			friendCount = friends.length;
+			awards = aw;
 		} finally {
 			loading = false;
 		}
@@ -139,6 +151,49 @@
 		for (const c of userName) h = (h * 31 + c.charCodeAt(0)) % 360;
 		return h;
 	})());
+
+	// Lo que orbita el avatar. Izquierda: lo ganado. Derecha: lo que llevas.
+	// Sólo entra lo que existe — un lado vacío no deja hueco porque los datos no
+	// tienen ni fondo ni borde, sólo son texto en el aire.
+	type Orbiter = { e: string; v: string; cls: string; title: string };
+
+	const leftItems = $derived.by<Orbiter[]>(() => {
+		const a = awards;
+		if (!a) return [];
+		const out: Orbiter[] = [];
+		if (a.gold) out.push({ e: '🥇', v: String(a.gold), cls: 'gold', title: t('profile.awardsGold', { n: a.gold }) });
+		if (a.silver) out.push({ e: '🥈', v: String(a.silver), cls: 'silver', title: t('profile.awardsSilver', { n: a.silver }) });
+		if (a.bronze) out.push({ e: '🥉', v: String(a.bronze), cls: 'bronze', title: t('profile.awardsBronze', { n: a.bronze }) });
+		return out;
+	});
+
+	const rightItems = $derived.by<Orbiter[]>(() => {
+		const out: Orbiter[] = [];
+		if (streak > 0) out.push({ e: '🔥', v: String(streak), cls: 'fire', title: t('profile.awardsStreak', { n: streak }) });
+		const a = awards;
+		if (a?.current_rank) out.push({
+			e: '📊',
+			v: t('profile.awardsPosition', { rank: ordinal(a.current_rank), total: a.current_total }),
+			cls: 'now', title: t('profile.awardsNow'),
+		});
+		if (a?.best_rank) out.push({
+			e: '👑',
+			v: t('profile.awardsPosition', { rank: ordinal(a.best_rank), total: a.best_total ?? 0 }),
+			cls: 'best', title: t('profile.awardsBest'),
+		});
+		return out;
+	});
+
+	// Posiciones *relativas al centro* del hero (dx), nunca absolutas dentro de
+	// un lienzo de ancho fijo: un lienzo más ancho que el hueco disponible
+	// desborda, y entonces `margin:auto` deja de centrar y todo se va de lado.
+	// Cada lado se ancla además por su borde interior, así que una etiqueta
+	// larga («1.º de 412») crece hacia fuera y nunca se come el aro del avatar.
+	const ORBIT_L = [{ dx: -58, y: 56 }, { dx: -68, y: 95 }, { dx: -58, y: 134 }];
+	const ORBIT_R = [{ dx: 58, y: 56 }, { dx: 68, y: 95 }, { dx: 58, y: 134 }];
+	// Con una sola pieza va al centro; con dos, arriba y abajo — nunca dos
+	// seguidas dejando el hueco del medio a la vista.
+	const slots = (n: number) => (n === 1 ? [1] : n === 2 ? [0, 2] : [0, 1, 2]);
 
 	const stats = $derived([
 		{ l: t('profile.statStreak'),  v: streak > 0 ? String(streak) : '—',                       u: streak === 1 ? t('profile.unitDay') : t('profile.unitDays'), hue: 45 },
@@ -160,15 +215,22 @@
 	<!-- Hero -->
 	<GlassCard padding={22}>
 		<div class="hero">
-			<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title={t('profile.changeAvatar')}>
-				<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
-					<Avatar name={userName} avatarId={userAvatar} avatarPhoto={userPhoto} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
-				</div>
-				<div class="edit-badge">✏️</div>
-				{#if streak > 0}
-					<div class="streak-badge">🔥 {streak}</div>
-				{/if}
-			</button>
+			<div class="orbit-stage">
+				<button class="avatar-wrap" onclick={() => showAvatarPicker = true} title={t('profile.changeAvatar')}>
+					<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
+						<Avatar name={userName} avatarId={userAvatar} avatarPhoto={userPhoto} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
+					</div>
+					<div class="edit-badge">✏️</div>
+				</button>
+				{#each leftItems.slice(0, 3) as it, i (it.cls)}
+					{@const p = ORBIT_L[slots(Math.min(leftItems.length, 3))[i]]}
+					<span class="orbiter l {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}>{it.e} {it.v}</span>
+				{/each}
+				{#each rightItems.slice(0, 3) as it, i (it.cls)}
+					{@const p = ORBIT_R[slots(Math.min(rightItems.length, 3))[i]]}
+					<span class="orbiter r {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}>{it.e} {it.v}</span>
+				{/each}
+			</div>
 			<div class="name">{userName}</div>
 			<div class="email">{userEmail}</div>
 
@@ -287,6 +349,52 @@
 
 	/* Hero */
 	.hero { text-align: center; }
+	/* Lienzo fijo: el avatar va clavado en su centro, así que lo que orbita no
+	   puede descentrarlo por muy largas que sean las etiquetas. */
+	.orbit-stage {
+		position: relative;
+		width: 100%;
+		height: 190px;
+		margin: 0 0 10px;
+	}
+	.orbit-stage .avatar-wrap {
+		position: absolute;
+		left: 50%;
+		top: 95px;
+		transform: translate(-50%, -50%);
+		margin: 0;
+	}
+	.orbiter {
+		position: absolute;
+		left: 50%;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		font-weight: 800;
+		line-height: 1;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+		/* Sin fondo ni borde: la legibilidad sobre una foto de perfil clara la
+		   da la sombra. Y sin capturar toques, que debajo está el botón que
+		   abre el selector de avatar. */
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+		pointer-events: none;
+	}
+	/* En pantallas estrechas el hueco a cada lado del avatar baja de 60px, y la
+	   pieza más larga («1.º de 412») se sale de la tarjeta. Un punto menos de
+	   cuerpo la devuelve dentro sin tocar la composición. */
+	@media (max-width: 360px) {
+		.orbiter { font-size: 10px; }
+	}
+	.orbiter.l { transform: translate(-100%, -50%); }
+	.orbiter.r { transform: translate(0, -50%); }
+	.orbiter.gold { color: oklch(88% 0.15 95); }
+	.orbiter.silver { color: rgba(255, 255, 255, 0.82); }
+	.orbiter.bronze { color: oklch(80% 0.12 55); }
+	.orbiter.fire { color: oklch(85% 0.16 45); }
+	.orbiter.now { color: oklch(85% 0.13 200); }
+	.orbiter.best { color: oklch(85% 0.14 300); }
 	.avatar-wrap {
 		position: relative;
 		display: inline-block;
@@ -305,8 +413,10 @@
 		width: 92px; height: 92px; border-radius: 50%;
 		box-shadow: 0 10px 32px oklch(72% 0.18 var(--hue) / 0.3);
 	}
+	/* Arriba y centrado: los dos costados los ocupa ahora lo que orbita, y en
+	   la esquina de siempre chocaba con la pieza de arriba a la derecha. */
 	.edit-badge {
-		position: absolute; top: 0; right: -4px;
+		position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
 		width: 28px; height: 28px; border-radius: 50%;
 		background: rgba(20, 24, 34, 0.95);
 		border: 1px solid rgba(255, 255, 255, 0.15);
@@ -314,17 +424,6 @@
 		font-size: 12px;
 		line-height: 1;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-	}
-	.streak-badge {
-		position: absolute; bottom: 0; right: -4px;
-		padding: 4px 10px; border-radius: 99px;
-		background: linear-gradient(135deg, oklch(80% 0.19 45), oklch(70% 0.2 30));
-		font-size: 11px; font-weight: 800; color: #fff;
-		/* The wrapper zeroes line-height for the avatar image; restore it here
-		   or the badge has no text height and collapses to its padding. */
-		line-height: 1.4;
-		display: flex; align-items: center; gap: 3px;
-		box-shadow: 0 4px 14px oklch(75% 0.2 40 / 0.5);
 	}
 	.name {
 		font-size: 20px; font-weight: 800; color: #fff;
