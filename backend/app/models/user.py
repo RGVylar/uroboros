@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 
-from sqlalchemy import Boolean, DateTime, Integer, String, false, func
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -58,6 +58,13 @@ class User(Base):
     changelog_opt_out: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=false()
     )
+    # Features sin terminar que este usuario puede ver, p.ej. ["receipt_scan"].
+    # Null = ninguna, que es lo normal. Es un permiso, no un rol: quien prueba
+    # algo a medias no tiene por qué ser administrador (ver 0051 y deps.py).
+    feature_flags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
+    def has_flag(self, flag: str) -> bool:
+        return flag in (self.feature_flags or [])
 
     @property
     def effective_status(self) -> SubscriptionStatus:

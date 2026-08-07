@@ -6,6 +6,9 @@ export interface User {
 	avatar_photo?: string | null;
 	identity_hue?: number | null;
 	changelog_opt_out?: boolean;
+	/** Features sin terminar visibles para este usuario. Solo sirve para enseñar
+	 *  u ocultar: la puerta de verdad la pone el backend. */
+	feature_flags?: string[];
 }
 
 export interface TokenResponse {

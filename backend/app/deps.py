@@ -30,3 +30,23 @@ def require_premium(user: User = Depends(get_current_user)) -> User:
             detail="premium_required",
         )
     return user
+
+
+def require_feature_flag(flag: str):
+    """Puerta para features aún no publicadas (`User.feature_flags`).
+
+    Esconder el botón en el frontend no es control de acceso: el endpoint sigue
+    ahí y cualquiera con una cuenta puede llamarlo. Para una feature a medias eso
+    no es solo falta de higiene — un endpoint caro (OCR, por ejemplo) sin puerta
+    es CPU gratis para quien se registre.
+
+    Responde **404 y no 403** a propósito: una feature que todavía no existe para
+    ti no debería ni asomar que existe.
+    """
+
+    def _dep(user: User = Depends(get_current_user)) -> User:
+        if not user.has_flag(flag):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+        return user
+
+    return _dep

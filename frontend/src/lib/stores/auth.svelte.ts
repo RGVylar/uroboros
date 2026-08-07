@@ -21,6 +21,12 @@ function createAuth() {
 		get user() { return user; },
 		get isLoggedIn() { return !!token; },
 
+		/** ¿Puede ver esta feature sin terminar? Solo decide qué se pinta; el
+		 *  acceso lo corta el backend, que responde 404 si no toca. El layout
+		 *  refresca el usuario desde /auth/me al entrar, así que activar un flag
+		 *  en la BD se nota sin tener que cerrar sesión. */
+		hasFlag(flag: string) { return user?.feature_flags?.includes(flag) ?? false; },
+
 		login(t: string, u: User) {
 			token = t;
 			user = u;

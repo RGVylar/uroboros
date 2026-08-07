@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class UserRegister(BaseModel):
@@ -20,6 +20,17 @@ class UserOut(BaseModel):
     avatar_photo: str | None = None
     identity_hue: int | None = None
     changelog_opt_out: bool = False
+    # Features sin terminar visibles para este usuario. El frontend las usa solo
+    # para enseñar u ocultar; la puerta de verdad está en el backend (deps.py).
+    feature_flags: list[str] = []
+
+    @field_validator("feature_flags", mode="before")
+    @classmethod
+    def _none_is_empty(cls, v: object) -> object:
+        # En la BD la columna es nullable (null = ninguna, y así las filas
+        # antiguas no necesitan backfill). Fuera siempre es una lista, para que
+        # el frontend no tenga que distinguir null de [].
+        return [] if v is None else v
 
     class Config:
         from_attributes = True
