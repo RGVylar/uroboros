@@ -309,3 +309,21 @@ def test_el_token_largo_pesa_mas_que_el_ruido():
     solo = similarity("PAÑALES", "Pañales talla 4")
 
     assert solo > con_ruido > 0.45, "el ruido resta, pero no debe arrasar"
+
+
+def test_compartir_adjetivo_no_es_ser_el_mismo_producto(db):
+    """Regresión encontrada probando contra la BD demo: `RIOJA BLANCO` casaba
+    con `Arroz blanco cocido` a 0,73 y `SOJA NATURAL` con `Yogur natural` a
+    0,72. Coincidía el modificador y el sustantivo no se parecía en nada."""
+    arroz, yogur = make_products(db, "Arroz blanco cocido", "Yogur natural")
+
+    assert best_match("RIOJA BLANCO", [arroz]) is None
+    assert best_match("SOJA NATURAL", [yogur]) is None
+
+
+def test_el_sustantivo_pesa_mas_que_el_resto():
+    """Misma cola de modificadores, distinto nombre: la nota tiene que caer."""
+    bien = similarity("LECHE ENTERA", "Leche entera de vaca")
+    mal = similarity("SOJA ENTERA", "Leche entera de vaca")
+
+    assert bien > mal + 0.2

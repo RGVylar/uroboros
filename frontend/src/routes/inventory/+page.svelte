@@ -390,7 +390,7 @@
 	     de verdad la pone el backend (404 sin flag); esto solo evita enseñar un
 	     botón que no va a funcionar. -->
 	{#if auth.hasFlag('receipt_scan') && !showManual && !selectedProduct}
-		<ReceiptScanner />
+		<ReceiptScanner onApplied={load} />
 	{/if}
 	<!-- BarcodeScanner fuera del glass-card para evitar conflicto con backdrop-filter -->
 	{#if !showManual && !selectedProduct}

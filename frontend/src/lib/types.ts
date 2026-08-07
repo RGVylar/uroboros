@@ -23,11 +23,40 @@ export interface ReceiptWord {
 	conf: number;
 }
 
+export interface ReceiptSuggestion {
+	product_id: number;
+	product_name: string;
+	score: number;
+	/** 'alias' | 'usados' | 'catalogo'. Un alias es una decisión que ya tomó el
+	 *  usuario; el parecido es una opinión nuestra. */
+	source: string;
+	confident: boolean;
+}
+
+export interface ReceiptLine {
+	raw: string;
+	quantity: number;
+	unit: string;
+	amount: number | null;
+	unit_price: number | null;
+	suggestion: ReceiptSuggestion | null;
+	/** False solo si la aritmética del ticket NO cuadra; null si no se pudo
+	 *  comprobar, que no es lo mismo. */
+	arithmetic_ok: boolean | null;
+	ignored: boolean;
+}
+
 export interface ReceiptScan {
 	text: string;
 	words: ReceiptWord[];
 	image_width: number;
 	image_height: number;
+	lines: ReceiptLine[];
+}
+
+export interface ReceiptApplyResult {
+	import_id: number;
+	applied: number;
 }
 
 export interface TokenResponse {

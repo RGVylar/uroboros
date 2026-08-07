@@ -149,9 +149,16 @@ def similarity(raw: str, candidate: str) -> float:
     total = sum(len(qt) for qt in q)
     if total == 0:
         return 0.0
-    return sum(
-        len(qt) * max(token_similarity(qt, ct) for ct in c) for qt in q
-    ) / total
+
+    base = sum(len(qt) * max(token_similarity(qt, ct) for ct in c) for qt in q) / total
+
+    # El primer token es el sustantivo, y manda sobre los adjetivos. Sin esto,
+    # `RIOJA BLANCO` casaba con `Arroz blanco cocido` a 0,73 y `SOJA NATURAL`
+    # con `Yogur natural` a 0,72: coincidía el modificador y el nombre de la
+    # cosa no se parecía en nada. Compartir adjetivo no es ser el mismo
+    # producto.
+    cabeza = max(token_similarity(q[0], ct) for ct in c)
+    return base * (0.5 + 0.5 * cabeza)
 
 
 def best_match(raw: str, candidates: list[Product], threshold: float = MIN_SCORE):
