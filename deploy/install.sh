@@ -46,6 +46,7 @@ apt-get install -y -qq \
     postgresql postgresql-contrib \
     build-essential libpq-dev \
     debian-keyring debian-archive-keyring apt-transport-https \
+    tesseract-ocr tesseract-ocr-spa \
     sudo
 ok "Base packages installed"
 

@@ -113,6 +113,26 @@ migrada y el servicio muerto. Instala **antes** de migrar y reiniciar:
 pct exec 200 -- bash -c "cd /opt/uroboros/backend && .venv/bin/pip install -e . && .venv/bin/python -c 'import PIL; print(\"Pillow\", PIL.__version__)'"
 ```
 
+### Binario nuevo del sistema (no de Python)
+
+Igual que el anterior, pero el paquete es de la distro. El caso vivo es
+**Tesseract**, que necesita el escaneo de tickets:
+
+```bash
+pct exec 200 -- bash -c "apt-get update -qq && apt-get install -y -qq tesseract-ocr tesseract-ocr-spa && tesseract --list-langs"
+```
+
+Tiene que aparecer `spa` en la lista: el paquete base trae solo inglés, y con un
+ticket en español el inglés lee bastante peor.
+
+Sin esto, `/api/receipts/scan` responde **503** (no 500): el backend arranca
+igual y el resto de la app no se entera. Ya está en `install.sh`, así que un LXC
+nuevo lo trae; esto es solo para los que ya existían.
+
+> El servicio no necesita cambios. `ProtectSystem=strict` deja `/usr` en solo
+> lectura pero no impide ejecutar `/usr/bin/tesseract`, y los temporales del OCR
+> caen en el `/tmp` privado de `PrivateTmp=true`.
+
 ### Variable nueva en el `.env`
 
 Añádela sin tocar el resto del fichero (idempotente: no duplica si ya está):
