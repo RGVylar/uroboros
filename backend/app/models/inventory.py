@@ -140,6 +140,11 @@ class InventoryLog(Base):
     )
     # set on 'consume' logs created from a diary entry, so deleting that entry
     # can restore the stock it consumed
+    receipt_import_id: Mapped[int | None] = mapped_column(
+        ForeignKey("receipt_imports.id", ondelete="SET NULL"), nullable=True
+    )
+    # set on 'purchase' logs created from a scanned receipt, so the whole import
+    # can be undone in one go instead of unpicking it item by item
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -149,6 +154,7 @@ class InventoryLog(Base):
     __table_args__ = (
         Index("ix_inventory_logs_user_created", "user_id", "created_at"),
         Index("ix_inventory_logs_diary_entry", "diary_entry_id"),
+        Index("ix_inventory_logs_receipt_import", "receipt_import_id"),
     )
 
 
