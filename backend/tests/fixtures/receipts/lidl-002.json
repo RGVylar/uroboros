@@ -1,0 +1,1144 @@
+{
+ "chain": "lidl",
+ "source": "lidl-002",
+ "image_width": 2000,
+ "image_height": 2667,
+ "words": [
+  {
+   "text": "L",
+   "left": 917,
+   "top": 109,
+   "width": 55,
+   "height": 35,
+   "conf": 0.0
+  },
+  {
+   "text": "TIOS",
+   "left": 763,
+   "top": 149,
+   "width": 80,
+   "height": 32,
+   "conf": 28.3
+  },
+  {
+   "text": "ARPERME",
+   "left": 895,
+   "top": 145,
+   "width": 138,
+   "height": 53,
+   "conf": 0.0
+  },
+  {
+   "text": "NADOS",
+   "left": 1046,
+   "top": 145,
+   "width": 133,
+   "height": 53,
+   "conf": 0.0
+  },
+  {
+   "text": "A",
+   "left": 1301,
+   "top": 173,
+   "width": 22,
+   "height": 19,
+   "conf": 10.7
+  },
+  {
+   "text": "tra",
+   "left": 783,
+   "top": 194,
+   "width": 91,
+   "height": 34,
+   "conf": 0.0
+  },
+  {
+   "text": "Valttado!:d",
+   "left": 924,
+   "top": 198,
+   "width": 235,
+   "height": 42,
+   "conf": 22.7
+  },
+  {
+   "text": "No3y",
+   "left": 1186,
+   "top": 207,
+   "width": 90,
+   "height": 37,
+   "conf": 0.0
+  },
+  {
+   "text": "IBAI",
+   "left": 603,
+   "top": 233,
+   "width": 147,
+   "height": 35,
+   "conf": 0.0
+  },
+  {
+   "text": "tarea",
+   "left": 772,
+   "top": 237,
+   "width": 123,
+   "height": 37,
+   "conf": 0.0
+  },
+  {
+   "text": "de",
+   "left": 924,
+   "top": 246,
+   "width": 115,
+   "height": 42,
+   "conf": 69.5
+  },
+  {
+   "text": "la",
+   "left": 998,
+   "top": 229,
+   "width": 48,
+   "height": 63,
+   "conf": 72.5
+  },
+  {
+   "text": "Reta",
+   "left": 1065,
+   "top": 247,
+   "width": 114,
+   "height": 39,
+   "conf": 39.2
+  },
+  {
+   "text": "Lamata",
+   "left": 1215,
+   "top": 257,
+   "width": 243,
+   "height": 33,
+   "conf": 29.4
+  },
+  {
+   "text": "NI",
+   "left": 877,
+   "top": 290,
+   "width": 56,
+   "height": 37,
+   "conf": 0.0
+  },
+  {
+   "text": "ALO93EJ278",
+   "left": 971,
+   "top": 296,
+   "width": 210,
+   "height": 39,
+   "conf": 0.0
+  },
+  {
+   "text": "tele.",
+   "left": 898,
+   "top": 351,
+   "width": 84,
+   "height": 26,
+   "conf": 0.0
+  },
+  {
+   "text": "119)",
+   "left": 1002,
+   "top": 344,
+   "width": 79,
+   "height": 38,
+   "conf": 40.6
+  },
+  {
+   "text": ".ex",
+   "left": 1099,
+   "top": 355,
+   "width": 59,
+   "height": 29,
+   "conf": 24.2
+  },
+  {
+   "text": "UR",
+   "left": 1451,
+   "top": 413,
+   "width": 68,
+   "height": 33,
+   "conf": 47.0
+  },
+  {
+   "text": "FAN",
+   "left": 504,
+   "top": 429,
+   "width": 71,
+   "height": 37,
+   "conf": 76.6
+  },
+  {
+   "text": "TOSIAQU",
+   "left": 607,
+   "top": 433,
+   "width": 163,
+   "height": 43,
+   "conf": 31.9
+  },
+  {
+   "text": "2,7,",
+   "left": 1380,
+   "top": 460,
+   "width": 92,
+   "height": 41,
+   "conf": 66.3
+  },
+  {
+   "text": "k",
+   "left": 1499,
+   "top": 467,
+   "width": 20,
+   "height": 33,
+   "conf": 12.3
+  },
+  {
+   "text": "JAMON",
+   "left": 502,
+   "top": 485,
+   "width": 119,
+   "height": 53,
+   "conf": 55.9
+  },
+  {
+   "text": "SERAANO",
+   "left": 650,
+   "top": 489,
+   "width": 167,
+   "height": 43,
+   "conf": 49.0
+  },
+  {
+   "text": "2,1.",
+   "left": 1379,
+   "top": 512,
+   "width": 94,
+   "height": 42,
+   "conf": 83.4
+  },
+  {
+   "text": "P",
+   "left": 1498,
+   "top": 518,
+   "width": 21,
+   "height": 36,
+   "conf": 74.6
+  },
+  {
+   "text": "IOCUNTILO",
+   "left": 502,
+   "top": 537,
+   "width": 216,
+   "height": 42,
+   "conf": 0.0
+  },
+  {
+   "text": "35",
+   "left": 1381,
+   "top": 568,
+   "width": 92,
+   "height": 39,
+   "conf": 55.2
+  },
+  {
+   "text": "e",
+   "left": 1499,
+   "top": 573,
+   "width": 20,
+   "height": 37,
+   "conf": 76.9
+  },
+  {
+   "text": "U.SU3",
+   "left": 543,
+   "top": 590,
+   "width": 123,
+   "height": 42,
+   "conf": 40.4
+  },
+  {
+   "text": "Kg»",
+   "left": 692,
+   "top": 601,
+   "width": 92,
+   "height": 39,
+   "conf": 59.6
+  },
+  {
+   "text": "7,85",
+   "left": 823,
+   "top": 604,
+   "width": 88,
+   "height": 38,
+   "conf": 56.4
+  },
+  {
+   "text": "EUN/Ku",
+   "left": 991,
+   "top": 603,
+   "width": 143,
+   "height": 49,
+   "conf": 4.5
+  },
+  {
+   "text": "ARNES",
+   "left": 490,
+   "top": 637,
+   "width": 122,
+   "height": 43,
+   "conf": 51.6
+  },
+  {
+   "text": "PER:",
+   "left": 640,
+   "top": 646,
+   "width": 123,
+   "height": 40,
+   "conf": 42.1
+  },
+  {
+   "text": "1£:022,",
+   "left": 790,
+   "top": 654,
+   "width": 170,
+   "height": 39,
+   "conf": 0.0
+  },
+  {
+   "text": "DL",
+   "left": 1380,
+   "top": 677,
+   "width": 140,
+   "height": 40,
+   "conf": 29.3
+  },
+  {
+   "text": "KAR",
+   "left": 486,
+   "top": 744,
+   "width": 121,
+   "height": 44,
+   "conf": 31.2
+  },
+  {
+   "text": "ON",
+   "left": 635,
+   "top": 752,
+   "width": 46,
+   "height": 41,
+   "conf": 34.1
+  },
+  {
+   "text": "FRUIAS",
+   "left": 712,
+   "top": 755,
+   "width": 147,
+   "height": 46,
+   "conf": 35.3
+  },
+  {
+   "text": "ECN",
+   "left": 1389,
+   "top": 785,
+   "width": 136,
+   "height": 42,
+   "conf": 37.8
+  },
+  {
+   "text": "PAPEL",
+   "left": 481,
+   "top": 804,
+   "width": 112,
+   "height": 44,
+   "conf": 88.6
+  },
+  {
+   "text": "MIG:ENICO",
+   "left": 632,
+   "top": 810,
+   "width": 224,
+   "height": 50,
+   "conf": 0.0
+  },
+  {
+   "text": "4,35.",
+   "left": 1384,
+   "top": 839,
+   "width": 144,
+   "height": 41,
+   "conf": 66.3
+  },
+  {
+   "text": "PIJAMA",
+   "left": 478,
+   "top": 861,
+   "width": 148,
+   "height": 45,
+   "conf": 72.6
+  },
+  {
+   "text": "MIJES-0:000000,",
+   "left": 656,
+   "top": 873,
+   "width": 323,
+   "height": 50,
+   "conf": 4.0
+  },
+  {
+   "text": "8,35",
+   "left": 1384,
+   "top": 898,
+   "width": 95,
+   "height": 42,
+   "conf": 63.9
+  },
+  {
+   "text": "€",
+   "left": 1508,
+   "top": 898,
+   "width": 22,
+   "height": 38,
+   "conf": 80.1
+  },
+  {
+   "text": "PATATA",
+   "left": 475,
+   "top": 919,
+   "width": 151,
+   "height": 49,
+   "conf": 92.3
+  },
+  {
+   "text": "CEANE.",
+   "left": 655,
+   "top": 929,
+   "width": 138,
+   "height": 47,
+   "conf": 28.2
+  },
+  {
+   "text": "3.42",
+   "left": 1385,
+   "top": 954,
+   "width": 94,
+   "height": 40,
+   "conf": 24.8
+  },
+  {
+   "text": "A",
+   "left": 1510,
+   "top": 958,
+   "width": 20,
+   "height": 35,
+   "conf": 83.6
+  },
+  {
+   "text": "LS",
+   "left": 532,
+   "top": 983,
+   "width": 193,
+   "height": 55,
+   "conf": 48.7
+  },
+  {
+   "text": "EA",
+   "left": 755,
+   "top": 994,
+   "width": 145,
+   "height": 45,
+   "conf": 43.7
+  },
+  {
+   "text": "O",
+   "left": 982,
+   "top": 1001,
+   "width": 145,
+   "height": 49,
+   "conf": 54.9
+  },
+  {
+   "text": "Le.",
+   "left": 469,
+   "top": 1039,
+   "width": 71,
+   "height": 44,
+   "conf": 10.2
+  },
+  {
+   "text": "OC",
+   "left": 572,
+   "top": 1043,
+   "width": 47,
+   "height": 44,
+   "conf": 94.8
+  },
+  {
+   "text": "HAT",
+   "left": 650,
+   "top": 1047,
+   "width": 98,
+   "height": 41,
+   "conf": 39.0
+  },
+  {
+   "text": "1,97",
+   "left": 1385,
+   "top": 1070,
+   "width": 94,
+   "height": 46,
+   "conf": 56.7
+  },
+  {
+   "text": "LC",
+   "left": 1510,
+   "top": 1070,
+   "width": 20,
+   "height": 40,
+   "conf": 11.6
+  },
+  {
+   "text": "LONCHAS",
+   "left": 468,
+   "top": 1101,
+   "width": 175,
+   "height": 46,
+   "conf": 68.8
+  },
+  {
+   "text": "VACA",
+   "left": 674,
+   "top": 1109,
+   "width": 97,
+   "height": 43,
+   "conf": 95.8
+  },
+  {
+   "text": "TIERNO)",
+   "left": 806,
+   "top": 1111,
+   "width": 146,
+   "height": 44,
+   "conf": 69.6
+  },
+  {
+   "text": "bo",
+   "left": 1389,
+   "top": 1130,
+   "width": 142,
+   "height": 44,
+   "conf": 9.3
+  },
+  {
+   "text": "CHORIZO",
+   "left": 462,
+   "top": 1158,
+   "width": 180,
+   "height": 48,
+   "conf": 81.7
+  },
+  {
+   "text": "IBER:CO",
+   "left": 675,
+   "top": 1167,
+   "width": 173,
+   "height": 47,
+   "conf": 52.2
+  },
+  {
+   "text": "Ex7.",
+   "left": 877,
+   "top": 1173,
+   "width": 90,
+   "height": 41,
+   "conf": 31.1
+  },
+  {
+   "text": "1.795",
+   "left": 1390,
+   "top": 1189,
+   "width": 145,
+   "height": 42,
+   "conf": 74.4
+  },
+  {
+   "text": "TORTILLA",
+   "left": 465,
+   "top": 1219,
+   "width": 200,
+   "height": 48,
+   "conf": 94.8
+  },
+  {
+   "text": "PATATA",
+   "left": 691,
+   "top": 1228,
+   "width": 153,
+   "height": 45,
+   "conf": 66.2
+  },
+  {
+   "text": "2.695",
+   "left": 1385,
+   "top": 1245,
+   "width": 150,
+   "height": 44,
+   "conf": 70.2
+  },
+  {
+   "text": "Desc,",
+   "left": 582,
+   "top": 1278,
+   "width": 127,
+   "height": 66,
+   "conf": 79.5
+  },
+  {
+   "text": "0,50",
+   "left": 1384,
+   "top": 1303,
+   "width": 102,
+   "height": 48,
+   "conf": 95.5
+  },
+  {
+   "text": "CREMAS",
+   "left": 452,
+   "top": 1340,
+   "width": 155,
+   "height": 47,
+   "conf": 28.3
+  },
+  {
+   "text": "EE",
+   "left": 635,
+   "top": 1343,
+   "width": 47,
+   "height": 45,
+   "conf": 42.6
+  },
+  {
+   "text": "ERTALIZAS",
+   "left": 713,
+   "top": 1348,
+   "width": 254,
+   "height": 47,
+   "conf": 6.6
+  },
+  {
+   "text": "1,59",
+   "left": 1394,
+   "top": 1363,
+   "width": 91,
+   "height": 46,
+   "conf": 71.2
+  },
+  {
+   "text": "4",
+   "left": 1514,
+   "top": 1369,
+   "width": 24,
+   "height": 37,
+   "conf": 76.2
+  },
+  {
+   "text": "PELHUGA",
+   "left": 447,
+   "top": 1400,
+   "width": 182,
+   "height": 48,
+   "conf": 31.4
+  },
+  {
+   "text": "OE",
+   "left": 657,
+   "top": 1406,
+   "width": 46,
+   "height": 42,
+   "conf": 58.8
+  },
+  {
+   "text": "POLLO",
+   "left": 738,
+   "top": 1406,
+   "width": 126,
+   "height": 46,
+   "conf": 92.7
+  },
+  {
+   "text": "2,333",
+   "left": 1388,
+   "top": 1423,
+   "width": 152,
+   "height": 48,
+   "conf": 84.7
+  },
+  {
+   "text": "NUEZ",
+   "left": 444,
+   "top": 1463,
+   "width": 100,
+   "height": 44,
+   "conf": 92.6
+  },
+  {
+   "text": "NATURAL",
+   "left": 578,
+   "top": 1467,
+   "width": 175,
+   "height": 43,
+   "conf": 89.9
+  },
+  {
+   "text": "2.65",
+   "left": 1388,
+   "top": 1483,
+   "width": 102,
+   "height": 46,
+   "conf": 0.0
+  },
+  {
+   "text": "UVA",
+   "left": 439,
+   "top": 1526,
+   "width": 75,
+   "height": 43,
+   "conf": 93.6
+  },
+  {
+   "text": "BLANCA",
+   "left": 544,
+   "top": 1527,
+   "width": 158,
+   "height": 44,
+   "conf": 81.2
+  },
+  {
+   "text": "SIN",
+   "left": 733,
+   "top": 1530,
+   "width": 75,
+   "height": 43,
+   "conf": 93.5
+  },
+  {
+   "text": "sem",
+   "left": 837,
+   "top": 1534,
+   "width": 77,
+   "height": 44,
+   "conf": 30.0
+  },
+  {
+   "text": "2.65",
+   "left": 1392,
+   "top": 1545,
+   "width": 101,
+   "height": 47,
+   "conf": 0.0
+  },
+  {
+   "text": "KIMI",
+   "left": 433,
+   "top": 1586,
+   "width": 101,
+   "height": 47,
+   "conf": 0.0
+  },
+  {
+   "text": "VERDE",
+   "left": 572,
+   "top": 1589,
+   "width": 125,
+   "height": 46,
+   "conf": 96.6
+  },
+  {
+   "text": "CESTA",
+   "left": 728,
+   "top": 1590,
+   "width": 130,
+   "height": 45,
+   "conf": 92.4
+  },
+  {
+   "text": "3.34",
+   "left": 1391,
+   "top": 1607,
+   "width": 156,
+   "height": 47,
+   "conf": 34.0
+  },
+  {
+   "text": "PATE",
+   "left": 428,
+   "top": 1649,
+   "width": 105,
+   "height": 48,
+   "conf": 90.3
+  },
+  {
+   "text": "DE",
+   "left": 563,
+   "top": 1653,
+   "width": 53,
+   "height": 43,
+   "conf": 96.3
+  },
+  {
+   "text": "CERO",
+   "left": 645,
+   "top": 1653,
+   "width": 131,
+   "height": 46,
+   "conf": 73.5
+  },
+  {
+   "text": "1,75",
+   "left": 1400,
+   "top": 1669,
+   "width": 150,
+   "height": 46,
+   "conf": 38.0
+  },
+  {
+   "text": "SALNON",
+   "left": 423,
+   "top": 1712,
+   "width": 162,
+   "height": 48,
+   "conf": 68.7
+  },
+  {
+   "text": "AL",
+   "left": 613,
+   "top": 1718,
+   "width": 47,
+   "height": 43,
+   "conf": 92.7
+  },
+  {
+   "text": "NATURAL",
+   "left": 697,
+   "top": 1717,
+   "width": 181,
+   "height": 46,
+   "conf": 43.4
+  },
+  {
+   "text": "4.43",
+   "left": 1394,
+   "top": 1732,
+   "width": 106,
+   "height": 47,
+   "conf": 38.8
+  },
+  {
+   "text": "6",
+   "left": 1529,
+   "top": 1733,
+   "width": 25,
+   "height": 45,
+   "conf": 48.1
+  },
+  {
+   "text": "PECHIGA",
+   "left": 417,
+   "top": 1778,
+   "width": 189,
+   "height": 48,
+   "conf": 9.8
+  },
+  {
+   "text": "Pay",
+   "left": 635,
+   "top": 1778,
+   "width": 108,
+   "height": 47,
+   "conf": 0.0
+  },
+  {
+   "text": "HIERBAS",
+   "left": 771,
+   "top": 1781,
+   "width": 187,
+   "height": 48,
+   "conf": 87.7
+  },
+  {
+   "text": "2.2",
+   "left": 1398,
+   "top": 1798,
+   "width": 101,
+   "height": 47,
+   "conf": 54.3
+  },
+  {
+   "text": "0",
+   "left": 1534,
+   "top": 1799,
+   "width": 23,
+   "height": 44,
+   "conf": 70.1
+  },
+  {
+   "text": "BANANA",
+   "left": 413,
+   "top": 1836,
+   "width": 160,
+   "height": 69,
+   "conf": 96.1
+  },
+  {
+   "text": "1.24",
+   "left": 1405,
+   "top": 1861,
+   "width": 99,
+   "height": 50,
+   "conf": 46.5
+  },
+  {
+   "text": "A",
+   "left": 1536,
+   "top": 1868,
+   "width": 23,
+   "height": 39,
+   "conf": 46.5
+  },
+  {
+   "text": "0,930",
+   "left": 463,
+   "top": 1911,
+   "width": 135,
+   "height": 49,
+   "conf": 90.1
+  },
+  {
+   "text": "lg",
+   "left": 627,
+   "top": 1913,
+   "width": 53,
+   "height": 52,
+   "conf": 73.6
+  },
+  {
+   "text": "x",
+   "left": 712,
+   "top": 1925,
+   "width": 23,
+   "height": 32,
+   "conf": 90.4
+  },
+  {
+   "text": "1.95",
+   "left": 776,
+   "top": 1913,
+   "width": 97,
+   "height": 48,
+   "conf": 21.6
+  },
+  {
+   "text": "Elun/kg",
+   "left": 960,
+   "top": 1915,
+   "width": 162,
+   "height": 55,
+   "conf": 0.0
+  },
+  {
+   "text": "CRENAS",
+   "left": 402,
+   "top": 1975,
+   "width": 166,
+   "height": 50,
+   "conf": 85.9
+  },
+  {
+   "text": "DE",
+   "left": 595,
+   "top": 1978,
+   "width": 54,
+   "height": 49,
+   "conf": 96.6
+  },
+  {
+   "text": "HORTALIZAS",
+   "left": 679,
+   "top": 1979,
+   "width": 274,
+   "height": 48,
+   "conf": 94.8
+  },
+  {
+   "text": "1,93",
+   "left": 1408,
+   "top": 1995,
+   "width": 102,
+   "height": 50,
+   "conf": 61.3
+  },
+  {
+   "text": "e",
+   "left": 1539,
+   "top": 1998,
+   "width": 25,
+   "height": 45,
+   "conf": 86.1
+  },
+  {
+   "text": "JUAS",
+   "left": 396,
+   "top": 2044,
+   "width": 167,
+   "height": 50,
+   "conf": 21.5
+  },
+  {
+   "text": "VERGES",
+   "left": 594,
+   "top": 2045,
+   "width": 161,
+   "height": 51,
+   "conf": 83.1
+  },
+  {
+   "text": "1.09",
+   "left": 1413,
+   "top": 2062,
+   "width": 101,
+   "height": 48,
+   "conf": 81.7
+  },
+  {
+   "text": "B",
+   "left": 1544,
+   "top": 2063,
+   "width": 25,
+   "height": 47,
+   "conf": 51.3
+  },
+  {
+   "text": "LANGOST",
+   "left": 392,
+   "top": 2110,
+   "width": 276,
+   "height": 52,
+   "conf": 43.7
+  },
+  {
+   "text": "1NU",
+   "left": 600,
+   "top": 2106,
+   "width": 70,
+   "height": 69,
+   "conf": 50.5
+  },
+  {
+   "text": "CO5IOD",
+   "left": 699,
+   "top": 2114,
+   "width": 167,
+   "height": 50,
+   "conf": 11.6
+  },
+  {
+   "text": "2,315",
+   "left": 1408,
+   "top": 2129,
+   "width": 163,
+   "height": 51,
+   "conf": 47.9
+  },
+  {
+   "text": "BAGUETIN",
+   "left": 384,
+   "top": 2150,
+   "width": 226,
+   "height": 102,
+   "conf": 81.2
+  },
+  {
+   "text": "0.29",
+   "left": 1407,
+   "top": 2199,
+   "width": 165,
+   "height": 52,
+   "conf": 56.5
+  },
+  {
+   "text": "TOTAL",
+   "left": 382,
+   "top": 2324,
+   "width": 129,
+   "height": 54,
+   "conf": 96.2
+  },
+  {
+   "text": "70,09",
+   "left": 1382,
+   "top": 2342,
+   "width": 139,
+   "height": 53,
+   "conf": 89.1
+  },
+  {
+   "text": "—",
+   "left": 362,
+   "top": 2477,
+   "width": 46,
+   "height": 31,
+   "conf": 47.4
+  },
+  {
+   "text": "-omoecoo",
+   "left": 433,
+   "top": 2473,
+   "width": 211,
+   "height": 50,
+   "conf": 4.5
+  },
+  {
+   "text": "oo",
+   "left": 657,
+   "top": 2499,
+   "width": 109,
+   "height": 17,
+   "conf": 0.0
+  },
+  {
+   "text": "adoro.",
+   "left": 815,
+   "top": 2484,
+   "width": 238,
+   "height": 51,
+   "conf": 8.2
+  },
+  {
+   "text": "oo.",
+   "left": 1077,
+   "top": 2493,
+   "width": 348,
+   "height": 29,
+   "conf": 0.0
+  },
+  {
+   "text": "ON",
+   "left": 667,
+   "top": 2566,
+   "width": 226,
+   "height": 81,
+   "conf": 53.2
+  },
+  {
+   "text": "»",
+   "left": 861,
+   "top": 2643,
+   "width": 14,
+   "height": 24,
+   "conf": 40.1
+  }
+ ]
+}
