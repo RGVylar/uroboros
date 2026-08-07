@@ -10,6 +10,7 @@
 		Product,
 	} from '$lib/types';
 	import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
+	import ReceiptScanner from '$lib/components/ReceiptScanner.svelte';
 	import { t, tc } from '$lib/i18n/index.svelte';
 	import LocationPicker from '$lib/components/LocationPicker.svelte';
 	import UnitSelector from '$lib/components/UnitSelector.svelte';
@@ -385,6 +386,12 @@
 
 <!-- ── Add form ── -->
 {#if showAddForm}
+	<!-- Escaneo de tickets: en pruebas, solo para quien tenga el flag. La puerta
+	     de verdad la pone el backend (404 sin flag); esto solo evita enseñar un
+	     botón que no va a funcionar. -->
+	{#if auth.hasFlag('receipt_scan') && !showManual && !selectedProduct}
+		<ReceiptScanner />
+	{/if}
 	<!-- BarcodeScanner fuera del glass-card para evitar conflicto con backdrop-filter -->
 	{#if !showManual && !selectedProduct}
 		<div style="margin-bottom:0.625rem;">

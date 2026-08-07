@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     # un `git pull`. Vacío = un directorio temporal, que es lo que quieres en
     # local y lo que NO quieres en producción (ponlo en el .env).
     media_dir: str = ""
+    # OCR de tickets. El binario se instala aparte del paquete de Python:
+    #   apt install tesseract-ocr tesseract-ocr-spa
+    # Vacío en `tesseract_tessdata` = la carpeta que trae la instalación. Solo
+    # hace falta apuntarla cuando el idioma vive fuera (típico en Windows, donde
+    # `Program Files` no se puede escribir sin admin).
+    tesseract_cmd: str = "tesseract"
+    tesseract_tessdata: str = ""
+    tesseract_lang: str = "spa"
 
 
 settings = Settings()

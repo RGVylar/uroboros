@@ -177,6 +177,17 @@ def run_tesseract(
                 cmd += ["--tessdata-dir", str(tessdata)]
             subprocess.run(cmd + [fmt], capture_output=True, check=False)
             produced = out_base.with_suffix(f".{fmt}")
+            if fmt == "tsv" and not produced.exists():
+                # `txt` y `tsv` son ficheros de configuración que Tesseract busca
+                # en <tessdata>/configs. Apuntando --tessdata-dir a una carpeta
+                # con los idiomas pero sin `configs` al lado, el TSV no se escribe
+                # y **no da error**: salen las cajas vacías y nadie se entera.
+                # Pasó de verdad, y se descubrió tarde.
+                sys.exit(
+                    "Tesseract no escribe el TSV: falta <tessdata>/configs/tsv.\n"
+                    "Copia la carpeta 'configs' de la instalación junto a los "
+                    ".traineddata que estés usando."
+                )
             results.append(produced.read_text(encoding="utf-8", errors="replace")
                            if produced.exists() else "")
         return results[0], results[1]

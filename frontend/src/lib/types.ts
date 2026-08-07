@@ -11,6 +11,25 @@ export interface User {
 	feature_flags?: string[];
 }
 
+/** OCR en crudo de un ticket. Las coordenadas van en píxeles de la imagen ya
+ *  procesada por el backend, no de la que subiste: `image_width/height` son la
+ *  referencia para interpretarlas. */
+export interface ReceiptWord {
+	text: string;
+	left: number;
+	top: number;
+	width: number;
+	height: number;
+	conf: number;
+}
+
+export interface ReceiptScan {
+	text: string;
+	words: ReceiptWord[];
+	image_width: number;
+	image_height: number;
+}
+
 export interface TokenResponse {
 	access_token: string;
 	token_type: string;
