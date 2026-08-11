@@ -1,0 +1,2392 @@
+{
+ "chain": "lidl",
+ "source": "lidl-real-001.png",
+ "image_width": 2000,
+ "image_height": 5126,
+ "words": [
+  {
+   "text": "LL",
+   "left": 0,
+   "top": 0,
+   "width": 190,
+   "height": 26,
+   "conf": 29.7
+  },
+  {
+   "text": "Y",
+   "left": 14,
+   "top": 209,
+   "width": 71,
+   "height": 65,
+   "conf": 73.8
+  },
+  {
+   "text": "ot",
+   "left": 258,
+   "top": 216,
+   "width": 96,
+   "height": 48,
+   "conf": 30.1
+  },
+  {
+   "text": "SUPERMERCADOS",
+   "left": 382,
+   "top": 206,
+   "width": 320,
+   "height": 46,
+   "conf": 88.3
+  },
+  {
+   "text": "S.A.",
+   "left": 730,
+   "top": 208,
+   "width": 91,
+   "height": 40,
+   "conf": 76.0
+  },
+  {
+   "text": "2",
+   "left": 1008,
+   "top": 170,
+   "width": 74,
+   "height": 82,
+   "conf": 49.1
+  },
+  {
+   "text": "+7",
+   "left": 199,
+   "top": 285,
+   "width": 6,
+   "height": 14,
+   "conf": 44.0
+  },
+  {
+   "text": "Ctra,",
+   "left": 360,
+   "top": 269,
+   "width": 114,
+   "height": 46,
+   "conf": 78.5
+  },
+  {
+   "text": "N-433,",
+   "left": 510,
+   "top": 269,
+   "width": 139,
+   "height": 49,
+   "conf": 8.7
+  },
+  {
+   "text": "km",
+   "left": 682,
+   "top": 272,
+   "width": 49,
+   "height": 41,
+   "conf": 92.8
+  },
+  {
+   "text": "87",
+   "left": 758,
+   "top": 268,
+   "width": 46,
+   "height": 42,
+   "conf": 95.0
+  },
+  {
+   "text": "í",
+   "left": 1015,
+   "top": 262,
+   "width": 44,
+   "height": 37,
+   "conf": 69.2
+  },
+  {
+   "text": "/",
+   "left": 288,
+   "top": 348,
+   "width": 8,
+   "height": 25,
+   "conf": 7.7
+  },
+  {
+   "text": "21200",
+   "left": 413,
+   "top": 332,
+   "width": 118,
+   "height": 48,
+   "conf": 96.8
+  },
+  {
+   "text": "Aracena",
+   "left": 561,
+   "top": 338,
+   "width": 170,
+   "height": 40,
+   "conf": 96.5
+  },
+  {
+   "text": "_—",
+   "left": 0,
+   "top": 386,
+   "width": 224,
+   "height": 88,
+   "conf": 1.3
+  },
+  {
+   "text": "NIF",
+   "left": 416,
+   "top": 398,
+   "width": 65,
+   "height": 39,
+   "conf": 91.5
+  },
+  {
+   "text": "A00000000",
+   "left": 513,
+   "top": 391,
+   "width": 221,
+   "height": 50,
+   "conf": 91.5
+  },
+  {
+   "text": "EUR",
+   "left": 1017,
+   "top": 452,
+   "width": 70,
+   "height": 41,
+   "conf": 96.7
+  },
+  {
+   "text": "BEBIDA",
+   "left": 45,
+   "top": 525,
+   "width": 149,
+   "height": 52,
+   "conf": 95.9
+  },
+  {
+   "text": "ENERG.",
+   "left": 222,
+   "top": 515,
+   "width": 139,
+   "height": 45,
+   "conf": 81.0
+  },
+  {
+   "text": "LIGHT",
+   "left": 397,
+   "top": 524,
+   "width": 114,
+   "height": 43,
+   "conf": 82.6
+  },
+  {
+   "text": ",",
+   "left": 950,
+   "top": 511,
+   "width": 12,
+   "height": 100,
+   "conf": 64.3
+  },
+  {
+   "text": ",99",
+   "left": 979,
+   "top": 512,
+   "width": 60,
+   "height": 45,
+   "conf": 76.8
+  },
+  {
+   "text": "C",
+   "left": 1068,
+   "top": 513,
+   "width": 20,
+   "height": 41,
+   "conf": 50.5
+  },
+  {
+   "text": "DANONE",
+   "left": 45,
+   "top": 582,
+   "width": 147,
+   "height": 54,
+   "conf": 77.2
+  },
+  {
+   "text": "DANONINO",
+   "left": 222,
+   "top": 576,
+   "width": 196,
+   "height": 48,
+   "conf": 22.9
+  },
+  {
+   "text": "1,69",
+   "left": 953,
+   "top": 574,
+   "width": 88,
+   "height": 43,
+   "conf": 94.2
+  },
+  {
+   "text": "A",
+   "left": 1070,
+   "top": 575,
+   "width": 21,
+   "height": 38,
+   "conf": 94.2
+  },
+  {
+   "text": "PUDDING",
+   "left": 47,
+   "top": 640,
+   "width": 173,
+   "height": 59,
+   "conf": 79.8
+  },
+  {
+   "text": "HIGI",
+   "left": 249,
+   "top": 642,
+   "width": 96,
+   "height": 44,
+   "conf": 63.1
+  },
+  {
+   "text": "PROFEIN",
+   "left": 374,
+   "top": 645,
+   "width": 169,
+   "height": 47,
+   "conf": 26.8
+  },
+  {
+   "text": "1,99",
+   "left": 949,
+   "top": 632,
+   "width": 94,
+   "height": 46,
+   "conf": 45.3
+  },
+  {
+   "text": "8",
+   "left": 1071,
+   "top": 633,
+   "width": 22,
+   "height": 41,
+   "conf": 95.2
+  },
+  {
+   "text": "PUDDING",
+   "left": 49,
+   "top": 702,
+   "width": 172,
+   "height": 59,
+   "conf": 73.0
+  },
+  {
+   "text": "HIGH",
+   "left": 250,
+   "top": 707,
+   "width": 94,
+   "height": 45,
+   "conf": 84.0
+  },
+  {
+   "text": "PROTETN",
+   "left": 373,
+   "top": 705,
+   "width": 172,
+   "height": 50,
+   "conf": 89.7
+  },
+  {
+   "text": "1,098",
+   "left": 955,
+   "top": 693,
+   "width": 140,
+   "height": 47,
+   "conf": 94.1
+  },
+  {
+   "text": "FAIRY",
+   "left": 53,
+   "top": 766,
+   "width": 118,
+   "height": 55,
+   "conf": 90.2
+  },
+  {
+   "text": "TONO",
+   "left": 209,
+   "top": 769,
+   "width": 86,
+   "height": 46,
+   "conf": 52.4
+  },
+  {
+   "text": "EN",
+   "left": 325,
+   "top": 775,
+   "width": 45,
+   "height": 43,
+   "conf": 54.2
+  },
+  {
+   "text": "1",
+   "left": 406,
+   "top": 772,
+   "width": 9,
+   "height": 42,
+   "conf": 54.2
+  },
+  {
+   "text": "5,85",
+   "left": 951,
+   "top": 754,
+   "width": 95,
+   "height": 46,
+   "conf": 88.2
+  },
+  {
+   "text": "C",
+   "left": 1076,
+   "top": 754,
+   "width": 21,
+   "height": 42,
+   "conf": 0.0
+  },
+  {
+   "text": "PLAJOS",
+   "left": 51,
+   "top": 831,
+   "width": 145,
+   "height": 45,
+   "conf": 60.5
+  },
+  {
+   "text": "NIGH",
+   "left": 226,
+   "top": 837,
+   "width": 96,
+   "height": 44,
+   "conf": 0.7
+  },
+  {
+   "text": "PROTEIN",
+   "left": 350,
+   "top": 826,
+   "width": 175,
+   "height": 49,
+   "conf": 74.1
+  },
+  {
+   "text": "2,99",
+   "left": 606,
+   "top": 814,
+   "width": 120,
+   "height": 51,
+   "conf": 49.5
+  },
+  {
+   "text": "7",
+   "left": 805,
+   "top": 818,
+   "width": 20,
+   "height": 41,
+   "conf": 76.3
+  },
+  {
+   "text": "5,98",
+   "left": 954,
+   "top": 816,
+   "width": 146,
+   "height": 47,
+   "conf": 86.4
+  },
+  {
+   "text": "SCPA",
+   "left": 54,
+   "top": 897,
+   "width": 93,
+   "height": 44,
+   "conf": 81.0
+  },
+  {
+   "text": "DE",
+   "left": 176,
+   "top": 901,
+   "width": 44,
+   "height": 42,
+   "conf": 93.1
+  },
+  {
+   "text": "FIDEOS",
+   "left": 253,
+   "top": 891,
+   "width": 147,
+   "height": 43,
+   "conf": 93.3
+  },
+  {
+   "text": "0,7",
+   "left": 607,
+   "top": 876,
+   "width": 122,
+   "height": 45,
+   "conf": 23.8
+  },
+  {
+   "text": "8",
+   "left": 807,
+   "top": 879,
+   "width": 21,
+   "height": 41,
+   "conf": 88.1
+  },
+  {
+   "text": "6,328",
+   "left": 956,
+   "top": 879,
+   "width": 146,
+   "height": 45,
+   "conf": 72.0
+  },
+  {
+   "text": "PROMO",
+   "left": 176,
+   "top": 950,
+   "width": 127,
+   "height": 42,
+   "conf": 45.5
+  },
+  {
+   "text": "1TDL",
+   "left": 332,
+   "top": 946,
+   "width": 97,
+   "height": 41,
+   "conf": 39.6
+  },
+  {
+   "text": "PLUS",
+   "left": 457,
+   "top": 935,
+   "width": 102,
+   "height": 48,
+   "conf": 96.6
+  },
+  {
+   "text": "-1,58",
+   "left": 939,
+   "top": 937,
+   "width": 118,
+   "height": 47,
+   "conf": 66.1
+  },
+  {
+   "text": "YATEKOMO",
+   "left": 0,
+   "top": 1004,
+   "width": 252,
+   "height": 52,
+   "conf": 41.3
+  },
+  {
+   "text": "YAK",
+   "left": 281,
+   "top": 1003,
+   "width": 72,
+   "height": 38,
+   "conf": 33.6
+  },
+  {
+   "text": "ISOBA",
+   "left": 367,
+   "top": 997,
+   "width": 116,
+   "height": 45,
+   "conf": 33.6
+  },
+  {
+   "text": "1,34",
+   "left": 969,
+   "top": 999,
+   "width": 87,
+   "height": 48,
+   "conf": 70.9
+  },
+  {
+   "text": "8",
+   "left": 1084,
+   "top": 1001,
+   "width": 22,
+   "height": 41,
+   "conf": 58.9
+  },
+  {
+   "text": "HAVANA",
+   "left": 52,
+   "top": 1063,
+   "width": 150,
+   "height": 46,
+   "conf": 96.7
+  },
+  {
+   "text": "RON",
+   "left": 231,
+   "top": 1059,
+   "width": 75,
+   "height": 42,
+   "conf": 96.4
+  },
+  {
+   "text": "COLA",
+   "left": 335,
+   "top": 1056,
+   "width": 99,
+   "height": 41,
+   "conf": 92.8
+  },
+  {
+   "text": "199",
+   "left": 970,
+   "top": 1062,
+   "width": 88,
+   "height": 44,
+   "conf": 0.0
+  },
+  {
+   "text": "C",
+   "left": 1086,
+   "top": 1061,
+   "width": 23,
+   "height": 41,
+   "conf": 0.0
+  },
+  {
+   "text": "ENERGÉTICA",
+   "left": 56,
+   "top": 1118,
+   "width": 251,
+   "height": 58,
+   "conf": 57.6
+  },
+  {
+   "text": "PIÑA",
+   "left": 335,
+   "top": 1115,
+   "width": 99,
+   "height": 47,
+   "conf": 96.7
+  },
+  {
+   "text": "0,95",
+   "left": 963,
+   "top": 1124,
+   "width": 96,
+   "height": 48,
+   "conf": 67.8
+  },
+  {
+   "text": "C",
+   "left": 1088,
+   "top": 1121,
+   "width": 23,
+   "height": 43,
+   "conf": 85.7
+  },
+  {
+   "text": "MONSTER",
+   "left": 57,
+   "top": 1188,
+   "width": 174,
+   "height": 55,
+   "conf": 93.1
+  },
+  {
+   "text": "ULTRA",
+   "left": 260,
+   "top": 1180,
+   "width": 124,
+   "height": 51,
+   "conf": 85.7
+  },
+  {
+   "text": "1,79",
+   "left": 971,
+   "top": 1184,
+   "width": 90,
+   "height": 48,
+   "conf": 68.5
+  },
+  {
+   "text": "C",
+   "left": 1090,
+   "top": 1182,
+   "width": 23,
+   "height": 43,
+   "conf": 90.9
+  },
+  {
+   "text": "2a",
+   "left": 185,
+   "top": 1256,
+   "width": 49,
+   "height": 47,
+   "conf": 92.0
+  },
+  {
+   "text": "50%",
+   "left": 261,
+   "top": 1247,
+   "width": 75,
+   "height": 50,
+   "conf": 95.1
+  },
+  {
+   "text": "-0,45",
+   "left": 948,
+   "top": 1245,
+   "width": 118,
+   "height": 50,
+   "conf": 87.7
+  },
+  {
+   "text": "HAMB.",
+   "left": 59,
+   "top": 1324,
+   "width": 117,
+   "height": 50,
+   "conf": 50.4
+  },
+  {
+   "text": "POLLO",
+   "left": 210,
+   "top": 1312,
+   "width": 125,
+   "height": 53,
+   "conf": 93.2
+  },
+  {
+   "text": "CRISPY",
+   "left": 363,
+   "top": 1310,
+   "width": 148,
+   "height": 46,
+   "conf": 81.5
+  },
+  {
+   "text": "3,54",
+   "left": 969,
+   "top": 1308,
+   "width": 97,
+   "height": 47,
+   "conf": 95.0
+  },
+  {
+   "text": "8",
+   "left": 1094,
+   "top": 1308,
+   "width": 22,
+   "height": 41,
+   "conf": 78.0
+  },
+  {
+   "text": "Desc.",
+   "left": 185,
+   "top": 1381,
+   "width": 120,
+   "height": 58,
+   "conf": 96.4
+  },
+  {
+   "text": "-0,05",
+   "left": 949,
+   "top": 1369,
+   "width": 120,
+   "height": 50,
+   "conf": 90.2
+  },
+  {
+   "text": "BURGER",
+   "left": 60,
+   "top": 1450,
+   "width": 149,
+   "height": 51,
+   "conf": 95.7
+  },
+  {
+   "text": "CON",
+   "left": 237,
+   "top": 1443,
+   "width": 74,
+   "height": 50,
+   "conf": 95.7
+  },
+  {
+   "text": "ESPINACAS",
+   "left": 341,
+   "top": 1439,
+   "width": 222,
+   "height": 48,
+   "conf": 95.2
+  },
+  {
+   "text": "3,95",
+   "left": 972,
+   "top": 1432,
+   "width": 95,
+   "height": 49,
+   "conf": 86.3
+  },
+  {
+   "text": "B",
+   "left": 1097,
+   "top": 1431,
+   "width": 22,
+   "height": 43,
+   "conf": 83.4
+  },
+  {
+   "text": "TORTITAS",
+   "left": 63,
+   "top": 1511,
+   "width": 198,
+   "height": 52,
+   "conf": 91.0
+  },
+  {
+   "text": "DE",
+   "left": 289,
+   "top": 1507,
+   "width": 46,
+   "height": 47,
+   "conf": 96.4
+  },
+  {
+   "text": "MAÍZ",
+   "left": 365,
+   "top": 1502,
+   "width": 97,
+   "height": 49,
+   "conf": 96.4
+  },
+  {
+   "text": "1,83",
+   "left": 979,
+   "top": 1494,
+   "width": 91,
+   "height": 47,
+   "conf": 45.7
+  },
+  {
+   "text": "B.",
+   "left": 1098,
+   "top": 1493,
+   "width": 61,
+   "height": 44,
+   "conf": 43.6
+  },
+  {
+   "text": "Desc.",
+   "left": 188,
+   "top": 1578,
+   "width": 120,
+   "height": 44,
+   "conf": 93.9
+  },
+  {
+   "text": "-0,10",
+   "left": 953,
+   "top": 1556,
+   "width": 119,
+   "height": 50,
+   "conf": 78.7
+  },
+  {
+   "text": "*",
+   "left": 1139,
+   "top": 1557,
+   "width": 7,
+   "height": 12,
+   "conf": 75.2
+  },
+  {
+   "text": "FIDEOS",
+   "left": 66,
+   "top": 1640,
+   "width": 145,
+   "height": 50,
+   "conf": 96.3
+  },
+  {
+   "text": "1,638",
+   "left": 979,
+   "top": 1618,
+   "width": 145,
+   "height": 50,
+   "conf": 75.3
+  },
+  {
+   "text": "TOMATE",
+   "left": 70,
+   "top": 1703,
+   "width": 141,
+   "height": 50,
+   "conf": 96.5
+  },
+  {
+   "text": "RAMA",
+   "left": 240,
+   "top": 1700,
+   "width": 98,
+   "height": 47,
+   "conf": 72.6
+  },
+  {
+   "text": "2,06",
+   "left": 976,
+   "top": 1682,
+   "width": 96,
+   "height": 50,
+   "conf": 95.9
+  },
+  {
+   "text": "A",
+   "left": 1102,
+   "top": 1682,
+   "width": 23,
+   "height": 41,
+   "conf": 95.9
+  },
+  {
+   "text": "1,196",
+   "left": 119,
+   "top": 1767,
+   "width": 119,
+   "height": 52,
+   "conf": 96.8
+  },
+  {
+   "text": "kg",
+   "left": 266,
+   "top": 1762,
+   "width": 47,
+   "height": 50,
+   "conf": 89.3
+  },
+  {
+   "text": "x",
+   "left": 343,
+   "top": 1773,
+   "width": 19,
+   "height": 31,
+   "conf": 89.3
+  },
+  {
+   "text": "1,72",
+   "left": 397,
+   "top": 1762,
+   "width": 91,
+   "height": 47,
+   "conf": 86.0
+  },
+  {
+   "text": "EUR/Kg",
+   "left": 570,
+   "top": 1752,
+   "width": 148,
+   "height": 51,
+   "conf": 28.9
+  },
+  {
+   "text": "CEBOLLA",
+   "left": 67,
+   "top": 1829,
+   "width": 171,
+   "height": 48,
+   "conf": 96.6
+  },
+  {
+   "text": "ROJA",
+   "left": 265,
+   "top": 1825,
+   "width": 99,
+   "height": 45,
+   "conf": 96.2
+  },
+  {
+   "text": "1,39",
+   "left": 982,
+   "top": 1807,
+   "width": 93,
+   "height": 50,
+   "conf": 58.2
+  },
+  {
+   "text": "A",
+   "left": 1105,
+   "top": 1807,
+   "width": 22,
+   "height": 40,
+   "conf": 72.5
+  },
+  {
+   "text": "TORT.",
+   "left": 68,
+   "top": 1895,
+   "width": 114,
+   "height": 44,
+   "conf": 90.6
+  },
+  {
+   "text": "ARROZ",
+   "left": 217,
+   "top": 1888,
+   "width": 118,
+   "height": 47,
+   "conf": 96.1
+  },
+  {
+   "text": "CHOCO",
+   "left": 368,
+   "top": 1885,
+   "width": 123,
+   "height": 45,
+   "conf": 96.4
+  },
+  {
+   "text": "BL",
+   "left": 519,
+   "top": 1883,
+   "width": 46,
+   "height": 44,
+   "conf": 96.6
+  },
+  {
+   "text": "1,95",
+   "left": 984,
+   "top": 1869,
+   "width": 93,
+   "height": 50,
+   "conf": 77.9
+  },
+  {
+   "text": "8",
+   "left": 1106,
+   "top": 1866,
+   "width": 23,
+   "height": 44,
+   "conf": 77.9
+  },
+  {
+   "text": "TOALLITAS",
+   "left": 68,
+   "top": 1952,
+   "width": 222,
+   "height": 49,
+   "conf": 92.1
+  },
+  {
+   "text": "BEBÉ",
+   "left": 318,
+   "top": 1948,
+   "width": 96,
+   "height": 47,
+   "conf": 96.9
+  },
+  {
+   "text": "2,69",
+   "left": 979,
+   "top": 1931,
+   "width": 99,
+   "height": 51,
+   "conf": 91.4
+  },
+  {
+   "text": "C",
+   "left": 1107,
+   "top": 1929,
+   "width": 21,
+   "height": 44,
+   "conf": 67.9
+  },
+  {
+   "text": "YATEKOMO",
+   "left": 68,
+   "top": 2016,
+   "width": 197,
+   "height": 46,
+   "conf": 89.9
+  },
+  {
+   "text": "YAKISOBA",
+   "left": 296,
+   "top": 2011,
+   "width": 196,
+   "height": 46,
+   "conf": 91.8
+  },
+  {
+   "text": "1,99",
+   "left": 985,
+   "top": 1994,
+   "width": 95,
+   "height": 50,
+   "conf": 88.2
+  },
+  {
+   "text": "8",
+   "left": 1110,
+   "top": 1991,
+   "width": 21,
+   "height": 44,
+   "conf": 55.6
+  },
+  {
+   "text": "VINO",
+   "left": 69,
+   "top": 2080,
+   "width": 97,
+   "height": 43,
+   "conf": 96.3
+  },
+  {
+   "text": "BLANCO",
+   "left": 194,
+   "top": 2077,
+   "width": 148,
+   "height": 45,
+   "conf": 96.7
+  },
+  {
+   "text": "0,94",
+   "left": 980,
+   "top": 2056,
+   "width": 102,
+   "height": 50,
+   "conf": 92.1
+  },
+  {
+   "text": "C",
+   "left": 1110,
+   "top": 2054,
+   "width": 21,
+   "height": 43,
+   "conf": 83.6
+  },
+  {
+   "text": "ORAL-8",
+   "left": 69,
+   "top": 2139,
+   "width": 148,
+   "height": 44,
+   "conf": 90.3
+  },
+  {
+   "text": "DENTÍFRICO",
+   "left": 245,
+   "top": 2134,
+   "width": 249,
+   "height": 47,
+   "conf": 92.1
+  },
+  {
+   "text": "2,95x",
+   "left": 624,
+   "top": 2130,
+   "width": 123,
+   "height": 48,
+   "conf": 91.5
+  },
+  {
+   "text": "2",
+   "left": 828,
+   "top": 2126,
+   "width": 21,
+   "height": 43,
+   "conf": 87.1
+  },
+  {
+   "text": "5,93",
+   "left": 981,
+   "top": 2119,
+   "width": 100,
+   "height": 49,
+   "conf": 80.5
+  },
+  {
+   "text": "C",
+   "left": 1110,
+   "top": 2118,
+   "width": 21,
+   "height": 42,
+   "conf": 60.8
+  },
+  {
+   "text": "RAVIOLI",
+   "left": 70,
+   "top": 2200,
+   "width": 170,
+   "height": 45,
+   "conf": 91.7
+  },
+  {
+   "text": "RICOTA",
+   "left": 272,
+   "top": 2197,
+   "width": 147,
+   "height": 44,
+   "conf": 96.0
+  },
+  {
+   "text": "2,208",
+   "left": 984,
+   "top": 2181,
+   "width": 149,
+   "height": 49,
+   "conf": 59.5
+  },
+  {
+   "text": "PASTA",
+   "left": 71,
+   "top": 2263,
+   "width": 123,
+   "height": 44,
+   "conf": 96.4
+  },
+  {
+   "text": "RELLENA",
+   "left": 222,
+   "top": 2260,
+   "width": 173,
+   "height": 44,
+   "conf": 96.0
+  },
+  {
+   "text": "1,998",
+   "left": 988,
+   "top": 2243,
+   "width": 144,
+   "height": 50,
+   "conf": 87.3
+  },
+  {
+   "text": "Desc.",
+   "left": 198,
+   "top": 2318,
+   "width": 118,
+   "height": 61,
+   "conf": 96.7
+  },
+  {
+   "text": "-0,14",
+   "left": 960,
+   "top": 2305,
+   "width": 126,
+   "height": 51,
+   "conf": 91.8
+  },
+  {
+   "text": "WRAPS",
+   "left": 72,
+   "top": 2387,
+   "width": 123,
+   "height": 43,
+   "conf": 74.7
+  },
+  {
+   "text": "ALTOS",
+   "left": 224,
+   "top": 2385,
+   "width": 122,
+   "height": 43,
+   "conf": 96.5
+  },
+  {
+   "text": "PROTEÍNA",
+   "left": 374,
+   "top": 2378,
+   "width": 199,
+   "height": 47,
+   "conf": 96.6
+  },
+  {
+   "text": "1,49",
+   "left": 632,
+   "top": 2376,
+   "width": 118,
+   "height": 50,
+   "conf": 6.1
+  },
+  {
+   "text": "2?",
+   "left": 831,
+   "top": 2374,
+   "width": 23,
+   "height": 42,
+   "conf": 74.6
+  },
+  {
+   "text": "2,38",
+   "left": 983,
+   "top": 2369,
+   "width": 99,
+   "height": 49,
+   "conf": 81.1
+  },
+  {
+   "text": "A",
+   "left": 1111,
+   "top": 2367,
+   "width": 23,
+   "height": 43,
+   "conf": 96.2
+  },
+  {
+   "text": "MANZANA",
+   "left": 73,
+   "top": 2448,
+   "width": 173,
+   "height": 45,
+   "conf": 96.4
+  },
+  {
+   "text": "GOLDEN",
+   "left": 274,
+   "top": 2444,
+   "width": 148,
+   "height": 45,
+   "conf": 79.8
+  },
+  {
+   "text": "2",
+   "left": 451,
+   "top": 2443,
+   "width": 21,
+   "height": 42,
+   "conf": 96.3
+  },
+  {
+   "text": "KG",
+   "left": 501,
+   "top": 2441,
+   "width": 48,
+   "height": 43,
+   "conf": 96.9
+  },
+  {
+   "text": "3,69",
+   "left": 984,
+   "top": 2430,
+   "width": 98,
+   "height": 50,
+   "conf": 73.4
+  },
+  {
+   "text": "Á",
+   "left": 1112,
+   "top": 2429,
+   "width": 23,
+   "height": 43,
+   "conf": 79.6
+  },
+  {
+   "text": "MOZZARELLA",
+   "left": 74,
+   "top": 2509,
+   "width": 248,
+   "height": 46,
+   "conf": 96.4
+  },
+  {
+   "text": "RALLADO",
+   "left": 351,
+   "top": 2503,
+   "width": 173,
+   "height": 47,
+   "conf": 95.7
+  },
+  {
+   "text": "1,89x",
+   "left": 634,
+   "top": 2499,
+   "width": 118,
+   "height": 50,
+   "conf": 88.0
+  },
+  {
+   "text": "2",
+   "left": 833,
+   "top": 2498,
+   "width": 21,
+   "height": 43,
+   "conf": 93.1
+  },
+  {
+   "text": "3,78",
+   "left": 983,
+   "top": 2493,
+   "width": 101,
+   "height": 50,
+   "conf": 53.2
+  },
+  {
+   "text": "A",
+   "left": 1114,
+   "top": 2492,
+   "width": 23,
+   "height": 42,
+   "conf": 53.2
+  },
+  {
+   "text": "BREF",
+   "left": 75,
+   "top": 2573,
+   "width": 96,
+   "height": 44,
+   "conf": 91.2
+  },
+  {
+   "text": "PINO",
+   "left": 201,
+   "top": 2571,
+   "width": 97,
+   "height": 43,
+   "conf": 93.3
+  },
+  {
+   "text": "DUPLO",
+   "left": 326,
+   "top": 2569,
+   "width": 123,
+   "height": 44,
+   "conf": 92.3
+  },
+  {
+   "text": "2,95",
+   "left": 984,
+   "top": 2555,
+   "width": 103,
+   "height": 50,
+   "conf": 69.7
+  },
+  {
+   "text": "C",
+   "left": 1115,
+   "top": 2554,
+   "width": 24,
+   "height": 43,
+   "conf": 50.4
+  },
+  {
+   "text": "CASA",
+   "left": 76,
+   "top": 2635,
+   "width": 97,
+   "height": 43,
+   "conf": 93.3
+  },
+  {
+   "text": "TARRÁADELLAS",
+   "left": 202,
+   "top": 2629,
+   "width": 273,
+   "height": 48,
+   "conf": 63.3
+  },
+  {
+   "text": "PI.",
+   "left": 503,
+   "top": 2628,
+   "width": 67,
+   "height": 44,
+   "conf": 95.2
+  },
+  {
+   "text": "3,198",
+   "left": 987,
+   "top": 2617,
+   "width": 154,
+   "height": 50,
+   "conf": 68.0
+  },
+  {
+   "text": "MONSTER",
+   "left": 78,
+   "top": 2695,
+   "width": 171,
+   "height": 46,
+   "conf": 96.8
+  },
+  {
+   "text": "ULTRA",
+   "left": 278,
+   "top": 2694,
+   "width": 123,
+   "height": 44,
+   "conf": 96.2
+  },
+  {
+   "text": "..",
+   "left": 891,
+   "top": 2709,
+   "width": 3,
+   "height": 4,
+   "conf": 5.8
+  },
+  {
+   "text": "1,79€",
+   "left": 995,
+   "top": 2681,
+   "width": 147,
+   "height": 49,
+   "conf": 61.7
+  },
+  {
+   "text": "28",
+   "left": 205,
+   "top": 2758,
+   "width": 48,
+   "height": 44,
+   "conf": 73.4
+  },
+  {
+   "text": "50%",
+   "left": 280,
+   "top": 2756,
+   "width": 74,
+   "height": 44,
+   "conf": 84.5
+  },
+  {
+   "text": "-0,45",
+   "left": 968,
+   "top": 2743,
+   "width": 125,
+   "height": 51,
+   "conf": 92.7
+  },
+  {
+   "text": "ESPÁRRAGOS",
+   "left": 82,
+   "top": 2818,
+   "width": 246,
+   "height": 47,
+   "conf": 91.0
+  },
+  {
+   "text": "GRUESOS",
+   "left": 357,
+   "top": 2815,
+   "width": 174,
+   "height": 46,
+   "conf": 96.4
+  },
+  {
+   "text": "1,798",
+   "left": 997,
+   "top": 2806,
+   "width": 148,
+   "height": 51,
+   "conf": 89.4
+  },
+  {
+   "text": "QUESO",
+   "left": 81,
+   "top": 2883,
+   "width": 122,
+   "height": 46,
+   "conf": 96.8
+  },
+  {
+   "text": "FUNDIDO",
+   "left": 234,
+   "top": 2879,
+   "width": 171,
+   "height": 46,
+   "conf": 96.6
+  },
+  {
+   "text": "BURGER",
+   "left": 434,
+   "top": 2877,
+   "width": 148,
+   "height": 46,
+   "conf": 95.8
+  },
+  {
+   "text": "1,2",
+   "left": 1000,
+   "top": 2870,
+   "width": 95,
+   "height": 50,
+   "conf": 63.6
+  },
+  {
+   "text": "A",
+   "left": 1126,
+   "top": 2869,
+   "width": 22,
+   "height": 44,
+   "conf": 63.6
+  },
+  {
+   "text": "GUISANTES",
+   "left": 82,
+   "top": 2943,
+   "width": 223,
+   "height": 46,
+   "conf": 96.9
+  },
+  {
+   "text": "0,90",
+   "left": 995,
+   "top": 2932,
+   "width": 102,
+   "height": 49,
+   "conf": 96.2
+  },
+  {
+   "text": "8",
+   "left": 1126,
+   "top": 2933,
+   "width": 23,
+   "height": 42,
+   "conf": 62.4
+  },
+  {
+   "text": "KIWI",
+   "left": 82,
+   "top": 3007,
+   "width": 96,
+   "height": 43,
+   "conf": 47.4
+  },
+  {
+   "text": "SUNGOLD",
+   "left": 209,
+   "top": 3004,
+   "width": 173,
+   "height": 45,
+   "conf": 92.3
+  },
+  {
+   "text": "3,25",
+   "left": 996,
+   "top": 2994,
+   "width": 101,
+   "height": 49,
+   "conf": 14.8
+  },
+  {
+   "text": "A",
+   "left": 1127,
+   "top": 2995,
+   "width": 23,
+   "height": 42,
+   "conf": 14.8
+  },
+  {
+   "text": "Desc.",
+   "left": 210,
+   "top": 3067,
+   "width": 118,
+   "height": 44,
+   "conf": 94.9
+  },
+  {
+   "text": "-0,26",
+   "left": 975,
+   "top": 3055,
+   "width": 126,
+   "height": 52,
+   "conf": 88.4
+  },
+  {
+   "text": "TORTELLONI",
+   "left": 86,
+   "top": 3127,
+   "width": 244,
+   "height": 48,
+   "conf": 91.6
+  },
+  {
+   "text": "CON",
+   "left": 362,
+   "top": 3126,
+   "width": 73,
+   "height": 44,
+   "conf": 96.0
+  },
+  {
+   "text": "CARNE",
+   "left": 463,
+   "top": 3124,
+   "width": 123,
+   "height": 44,
+   "conf": 96.2
+  },
+  {
+   "text": "2,238",
+   "left": 1000,
+   "top": 3120,
+   "width": 153,
+   "height": 49,
+   "conf": 79.2
+  },
+  {
+   "text": "CIRUELA",
+   "left": 87,
+   "top": 3192,
+   "width": 186,
+   "height": 90,
+   "conf": 92.0
+  },
+  {
+   "text": "ROJA",
+   "left": 277,
+   "top": 3189,
+   "width": 109,
+   "height": 91,
+   "conf": 83.4
+  },
+  {
+   "text": "BANDEJA",
+   "left": 414,
+   "top": 3187,
+   "width": 173,
+   "height": 91,
+   "conf": 96.3
+  },
+  {
+   "text": "2,33",
+   "left": 1001,
+   "top": 3183,
+   "width": 101,
+   "height": 50,
+   "conf": 84.8
+  },
+  {
+   "text": "A",
+   "left": 1132,
+   "top": 3184,
+   "width": 23,
+   "height": 43,
+   "conf": 84.8
+  },
+  {
+   "text": "TOTAL",
+   "left": 92,
+   "top": 3278,
+   "width": 121,
+   "height": 87,
+   "conf": 84.8
+  },
+  {
+   "text": ":",
+   "left": 872,
+   "top": 3330,
+   "width": 8,
+   "height": 34,
+   "conf": 56.1
+  },
+  {
+   "text": "90,65",
+   "left": 981,
+   "top": 3269,
+   "width": 124,
+   "height": 93,
+   "conf": 55.1
+  },
+  {
+   "text": "ENTREGA",
+   "left": 92,
+   "top": 3382,
+   "width": 172,
+   "height": 46,
+   "conf": 96.5
+  },
+  {
+   "text": "100,78",
+   "left": 962,
+   "top": 3375,
+   "width": 148,
+   "height": 51,
+   "conf": 96.2
+  },
+  {
+   "text": "Cambio",
+   "left": 92,
+   "top": 3508,
+   "width": 149,
+   "height": 46,
+   "conf": 95.4
+  },
+  {
+   "text": "-10,10",
+   "left": 961,
+   "top": 3502,
+   "width": 152,
+   "height": 49,
+   "conf": 91.5
+  },
+  {
+   "text": "IVA%",
+   "left": 123,
+   "top": 3634,
+   "width": 95,
+   "height": 46,
+   "conf": 54.4
+  },
+  {
+   "text": "1VA",
+   "left": 402,
+   "top": 3631,
+   "width": 70,
+   "height": 43,
+   "conf": 88.8
+  },
+  {
+   "text": "+",
+   "left": 579,
+   "top": 3640,
+   "width": 20,
+   "height": 29,
+   "conf": 97.0
+  },
+  {
+   "text": "PN",
+   "left": 705,
+   "top": 3630,
+   "width": 76,
+   "height": 45,
+   "conf": 68.8
+  },
+  {
+   "text": "=",
+   "left": 888,
+   "top": 3643,
+   "width": 19,
+   "height": 18,
+   "conf": 77.0
+  },
+  {
+   "text": "PyP",
+   "left": 1013,
+   "top": 3625,
+   "width": 74,
+   "height": 46,
+   "conf": 71.2
+  },
+  {
+   "text": "A",
+   "left": 97,
+   "top": 3700,
+   "width": 21,
+   "height": 43,
+   "conf": 60.2
+  },
+  {
+   "text": "4%",
+   "left": 198,
+   "top": 3698,
+   "width": 47,
+   "height": 43,
+   "conf": 30.9
+  },
+  {
+   "text": "0,88",
+   "left": 400,
+   "top": 3693,
+   "width": 99,
+   "height": 49,
+   "conf": 95.5
+  },
+  {
+   "text": "21,94",
+   "left": 682,
+   "top": 3693,
+   "width": 126,
+   "height": 51,
+   "conf": 81.9
+  },
+  {
+   "text": "22,82",
+   "left": 990,
+   "top": 3685,
+   "width": 124,
+   "height": 53,
+   "conf": 91.7
+  },
+  {
+   "text": "B",
+   "left": 97,
+   "top": 3763,
+   "width": 21,
+   "height": 44,
+   "conf": 89.8
+  },
+  {
+   "text": "10%",
+   "left": 178,
+   "top": 3759,
+   "width": 68,
+   "height": 46,
+   "conf": 89.9
+  },
+  {
+   "text": "3,81",
+   "left": 402,
+   "top": 3756,
+   "width": 92,
+   "height": 48,
+   "conf": 95.3
+  },
+  {
+   "text": "38,11",
+   "left": 683,
+   "top": 3755,
+   "width": 120,
+   "height": 49,
+   "conf": 93.4
+  },
+  {
+   "text": "41,92",
+   "left": 993,
+   "top": 3751,
+   "width": 122,
+   "height": 49,
+   "conf": 94.4
+  },
+  {
+   "text": "CL",
+   "left": 98,
+   "top": 3827,
+   "width": 21,
+   "height": 42,
+   "conf": 54.9
+  },
+  {
+   "text": "21%",
+   "left": 175,
+   "top": 3824,
+   "width": 72,
+   "height": 44,
+   "conf": 85.3
+  },
+  {
+   "text": "4,50",
+   "left": 404,
+   "top": 3819,
+   "width": 98,
+   "height": 50,
+   "conf": 90.0
+  },
+  {
+   "text": "21,44",
+   "left": 685,
+   "top": 3819,
+   "width": 125,
+   "height": 52,
+   "conf": 96.5
+  },
+  {
+   "text": "25,94",
+   "left": 993,
+   "top": 3815,
+   "width": 124,
+   "height": 48,
+   "conf": 93.9
+  },
+  {
+   "text": "Suma",
+   "left": 100,
+   "top": 3890,
+   "width": 97,
+   "height": 43,
+   "conf": 88.3
+  },
+  {
+   "text": "9,19",
+   "left": 404,
+   "top": 3883,
+   "width": 100,
+   "height": 51,
+   "conf": 95.9
+  },
+  {
+   "text": "8,",
+   "left": 686,
+   "top": 3884,
+   "width": 68,
+   "height": 89,
+   "conf": 57.1
+  },
+  {
+   "text": "Ni",
+   "left": 765,
+   "top": 3884,
+   "width": 46,
+   "height": 90,
+   "conf": 5.4
+  },
+  {
+   "text": "90,68",
+   "left": 995,
+   "top": 3878,
+   "width": 123,
+   "height": 49,
+   "conf": 93.3
+  },
+  {
+   "text": "Desc.",
+   "left": 330,
+   "top": 4008,
+   "width": 119,
+   "height": 70,
+   "conf": 87.8
+  },
+  {
+   "text": "total",
+   "left": 489,
+   "top": 3970,
+   "width": 114,
+   "height": 87,
+   "conf": 94.6
+  },
+  {
+   "text": "gh",
+   "left": 638,
+   "top": 4021,
+   "width": 48,
+   "height": 51,
+   "conf": 46.4
+  },
+  {
+   "text": "Compra",
+   "left": 697,
+   "top": 4011,
+   "width": 167,
+   "height": 52,
+   "conf": 46.4
+  },
+  {
+   "text": "¡",
+   "left": 1109,
+   "top": 4038,
+   "width": 5,
+   "height": 17,
+   "conf": 41.0
+  },
+  {
+   "text": "ul",
+   "left": 464,
+   "top": 4075,
+   "width": 87,
+   "height": 87,
+   "conf": 31.1
+  },
+  {
+   "text": "OJEUR",
+   "left": 562,
+   "top": 4072,
+   "width": 124,
+   "height": 48,
+   "conf": 89.8
+  },
+  {
+   "text": "|",
+   "left": 115,
+   "top": 4266,
+   "width": 6,
+   "height": 49,
+   "conf": 40.8
+  },
+  {
+   "text": "Total",
+   "left": 313,
+   "top": 4218,
+   "width": 114,
+   "height": 88,
+   "conf": 43.1
+  },
+  {
+   "text": "oferta",
+   "left": 461,
+   "top": 4216,
+   "width": 149,
+   "height": 87,
+   "conf": 97.0
+  },
+  {
+   "text": "Lidl",
+   "left": 642,
+   "top": 4256,
+   "width": 91,
+   "height": 45,
+   "conf": 37.6
+  },
+  {
+   "text": "plus:",
+   "left": 767,
+   "top": 4216,
+   "width": 301,
+   "height": 83,
+   "conf": 37.6
+  },
+  {
+   "text": "1,58",
+   "left": 522,
+   "top": 4320,
+   "width": 90,
+   "height": 50,
+   "conf": 92.2
+  },
+  {
+   "text": "EUR",
+   "left": 643,
+   "top": 4318,
+   "width": 72,
+   "height": 47,
+   "conf": 95.6
+  },
+  {
+   "text": "y",
+   "left": 1109,
+   "top": 4311,
+   "width": 7,
+   "height": 52,
+   "conf": 48.4
+  },
+  {
+   "text": "-IVOINNO",
+   "left": 175,
+   "top": 4401,
+   "width": 789,
+   "height": 289,
+   "conf": 0.0
+  },
+  {
+   "text": "o",
+   "left": 117,
+   "top": 4646,
+   "width": 90,
+   "height": 103,
+   "conf": 22.9
+  },
+  {
+   "text": "artículos",
+   "left": 498,
+   "top": 4694,
+   "width": 225,
+   "height": 48,
+   "conf": 79.7
+  },
+  {
+   "text": "de",
+   "left": 751,
+   "top": 4695,
+   "width": 48,
+   "height": 46,
+   "conf": 96.8
+  },
+  {
+   "text": "bazar”",
+   "left": 827,
+   "top": 4693,
+   "width": 138,
+   "height": 44,
+   "conf": 0.0
+  },
+  {
+   "text": "con",
+   "left": 972,
+   "top": 4691,
+   "width": 73,
+   "height": 44,
+   "conf": 0.0
+  },
+  {
+   "text": "ticket",
+   "left": 173,
+   "top": 4766,
+   "width": 144,
+   "height": 45,
+   "conf": 96.6
+  },
+  {
+   "text": "de",
+   "left": 349,
+   "top": 4764,
+   "width": 46,
+   "height": 42,
+   "conf": 96.6
+  },
+  {
+   "text": "compra",
+   "left": 425,
+   "top": 4763,
+   "width": 145,
+   "height": 52,
+   "conf": 96.6
+  },
+  {
+   "text": "y",
+   "left": 600,
+   "top": 4769,
+   "width": 22,
+   "height": 40,
+   "conf": 97.0
+  },
+  {
+   "text": "embalaje",
+   "left": 645,
+   "top": 4757,
+   "width": 205,
+   "height": 64,
+   "conf": 36.9
+  },
+  {
+   "text": "origina!",
+   "left": 877,
+   "top": 4742,
+   "width": 190,
+   "height": 61,
+   "conf": 80.9
+  },
+  {
+   "text": "en",
+   "left": 199,
+   "top": 4838,
+   "width": 47,
+   "height": 33,
+   "conf": 95.1
+  },
+  {
+   "text": "un",
+   "left": 275,
+   "top": 4835,
+   "width": 47,
+   "height": 33,
+   "conf": 95.1
+  },
+  {
+   "text": "plazo",
+   "left": 350,
+   "top": 4811,
+   "width": 124,
+   "height": 65,
+   "conf": 96.5
+  },
+  {
+   "text": "máximo",
+   "left": 501,
+   "top": 4819,
+   "width": 149,
+   "height": 46,
+   "conf": 96.6
+  },
+  {
+   "text": "de",
+   "left": 678,
+   "top": 4818,
+   "width": 47,
+   "height": 45,
+   "conf": 35.0
+  },
+  {
+   "text": "30",
+   "left": 736,
+   "top": 4813,
+   "width": 65,
+   "height": 50,
+   "conf": 35.0
+  },
+  {
+   "text": "a",
+   "left": 881,
+   "top": 4829,
+   "width": 45,
+   "height": 95,
+   "conf": 68.1
+  },
+  {
+   "text": "sin",
+   "left": 956,
+   "top": 4814,
+   "width": 68,
+   "height": 41,
+   "conf": 96.5
+  },
+  {
+   "text": "erjuicio",
+   "left": 223,
+   "top": 4882,
+   "width": 201,
+   "height": 83,
+   "conf": 93.2
+  },
+  {
+   "text": "de",
+   "left": 452,
+   "top": 4882,
+   "width": 48,
+   "height": 50,
+   "conf": 96.7
+  },
+  {
+   "text": "la",
+   "left": 534,
+   "top": 4882,
+   "width": 42,
+   "height": 47,
+   "conf": 91.4
+  },
+  {
+   "text": "ley",
+   "left": 608,
+   "top": 4879,
+   "width": 68,
+   "height": 54,
+   "conf": 96.8
+  },
+  {
+   "text": "de",
+   "left": 705,
+   "top": 4879,
+   "width": 49,
+   "height": 54,
+   "conf": 96.8
+  },
+  {
+   "text": "on",
+   "left": 781,
+   "top": 4816,
+   "width": 146,
+   "height": 174,
+   "conf": 43.1
+  },
+  {
+   "text": "as",
+   "left": 925,
+   "top": 4882,
+   "width": 74,
+   "height": 43,
+   "conf": 39.1
+  },
+  {
+   "text": "Atención",
+   "left": 380,
+   "top": 4945,
+   "width": 198,
+   "height": 53,
+   "conf": 86.0
+  },
+  {
+   "text": "al",
+   "left": 607,
+   "top": 4942,
+   "width": 43,
+   "height": 52,
+   "conf": 92.8
+  },
+  {
+   "text": "Clien",
+   "left": 682,
+   "top": 4943,
+   "width": 122,
+   "height": 48,
+   "conf": 87.7
+  },
+  {
+   "text": ",",
+   "left": 949,
+   "top": 4938,
+   "width": 6,
+   "height": 7,
+   "conf": 15.0
+  },
+  {
+   "text": ".1idl.es/contacto",
+   "left": 275,
+   "top": 5003,
+   "width": 429,
+   "height": 62,
+   "conf": 39.0
+  },
+  {
+   "text": "H",
+   "left": 733,
+   "top": 4993,
+   "width": 62,
+   "height": 104,
+   "conf": 33.4
+  },
+  {
+   "text": "00000000",
+   "left": 817,
+   "top": 4984,
+   "width": 178,
+   "height": 61,
+   "conf": 0.0
+  },
+  {
+   "text": "GRACIAS",
+   "left": 357,
+   "top": 5075,
+   "width": 175,
+   "height": 49,
+   "conf": 76.0
+  },
+  {
+   "text": "POR",
+   "left": 560,
+   "top": 5076,
+   "width": 71,
+   "height": 45,
+   "conf": 76.5
+  },
+  {
+   "text": "SU",
+   "left": 660,
+   "top": 5065,
+   "width": 45,
+   "height": 42,
+   "conf": 89.7
+  },
+  {
+   "text": "VISITA-",
+   "left": 759,
+   "top": 5050,
+   "width": 145,
+   "height": 56,
+   "conf": 89.7
+  },
+  {
+   "text": "o",
+   "left": 524,
+   "top": 4154,
+   "width": 57,
+   "height": 6,
+   "conf": 9.1
+  },
+  {
+   "text": "E",
+   "left": 588,
+   "top": 4153,
+   "width": 533,
+   "height": 11,
+   "conf": 34.0
+  },
+  {
+   "text": "00:00",
+   "left": 1056,
+   "top": 4615,
+   "width": 113,
+   "height": 46,
+   "conf": 95.6
+  }
+ ]
+}

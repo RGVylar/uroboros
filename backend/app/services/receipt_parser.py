@@ -15,6 +15,7 @@ borrarla, y si se cuela ensucia la despensa.
 from __future__ import annotations
 
 import re
+import statistics
 from dataclasses import dataclass
 
 from app.services.receipt_layout import Line, detect_amount_column, group_lines
@@ -23,8 +24,9 @@ from app.services.receipt_ocr import Word
 # Palabras que delatan cabecera, pie o totales. Si aparecen, la línea no es un
 # artículo. En minúsculas y sin tildes: se comparan contra texto normalizado.
 STOP_WORDS = {
-    "total", "subtotal", "tarjeta", "efectivo", "cambio", "entrega",
-    "iva", "cuota", "base", "imponible", "descuento", "ahorro",
+    "total", "subtotal", "suma", "tarjeta", "efectivo", "cambio",
+    "entrega", "entregado", "devolucion", "eur", "euros",
+    "iva", "cuota", "base", "imponible", "descuento", "desc", "ahorro", "promo",
     "descripcion", "importe", "precio", "unidad", "articulos", "articulo",
     "factura", "simplificada", "nif", "cif", "telefono", "tel",
     "gracias", "atencion", "cliente", "caja", "op", "www", "http",
@@ -38,10 +40,19 @@ AMOUNT_RE = re.compile(r"^(\d{1,4})[.,](\d{2})\s*[A-C]?$")
 TIMES_RE = re.compile(r"(\d+)\s*[xX]\s*(\d{1,4}[.,]\d{2})")
 
 # "1,414 kg" — granel. También "0,842 KG".
+#
+# El caso de la unidad hay que mirarlo con lupa: en un ticket real,
+# `1 SETA SHIITAKE 3,19` seguido de una `L` suelta del OCR se leía como 3,19
+# LITROS y entraban 3.190 ml en la despensa. Por eso `_looks_like_weight`
+# descarta un "peso" cuyo número es en realidad el importe de la línea.
 WEIGHT_RE = re.compile(r"(\d+[.,]\d+)\s*(kg|g|ml|l)\b", re.IGNORECASE)
 
 # Cantidad al principio: "2 AGUA MINERAL". Mercadona lo hace así.
-LEADING_QTY_RE = re.compile(r"^\s*(\d{1,3})\s+(?=\D)")
+#
+# El nombre puede empezar por otro número — `1 24 HUEVOS FRESCOS` es "1 unidad
+# de 24 huevos" — así que detrás de la cantidad se admite cualquier cosa menos
+# un separador decimal, que delataría un precio y no una cantidad.
+LEADING_QTY_RE = re.compile(r"^\s*(\d{1,3})\s+(?![\d]+[.,])")
 
 # Un artículo con menos letras que esto es ruido del OCR, no un nombre.
 MIN_DESC_LETTERS = 3
@@ -53,7 +64,9 @@ LEFTOVER_RES = (
     TIMES_RE,
     re.compile(r"\b\w{0,3}[/]\s*k?g\w?\b", re.IGNORECASE),
     re.compile(r"[€$]"),
-    re.compile(r"\b\d{1,4}[.,]\d{2}\b"),
+    # Uno o dos decimales: el OCR se come dígitos a menudo, y en un ticket real
+    # `4 RELLENO FAJITAS 1,90 7,60` salía como `1,0` y se quedaba en el nombre.
+    re.compile(r"\b\d{1,4}[.,]\d{1,2}\b"),
     # La "x" que queda huérfana cuando el peso y el precio se van por separado:
     # "Banana 1,414 kg x 1,29" dejaba "Banana x".
     re.compile(r"(?<=\s)[xX](?=\s|$)"),
@@ -124,6 +137,23 @@ def _is_noise(desc: str) -> bool:
     return bool(tokens & STOP_WORDS)
 
 
+def _is_real_weight(match: re.Match, amount: float | None) -> bool:
+    """¿Ese "1,23 kg" es de verdad un peso, o un precio con una letra pegada?
+
+    Caso real que motivó esto: `1 SETA SHIITAKE 3,19` con una `L` suelta al lado
+    (ruido del OCR) se leía como 3,19 **litros**, y entraban 3.190 ml en la
+    despensa por un producto que costaba 3,19 €. Un número que ya es el importe
+    de la línea no puede ser además su peso.
+
+    La `l` sola es la sospechosa: `kg`, `g` y `ml` casi nunca aparecen por
+    accidente, pero una `L` mayúscula suelta sí.
+    """
+    value = float(match.group(1).replace(",", "."))
+    if amount is not None and abs(value - amount) < 0.005:
+        return False
+    return True
+
+
 def _weight_to_base(value: float, unit: str) -> tuple[float, str]:
     """Peso del ticket → (cantidad, unidad) de la despensa.
 
@@ -157,6 +187,8 @@ def _parse_line(line: Line, cut: int | None, index: int) -> ParsedItem | None:
     # 2. Granel: "1,414 kg x 1,29". El peso manda sobre cualquier otra cantidad
     #    porque es un dato exacto, no una estimación.
     peso = WEIGHT_RE.search(full)
+    if peso is not None and not _is_real_weight(peso, amount):
+        peso = None
     if peso:
         value = float(peso.group(1).replace(",", "."))
         quantity, unit = _weight_to_base(value, peso.group(2))
@@ -196,6 +228,45 @@ def _parse_line(line: Line, cut: int | None, index: int) -> ParsedItem | None:
                       amount=amount, unit_price=unit_price, line_index=index)
 
 
+# Cuántas veces la mediana tiene que superar un importe del final para tomarlo
+# por un total y no por un producto.
+FOOTER_FACTOR = 3.0
+
+
+def drop_footer(items: list[ParsedItem]) -> list[ParsedItem]:
+    """Quita del final los totales, el IVA y la forma de pago.
+
+    El pie de un ticket trae importes grandes que se cuelan como artículos
+    carísimos: en un ticket real entraban `Rpte: Mastel 129,07` (el pago con
+    tarjeta) y `10% HDL 54,95` (una base imponible).
+
+    Las palabras ancla no bastan porque el OCR las destroza — `Suma` salía como
+    `Suma 8, Ni`. Y comparar contra la suma de los artículos tampoco vale: si al
+    OCR se le escapan tres líneas, la suma ya no cuadra con el total y la regla
+    no dispara. Lo que sí aguanta es la **magnitud**: un total es por
+    construcción mucho mayor que cualquier artículo suelto.
+
+    Solo se mira **desde el final**, que es donde vive el pie. Un producto caro
+    en mitad del ticket no se toca.
+
+    Asume el sesgo de siempre: puede llevarse por delante un último artículo
+    genuinamente caro. Una línea de menos se añade a mano en la revisión; un
+    total de 129 € metido en la despensa hay que descubrirlo.
+    """
+    amounts = [i.amount for i in items if i.amount is not None]
+    if len(amounts) < 4:
+        return items
+    limite = statistics.median(amounts) * FOOTER_FACTOR
+
+    fin = len(items)
+    while fin > 0:
+        amount = items[fin - 1].amount
+        if amount is None or amount <= limite:
+            break
+        fin -= 1
+    return items[:fin]
+
+
 def parse(words: list[Word]) -> list[ParsedItem]:
     """Palabras del OCR → artículos del ticket."""
     lines = group_lines(words)
@@ -205,4 +276,4 @@ def parse(words: list[Word]) -> list[ParsedItem]:
         item = _parse_line(line, cut, i)
         if item is not None:
             items.append(item)
-    return items
+    return drop_footer(items)

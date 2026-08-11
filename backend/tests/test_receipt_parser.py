@@ -127,8 +127,9 @@ def test_la_basura_del_margen_no_esconde_la_cantidad():
     assert bolsa.arithmetic_ok is True
 
 
-@pytest.mark.parametrize("name", ["mercadona-001", "mercadona-002", "mercadona-003",
-                                  "lidl-001", "lidl-002", "lidl-003", "lidl-004", "aldi-001"])
+@pytest.mark.parametrize("name", ["mercadona-001", "mercadona-002", "mercadona-003", "mercadona-real-001",
+                                  "lidl-001", "lidl-002", "lidl-003", "lidl-004",
+                                  "lidl-real-001", "aldi-001"])
 def test_ningun_ticket_cuela_cabecera_ni_totales(name):
     items = parse(load(name))
 
@@ -140,8 +141,9 @@ def test_ningun_ticket_cuela_cabecera_ni_totales(name):
         assert not (tokens & prohibidos), f"{it.raw!r} no es un artículo"
 
 
-@pytest.mark.parametrize("name", ["mercadona-001", "mercadona-002", "mercadona-003",
-                                  "lidl-001", "lidl-002", "lidl-003", "lidl-004", "aldi-001"])
+@pytest.mark.parametrize("name", ["mercadona-001", "mercadona-002", "mercadona-003", "mercadona-real-001",
+                                  "lidl-001", "lidl-002", "lidl-003", "lidl-004",
+                                  "lidl-real-001", "aldi-001"])
 def test_ningun_articulo_sale_sin_nombre_ni_con_cantidad_absurda(name):
     for it in parse(load(name)):
         assert it.raw.strip(), "un artículo sin nombre no sirve para nada"
@@ -159,3 +161,56 @@ def test_un_ticket_ilegible_no_inventa_articulos():
 
 def test_sin_palabras_no_hay_articulos():
     assert parse([]) == []
+
+
+# ── Regresiones de la primera compra real (2026-08-11) ───────────────────────
+
+def test_un_precio_con_una_letra_al_lado_no_es_un_peso():
+    """El peor fallo visto: `1 SETA SHIITAKE 3,19` con una `L` suelta del OCR se
+    leía como 3,19 LITROS y metía 3.190 ml en la despensa de algo que costaba
+    3,19 €. Un número que ya es el importe no puede ser además el peso."""
+    seta = by_name(parse(load("mercadona-real-001")), "SETA SHIIT")
+
+    assert seta.unit == "unit"
+    assert seta.quantity == 1
+
+
+def test_un_nombre_puede_empezar_por_numero():
+    """`1 24 HUEVOS FRESCOS` es una unidad de un pack de 24, no 24 unidades."""
+    huevos = by_name(parse(load("mercadona-real-001")), "HUEVOS FRESCOS")
+
+    assert huevos.quantity == 1
+    assert "24" in huevos.raw
+
+
+def test_el_pie_del_ticket_no_entra_como_producto():
+    """Entraban `Rpte: Mastel 129,07` (el pago con tarjeta) y `10% HDL 54,95`
+    (una base imponible) como si fueran comida carísima."""
+    items = parse(load("mercadona-real-001"))
+
+    assert items, "no puede quedarse vacío"
+    caros = [i for i in items if (i.amount or 0) > 40]
+    assert not caros, f"eso es el pie del ticket, no comida: {[(i.raw, i.amount) for i in caros]}"
+
+
+def test_los_descuentos_no_son_articulos():
+    """Lidl imprime `PROMO 11DL PLUS -1,58` y `Desc. -0,05` como líneas propias.
+    No son cosas que entren en la despensa."""
+    for it in parse(load("lidl-real-001")):
+        assert (it.amount or 0) >= 0, f"{it.raw!r} es un descuento"
+        assert "promo" not in it.raw.lower()
+
+
+def test_una_compra_grande_saca_muchos_articulos():
+    """Sanidad general: el ticket real tiene ~35 líneas de producto."""
+    items = parse(load("mercadona-real-001"))
+
+    assert 25 <= len(items) <= 45, f"salieron {len(items)}"
+
+
+def test_los_nombres_reales_salen_sin_numeros_pegados():
+    items = parse(load("mercadona-real-001"))
+
+    fajitas = by_name(items, "FAJITAS")
+    assert fajitas.quantity == 4
+    assert not any(c.isdigit() for c in fajitas.raw), fajitas.raw

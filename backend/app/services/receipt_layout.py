@@ -53,6 +53,25 @@ class Line:
     def text(self) -> str:
         return " ".join(w.text for w in sorted(self.words, key=lambda w: w.left))
 
+    @property
+    def band(self) -> tuple[float, float]:
+        """Franja típica de la línea, por la mediana y no por los extremos.
+
+        Usar `top`/`bottom` (mínimo y máximo) para decidir quién entra tiene un
+        fallo feo: basta **una** palabra con la caja demasiado alta —el OCR las
+        produce— para ensanchar la franja, y a partir de ahí la línea atrae todo
+        lo que pase cerca y se traga la de abajo. Pasó de verdad, fundiendo dos
+        artículos de un Lidl en uno solo.
+
+        La mediana no se mueve por un caso raro, así que la franja sigue siendo
+        la de la línea de verdad.
+        """
+        centers = [w.top + w.height / 2 for w in self.words]
+        heights = [w.height for w in self.words]
+        center = statistics.median(centers)
+        half = statistics.median(heights) / 2
+        return center - half, center + half
+
     def split_at(self, x: int) -> tuple[str, str]:
         """(izquierda, derecha) partiendo por una coordenada X.
 
@@ -86,8 +105,9 @@ def group_lines(words: list[Word]) -> list[Line]:
         placed = False
         # Basta mirar las últimas líneas: las palabras llegan ordenadas por Y.
         for line in reversed(lines[-3:]):
-            need = OVERLAP_RATIO * min(w.height, line.height)
-            if _overlap(w.top, w_bottom, line.top, line.bottom) >= need:
+            top, bottom = line.band
+            need = OVERLAP_RATIO * min(w.height, bottom - top)
+            if _overlap(w.top, w_bottom, top, bottom) >= need:
                 line.words.append(w)
                 placed = True
                 break

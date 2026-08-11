@@ -129,8 +129,8 @@ def test_la_columna_se_situa_a_la_izquierda_de_los_importes():
 
 # ── Contra tickets reales ────────────────────────────────────────────────────
 
-TICKETS = ["mercadona-001", "mercadona-002", "mercadona-003",
-           "lidl-001", "lidl-002", "lidl-003", "lidl-004", "aldi-001"]
+TICKETS = ["mercadona-001", "mercadona-002", "mercadona-003", "mercadona-real-001",
+           "lidl-001", "lidl-002", "lidl-003", "lidl-004", "lidl-real-001", "aldi-001"]
 
 
 @pytest.mark.parametrize("name", TICKETS)
@@ -239,3 +239,26 @@ def test_los_fixtures_declaran_su_cadena():
     for name in TICKETS:
         _, data = load(name)
         assert data["chain"] in {"mercadona", "lidl", "aldi"}, name
+
+
+def test_regresion_una_caja_alta_no_se_traga_la_linea_de_abajo():
+    """Con `top`/`bottom` (mínimo y máximo) para decidir quién entra, bastaba una
+    palabra con la caja demasiado alta para ensanchar la franja de la línea, y a
+    partir de ahí se tragaba la siguiente. En un Lidl real fundió dos artículos:
+    `BEBIDA ENERG. LIGHT` y `DANONE DANONINO` salían como una sola línea."""
+    words, _ = load("lidl-real-001")
+    lines = group_lines(words)
+
+    bebida = line_with(lines, "BEBIDA")
+
+    assert "DANONINO" not in bebida.text, f"dos artículos fundidos: {bebida.text!r}"
+
+
+def test_la_franja_de_una_linea_no_la_marca_su_caja_mas_alta():
+    """Una palabra con la caja el doble de alta no debe ensanchar la franja: la
+    mediana la ignora, el máximo no."""
+    lines = group_lines([w("NORMAL", 10, 100, height=20), w("ALTA", 80, 90, height=60)])
+
+    top, bottom = lines[0].band
+
+    assert bottom - top <= 45, "la franja la marca la mediana, no el caso raro"
