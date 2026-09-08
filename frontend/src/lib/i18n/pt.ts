@@ -788,7 +788,6 @@ export const pt: Dict = {
 	'history.daysN': '{count} dias',
 	'history.lockedDays': '🔒 30 dias',
 	'history.copyDayAria': 'Copiar o resumo do dia',
-	'history.copying': 'A copiar…',
 	'history.copy': 'Copiar',
 	'history.seeDiary': 'Ver diário →',
 	'history.paywallTitle': 'Histórico completo',

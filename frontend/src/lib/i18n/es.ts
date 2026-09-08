@@ -789,7 +789,6 @@ export const es = {
 	'history.daysN': '{count} días',
 	'history.lockedDays': '🔒 30 días',
 	'history.copyDayAria': 'Copiar resumen del día al portapapeles',
-	'history.copying': 'Copiando…',
 	'history.copy': 'Copiar',
 	'history.seeDiary': 'Ver diario →',
 	'history.paywallTitle': 'Historial completo',

@@ -42,11 +42,13 @@
 	// ── Copiar el día al portapapeles ────────────────────────────────────────
 	// Texto legible (no CSV): pensado para pegarlo en WhatsApp, notas o
 	// mandárselo a un nutricionista. Usa el resumen ya cargado del día.
-	let copyingDay = $state(false);
-
-	async function copyDayToClipboard() {
-		if (!selectedDay || !selectedSummary || copyingDay) return;
-		copyingDay = true;
+	//
+	// Safari (iOS) solo deja escribir en el portapapeles dentro del gesto del
+	// usuario: cualquier await antes de writeText mata la activación y la
+	// promesa se queda colgada sin resolver. Por eso aquí no hay ni un await
+	// antes del writeText — el agua del día se carga junto al resumen.
+	function copyDayToClipboard() {
+		if (!selectedDay || !selectedSummary) return;
 		const s = selectedSummary;
 		const rawDate = fmtDate(new Date(selectedDay + 'T12:00'), {
 			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -68,20 +70,35 @@
 				lines.push(`• ${e.product?.name ?? t('history.productFallback', { id: e.product_id })} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
 			}
 		}
-		// Agua del día (si hay): petición pequeña solo al copiar
-		const water = await api.get<{ total_ml: number }>(`/water/day?day=${selectedDay}`).catch(() => null);
-		if (water && water.total_ml > 0) {
+		if (selectedWaterMl > 0) {
 			lines.push('');
-			lines.push(t('history.waterLine', { ml: water.total_ml }));
+			lines.push(t('history.waterLine', { ml: selectedWaterMl }));
 		}
-		try {
-			await navigator.clipboard.writeText(lines.join('\n'));
-			toast.success(t('history.okCopy'));
-		} catch {
-			toast.error(t('history.errCopy'));
-		} finally {
-			copyingDay = false;
+		const text = lines.join('\n');
+		if (!navigator.clipboard) {
+			// WebView viejo o contexto no seguro (http://): fallback clásico.
+			if (legacyCopy(text)) toast.success(t('history.okCopy'));
+			else toast.error(t('history.errCopy'));
+			return;
 		}
+		navigator.clipboard.writeText(text)
+			.then(() => toast.success(t('history.okCopy')))
+			.catch(() => {
+				if (legacyCopy(text)) toast.success(t('history.okCopy'));
+				else toast.error(t('history.errCopy'));
+			});
+	}
+
+	function legacyCopy(text: string): boolean {
+		const ta = document.createElement('textarea');
+		ta.value = text;
+		ta.style.position = 'fixed';
+		ta.style.opacity = '0';
+		document.body.appendChild(ta);
+		ta.select();
+		const ok = document.execCommand('copy');
+		ta.remove();
+		return ok;
 	}
 
 	// Calendar state
@@ -90,6 +107,7 @@
 	let viewMonth = $state(now.getMonth());
 	let selectedDay: string | null = $state(null);
 	let selectedSummary: DaySummary | null = $state(null);
+	let selectedWaterMl = $state(0);
 	let loadingDay = $state(false);
 
 	// Calendar data
@@ -196,11 +214,19 @@
 	}
 
 	async function selectDay(date: string) {
-		if (selectedDay === date) { selectedDay = null; selectedSummary = null; return; }
+		if (selectedDay === date) { selectedDay = null; selectedSummary = null; selectedWaterMl = 0; return; }
 		selectedDay = date;
 		loadingDay = true;
+		selectedWaterMl = 0;
 		try {
-			selectedSummary = await api.get<DaySummary>(`/diary/day?day=${date}`);
+			// El agua va aquí y no en el copiar: así copiar no necesita esperar a
+			// ninguna petición y puede escribir en el portapapeles dentro del gesto.
+			const [summary, water] = await Promise.all([
+				api.get<DaySummary>(`/diary/day?day=${date}`),
+				api.get<{ total_ml: number }>(`/water/day?day=${date}`).catch(() => null),
+			]);
+			selectedSummary = summary;
+			selectedWaterMl = water?.total_ml ?? 0;
 		} catch {
 			selectedSummary = null;
 		} finally {
@@ -511,10 +537,9 @@
 				{#if selectedSummary && selectedSummary.entries.length > 0}
 					<button
 						onclick={copyDayToClipboard}
-						disabled={copyingDay}
 						aria-label={t('history.copyDayAria')}
 						style="background:none; border:none; box-shadow:none; padding:0; font-size:0.75rem; color:oklch(85% 0.17 160); cursor:pointer; font-family:inherit; font-weight:600;"
-					>📋 {copyingDay ? t('history.copying') : t('history.copy')}</button>
+					>📋 {t('history.copy')}</button>
 				{/if}
 				<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">{t('history.seeDiary')}</a>
 			</div>

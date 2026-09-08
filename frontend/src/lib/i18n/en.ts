@@ -786,7 +786,6 @@ export const en: Dict = {
 	'history.daysN': '{count} days',
 	'history.lockedDays': '🔒 30 days',
 	'history.copyDayAria': "Copy the day's summary to the clipboard",
-	'history.copying': 'Copying…',
 	'history.copy': 'Copy',
 	'history.seeDiary': 'See diary →',
 	'history.paywallTitle': 'Full history',
