@@ -9,6 +9,7 @@
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
+	import { adjustGoalsForExercise } from '$lib/goals';
 	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
@@ -374,35 +375,9 @@
 	}
 
 	// Adjust macro targets for the day based on exercise calories burned
-	let effectiveGoals = $derived((() => {
-		if (!goals || !summary) return goals;
-		const burned = summary.calories_burned ?? 0;
-		const mode = goals.macro_adjust_mode ?? 'off';
-		if (burned <= 0 || mode === 'off') return goals;
-
-		if (mode === 'proportional') {
-			const ratio = (goals.kcal + burned) / goals.kcal;
-			return {
-				...goals,
-				kcal:    goals.kcal + burned,
-				protein: Math.round(goals.protein * ratio * 10) / 10,
-				carbs:   Math.round(goals.carbs   * ratio * 10) / 10,
-				fat:     Math.round(goals.fat     * ratio * 10) / 10,
-			};
-		}
-
-		if (mode === 'performance') {
-			const extraCarbs = burned / 4;
-			return {
-				...goals,
-				kcal:  goals.kcal + burned,
-				carbs: Math.round((goals.carbs + extraCarbs) * 10) / 10,
-				// protein and fat stay fixed
-			};
-		}
-
-		return goals;
-	})());
+	let effectiveGoals = $derived(
+		goals && summary ? adjustGoalsForExercise(goals, summary.calories_burned ?? 0) : goals
+	);
 
 	// ¿La pareja tiene una copia de ESTA entrada (mismo producto/comida/día)?
 	// Solo si la tiene ofrecemos "Solo para la pareja" en el menú de borrar.

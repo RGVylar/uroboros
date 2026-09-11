@@ -338,6 +338,10 @@ export const es = {
 	'add.conflictBanner': '{name} ya tiene {meal} registrado',
 	'add.errCameraDenied': 'Permiso de cámara denegado. Actívalo en los ajustes del navegador.',
 	'add.errNoCamera': 'No se ha encontrado ninguna cámara disponible.',
+	'add.impactMine': 'Cómo queda tu día',
+	'add.impactMineDate': 'Cómo queda tu día · {date}',
+	'add.impactPartner': 'Cómo queda el día de {name}',
+	'add.impactPartnerDate': 'Cómo queda el día de {name} · {date}',
 
 	// ── componentes ──
 	'notifModal.enableAria': 'Activar notificaciones',

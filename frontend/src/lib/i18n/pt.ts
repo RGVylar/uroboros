@@ -337,6 +337,10 @@ export const pt: Dict = {
 	'add.conflictBanner': '{name} já tem {meal} registado',
 	'add.errCameraDenied': 'Permissão de câmara negada. Ativa-a nas definições do navegador.',
 	'add.errNoCamera': 'Não foi encontrada nenhuma câmara disponível.',
+	'add.impactMine': 'Como fica o teu dia',
+	'add.impactMineDate': 'Como fica o teu dia · {date}',
+	'add.impactPartner': 'Como fica o dia de {name}',
+	'add.impactPartnerDate': 'Como fica o dia de {name} · {date}',
 
 	// ── componentes ──
 	'notifModal.enableAria': 'Ativar notificações',

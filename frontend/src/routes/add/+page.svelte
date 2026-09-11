@@ -9,10 +9,14 @@
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
 	import { isDrink } from '$lib/drink';
+	import { adjustGoalsForExercise } from '$lib/goals';
+	import { nameHue } from '$lib/avatars';
 	import type {
 		Product,
 		User,
 		DiaryEntry,
+		DaySummary,
+		DayTotals,
 		MealType,
 		RecommendedProduct,
 		FrequentProduct,
@@ -21,8 +25,9 @@
 		InventoryItem,
 	} from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
+	import { t, tc, mealLabel, allergenLabel, fmtDate } from '$lib/i18n/index.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
+	import DayImpact from '$lib/components/DayImpact.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -329,6 +334,59 @@
 			mealConflict = { hasEntries: r.has_entries, count: r.count, calories: r.calories, productNames: r.product_names };
 		}).catch(() => { mealConflict = null; });
 	});
+
+	// ── Cómo queda el día ───────────────────────────────────────────────────────
+	// Antes de registrar, mostramos lo que ya lleva el día (mío y/o de la pareja,
+	// según para quién se registre) y cómo quedaría con este alimento. Los
+	// objetivos van ajustados por el ejercicio del día, igual que en el diario.
+	type DayCtx = { totals: DayTotals; goals: Goals };
+	let myDay: DayCtx | null = $state(null);
+	let partnerDay: DayCtx | null = $state(null);
+
+	async function loadDayCtx(day: string, userId: number | null): Promise<DayCtx | null> {
+		const uq = userId ? `user_id=${userId}` : '';
+		try {
+			const [s, g] = await Promise.all([
+				api.get<DaySummary>(`/diary/day?day=${day}${uq ? '&' + uq : ''}`),
+				api.get<Goals>(`/goals${uq ? '?' + uq : ''}`),
+			]);
+			return { totals: s.totals, goals: adjustGoalsForExercise(g, s.calories_burned ?? 0) };
+		} catch {
+			// Offline: el diario solo cachea mi propio día
+			if (userId) return null;
+			const s = cacheGet<DaySummary>(`diary_${day}`);
+			const g = cacheGet<Goals>('goals');
+			if (!s || !g) return null;
+			return { totals: s.data.totals, goals: adjustGoalsForExercise(g.data, s.data.calories_burned ?? 0) };
+		}
+	}
+
+	$effect(() => {
+		const day = selectedDate;
+		if (!selected) { myDay = null; return; }
+		loadDayCtx(day, null).then(r => { myDay = r; });
+	});
+
+	$effect(() => {
+		const day = selectedDate;
+		const pid = shareMode !== null ? partner?.id : null;
+		if (!selected || !pid) { partnerDay = null; return; }
+		loadDayCtx(day, pid).then(r => { partnerDay = r; });
+	});
+
+	// Lo que aporta este alimento con los gramos actuales (sin redondear: el
+	// redondeo se hace al pintar, sobre el total)
+	let addedMacros = $derived<DayTotals>(selected ? {
+		calories: selected.calories_per_100g * grams / 100,
+		protein:  selected.protein_per_100g  * grams / 100,
+		carbs:    selected.carbs_per_100g    * grams / 100,
+		fat:      selected.fat_per_100g      * grams / 100,
+	} : { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+	let isSelectedToday = $derived(selectedDate === new Date().toISOString().slice(0, 10));
+	let impactDateLabel = $derived(
+		isSelectedToday ? '' : fmtDate(new Date(selectedDate + 'T12:00:00'), { day: 'numeric', month: 'short' })
+	);
 
 	let showMealConflictConfirm = $state(false);
 	let pendingLogAction: (() => void) | null = null;
@@ -920,6 +978,33 @@
 			{/each}
 		</div>
 	</div>
+
+	<!-- Cómo queda el día (mío y/o de la pareja) con este alimento -->
+	{@const showMine = shareMode !== 'only' && myDay !== null}
+	{@const showPartner = shareMode !== null && partnerDay !== null && partner !== null}
+	{#if showMine || showPartner}
+		<div class="glass-card impact-card" style="margin-bottom:0.875rem;">
+			{#if showMine && myDay}
+				<DayImpact
+					title={impactDateLabel ? t('add.impactMineDate', { date: impactDateLabel }) : t('add.impactMine')}
+					totals={myDay.totals}
+					goals={myDay.goals}
+					added={addedMacros}
+				/>
+			{/if}
+			{#if showPartner && partnerDay && partner}
+				<DayImpact
+					title={impactDateLabel
+						? t('add.impactPartnerDate', { name: partner.name, date: impactDateLabel })
+						: t('add.impactPartner', { name: partner.name })}
+					totals={partnerDay.totals}
+					goals={partnerDay.goals}
+					added={addedMacros}
+					hue={partner.identity_hue ?? nameHue(partner.name)}
+				/>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Grams picker -->
 	<div class="glass-card" style="margin-bottom:0.875rem;">
@@ -2016,6 +2101,14 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.macro-cell-unit { font-size: 0.625rem; color: rgba(255,255,255,0.4); }
+
+	/* ── Cómo queda el día ── */
+	.impact-card {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		padding: 0.875rem 1rem;
+	}
 
 	/* ── Grams input ── */
 	.grams-input {

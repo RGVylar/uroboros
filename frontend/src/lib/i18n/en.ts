@@ -335,6 +335,10 @@ export const en: Dict = {
 	'add.conflictBanner': '{name} already has {meal} logged',
 	'add.errCameraDenied': 'Camera permission denied. Turn it on in your browser settings.',
 	'add.errNoCamera': 'No camera available.',
+	'add.impactMine': 'How your day would look',
+	'add.impactMineDate': 'How your day would look · {date}',
+	'add.impactPartner': "How {name}'s day would look",
+	'add.impactPartnerDate': "How {name}'s day would look · {date}",
 
 	// ── componentes ──
 	'notifModal.enableAria': 'Enable notifications',
