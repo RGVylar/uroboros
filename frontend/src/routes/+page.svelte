@@ -3,14 +3,14 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
-	import { cacheSet, cacheGet } from '$lib/cache';
+	import { cacheSet, cacheGet, cacheClear } from '$lib/cache';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
-	import type { DaySummary, Goals, WaterDay, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
@@ -553,6 +553,32 @@
 			toast.error(t('diary.errCopyYesterday'));
 		} finally {
 			copyingYesterday = false;
+		}
+	}
+
+	// Copiar una sola entrada de un día pasado a hoy. Va con los gramos y la
+	// comida tal como estén en el modal de edición, para poder ajustarlos antes.
+	// Solo para mí: si la quiero también para la pareja, ya se edita desde hoy.
+	let copyingToToday = $state(false);
+	async function copyEntryToToday() {
+		if (!editingEntry || copyingToToday) return;
+		copyingToToday = true;
+		const name = editingEntry.product?.name ?? 'entrada';
+		try {
+			await api.post('/diary', {
+				product_id: editingEntry.product_id,
+				grams: editGrams,
+				meal_type: editMealType,
+				consumed_at: new Date().toISOString(),
+			});
+			// Hoy está en caché: que al volver no pinte el día sin la copia
+			cacheClear(`diary_${new Date().toISOString().slice(0, 10)}`);
+			toast.success(t('diary.copiedToToday', { name, meal: mealLabel(editMealType as MealType).toLowerCase() }));
+			editingEntry = null;
+		} catch {
+			toast.error(t('diary.errCopyToToday'));
+		} finally {
+			copyingToToday = false;
 		}
 	}
 
@@ -1263,6 +1289,17 @@
 			</div>
 		{/if}
 
+		{#if !isToday && !connectivity.isOffline}
+			<!-- Día pasado: llevarse solo este alimento a hoy, con estos gramos y comida -->
+			<button class="copy-today-btn" onclick={copyEntryToToday} disabled={copyingToToday || editSaving}>
+				<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a5 5 0 0 1 5-4h5M14 3v4h-4"/><path d="M16 13a5 5 0 0 1-5 4H6M6 17v-4h4"/></svg>
+				<span style="flex:1; text-align:left;">
+					<span style="display:block; font-weight:700; font-size:0.85rem;">{copyingToToday ? t('diary.copyingToToday') : t('diary.copyToToday')}</span>
+					<span style="display:block; font-size:0.72rem; font-weight:500; opacity:0.75; margin-top:0.1rem;">{t('diary.copyToTodaySub', { grams: Math.round(editGrams), unit: editUnit, meal: mealLabel(editMealType as MealType).toLowerCase() })}</span>
+				</span>
+			</button>
+		{/if}
+
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
 			<button class="btn-secondary" onclick={() => editingEntry = null} style="flex:1;">{t('common.cancel')}</button>
 			<button onclick={saveEdit} disabled={editSaving} style="flex:2;">
@@ -1713,4 +1750,22 @@
 		padding: 0.4rem 0.875rem;
 		margin-bottom: 0.5rem;
 	}
+
+	/* Modal de edición en día pasado: llevarse este alimento a hoy */
+	.copy-today-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 0.75rem;
+		padding: 0.6rem 0.8rem;
+		border-radius: 12px;
+		background: var(--primary-glow);
+		border: 1px solid oklch(75% 0.2 165 / 0.45);
+		color: var(--primary);
+		box-shadow: none;
+		text-align: left;
+	}
+	.copy-today-btn:hover { filter: brightness(1.1); }
+	.copy-today-btn:disabled { opacity: 0.6; }
 </style>
