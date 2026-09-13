@@ -16,6 +16,7 @@ from app.models import User
 from app.models.release_note import ReleaseNote
 from app.schemas.release_note import (
     ChangelogResponse,
+    LatestVersion,
     ReleaseNoteItem,
     ReleaseNoteOut,
     UpdateInfo,
@@ -130,3 +131,24 @@ def get_changelog(
             )
 
     return ChangelogResponse(news=news_out, update=update)
+
+
+@router.get("/latest", response_model=LatestVersion | None)
+def get_latest_version(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    lang: str = "es",
+) -> LatestVersion | None:
+    """Newest published version, whatever the user is running or has muted.
+
+    It is what the "Acerca de" row in Settings compares APP_VERSION against.
+    Unlike the nudge in `get_changelog`, the opt-out does not hide it: the
+    user is asking for it explicitly.
+    """
+    if lang not in _LANGS:
+        lang = "es"
+    notes = list(db.scalars(select(ReleaseNote).where(ReleaseNote.published.is_(True))))
+    if not notes:
+        return None
+    latest = max(notes, key=lambda n: _parse(n.version))
+    return LatestVersion(version=latest.version, title=_resolve_text(latest.title, lang))

@@ -161,6 +161,12 @@
 			</div>
 
 			<nav class="sidebar-nav">
+				<!-- En móvil el FAB de la barra inferior lleva a /add; en escritorio no
+				     había ninguna forma de llegar sin escribir la URL a mano. -->
+				<a href="/add" class="sidebar-add" class:active={isActive('/add')} aria-label={t('nav.aria.addFood')}>
+					<span class="icon" aria-hidden="true">＋</span>
+					<span>{t('nav.aria.addFood')}</span>
+				</a>
 				{#each sidebarNav as item}
 					<a
 						href={item.href}

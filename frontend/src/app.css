@@ -602,6 +602,20 @@ nav.bottom a.active {
 	background: oklch(80% 0.18 165 / 0.12);
 	border: 1px solid oklch(80% 0.18 165 / 0.18);
 }
+/* Acción principal del sidebar: el equivalente al FAB verde del móvil */
+.sidebar-nav a.sidebar-add {
+	margin-bottom: 0.5rem;
+	color: oklch(20% 0.05 165);
+	background: var(--primary);
+	box-shadow: 0 6px 18px oklch(80% 0.18 165 / 0.25);
+}
+.sidebar-nav a.sidebar-add .icon { font-weight: 800; }
+.sidebar-nav a.sidebar-add:hover,
+.sidebar-nav a.sidebar-add.active {
+	color: oklch(20% 0.05 165);
+	background: oklch(85% 0.19 165);
+	border: none;
+}
 
 /* ═══════════════════ Scrollbar ═══════════════════ */
 ::-webkit-scrollbar { width: 8px; height: 8px; }

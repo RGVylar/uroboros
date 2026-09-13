@@ -40,6 +40,17 @@ export interface ChangelogResponse {
 	update: UpdateInfo | null;
 }
 
+/** '1.10' > '1.9': compara numéricamente por tramos, como `_parse` en el backend. */
+export function isNewerVersion(candidate: string, current: string): boolean {
+	const parse = (v: string) => v.split('.').map((p) => parseInt(p, 10) || 0);
+	const a = parse(candidate), b = parse(current);
+	for (let i = 0; i < Math.max(a.length, b.length); i++) {
+		const d = (a[i] ?? 0) - (b[i] ?? 0);
+		if (d !== 0) return d > 0;
+	}
+	return false;
+}
+
 /** Last version whose notes the user dismissed (empty string = never). */
 export function getSeen(): string {
 	if (typeof localStorage === 'undefined') return '';

@@ -6,7 +6,7 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
-	import { APP_VERSION } from '$lib/changelog';
+	import { APP_VERSION, UPDATE_URL, isNewerVersion } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
 	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
 	import Flag from '$lib/components/Flag.svelte';
@@ -197,6 +197,25 @@
 	let deletingAccount = $state(false);
 	let deleteConfirmText = $state('');
 	let allergyCount = $state(0);
+
+	// Acerca de: qué versión corre esta build y cuál es la última publicada.
+	// null = aún cargando o sin datos; se compara aquí, no en el servidor,
+	// porque el opt-out de novedades no debe esconderlo (lo pide el usuario).
+	let latestVersion = $state<{ version: string; title: string } | null>(null);
+	let latestLoaded = $state(false);
+	let updateAvailable = $derived(!!latestVersion && isNewerVersion(latestVersion.version, APP_VERSION));
+	$effect(() => {
+		api.get<{ version: string; title: string } | null>(`/release-notes/latest?lang=${i18n.locale}`)
+			.then((r) => { latestVersion = r; })
+			.catch(() => {})
+			.finally(() => { latestLoaded = true; });
+	});
+	// Android lleva el frontend dentro del APK: hay que bajar el nuevo. En
+	// web (y en la PWA del iPhone) recargar ya trae el bundle recién desplegado.
+	function updateApp() {
+		if (isNativeApp) window.open(UPDATE_URL, '_blank', 'noopener');
+		else location.reload();
+	}
 
 	async function deleteAccount() {
 		if (deleteConfirmText !== t('settings.deleteConfirmWord')) return;
@@ -833,6 +852,28 @@
 			>
 				<span class="toggle-knob" style="left:{!changelogOptOut ? '18px' : '2px'};"></span>
 			</button>
+		</div>
+		<div class="row-divider"></div>
+		<!-- Acerca de: versión instalada y, si hay una más nueva, el botón para ir a por ella -->
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">{updateAvailable ? '🆕' : 'ℹ️'}</div>
+			<div class="row-content">
+				<div class="row-label">{t('settings.about', { version: APP_VERSION })}</div>
+				<div class="row-detail">
+					{#if updateAvailable && latestVersion}
+						{t('settings.aboutNewer', { version: latestVersion.version, title: latestVersion.title })}
+					{:else if latestLoaded}
+						{t('settings.aboutUpToDate')}
+					{:else}
+						…
+					{/if}
+				</div>
+			</div>
+			{#if updateAvailable}
+				<button onclick={updateApp} style="flex-shrink:0; padding:0.45rem 0.9rem; font-size:0.78rem; font-weight:700;">
+					{isNativeApp ? t('settings.aboutDownload') : t('settings.aboutReload')}
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>

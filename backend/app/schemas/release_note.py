@@ -26,6 +26,12 @@ class UpdateInfo(BaseModel):
     more: int          # remaining changes not shown in the teaser
 
 
+class LatestVersion(BaseModel):
+    """Newest published version, for the About row in Settings."""
+    version: str
+    title: str
+
+
 class ChangelogResponse(BaseModel):
     # Notes for versions the user already has but hasn't dismissed yet.
     news: list[ReleaseNoteOut]

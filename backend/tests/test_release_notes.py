@@ -80,3 +80,25 @@ def test_release_notes_rejects_unknown_lang(client, db, make_user):
     assert r.status_code == 200, r.text
     note = next(n for n in r.json()["news"] if n["version"] == "1.10")
     assert note["title"] == "Título", "un lang desconocido debe caer a español, no tumbar el endpoint"
+
+
+def test_latest_is_the_newest_published_even_if_muted(client, db, make_user):
+    """/latest sirve a la fila "Acerca de": la última publicada, aunque el
+    usuario haya silenciado las novedades y aunque ya la esté ejecutando."""
+    ruben = make_user("Ruben")
+    ruben.changelog_opt_out = True
+    db.commit()
+    _seed(db, version="1.9", title="Vieja", importance="major", published=True, items=[])
+    _seed(db, version="1.10", title={"es": "Nueva", "en": "New"}, importance="minor", published=True, items=[])
+    _seed(db, version="2.0", title="Borrador", importance="major", published=False, items=[])
+
+    r = client.get(f"{API}/release-notes/latest?lang=en", headers=auth(ruben))
+    assert r.status_code == 200, r.text
+    assert r.json() == {"version": "1.10", "title": "New"}, "1.10 > 1.9 numéricamente, y la 2.0 no está publicada"
+
+
+def test_latest_is_null_without_notes(client, db, make_user):
+    ruben = make_user("Ruben")
+    r = client.get(f"{API}/release-notes/latest", headers=auth(ruben))
+    assert r.status_code == 200, r.text
+    assert r.json() is None
