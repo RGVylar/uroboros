@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+ProductUnit = Literal["g", "ml", "unit"]
 
 from app.models.product import ProductSource
 
@@ -12,6 +15,7 @@ class ProductBase(BaseModel):
     protein_per_100g: float = Field(ge=0)
     carbs_per_100g: float = Field(ge=0)
     fat_per_100g: float = Field(ge=0)
+    unit: ProductUnit | None = None
 
 
 class ProductCreate(ProductBase):
@@ -25,6 +29,7 @@ class ProductUpdate(BaseModel):
     protein_per_100g: float | None = Field(default=None, ge=0)
     carbs_per_100g: float | None = Field(default=None, ge=0)
     fat_per_100g: float | None = Field(default=None, ge=0)
+    unit: ProductUnit | None = None
 
 
 class ProductOut(ProductBase):

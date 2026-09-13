@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { productUnitOf, unitSuffix, gramsToQty, qtyToGrams, fmtQty } from '$lib/drink';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
@@ -369,7 +370,7 @@
 		const lines = [
 			`${recipeGlyph(recipe.name)} ${recipe.name}`,
 			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
-			...recipe.ingredients.map(i => `• ${i.product.name} – ${i.grams}g`),
+			...recipe.ingredients.map(i => `• ${i.product.name} – ${fmtQty(i.grams, i.product)}`),
 			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
 			`${macros.cal} kcal · P${macros.p}g · C${macros.c}g · G${macros.f}g`,
 		];
@@ -493,10 +494,11 @@
 			{@const m = totalMacros(ingredients)}
 			<div style="margin-top:0.75rem;">
 				{#each ingredients as ing, idx}
+					{@const u = productUnitOf(ing.product)}
 					<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
 						<span style="flex:1; font-size:0.85rem;">{ing.product.name}</span>
-						<input type="number" bind:value={ing.grams} min="1" step="1" style="width:5rem;" />
-						<span style="font-size:0.8rem; color:var(--text-muted);">g</span>
+						<input type="number" bind:value={() => gramsToQty(ing.grams, u), (v) => (ing.grams = qtyToGrams(v, u))} min={u === 'unit' ? 0.25 : 1} step={u === 'unit' ? 0.25 : 1} style="width:5rem;" />
+						<span style="font-size:0.8rem; color:var(--text-muted);">{unitSuffix(u).trim()}</span>
 						<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeIngredient(idx)}>✕</button>
 					</div>
 				{/each}
@@ -542,10 +544,11 @@
 				{@const m = totalMacros(editIngredients)}
 				<div style="margin-bottom:0.75rem;">
 					{#each editIngredients as ing, idx}
+						{@const u = productUnitOf(ing.product)}
 						<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
 							<span style="flex:1; font-size:0.85rem;">{ing.product.name}</span>
-							<input type="number" bind:value={ing.grams} min="1" step="1" style="width:5rem;" />
-							<span style="font-size:0.8rem; color:var(--text-muted);">g</span>
+							<input type="number" bind:value={() => gramsToQty(ing.grams, u), (v) => (ing.grams = qtyToGrams(v, u))} min={u === 'unit' ? 0.25 : 1} step={u === 'unit' ? 0.25 : 1} style="width:5rem;" />
+							<span style="font-size:0.8rem; color:var(--text-muted);">{unitSuffix(u).trim()}</span>
 							<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeEditIngredient(idx)}>✕</button>
 						</div>
 					{/each}

@@ -92,6 +92,7 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "users", "identity_hue", "INTEGER")
                 _sqlite_add_column_if_missing(conn, "users", "invite_code", "VARCHAR(12)")
                 _sqlite_add_column_if_missing(conn, "users", "avatar_photo", "VARCHAR(64)")
+                _sqlite_add_column_if_missing(conn, "products", "unit", "VARCHAR(8)")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]

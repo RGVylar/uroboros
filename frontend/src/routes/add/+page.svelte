@@ -8,7 +8,7 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
-	import { isDrink } from '$lib/drink';
+	import { productUnitOf, perLabel, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import { nameHue } from '$lib/avatars';
 	import type {
@@ -242,7 +242,12 @@
 	}
 
 	let selected: Product | null = $state(null);
-	let grams = $state(100);
+	// qty es lo que teclea el usuario en su unidad (g, ml o unidades); grams
+	// son los gramos internos que entiende el backend (1 ud = 100 g).
+	let qty = $state(100);
+	let unit: ProductUnit = $derived(selected ? productUnitOf(selected) : 'g');
+	const perOf = (u: ProductUnit) => (u === 'unit' ? '/ud' : `/100${u}`);
+	let grams = $derived(qtyToGrams(qty, unit));
 	// null = solo yo | 'also' = los dos | 'only' = solo pareja
 	type ShareMode = null | 'also' | 'only';
 	let shareMode: ShareMode = $state(null);
@@ -269,6 +274,7 @@
 	let editProt = $state(0);
 	let editCarbs = $state(0);
 	let editFat = $state(0);
+	let editUnit: ProductUnit = $state('g');
 	let editSaving = $state(false);
 	let editError = $state('');
 
@@ -280,6 +286,7 @@
 		editProt = selected.protein_per_100g;
 		editCarbs = selected.carbs_per_100g;
 		editFat = selected.fat_per_100g;
+		editUnit = productUnitOf(selected);
 		editError = '';
 		showEdit = true;
 	}
@@ -296,6 +303,7 @@
 				protein_per_100g: editProt,
 				carbs_per_100g: editCarbs,
 				fat_per_100g: editFat,
+				unit: editUnit,
 			});
 			selected = updated;
 			showEdit = false;
@@ -437,7 +445,7 @@
 
 	function selectProduct(product: Product) {
 		selected = product;
-		grams = getLastGrams(product.id);
+		qty = gramsToQty(getLastGrams(product.id), productUnitOf(product));
 	}
 
 	async function loadAllergies() {
@@ -455,6 +463,7 @@
 	let manualProt = $state(0);
 	let manualCarbs = $state(0);
 	let manualFat = $state(0);
+	let manualUnit: ProductUnit = $state('g');
 
 	// Active chip filter
 	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'recipes' | 'inventory' | 'manual'>('suggestions');
@@ -523,6 +532,7 @@
 				barcode: null,
 				name: item.product_name,
 				brand: item.product_brand,
+				unit: item.unit,
 				calories_per_100g: item.calories_per_100g,
 				protein_per_100g: 0,
 				carbs_per_100g: 0,
@@ -722,6 +732,7 @@
 				protein_per_100g: manualProt,
 				carbs_per_100g: manualCarbs,
 				fat_per_100g: manualFat,
+				unit: manualUnit,
 				source: 'manual',
 				edited_by: null,
 				edited_at: null,
@@ -739,7 +750,8 @@
 				calories_per_100g: manualCal,
 				protein_per_100g: manualProt,
 				carbs_per_100g: manualCarbs,
-				fat_per_100g: manualFat
+				fat_per_100g: manualFat,
+				unit: manualUnit
 			});
 			selected = p;
 			showManual = false;
@@ -821,7 +833,7 @@
 							also_for_user_id: shareMode === 'also' ? partner?.id : null,
 							only_for_user_id: shareMode === 'only' ? partner?.id : null,
 						},
-						label: `${selected.name} · ${grams}g`,
+						label: `${selected.name} · ${qty}${unitSuffix(unit)}`,
 					});
 				} else {
 					// Known product — queue diary entry directly
@@ -829,7 +841,7 @@
 						method: 'POST',
 						path: '/diary',
 						body: payload,
-						label: `${selected.name} · ${grams}g`,
+						label: `${selected.name} · ${qty}${unitSuffix(unit)}`,
 					});
 					saveLastGrams(selected.id, grams);
 				}
@@ -860,7 +872,6 @@
 		return Math.round(per100 * grams / 100);
 	}
 
-	let unit = $derived(selected && isDrink(selected) ? 'ml' : 'g');
 
 	// Helpers for product visuals
 	function hashHue(s: string): number {
@@ -886,6 +897,7 @@
 	}
 
 	const QUICK_GRAMS = [50, 100, 150, 200, 250];
+	const QUICK_UNITS = [1, 2, 3, 4, 5];
 
 	const MACRO_CELLS = [
 		{ label: 'Prot', key: 'protein_per_100g' as const, hue: 220 },
@@ -961,7 +973,7 @@
 
 	<!-- Macro preview card -->
 	<div class="glass-card" style="margin-bottom:0.875rem;">
-		<div class="section-eyebrow" style="margin-bottom:0.625rem;">Para {grams}{unit}</div>
+		<div class="section-eyebrow" style="margin-bottom:0.625rem;">Para {qty}{unitSuffix(unit)}</div>
 		<div style="display:flex; align-items:baseline; gap:0.4rem; margin-bottom:0.875rem;">
 			<span class="big-kcal">{preview(selected.calories_per_100g)}</span>
 			<span style="font-size:0.875rem; color:rgba(255,255,255,0.5); font-weight:500;">kcal</span>
@@ -1013,20 +1025,20 @@
 			<div style="display:flex; align-items:baseline; gap:0.25rem;">
 				<input
 					type="number"
-					bind:value={grams}
-					min="1"
-					step="1"
+					bind:value={qty}
+					min={unit === 'unit' ? 0.25 : 1}
+					step={unit === 'unit' ? 0.25 : 1}
 					class="grams-input"
 				/>
-				<span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">{unit}</span>
+				<span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">{unitSuffix(unit).trim()}</span>
 			</div>
 		</div>
 		<div style="display:flex; gap:0.375rem;">
-			{#each QUICK_GRAMS as g}
+			{#each unit === 'unit' ? QUICK_UNITS : QUICK_GRAMS as g}
 				<button
-					onclick={() => (grams = g)}
+					onclick={() => (qty = g)}
 					class="gram-chip"
-					class:gram-chip-active={grams === g}
+					class:gram-chip-active={qty === g}
 				>{g}</button>
 			{/each}
 		</div>
@@ -1196,21 +1208,35 @@
 			<label for="e-brand">{t('add.brand')} <span style="color:rgba(255,255,255,0.4);">{t('add.optional')}</span></label>
 			<input id="e-brand" bind:value={editBrand} class="field-input" />
 		</div>
+		<div class="manual-field">
+			<label for="e-unit">{t('add.unitLabel')}</label>
+			<div id="e-unit" style="display:flex; gap:0.375rem;" role="group" aria-label={t('add.unitLabel')}>
+				{#each ['g', 'ml', 'unit'] as const as u}
+					<button
+						type="button"
+						onclick={() => (editUnit = u)}
+						class="gram-chip"
+						class:gram-chip-active={editUnit === u}
+						aria-pressed={editUnit === u}
+					>{t(`unit.${u}`)}</button>
+				{/each}
+			</div>
+		</div>
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
 			<div class="manual-field">
-				<label for="e-cal">{t('add.kcal100')}</label>
+				<label for="e-cal">{t('add.kcal100', { per: perOf(editUnit) })}</label>
 				<input id="e-cal" type="number" bind:value={editCal} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-prot">{t('add.prot100')}</label>
+				<label for="e-prot">{t('add.prot100', { per: perOf(editUnit) })}</label>
 				<input id="e-prot" type="number" bind:value={editProt} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-carbs">{t('add.carb100')}</label>
+				<label for="e-carbs">{t('add.carb100', { per: perOf(editUnit) })}</label>
 				<input id="e-carbs" type="number" bind:value={editCarbs} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="e-fat">{t('add.fat100')}</label>
+				<label for="e-fat">{t('add.fat100', { per: perOf(editUnit) })}</label>
 				<input id="e-fat" type="number" bind:value={editFat} min="0" step="0.1" class="field-input" />
 			</div>
 		</div>
@@ -1247,21 +1273,35 @@
 			<label for="m-brand">{t('add.brand')} <span style="color:rgba(255,255,255,0.4);">{t('add.optional')}</span></label>
 			<input id="m-brand" bind:value={manualBrand} class="field-input" />
 		</div>
+		<div class="manual-field">
+			<label for="m-unit">{t('add.unitLabel')}</label>
+			<div id="m-unit" style="display:flex; gap:0.375rem;" role="group" aria-label={t('add.unitLabel')}>
+				{#each ['g', 'ml', 'unit'] as const as u}
+					<button
+						type="button"
+						onclick={() => (manualUnit = u)}
+						class="gram-chip"
+						class:gram-chip-active={manualUnit === u}
+						aria-pressed={manualUnit === u}
+					>{t(`unit.${u}`)}</button>
+				{/each}
+			</div>
+		</div>
 		<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
 			<div class="manual-field">
-				<label for="m-cal">{t('add.kcal100')}</label>
+				<label for="m-cal">{t('add.kcal100', { per: perOf(manualUnit) })}</label>
 				<input id="m-cal" type="number" bind:value={manualCal} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-prot">{t('add.prot100')}</label>
+				<label for="m-prot">{t('add.prot100', { per: perOf(manualUnit) })}</label>
 				<input id="m-prot" type="number" bind:value={manualProt} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-carbs">{t('add.carb100')}</label>
+				<label for="m-carbs">{t('add.carb100', { per: perOf(manualUnit) })}</label>
 				<input id="m-carbs" type="number" bind:value={manualCarbs} min="0" step="0.1" class="field-input" />
 			</div>
 			<div class="manual-field">
-				<label for="m-fat">{t('add.fat100')}</label>
+				<label for="m-fat">{t('add.fat100', { per: perOf(manualUnit) })}</label>
 				<input id="m-fat" type="number" bind:value={manualFat} min="0" step="0.1" class="field-input" />
 			</div>
 		</div>
@@ -1417,7 +1457,7 @@
 					<button
 						class="product-row"
 						onclick={() => selectProduct(product)}
-						aria-label={t('add.productAria', { name: product.name, brand: product.brand ? `, ${product.brand}` : '', kcal: product.calories_per_100g, unit: isDrink(product) ? 'ml' : 'g' })}
+						aria-label={t('add.productAria', { name: product.name, brand: product.brand ? `, ${product.brand}` : '', kcal: product.calories_per_100g, per: perLabel(product) })}
 					>
 						<div class="product-avatar" style="
 							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
@@ -1428,7 +1468,7 @@
 						</div>
 						<div style="text-align:right; flex-shrink:0;">
 							<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-							<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+							<div class="product-per">{perLabel(product)}</div>
 						</div>
 					</button>
 				{/each}
@@ -1521,7 +1561,7 @@
 								</div>
 								<div style="text-align:right; flex-shrink:0;">
 									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-									<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+									<div class="product-per">{perLabel(product)}</div>
 								</div>
 							</button>
 							<button
@@ -1677,7 +1717,7 @@
 								</div>
 								<div style="text-align:right; flex-shrink:0;">
 									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-									<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+									<div class="product-per">{perLabel(product)}</div>
 								</div>
 							</button>
 						{/each}
@@ -1697,7 +1737,7 @@
 										</div>
 										<div style="text-align:right; flex-shrink:0;">
 											<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
-											<div class="product-per">/100{isDrink(product) ? 'ml' : 'g'}</div>
+											<div class="product-per">{perLabel(product)}</div>
 										</div>
 									</button>
 								{/each}

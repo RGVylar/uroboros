@@ -8,7 +8,7 @@
 	import { pushStore } from '$lib/stores/push.svelte';
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { productUnit } from '$lib/drink';
+	import { productUnitOf, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
@@ -144,7 +144,15 @@
 	let sharePartner = $state(false);          // "comida compartida" on/off
 	let partnerGrams = $state(100);            // gramos/ml de la pareja
 	// Unidad (g o ml) del producto en edición — se conserva en los "platos".
-	let editUnit = $derived(editingEntry?.product ? productUnit(editingEntry.product) : 'g');
+	let editUnit: ProductUnit = $derived(editingEntry?.product ? productUnitOf(editingEntry.product) : 'g');
+	// Los inputs del modal van en la unidad del producto (unidades para los
+	// que se cuentan); editGrams/partnerGrams siguen en gramos internos.
+	const editQty = () => gramsToQty(editGrams, editUnit);
+	const setEditQty = (v: number) => { editGrams = qtyToGrams(v, editUnit); };
+	const partnerQty = () => gramsToQty(partnerGrams, editUnit);
+	const setPartnerQty = (v: number) => { partnerGrams = qtyToGrams(v, editUnit); };
+	const editStep = $derived(editUnit === 'unit' ? 0.25 : 1);
+
 
 	// Delete confirm state
 	let deletingEntry: DiaryEntry | null = $state(null);
@@ -1218,8 +1226,8 @@
 	>
 		{#if !(partner && !connectivity.isOffline && (partnerEntry || sharePartner))}
 			<div class="form-group">
-				<label for="edit-grams">{editUnit === 'ml' ? 'Mililitros' : 'Gramos'}</label>
-				<input id="edit-grams" type="number" bind:value={editGrams} min="1" step="1" style="width:100%;" />
+				<label for="edit-grams">{t(`unitLong.${editUnit}`)}</label>
+				<input id="edit-grams" type="number" bind:value={editQty, setEditQty} min={editStep} step={editStep} style="width:100%;" />
 			</div>
 		{/if}
 
@@ -1247,16 +1255,16 @@
 							<div class="edit-plate-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /></div>
 							<div class="edit-plate-who">{t('diary.you')}</div>
 							<div class="edit-plate-g">
-								<input type="number" bind:value={editGrams} min="1" step="1" aria-label={t('diary.yoursAria', { unit: editUnit })} />
-								<span>{editUnit}</span>
+								<input type="number" bind:value={editQty, setEditQty} min={editStep} step={editStep} aria-label={t('diary.yoursAria', { unit: unitSuffix(editUnit).trim() })} />
+								<span>{unitSuffix(editUnit).trim()}</span>
 							</div>
 						</div>
 						<div class="edit-plate her">
 							<div class="edit-plate-av"><Avatar name={partner.name} avatarId={partner.avatar_id} avatarPhoto={partner.avatar_photo} size={34} /></div>
 							<div class="edit-plate-who">{partner.name}</div>
 							<div class="edit-plate-g">
-								<input type="number" bind:value={partnerGrams} min="1" step="1" aria-label={t('diary.partnerAria', { unit: editUnit, name: partner.name })} />
-								<span>{editUnit}</span>
+								<input type="number" bind:value={partnerQty, setPartnerQty} min={editStep} step={editStep} aria-label={t('diary.partnerAria', { unit: unitSuffix(editUnit).trim(), name: partner.name })} />
+								<span>{unitSuffix(editUnit).trim()}</span>
 							</div>
 						</div>
 					</div>
@@ -1305,7 +1313,7 @@
 				<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a5 5 0 0 1 5-4h5M14 3v4h-4"/><path d="M16 13a5 5 0 0 1-5 4H6M6 17v-4h4"/></svg>
 				<span style="flex:1; text-align:left;">
 					<span style="display:block; font-weight:700; font-size:0.85rem;">{copyingToToday ? t('diary.copyingToToday') : t('diary.copyToToday')}</span>
-					<span style="display:block; font-size:0.72rem; font-weight:500; opacity:0.75; margin-top:0.1rem;">{t('diary.copyToTodaySub', { grams: Math.round(editGrams), unit: editUnit, meal: mealLabel(editMealType as MealType).toLowerCase() })}</span>
+					<span style="display:block; font-size:0.72rem; font-weight:500; opacity:0.75; margin-top:0.1rem;">{t('diary.copyToTodaySub', { grams: gramsToQty(editGrams, editUnit), unit: unitSuffix(editUnit), meal: mealLabel(editMealType as MealType).toLowerCase() })}</span>
 				</span>
 			</button>
 		{/if}
@@ -1324,7 +1332,7 @@
 	<Modal
 		onClose={() => deletingEntry = null}
 		title={t('diary.deleteEntry')}
-		subtitle="{deletingEntry.product?.name} — {deletingEntry.grams}{deletingEntry.product ? productUnit(deletingEntry.product) : 'g'}"
+		subtitle="{deletingEntry.product?.name} — {fmtQty(deletingEntry.grams, deletingEntry.product)}"
 	>
 		<div class="del-q">
 			{deletingPartnerHas
@@ -1428,7 +1436,7 @@
 				{entry.product?.name ?? `Producto #${entry.product_id}`}
 			</div>
 			<div class="diary-entry-detail" style="font-size:0.78rem; color:var(--text-muted);">
-				{entry.grams}{entry.product ? productUnit(entry.product) : 'g'} · {fmtTime(entry.consumed_at)}
+				{fmtQty(entry.grams, entry.product)} · {fmtTime(entry.consumed_at)}
 			</div>
 			{#if shared}
 				<div class="shared-line">
@@ -1436,7 +1444,7 @@
 						<span class="shared-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} identityHue={myHue} size={16} /></span>
 						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} identityHue={partnerHue} size={16} /></span>
 					</span>
-					<span class="shared-txt">Los dos · tú {Math.round(entry.grams)}{entry.product ? productUnit(entry.product) : 'g'} · {partner?.name} {Math.round(shared.grams)}{shared.product ? productUnit(shared.product) : 'g'}</span>
+					<span class="shared-txt">Los dos · tú {fmtQty(entry.grams, entry.product)} · {partner?.name} {fmtQty(shared.grams, shared.product)}</span>
 				</div>
 			{/if}
 		</div>
@@ -1463,7 +1471,7 @@
 				<span class="pe-tag">{partner?.name}</span>
 			</div>
 			<div style="font-size:0.78rem; color:var(--text-muted);">
-				{entry.grams}{entry.product ? productUnit(entry.product) : 'g'} · {fmtTime(entry.consumed_at)}
+				{fmtQty(entry.grams, entry.product)} · {fmtTime(entry.consumed_at)}
 			</div>
 		</div>
 		<div style="text-align:right; margin-right:0.35rem;">

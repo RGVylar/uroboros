@@ -8,7 +8,7 @@
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { productUnit } from '$lib/drink';
+	import { fmtQty } from '$lib/drink';
 	import { t, fmtDate, fmtTime as fmtTimeI18n, fmtNumber, monthNames, weekdayInitials, weekdayShort } from '$lib/i18n/index.svelte';
 
 	function download(url: string, filename: string) {
@@ -66,8 +66,7 @@
 			lines.push('');
 			lines.push(`${meal.label} — ${Math.round(meal.totals.calories)} kcal · ${macros(meal.totals)}`);
 			for (const e of meal.entries) {
-				const unit = e.product ? productUnit(e.product) : 'g';
-				lines.push(`• ${e.product?.name ?? t('history.productFallback', { id: e.product_id })} (${e.grams}${unit}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
+				lines.push(`• ${e.product?.name ?? t('history.productFallback', { id: e.product_id })} (${fmtQty(e.grams, e.product)}) — ${Math.round(e.calories)} kcal · ${macros(e)}`);
 			}
 		}
 		if (selectedWaterMl > 0) {
@@ -574,7 +573,7 @@
 						<div class="glass-card" style="margin-bottom:0.3rem; padding:0.625rem; display:flex; justify-content:space-between; align-items:center; border-radius:14px;">
 							<div>
 								<div style="font-size:0.8125rem; font-weight:600;">{entry.product?.name ?? `Producto #${entry.product_id}`}</div>
-								<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{entry.grams}g · {fmtTime(entry.consumed_at)}</div>
+								<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{fmtQty(entry.grams, entry.product)} · {fmtTime(entry.consumed_at)}</div>
 							</div>
 							<div style="text-align:right; flex-shrink:0; margin-left:0.75rem;">
 								<div style="font-size:0.8rem; color:oklch(85% 0.17 55); font-weight:700;">{Math.round(entry.calories)} kcal</div>

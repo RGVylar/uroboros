@@ -25,6 +25,11 @@ class Product(Base):
     protein_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
     carbs_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
     fat_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
+    # En qué se mide: 'g', 'ml' o 'unit'. Nulo = lo decide el cliente por el
+    # nombre (leche → ml). Para 'unit' los *_per_100g son "por unidad" y
+    # 1 unidad ≡ 100 g internos, el mismo factor por defecto de
+    # unit_conversions, así el diario y la despensa no cambian de cálculo.
+    unit: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     ingredients_text: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     allergens: Mapped[list | None] = mapped_column(JSON, nullable=True)  # ["milk", "gluten", ...]

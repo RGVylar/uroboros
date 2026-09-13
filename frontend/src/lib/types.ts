@@ -74,6 +74,9 @@ export interface Product {
 	protein_per_100g: number;
 	carbs_per_100g: number;
 	fat_per_100g: number;
+	// Nula = se adivina por el nombre (ver $lib/drink). Para 'unit' los
+	// *_per_100g son por unidad y 1 ud = 100 g internos.
+	unit: 'g' | 'ml' | 'unit' | null;
 	source: 'openfoodfacts' | 'manual' | 'edited';
 	edited_by: number | null;
 	edited_at: string | null;
@@ -236,7 +239,7 @@ export interface RecipeIngredient {
 	id: number;
 	product_id: number;
 	grams: number;
-	product: Pick<Product, 'id' | 'name' | 'brand' | 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g' | 'allergens' | 'ingredients_text'>;
+	product: Pick<Product, 'id' | 'name' | 'brand' | 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g' | 'unit' | 'allergens' | 'ingredients_text'>;
 }
 
 /** Who a recipe is shared with. 'partner' is invisible to plain friends. */
