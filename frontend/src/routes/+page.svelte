@@ -686,8 +686,13 @@
 				// Reload streak so the 🔥 updates immediately
 				await refreshStreak();
 			}
-		} catch {
-			toast.error(t('diary.errCheatDay'));
+		} catch (e) {
+			if (e instanceof Error && e.message === 'cheat_day_limit_reached') {
+				toast.error(t('diary.cheatDayLimitReached'));
+				cheatDay = await api.get<CheatDayToday>('/cheat-days/today').catch(() => cheatDay);
+			} else {
+				toast.error(t('diary.errCheatDay'));
+			}
 		} finally {
 			togglingCheatDay = false;
 		}
@@ -930,6 +935,8 @@
 
 			<!-- Cheat day -->
 			{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
+				<!-- Semana agotada: el botón se apaga antes de que el backend conteste 409. -->
+				{@const cheatDayExhausted = !cheatDay.active && cheatDay.used_this_week >= cheatDay.limit_per_week}
 				<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
 					<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
 						<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
@@ -943,15 +950,18 @@
 							<div style="min-width:0;">
 								<div style="font-weight:700; font-size:0.88rem;">{t('diary.cheatDay')}</div>
 								<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-									{cheatDay.active ? t('diary.cheatDayOn') : t('diary.cheatDayOff')}
+									{cheatDay.active ? t('diary.cheatDayOn') : cheatDayExhausted ? t('diary.cheatDayExhausted') : t('diary.cheatDayOff')}
+									{#if cheatDay.limit_per_week < 7}
+										· {cheatDay.used_this_week}/{cheatDay.limit_per_week}
+									{/if}
 								</div>
 							</div>
 						</div>
 						<button
 							onclick={toggleCheatDay}
-							disabled={togglingCheatDay}
+							disabled={togglingCheatDay || cheatDayExhausted}
 							class:btn-secondary={cheatDay.active}
-							style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay ? '0.6' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
+							style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay || cheatDayExhausted ? '0.5' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
 						>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
 					</div>
 				</div>

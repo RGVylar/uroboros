@@ -74,6 +74,7 @@ def _get_engine():
             # Add any missing columns to existing SQLite tables (schema drift fix)
             with engine.connect() as conn:
                 _sqlite_add_column_if_missing(conn, "user_goals", "cheat_days_enabled", "BOOLEAN NOT NULL DEFAULT 0")
+                _sqlite_add_column_if_missing(conn, "user_goals", "cheat_days_per_week", "INTEGER NOT NULL DEFAULT 1")
                 _sqlite_add_column_if_missing(conn, "user_goals", "inventory_enabled", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "exercises", "is_predefined", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "shared_inventory_requester", "BOOLEAN NOT NULL DEFAULT 0")

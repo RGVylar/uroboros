@@ -248,6 +248,19 @@
 		}
 	}
 
+	let savingCheatLimit = $state(false);
+	async function setCheatDaysPerWeek(n: number) {
+		if (!goals || goals.cheat_days_per_week === n) return;
+		savingCheatLimit = true;
+		try {
+			goals = await api.put<Goals>('/goals', { ...goals, cheat_days_per_week: n });
+		} catch {
+			toast.error(t('settings.errSaveConfig'));
+		} finally {
+			savingCheatLimit = false;
+		}
+	}
+
 	function toggleMood() {
 		moodEnabled = !moodEnabled;
 		localStorage.setItem('mood_enabled', moodEnabled ? 'true' : 'false');
@@ -256,7 +269,7 @@
 	async function toggleInventory() {
 		savingInventory = true;
 		try {
-			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, inventory_enabled: false, macro_adjust_mode: 'off' as const };
+			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, cheat_days_per_week: 1, inventory_enabled: false, macro_adjust_mode: 'off' as const };
 			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
 		} catch {
 			toast.error(t('settings.errSaveConfig'));
@@ -338,6 +351,35 @@
 				</button>
 			{/if}
 		</div>
+		{#if goals?.cheat_days_enabled}
+			<!-- Tope semanal: 1 es lo que casi todo el mundo entiende por cheat day;
+			     7 es "sin límite", porque la semana no da para más. -->
+			<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.5rem; padding-top:0;">
+				<div style="font-size:0.72rem; color:var(--text-muted); padding-left:2.75rem;">{t('settings.cheatDaysPerWeek')}</div>
+				<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.375rem; width:100%; padding-left:2.75rem;">
+					{#each [1, 2, 3, 7] as n}
+						{@const on = goals.cheat_days_per_week === n}
+						<button
+							onclick={() => setCheatDaysPerWeek(n)}
+							disabled={savingCheatLimit}
+							aria-pressed={on}
+							style="
+								padding:0.5rem 0.25rem;
+								border-radius:0.625rem;
+								border:1px solid {on ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'};
+								background:{on ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'};
+								box-shadow:none;
+								color:{on ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'};
+								font-size:0.6875rem;
+								font-weight:{on ? '700' : '400'};
+								text-align:center;
+								transition:all 0.15s;
+							"
+						>{n === 7 ? t('settings.cheatDaysUnlimited') : tc('settings.cheatDaysN', n)}</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		<div class="row-divider"></div>
 		<!-- Macro adjust mode -->
 		<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.625rem;">

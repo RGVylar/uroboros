@@ -136,6 +136,7 @@ export interface Goals {
 	water_ml: number;
 	track_creatine: boolean;
 	cheat_days_enabled: boolean;
+	cheat_days_per_week: number; // 1..7, 7 = sin límite
 	inventory_enabled: boolean;
 	macro_adjust_mode: 'off' | 'proportional' | 'performance';
 }
@@ -203,6 +204,8 @@ export interface ShoppingListItem {
 export interface CheatDayToday {
 	active: boolean;
 	used_date: string;
+	used_this_week: number;
+	limit_per_week: number;
 }
 
 export interface CreatineToday {
