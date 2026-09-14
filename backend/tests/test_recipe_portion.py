@@ -159,3 +159,24 @@ def test_zero_grams_is_rejected(client, db, make_user):
         "consumed_at": "2026-09-14T14:00:00Z", "grams": 0,
     }, headers=auth(ruben))
     assert r.status_code == 422
+
+
+def test_a_shared_recipe_can_be_logged_by_the_friend(client, db, make_user):
+    """Lo que pasó al desplegar: 'Not your recipe' al registrar una de un amigo."""
+    ruben, silva, nadie = make_user("Ruben"), make_user("Silva"), make_user("Nadie")
+    _befriend(client, ruben, silva)
+    pollo = _product(db, "Pollo", 120)
+    r = client.post(f"{API}/recipes", json={
+        "name": "Pollo", "share_scope": "friends", "total_weight": 200,
+        "ingredients": [{"product_id": pollo.id, "grams": 200}],
+    }, headers=auth(ruben))
+    rid = r.json()["id"]
+
+    entries = _log(client, silva, rid, grams=100)
+    assert [e["user_id"] for e in entries] == [silva.id]
+    assert entries[0]["grams"] == 100
+
+    r = client.post(f"{API}/diary/recipe", json={
+        "recipe_id": rid, "meal_type": "lunch", "consumed_at": "2026-09-14T14:00:00Z",
+    }, headers=auth(nadie))
+    assert r.status_code == 403

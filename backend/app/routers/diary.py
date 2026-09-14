@@ -237,7 +237,10 @@ def log_recipe(
     )
     if not recipe:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
-    if recipe.owner_id != user.id:
+    # Las recetas que te comparten también se registran (antes la página de
+    # Recetas lo hacía ingrediente a ingrediente por /diary, sin esta comprobación).
+    from app.routers.recipes import _can_see
+    if recipe.owner_id != user.id and not _can_see(db, user.id, recipe):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your recipe")
 
     meal_type = MealType(payload.meal_type)
