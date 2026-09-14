@@ -939,6 +939,13 @@ export const es = {
 	'recipes.scopeNone': 'Privada',
 	'recipes.scopePartner': 'Solo mi pareja',
 	'recipes.scopeFriends': 'Mis amigos',
+	'recipes.finalWeight': 'Peso final del plato (opcional)',
+	'recipes.finalWeightHint': 'Lo que pesa ya cocinado. Si lo dejas vacío, se usa la suma de ingredientes ({sum} g).',
+	'recipes.per100': 'por 100 g',
+	'recipes.howMuch': '¿Cuánto?',
+	'recipes.wholeRecipe': 'Toda la receta',
+	'recipes.portionGrams': 'Ración en gramos',
+	'recipes.portionSummary': '{grams} g ≈ {kcal} kcal · P{p} C{c} G{f}',
 	'recipes.okCopy': 'Receta copiada al portapapeles',
 	'recipes.errCopy': 'No se pudo copiar al portapapeles',
 

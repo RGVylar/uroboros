@@ -110,6 +110,8 @@ def list_shared_recipes(
             "owner_id": recipe.owner_id,
             "share_scope": recipe.share_scope,
             "is_shared": recipe.is_shared,
+            "total_weight": recipe.total_weight,
+            "weight": recipe.weight,
             "ingredients": recipe.ingredients,
             "owner_name": owner.name,
         })
@@ -170,6 +172,7 @@ def create_recipe(
         name=payload.name,
         owner_id=user.id,
         share_scope=RecipeScope(payload.share_scope),
+        total_weight=payload.total_weight,
         ingredients=[
             RecipeIngredient(product_id=i.product_id, grams=i.grams)
             for i in payload.ingredients
@@ -221,6 +224,7 @@ def copy_recipe(
         name=source.name,
         owner_id=user.id,
         share_scope=RecipeScope.none,
+        total_weight=source.total_weight,
         ingredients=[
             RecipeIngredient(product_id=ing.product_id, grams=ing.grams)
             for ing in source.ingredients
@@ -244,6 +248,7 @@ def update_recipe(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
     recipe.name = payload.name
     recipe.share_scope = RecipeScope(payload.share_scope)
+    recipe.total_weight = payload.total_weight
     for ing in list(recipe.ingredients):
         db.delete(ing)
     recipe.ingredients = [

@@ -251,6 +251,10 @@ export interface Recipe {
 	owner_id: number;
 	share_scope: RecipeScope;
 	is_shared: boolean; // computed by the API: share_scope !== 'none'
+	/** Peso del plato hecho, en g. Null = suma de ingredientes en crudo. */
+	total_weight: number | null;
+	/** total_weight o la suma de ingredientes: lo que pesa "toda la receta". */
+	weight: number;
 	ingredients: RecipeIngredient[];
 }
 

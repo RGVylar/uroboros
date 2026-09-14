@@ -35,6 +35,8 @@
 	// ── Crear receta ────────────────────────────────────────────────────────
 	let recipeName = $state('');
 	let ingredients: { product: Product; grams: number }[] = $state([]);
+	// Peso del plato hecho; null = suma de ingredientes (ver Recipe.weight).
+	let recipeWeight: number | null = $state(null);
 	let searchQuery = $state('');
 	let searchResults: Product[] = $state([]);
 	let barcodeQuery = $state('');
@@ -45,6 +47,7 @@
 	let editingRecipe: Recipe | null = $state(null);
 	let editName = $state('');
 	let editIngredients: { product: Product; grams: number }[] = $state([]);
+	let editWeight: number | null = $state(null);
 	let editSearchQuery = $state('');
 	let editSearchResults: Product[] = $state([]);
 	let editBarcodeQuery = $state('');
@@ -150,9 +153,10 @@
 			await api.post('/recipes', {
 				name: recipeName,
 				ingredients: ingredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
+				total_weight: recipeWeight || null,
 				share_scope: 'friends',
 			});
-			recipeName = ''; ingredients = []; showCreate = false;
+			recipeName = ''; ingredients = []; recipeWeight = null; showCreate = false;
 			load();
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : '';
@@ -168,6 +172,7 @@
 		editingRecipe = recipe;
 		editName = recipe.name;
 		editIngredients = recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams }));
+		editWeight = recipe.total_weight;
 		editSearchQuery = ''; editSearchResults = []; editBarcodeQuery = ''; editError = '';
 	}
 
@@ -184,6 +189,7 @@
 			await api.put(`/recipes/${editingRecipe.id}`, {
 				name: editName,
 				ingredients: editIngredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
+				total_weight: editWeight || null,
 				share_scope: editingRecipe.share_scope, // keep the circle; editing isn't unpublishing
 			});
 			cancelEdit(); load();
@@ -231,6 +237,8 @@
 	let logMealType: MealType = $state(guessMealType());
 	let logDate = $state(new Date().toISOString().slice(0, 10));
 	let logging = $state(false);
+	// null = la receta entera; un número = esa ración en gramos del plato hecho.
+	let logGrams: number | null = $state(null);
 
 	// Igual que al añadir un alimento: la hora exacta solo importa hoy (usamos el
 	// instante actual); para días pasados se registra al mediodía por defecto.
@@ -297,6 +305,7 @@
 		logMealType = guessMealType();
 		logDate = new Date().toISOString().slice(0, 10);
 		logPendingRecipe = recipe;
+		logGrams = null;
 		shareMode = null;
 	}
 
@@ -305,16 +314,16 @@
 		logging = true;
 		error = '';
 		try {
-			for (const ing of logPendingRecipe.ingredients) {
-				await api.post<DiaryEntry[]>('/diary', {
-					product_id: ing.product_id,
-					grams: ing.grams,
-					meal_type: logMealType,
-					consumed_at: consumedAt(logDate),
-					also_for_user_id: shareMode === 'also' ? partner?.id : null,
-					only_for_user_id: shareMode === 'only' ? partner?.id : null,
-				});
-			}
+			// Antes se posteaba ingrediente a ingrediente a /diary, sin recipe_id:
+			// las entradas no contaban como "receta" y no salían en frecuentes.
+			await api.post<DiaryEntry[]>('/diary/recipe', {
+				recipe_id: logPendingRecipe.id,
+				grams: logGrams || null,
+				meal_type: logMealType,
+				consumed_at: consumedAt(logDate),
+				also_for_user_id: shareMode === 'also' ? partner?.id : null,
+				only_for_user_id: shareMode === 'only' ? partner?.id : null,
+			});
 			logPendingRecipe = null;
 			goto('/');
 		} catch (e: unknown) {
@@ -353,6 +362,31 @@
 			f += i.product.fat_per_100g * factor;
 		}
 		return { cal: Math.round(cal), p: Math.round(p), c: Math.round(c), f: Math.round(f) };
+	}
+
+	function sumGrams(ings: { grams: number }[]): number {
+		return ings.reduce((s, i) => s + i.grams, 0);
+	}
+
+	type MacroSource = Pick<Product, 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g'>;
+
+	/** Macros de `grams` gramos de receta: cada ingrediente escalado por grams / peso. */
+	function scaledMacros(r: { ingredients: { product: MacroSource; grams: number }[]; weight: number }, grams: number) {
+		const k = r.weight > 0 ? grams / r.weight : 0;
+		let cal = 0, p = 0, c = 0, f = 0;
+		for (const i of r.ingredients) {
+			const factor = (i.grams * k) / 100;
+			cal += i.product.calories_per_100g * factor;
+			p += i.product.protein_per_100g * factor;
+			c += i.product.carbs_per_100g * factor;
+			f += i.product.fat_per_100g * factor;
+		}
+		return { cal: Math.round(cal), p: Math.round(p), c: Math.round(c), f: Math.round(f) };
+	}
+
+	/** Macros por 100 g de plato hecho (o de crudo si no se indicó peso final). */
+	function per100(ings: { product: Product; grams: number }[], weight: number | null) {
+		return scaledMacros({ ingredients: ings, weight: weight || sumGrams(ings) }, 100);
 	}
 
 	function macroLine(product: Product) {
@@ -492,6 +526,7 @@
 		<!-- Lista de ingredientes -->
 		{#if ingredients.length > 0}
 			{@const m = totalMacros(ingredients)}
+			{@const h = per100(ingredients, recipeWeight)}
 			<div style="margin-top:0.75rem;">
 				{#each ingredients as ing, idx}
 					{@const u = productUnitOf(ing.product)}
@@ -505,13 +540,24 @@
 				<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
 					Total: {m.cal} kcal · P{m.p}g · C{m.c}g · G{m.f}g
 				</div>
+				<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;">
+					{t('recipes.per100')}: {h.cal} kcal · P{h.p}g · C{h.c}g · G{h.f}g
+				</div>
+				<div class="form-group" style="margin-top:0.75rem;">
+					<label for="r-weight">{t('recipes.finalWeight')}</label>
+					<div style="display:flex; gap:0.5rem; align-items:center;">
+						<input id="r-weight" type="number" min="1" step="1" bind:value={recipeWeight} placeholder={String(sumGrams(ingredients))} style="width:7rem;" />
+						<span style="font-size:0.8rem; color:var(--text-muted);">g</span>
+					</div>
+					<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">{t('recipes.finalWeightHint', { sum: sumGrams(ingredients) })}</div>
+				</div>
 			</div>
 		{/if}
 
 		{#if error}<p class="error">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; }} style="flex:1;">{t('common.cancel')}</button>
+			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; recipeWeight = null; }} style="flex:1;">{t('common.cancel')}</button>
 			<button class="action-btn action-btn-primary" onclick={createRecipe} style="flex:2;">{t('recipes.save')}</button>
 		</div>
 	</div>
@@ -542,6 +588,7 @@
 
 			{#if editIngredients.length > 0}
 				{@const m = totalMacros(editIngredients)}
+				{@const h = per100(editIngredients, editWeight)}
 				<div style="margin-bottom:0.75rem;">
 					{#each editIngredients as ing, idx}
 						{@const u = productUnitOf(ing.product)}
@@ -554,6 +601,17 @@
 					{/each}
 					<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
 						Total: {m.cal} kcal · P{m.p}g · C{m.c}g · G{m.f}g
+					</div>
+					<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;">
+						{t('recipes.per100')}: {h.cal} kcal · P{h.p}g · C{h.c}g · G{h.f}g
+					</div>
+					<div class="form-group" style="margin-top:0.75rem;">
+						<label for="edit-weight">{t('recipes.finalWeight')}</label>
+						<div style="display:flex; gap:0.5rem; align-items:center;">
+							<input id="edit-weight" type="number" min="1" step="1" bind:value={editWeight} placeholder={String(sumGrams(editIngredients))} style="width:7rem;" />
+							<span style="font-size:0.8rem; color:var(--text-muted);">g</span>
+						</div>
+						<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">{t('recipes.finalWeightHint', { sum: sumGrams(editIngredients) })}</div>
 					</div>
 				</div>
 			{/if}
@@ -621,6 +679,7 @@
 						<span style="color:oklch(78% 0.16 275);"> C{macros.c}</span>
 						<span style="color:oklch(75% 0.17 25);"> G{macros.f}</span>
 					</div>
+					<div class="recipe-per100">{Math.round(recipe.weight)} g · {scaledMacros(recipe, 100).cal} kcal {t('recipes.per100')}</div>
 				</div>
 			</div>
 			<div style="display:flex; gap:0.375rem;">
@@ -665,6 +724,7 @@
 						<span style="color:oklch(78% 0.14 220); margin-left:0.5rem;">P{macros.p}</span>
 						<span style="color:oklch(78% 0.16 275);"> C{macros.c}</span>
 					</div>
+					<div class="recipe-per100">{Math.round(recipe.weight)} g · {scaledMacros(recipe, 100).cal} kcal {t('recipes.per100')}</div>
 				</div>
 			</div>
 			<div style="display:flex; gap:0.375rem;">
@@ -687,6 +747,7 @@
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}
 	<Modal onClose={() => logPendingRecipe = null} title={t('recipes.whichMeal')} subtitle={logPendingRecipe.name}>
+		{@const lm = scaledMacros(logPendingRecipe, logGrams ?? logPendingRecipe.weight)}
 		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
 			{#each MEAL_ORDER as mt}
 				<button
@@ -697,6 +758,33 @@
 					{mealLabel(mt)}
 				</button>
 			{/each}
+		</div>
+
+		<!-- Cantidad: la receta entera o una ración en gramos del plato hecho -->
+		<div style="margin-bottom:1rem;">
+			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('recipes.howMuch')}</div>
+			<div style="display:flex; gap:0.5rem; align-items:center;">
+				<button
+					class="chip"
+					class:active={logGrams === null}
+					onclick={() => logGrams = null}
+					style="font-size:0.78rem; flex:1;">
+					{t('recipes.wholeRecipe')} · {Math.round(logPendingRecipe.weight)} g
+				</button>
+				<input
+					type="number"
+					min="1"
+					step="1"
+					inputmode="numeric"
+					placeholder={t('recipes.portionGrams')}
+					bind:value={logGrams}
+					class="date-input"
+					style="flex:1; min-width:0;"
+				/>
+			</div>
+			<div style="font-size:0.75rem; color:rgba(255,255,255,0.55); margin-top:0.4rem; padding:0 0.25rem;">
+				{t('recipes.portionSummary', { grams: Math.round(logGrams ?? logPendingRecipe.weight), kcal: lm.cal, p: lm.p, c: lm.c, f: lm.f })}
+			</div>
 		</div>
 
 		<!-- Fecha: por defecto hoy, pero se puede elegir otro día -->
@@ -783,7 +871,7 @@
 
 		<div style="display:flex; gap:0.5rem;">
 			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">{t('common.cancel')}</button>
-			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging} style="flex:2;">
+			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging || (logGrams !== null && !(logGrams > 0))} style="flex:2;">
 				{#if logging}{t('recipes.logging')}{:else if shareMode === 'also'}{t('recipes.logBoth')}{:else if shareMode === 'only'}{t('recipes.logOnly', { name: partner?.name ?? '' })}{:else}{t('recipes.log')}{/if}
 			</button>
 		</div>
@@ -942,6 +1030,11 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+	.recipe-per100 {
+		font-size: 0.6875rem;
+		color: rgba(255, 255, 255, 0.4);
+		margin-top: 0.2rem;
 	}
 	.recipe-macros {
 		display: flex;

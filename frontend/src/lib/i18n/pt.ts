@@ -938,6 +938,13 @@ export const pt: Dict = {
 	'recipes.scopeNone': 'Privada',
 	'recipes.scopePartner': 'Só o meu par',
 	'recipes.scopeFriends': 'Os meus amigos',
+	'recipes.finalWeight': 'Peso final do prato (opcional)',
+	'recipes.finalWeightHint': 'O que pesa já cozinhado. Se deixares vazio, usa-se a soma dos ingredientes ({sum} g).',
+	'recipes.per100': 'por 100 g',
+	'recipes.howMuch': 'Quanto?',
+	'recipes.wholeRecipe': 'Receita inteira',
+	'recipes.portionGrams': 'Dose em gramas',
+	'recipes.portionSummary': '{grams} g ≈ {kcal} kcal · P{p} H{c} G{f}',
 	'recipes.okCopy': 'Receita copiada para a área de transferência',
 	'recipes.errCopy': 'Não foi possível copiar',
 

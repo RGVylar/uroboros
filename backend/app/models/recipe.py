@@ -32,6 +32,11 @@ class Recipe(Base):
         default=RecipeScope.none,
         server_default="none",
     )
+    # Peso final del plato una vez hecho, en gramos. Nulo = la suma de los
+    # ingredientes en crudo. Existe porque un guiso pierde agua (o la gana) y
+    # quien pesa la ración pesa lo cocinado: sin esto los macros "por 100 g"
+    # de la receta no cuadran con lo que hay en el plato.
+    total_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -40,6 +45,15 @@ class Recipe(Base):
     def is_shared(self) -> bool:
         """Shared with anyone at all. Read-only compatibility shim."""
         return self.share_scope is not RecipeScope.none
+
+    @property
+    def weight(self) -> float:
+        """Peso de la receta entera: el final si se indicó, si no la suma de
+        ingredientes. Es lo que corresponde a "toda la receta" y la base para
+        escalar cuando se registra una ración en gramos."""
+        if self.total_weight:
+            return self.total_weight
+        return sum(i.grams for i in self.ingredients)
 
     ingredients: Mapped[list["RecipeIngredient"]] = relationship(
         back_populates="recipe", cascade="all, delete-orphan"

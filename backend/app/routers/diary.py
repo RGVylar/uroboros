@@ -241,15 +241,28 @@ def log_recipe(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your recipe")
 
     meal_type = MealType(payload.meal_type)
-    user_ids = [user.id]
 
-    if payload.also_for_user_id and payload.also_for_user_id != user.id:
-        other = db.get(User, payload.also_for_user_id)
+    # Mismo trío que POST /diary: solo yo, los dos, o solo la pareja. El modo
+    # "solo para" existía en el cliente pero aquí se ignoraba y acababa en mi
+    # diario.
+    other_id = payload.only_for_user_id or payload.also_for_user_id
+    if other_id and other_id != user.id:
+        other = db.get(User, other_id)
         if not other:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Other user not found")
         if not _can_log_for_user(db, user.id, other.id):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "No tienes permiso para registrar en el diario de este usuario")
-        user_ids.append(other.id)
+        user_ids = [other.id] if payload.only_for_user_id else [user.id, other.id]
+    else:
+        user_ids = [user.id]
+
+    # Ración: 120 g de un guiso de 400 g → cada ingrediente al 30 %. Sin gramos
+    # es la receta entera (factor 1), como siempre.
+    factor = 1.0
+    if payload.grams is not None:
+        if recipe.weight <= 0:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Recipe has no weight")
+        factor = payload.grams / recipe.weight
 
     entries: list[DiaryEntry] = []
     for uid in user_ids:
@@ -258,7 +271,7 @@ def log_recipe(
             if not product:
                 continue
             entries.append(_build_entry(
-                uid, product, ing.grams, payload.consumed_at, meal_type,
+                uid, product, ing.grams * factor, payload.consumed_at, meal_type,
                 recipe_id=recipe.id,
             ))
 

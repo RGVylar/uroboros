@@ -104,6 +104,8 @@ class RecipeIngredientOut(BaseModel):
 class RecipeIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     ingredients: list[RecipeIngredientIn]
+    # Peso del plato ya hecho; nulo = suma de ingredientes (ver Recipe.weight).
+    total_weight: float | None = Field(default=None, gt=0)
     # New recipes go out to friends by default: recipes are the social side of the
     # app, and nothing here is private the way the diary is. Narrow it per recipe
     # with PATCH /recipes/{id}/share.
@@ -120,6 +122,8 @@ class RecipeOut(BaseModel):
     owner_id: int
     share_scope: RecipeScope
     is_shared: bool  # computed: share_scope is not none
+    total_weight: float | None = None
+    weight: float  # computed: total_weight or sum of ingredient grams
     ingredients: list[RecipeIngredientOut]
 
     class Config:
@@ -161,4 +165,10 @@ class DiaryRecipeCreate(BaseModel):
     recipe_id: int
     meal_type: str
     consumed_at: datetime
+    # Ración en gramos del plato hecho. Nulo = la receta entera. Con valor, cada
+    # ingrediente se escala por grams / recipe.weight, así el diario sigue
+    # teniendo una entrada por ingrediente y los macros salen de los mismos
+    # productos de siempre.
+    grams: float | None = Field(default=None, gt=0)
     also_for_user_id: int | None = None
+    only_for_user_id: int | None = None

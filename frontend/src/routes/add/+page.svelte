@@ -477,7 +477,7 @@
 		if (allRecipesLoaded || loadingAllRecipes) return;
 		loadingAllRecipes = true;
 		try {
-			const data = await api.get<{ id: number; name: string; is_shared: boolean; ingredients: FrequentRecipe['recipe']['ingredients'] }[]>('/recipes');
+			const data = await api.get<FrequentRecipe['recipe'][]>('/recipes');
 			allRecipes = data;
 			allRecipesLoaded = true;
 			if (data.length > 0) cacheSet('all_recipes', data);
@@ -589,9 +589,43 @@
 		}
 	}
 
-	async function logRecipe(recipe: FrequentRecipe['recipe']) {
+	// Tocar una receta ya no la registra entera de golpe: primero pregunta si
+	// es toda o una ración en gramos del plato hecho (120 g del guiso).
+	let portionRecipe: FrequentRecipe['recipe'] | null = $state(null);
+	let portionGrams: number | null = $state(null);
+
+	// La caché offline de recetas puede ser anterior a que la API devolviera
+	// `weight`; en ese caso vale la suma de ingredientes, que es lo que era antes.
+	function weightOf(recipe: FrequentRecipe['recipe']): number {
+		return recipe.weight ?? recipe.ingredients.reduce((s, i) => s + i.grams, 0);
+	}
+
+	/** Macros de `grams` gramos de receta: cada ingrediente escalado por grams / peso. */
+	function recipeMacros(recipe: FrequentRecipe['recipe'], grams: number) {
+		const w = weightOf(recipe);
+		const k = w > 0 ? grams / w : 0;
+		let cal = 0, p = 0, c = 0, f = 0;
+		for (const i of recipe.ingredients) {
+			const factor = (i.grams * k) / 100;
+			cal += (i.product?.calories_per_100g ?? 0) * factor;
+			p += (i.product?.protein_per_100g ?? 0) * factor;
+			c += (i.product?.carbs_per_100g ?? 0) * factor;
+			f += (i.product?.fat_per_100g ?? 0) * factor;
+		}
+		return { cal: Math.round(cal), p: Math.round(p), c: Math.round(c), f: Math.round(f) };
+	}
+
+	function logRecipe(recipe: FrequentRecipe['recipe']) {
+		portionRecipe = recipe;
+		portionGrams = null;
+	}
+
+	async function confirmLogRecipe() {
+		const recipe = portionRecipe;
+		if (!recipe) return;
+		if (portionGrams !== null && !(portionGrams > 0)) return;
 		if (mealConflict?.hasEntries && !mealConflictConfirmed) {
-			pendingLogAction = () => logRecipe(recipe);
+			pendingLogAction = () => confirmLogRecipe();
 			showMealConflictConfirm = true;
 			return;
 		}
@@ -600,11 +634,13 @@
 		try {
 			await api.post<DiaryEntry[]>('/diary/recipe', {
 				recipe_id: recipe.id,
+				grams: portionGrams || null,
 				meal_type: mealType,
 				consumed_at: consumedAt(selectedDate),
 				also_for_user_id: shareMode === 'also' ? partner?.id : null,
 			only_for_user_id: shareMode === 'only' ? partner?.id : null,
 			});
+			portionRecipe = null;
 			goto('/');
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Error';
@@ -1405,7 +1441,7 @@
 				<div style="flex:1; min-width:0;">
 					<div style="font-weight:700; font-size:0.9375rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{quickRecipe.name}</div>
 					<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.1rem;">
-						{quickRecipe.ingredients.length} ingrediente{quickRecipe.ingredients.length !== 1 ? 's' : ''} · <span style="color:oklch(85% 0.17 160); font-weight:600;">{Math.round(totalKcal)} kcal</span>
+						{quickRecipe.ingredients.length} ingrediente{quickRecipe.ingredients.length !== 1 ? 's' : ''} · {Math.round(weightOf(quickRecipe))} g · <span style="color:oklch(85% 0.17 160); font-weight:600;">{Math.round(totalKcal)} kcal</span>
 					</div>
 				</div>
 				<button
@@ -1600,7 +1636,7 @@
 							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
 							<div style="flex:1; min-width:0; text-align:left;">
 								<div class="product-name">{recipe.name}</div>
-								<div class="product-brand">{recipe.ingredients.length} ingredientes</div>
+								<div class="product-brand">{recipe.ingredients.length} ingredientes · {Math.round(weightOf(recipe))} g</div>
 							</div>
 							<div style="text-align:right; flex-shrink:0;">
 								<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
@@ -1693,7 +1729,7 @@
 								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{f.recipe.name}</div>
-									<div class="product-brand">{f.recipe.ingredients.length} ingredientes</div>
+									<div class="product-brand">{f.recipe.ingredients.length} ingredientes · {Math.round(weightOf(f.recipe))} g</div>
 								</div>
 								<div style="text-align:right; flex-shrink:0;">
 									<div class="product-kcal">{Math.round(totalKcal)}<span class="product-kcal-unit">kcal</span></div>
@@ -1798,6 +1834,42 @@
 {/if}
 
 <!-- ── Confirmar registro cuando la pareja ya tiene esa comida hoy ── -->
+{#if portionRecipe}
+	<Modal onClose={() => portionRecipe = null} title={t('recipes.howMuch')} subtitle={portionRecipe.name}>
+		{@const pm = recipeMacros(portionRecipe, portionGrams ?? weightOf(portionRecipe))}
+		<div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
+			<button
+				class="chip"
+				class:active={portionGrams === null}
+				onclick={() => portionGrams = null}
+				style="font-size:0.78rem; flex:1;">
+				{t('recipes.wholeRecipe')} · {Math.round(weightOf(portionRecipe))} g
+			</button>
+			<input
+				type="number"
+				min="1"
+				step="1"
+				inputmode="numeric"
+				placeholder={t('recipes.portionGrams')}
+				bind:value={portionGrams}
+				class="portion-input"
+			/>
+		</div>
+		<div style="font-size:0.75rem; color:rgba(255,255,255,0.55); margin-bottom:1rem; padding:0 0.25rem;">
+			{t('recipes.portionSummary', { grams: Math.round(portionGrams ?? weightOf(portionRecipe)), kcal: pm.cal, p: pm.p, c: pm.c, f: pm.f })}
+		</div>
+		{#if error}<p class="error" style="margin-bottom:0.75rem;">{error}</p>{/if}
+		<div style="display:flex; flex-direction:column; gap:0.5rem;">
+			<button class="btn-submit" onclick={confirmLogRecipe} disabled={saving || (portionGrams !== null && !(portionGrams > 0))}>
+				{saving ? t('add.adding') : t('add.addToDiary')}
+			</button>
+			<button class="btn-secondary" style="width:100%;" onclick={() => portionRecipe = null}>
+				{t('common.cancel')}
+			</button>
+		</div>
+	</Modal>
+{/if}
+
 {#if showMealConflictConfirm && mealConflict && partner}
 	<Modal
 		onClose={() => { showMealConflictConfirm = false; pendingLogAction = null; }}
@@ -2092,6 +2164,20 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.portion-input {
+		flex: 1;
+		min-width: 0;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 12px;
+		color: #fff;
+		padding: 0.625rem 0.875rem;
+		font-size: 0.875rem;
+		font-family: inherit;
+		outline: none;
+		box-sizing: border-box;
+	}
+	.portion-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
 	.product-brand {
 		font-size: 0.6875rem;
 		color: rgba(255,255,255,0.45);
