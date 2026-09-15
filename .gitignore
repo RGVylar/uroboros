@@ -28,3 +28,7 @@ QA_REVIEW_*.md
 # digitos de la tarjeta. El repo es PUBLICO: ni las fotos ni el texto salen de aqui.
 backend/scripts/receipt_samples/
 backend/scripts/receipt_spike_out/
+
+# Guia del agente: describe el flujo de trabajo interno y decisiones de negocio
+# (suscripcion futura). Mismo criterio que /documentation/: se queda en local.
+CLAUDE.md
