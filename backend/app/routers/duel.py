@@ -128,10 +128,8 @@ def my_percentile(
         if next_pct is not None:
             gap_to_next = next_pct - mine.pct
 
-    # A medal has to be earned, not handed out: podium *and* top half. Third of
-    # four is not a bronze, it's third from last — and dressing it as an award
-    # is what made the row read badly in the first place.
-    medal = rank if rank <= 3 and rank * 2 <= n else None
+    # Podium = medal, plain and simple (same rule as the profile showcase).
+    medal = rank if rank <= 3 else None
 
     # Week-over-week movement: my position last week, only if I ranked then.
     # Both rank and population go out because the band alone can't tell "I got
@@ -173,16 +171,12 @@ def my_awards(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Weekly podiums among the friends you duel with.
+    """Weekly podiums in the global ranking.
 
-    Deliberately *not* the global podium: that one hands out three places a week
-    however many people are playing, so it stops being winnable for almost
-    everyone as uroboros grows. A pool of friends doesn't grow without bound, so
-    a podium there stays reachable forever.
-
-    Restricted to friendships with the duel switched on by both sides. A rank
-    within a named pool leaks how you compare to specific people, and that
-    opt-in is exactly what governs sharing adherence with them.
+    Same population as the "Tu constancia" row in settings: everyone with a
+    weekly_adherence snapshot that week. Only my own rank leaves the server —
+    the population is a count, never names — so this leaks nothing the
+    percentile row doesn't already show.
     """
     from datetime import datetime as _dt, timedelta
 
@@ -199,53 +193,47 @@ def my_awards(
     if changed:
         db.commit()
 
-    friendships = db.scalars(
-        select(Friendship).where(
-            or_(Friendship.requester_id == user.id, Friendship.receiver_id == user.id),
-            Friendship.status == FriendshipStatus.accepted,
-            Friendship.blocked_by.is_(None),
+    since = this_week - timedelta(weeks=AWARDS_WEEKS)
+    # One aggregate per week I have a row in: population and how many beat me.
+    # Two indexed reads however many users there are, instead of pulling
+    # every row of the window into Python.
+    mine_rows = db.execute(
+        select(WeeklyAdherence.week_start, WeeklyAdherence.pct).where(
+            WeeklyAdherence.user_id == user.id,
+            WeeklyAdherence.week_start >= since,
         )
     ).all()
-    pool = {
-        f.receiver_id if f.requester_id == user.id else f.requester_id
-        for f in friendships
-        if f.duel_active
-    }
-
-    empty = {
+    result = {
         "gold": 0, "silver": 0, "bronze": 0,
         "current_rank": None, "current_total": 0,
         "best_rank": None, "best_total": None,
-        "pool": len(pool),
     }
-    if not pool:
-        return empty
+    if not mine_rows:
+        return result
 
-    rows = db.execute(
-        select(WeeklyAdherence.user_id, WeeklyAdherence.week_start, WeeklyAdherence.pct).where(
-            WeeklyAdherence.user_id.in_(pool | {user.id}),
-            WeeklyAdherence.week_start >= this_week - timedelta(weeks=AWARDS_WEEKS),
-        )
-    ).all()
+    totals = dict(
+        db.execute(
+            select(WeeklyAdherence.week_start, func.count())
+            .where(WeeklyAdherence.week_start >= since)
+            .group_by(WeeklyAdherence.week_start)
+        ).all()
+    )
 
-    by_week: dict[object, dict[int, int]] = {}
-    for uid, week_start, pct in rows:
-        by_week.setdefault(week_start, {})[uid] = pct
-
-    result = dict(empty)
-    for week_start, pcts in by_week.items():
-        mine = pcts.get(user.id)
-        if mine is None:
-            continue
-        total = len(pcts)
+    for week_start, mine in mine_rows:
+        total = totals.get(week_start, 1)
         # Same rules as the settings row: only *strictly better* pushes you down
-        # (a tie at the top shares first place), and a medal has to be earned —
-        # podium *and* top half, so third of four is not a bronze.
-        rank = sum(1 for pct in pcts.values() if pct > mine) + 1
+        # (a tie at the top shares first place), and the podium is the medal:
+        # 1st/2nd/3rd of the week are gold/silver/bronze, whatever the size.
+        better = db.scalar(
+            select(func.count()).select_from(WeeklyAdherence).where(
+                WeeklyAdherence.week_start == week_start, WeeklyAdherence.pct > mine,
+            )
+        ) or 0
+        rank = better + 1
         if week_start == this_week:
             result["current_rank"], result["current_total"] = rank, total
             continue  # the week in progress never mints metal
-        if rank <= 3 and rank * 2 <= total:
+        if rank <= 3:
             result[("gold", "silver", "bronze")[rank - 1]] += 1
         # Best ever: the highest place, and among equal places the one won
         # against the most people.

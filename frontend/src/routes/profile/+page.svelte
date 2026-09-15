@@ -106,13 +106,13 @@
 		{ id: 6, label: t('profile.ach30'),       desc: t('profile.ach30Desc'),       hue:  25, unlocked: () => streak >= 30 },
 	]);
 
-	// Podios semanales entre los amigos con los que dueles. Todo lo que rodea al
-	// avatar sale de aquí menos la racha, que ya la traía el perfil.
+	// Podios semanales en el ranking global (la misma población que «Tu
+	// constancia» en Ajustes). Todo lo que rodea al avatar sale de aquí menos la
+	// racha, que ya la traía el perfil.
 	interface Awards {
 		gold: number; silver: number; bronze: number;
 		current_rank: number | null; current_total: number;
 		best_rank: number | null; best_total: number | null;
-		pool: number;
 	}
 	let awards = $state<Awards | null>(null);
 
