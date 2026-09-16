@@ -7,22 +7,40 @@
 // aislada, sin datos reales.
 // ---------------------------------------------------------------------------
 
-// Estado de un día dentro de la semana del duelo.
-//   hit   ✓  registrado y dentro del objetivo (|kcal - objetivo efectivo| < 250)
-//   miss  ·  registrado pero fuera de rango
-//   empty ○  sin registrar
-//   joker 🍕 cheat day: comodín, sale del divisor (ni acierto ni fallo)
-//   today ◌  el día en curso, aún sin cerrar
-export type DuelDay = 'hit' | 'miss' | 'empty' | 'joker' | 'today';
+// Estado de un día dentro de la semana del duelo. Cada día contado puntúa
+// 0–100 (hasta 70 por calorías, hasta 30 por proteína) y el estado sale de
+// los puntos:
+//   perfect 🎯 90 o más
+//   hit     ✓  50 o más
+//   miss    ·  registrado, por debajo de 50
+//   empty   ○  sin registrar (cuenta como 0) o día futuro (no cuenta)
+//   joker   🍕 cheat day: comodín, sale del divisor
+//   today   ◌  el día en curso, aún sin cerrar
+export type DuelDay = 'perfect' | 'hit' | 'miss' | 'empty' | 'joker' | 'today';
+
+/** Por qué un día tiene los puntos que tiene. */
+export interface DuelDayDetail {
+	score: number;
+	kcal: number;
+	kcalGoal: number;
+	kcalPts: number;
+	protein: number;
+	proteinGoal: number;
+	proteinPts: number;
+}
 
 export interface DuelSide {
 	name: string;
 	avatarId: string | null;
 	avatarPhoto?: string | null;
-	/** % de adherencia de la semana (aciertos / días contados, comodín excluido). */
+	/** Media de puntos de los días contados (0–100, comodín excluido). */
 	pct: number | null; // null = semana sin empezar
 	/** 7 posiciones, lunes → domingo. */
 	days: DuelDay[];
+	/** Puntos de cada día; null donde no se puntúa (futuro, hoy, comodín). */
+	scores: (number | null)[];
+	/** Desglose de cada día; null cuando no hubo nada que registrar. */
+	details: (DuelDayDetail | null)[];
 }
 
 export type SeasonWinner = 'me' | 'them' | 'tie' | 'current';
@@ -49,7 +67,7 @@ export interface DuelData {
 
 /**
  * Duelo de ejemplo con estadísticas fijas pero nombres/avatares reales, para
- * que se vea con la persona de verdad. Coincide con el mockup: Tú 80% vs 60%,
+ * que se vea con la persona de verdad. Coincide con el mockup: Tú 80 vs 60,
  * semana 28, sábado de comodín, domingo en curso.
  */
 export function makeExampleDuel(
@@ -65,13 +83,33 @@ export function makeExampleDuel(
 			name: meName,
 			avatarId: meAvatar,
 			pct: 80,
-			days: ['hit', 'hit', 'hit', 'miss', 'hit', 'joker', 'today'],
+			days: ['perfect', 'hit', 'perfect', 'miss', 'hit', 'joker', 'today'],
+			scores: [100, 82, 95, 37, 76, null, null],
+			details: [
+				{ score: 100, kcal: 2010, kcalGoal: 2000, kcalPts: 70, protein: 165, proteinGoal: 162, proteinPts: 30 },
+				{ score: 82, kcal: 1800, kcalGoal: 2000, kcalPts: 52, protein: 170, proteinGoal: 162, proteinPts: 30 },
+				{ score: 95, kcal: 2060, kcalGoal: 2000, kcalPts: 70, protein: 135, proteinGoal: 162, proteinPts: 25 },
+				{ score: 37, kcal: 2430, kcalGoal: 2000, kcalPts: 12, protein: 135, proteinGoal: 162, proteinPts: 25 },
+				{ score: 76, kcal: 2210, kcalGoal: 2000, kcalPts: 51, protein: 140, proteinGoal: 162, proteinPts: 25 },
+				null,
+				null,
+			],
 		},
 		them: {
 			name: themName,
 			avatarId: themAvatar,
 			pct: 60,
-			days: ['hit', 'hit', 'miss', 'miss', 'hit', 'joker', 'today'],
+			days: ['hit', 'hit', 'miss', 'empty', 'perfect', 'joker', 'today'],
+			scores: [88, 71, 40, 0, 100, null, null],
+			details: [
+				{ score: 88, kcal: 1750, kcalGoal: 1800, kcalPts: 70, protein: 78, proteinGoal: 130, proteinPts: 18 },
+				{ score: 71, kcal: 1980, kcalGoal: 1800, kcalPts: 56, protein: 65, proteinGoal: 130, proteinPts: 15 },
+				{ score: 40, kcal: 2180, kcalGoal: 1800, kcalPts: 21, protein: 82, proteinGoal: 130, proteinPts: 19 },
+				null,
+				{ score: 100, kcal: 1820, kcalGoal: 1800, kcalPts: 70, protein: 132, proteinGoal: 130, proteinPts: 30 },
+				null,
+				null,
+			],
 		},
 		seasonsWon: { me: 4, them: 3 },
 		history: [

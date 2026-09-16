@@ -4,7 +4,7 @@
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Avatar, DuelBoard, Modal } from '$lib/components';
-	import type { DuelData } from '$lib/duel-example';
+	import type { DuelData, DuelSide } from '$lib/duel-example';
 	import { t } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -55,6 +55,15 @@
 	})());
 
 	// Duelo semanal de adherencia (datos reales del backend, gated por opt-in doble).
+	interface DuelApiDetail {
+		score: number; kcal: number; kcal_goal: number; kcal_pts: number;
+		protein: number; protein_goal: number; protein_pts: number;
+	}
+	interface DuelApiSide {
+		name: string; avatar_id: string | null; avatar_photo: string | null;
+		pct: number | null; days: string[];
+		scores: (number | null)[]; details: (DuelApiDetail | null)[];
+	}
 	interface DuelApi {
 		active: boolean;
 		my_opt_in: boolean;
@@ -62,8 +71,8 @@
 		friend_name: string;
 		week?: number;
 		phase?: string;
-		me?: { name: string; avatar_id: string | null; avatar_photo: string | null; pct: number | null; days: string[] };
-		them?: { name: string; avatar_id: string | null; avatar_photo: string | null; pct: number | null; days: string[] };
+		me?: DuelApiSide;
+		them?: DuelApiSide;
 		seasons_won?: { me: number; them: number };
 		history?: { week: number; winner: string }[];
 		streak_weeks?: number;
@@ -81,13 +90,24 @@
 	$effect(() => { if (userId) loadDuel(); });
 
 	// Map the snake_case API into the DuelData shape DuelBoard renders.
+	const toSide = (s: DuelApiSide): DuelSide => ({
+		name: s.name,
+		avatarId: s.avatar_id,
+		avatarPhoto: s.avatar_photo,
+		pct: s.pct,
+		days: s.days as DuelSide['days'],
+		scores: s.scores ?? [],
+		details: (s.details ?? []).map((d) =>
+			d ? { score: d.score, kcal: d.kcal, kcalGoal: d.kcal_goal, kcalPts: d.kcal_pts, protein: d.protein, proteinGoal: d.protein_goal, proteinPts: d.protein_pts } : null,
+		),
+	});
 	const duel = $derived<DuelData | null>(
 		duelApi?.active && duelApi.me && duelApi.them
 			? {
 				week: duelApi.week ?? 0,
 				phase: duelApi.phase ?? '',
-				me: { name: duelApi.me.name, avatarId: duelApi.me.avatar_id, avatarPhoto: duelApi.me.avatar_photo, pct: duelApi.me.pct, days: duelApi.me.days as DuelData['me']['days'] },
-				them: { name: duelApi.them.name, avatarId: duelApi.them.avatar_id, avatarPhoto: duelApi.them.avatar_photo, pct: duelApi.them.pct, days: duelApi.them.days as DuelData['them']['days'] },
+				me: toSide(duelApi.me),
+				them: toSide(duelApi.them),
 				seasonsWon: duelApi.seasons_won ?? { me: 0, them: 0 },
 				history: (duelApi.history ?? []) as DuelData['history'],
 				streakWeeks: duelApi.streak_weeks ?? 0,

@@ -15,12 +15,19 @@ from app.models import User
 from app.models.friendship import Friendship, FriendshipStatus
 from app.schemas.duel import (
     DuelBadgeOut,
+    DuelDayDetailOut,
     DuelHistoryOut,
     DuelOut,
     DuelSeasons,
     DuelSideOut,
 )
-from app.services.duel_service import PHOTO_FINISH_MARGIN, TIE_MARGIN, WeekResult, user_weeks
+from app.services.duel_service import (
+    PHOTO_FINISH_MARGIN,
+    TIE_MARGIN,
+    DayDetail,
+    WeekResult,
+    user_weeks,
+)
 
 router = APIRouter(prefix="/duel", tags=["duel"])
 
@@ -38,6 +45,7 @@ def _badges(
     my_past: list[WeekResult], their_past: list[WeekResult], winners: list[str]
 ) -> list[DuelBadgeOut]:
     """All lists are aligned and ordered newest→oldest."""
+    # Sweep: a full week with every day at least "en objetivo".
     swept = any(w.counted == 7 and w.hits == 7 for w in my_past)
     # Comeback: won a week right after losing the previous one.
     comeback = any(
@@ -244,6 +252,22 @@ def my_awards(
     return result
 
 
+def _detail(d: DayDetail | None) -> DuelDayDetailOut | None:
+    return DuelDayDetailOut(**d.__dict__) if d is not None else None
+
+
+def _side(name: str, who: User, week: WeekResult) -> DuelSideOut:
+    return DuelSideOut(
+        name=name,
+        avatar_id=who.avatar_id,
+        avatar_photo=who.avatar_photo,
+        pct=week.pct,
+        days=week.states,
+        scores=week.scores,
+        details=[_detail(d) for d in week.details],
+    )
+
+
 @router.get("/{friend_id}", response_model=DuelOut)
 def get_duel(
     friend_id: int,
@@ -317,10 +341,8 @@ def get_duel(
 
     base.week = iso_week
     base.phase = phase
-    base.me = DuelSideOut(name="Tú", avatar_id=user.avatar_id, avatar_photo=user.avatar_photo, pct=my_cur.pct, days=my_cur.states)
-    base.them = DuelSideOut(
-        name=friend.name, avatar_id=friend.avatar_id, avatar_photo=friend.avatar_photo, pct=their_cur.pct, days=their_cur.states
-    )
+    base.me = _side("Tú", user, my_cur)
+    base.them = _side(friend.name, friend, their_cur)
     base.seasons_won = seasons
     base.history = history
     base.streak_weeks = streak

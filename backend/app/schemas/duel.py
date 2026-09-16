@@ -1,12 +1,25 @@
 from pydantic import BaseModel
 
 
+class DuelDayDetailOut(BaseModel):
+    """Why a day got its points: what was eaten against the effective targets."""
+    score: int
+    kcal: int
+    kcal_goal: int
+    kcal_pts: int
+    protein: int
+    protein_goal: int
+    protein_pts: int
+
+
 class DuelSideOut(BaseModel):
     name: str
     avatar_id: str | None = None
     avatar_photo: str | None = None
-    pct: int | None
-    days: list[str]  # 7 states Mon→Sun: hit|miss|empty|joker|today
+    pct: int | None  # mean day score of the counted days, 0-100
+    days: list[str]  # 7 states Mon→Sun: perfect|hit|miss|empty|joker|today
+    scores: list[int | None]  # 7 day scores; None where the day isn't scored
+    details: list[DuelDayDetailOut | None]  # 7 breakdowns; None when nothing was logged
 
 
 class DuelBadgeOut(BaseModel):
