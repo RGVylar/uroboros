@@ -90,6 +90,7 @@
 	$effect(() => { if (userId) loadDuel(); });
 
 	// Map the snake_case API into the DuelData shape DuelBoard renders.
+	const PHASE = { start: 'duel.phase.start', last_day: 'duel.phase.last_day', ongoing: 'duel.phase.ongoing' } as const;
 	const toSide = (s: DuelApiSide): DuelSide => ({
 		name: s.name,
 		avatarId: s.avatar_id,
@@ -105,8 +106,8 @@
 		duelApi?.active && duelApi.me && duelApi.them
 			? {
 				week: duelApi.week ?? 0,
-				phase: duelApi.phase ?? '',
-				me: toSide(duelApi.me),
+				phase: t(PHASE[(duelApi.phase ?? 'ongoing') as keyof typeof PHASE] ?? 'duel.phase.ongoing'),
+				me: { ...toSide(duelApi.me), name: t('diary.you') },
 				them: toSide(duelApi.them),
 				seasonsWon: duelApi.seasons_won ?? { me: 0, them: 0 },
 				history: (duelApi.history ?? []) as DuelData['history'],
@@ -161,7 +162,7 @@
 		<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem;">
 			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
 				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;">{t('friendProfile.duelWeek')}</div>
-				<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">Tú {duel.seasonsWon.me} — {profile.name} {duel.seasonsWon.them}</div>
+				<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">{t('diary.you')} {duel.seasonsWon.me} — {profile.name} {duel.seasonsWon.them}</div>
 			</div>
 			<DuelBoard {duel} compact />
 			<button

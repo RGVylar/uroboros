@@ -13,7 +13,7 @@
 -->
 <script lang="ts">
 	import Avatar from './Avatar.svelte';
-	import type { DuelData, DuelDay, DuelSide } from '$lib/duel-example';
+	import type { DuelData, DuelDay, DuelDayDetail, DuelSide } from '$lib/duel-example';
 	import { t, fmtDate } from '$lib/i18n/index.svelte';
 
 	interface Props {
@@ -37,6 +37,24 @@
 	}
 	const pickedSide = $derived(picked ? duel[picked.who] : null);
 	const pickedDetail = $derived(picked && pickedSide ? pickedSide.details[picked.idx] : null);
+
+	// Hacia dónde se fueron las calorías un día en que restaron puntos. Dentro
+	// de la zona libre (70/70) no hay nada que señalar.
+	type Dir = 'over' | 'under' | null;
+	function kcalDir(d: DuelDayDetail | null): Dir {
+		if (!d || d.kcalPts >= 70) return null;
+		return d.kcal > d.kcalGoal ? 'over' : 'under';
+	}
+	const DIR_ARROW: Record<'over' | 'under', string> = { over: '↑', under: '↓' };
+	const KCAL_LINE = {
+		me: { over: 'duel.kcalOverMe', under: 'duel.kcalUnderMe' },
+		them: { over: 'duel.kcalOverThem', under: 'duel.kcalUnderThem' },
+	} as const;
+	function kcalLine(d: DuelDayDetail, who: Who): string {
+		const dir = kcalDir(d);
+		if (!dir) return t('duel.kcalDelta', { delta: signed(d.kcal - d.kcalGoal), pts: d.kcalPts });
+		return t(KCAL_LINE[who][dir], { delta: Math.abs(d.kcal - d.kcalGoal), pts: d.kcalPts });
+	}
 
 	// El que va por delante lidera (barra y % resaltados, coronita).
 	let meLeads = $derived((duel.me.pct ?? 0) >= (duel.them.pct ?? 0) && (duel.me.pct ?? 0) > 0);
@@ -80,21 +98,22 @@
 	<div class="who">{side.name}</div>
 	{#each side.days as d, i}
 		{@const score = side.scores[i]}
+		{@const dir = kcalDir(side.details[i])}
 		{#if compact}
-			<div class="dot {d}">
+			<div class="dot {d} {dir ?? ''}">
 				<span class="glyph">{DAY_GLYPH[d]}</span>
-				{#if score != null}<span class="pts">{score}</span>{/if}
+				{#if score != null}<span class="pts">{#if dir}<i class="arrow">{DIR_ARROW[dir]}</i>{/if}{score}</span>{/if}
 			</div>
 		{:else}
 			<button
 				type="button"
-				class="dot {d}"
+				class="dot {d} {dir ?? ''}"
 				class:picked={picked?.who === who && picked.idx === i}
 				disabled={score == null}
 				onclick={() => pick(who, i)}
 			>
 				<span class="glyph">{DAY_GLYPH[d]}</span>
-				{#if score != null}<span class="pts">{score}</span>{/if}
+				{#if score != null}<span class="pts">{#if dir}<i class="arrow">{DIR_ARROW[dir]}</i>{/if}{score}</span>{/if}
 			</button>
 		{/if}
 	{/each}
@@ -124,7 +143,8 @@
 			<div class="legend">
 				<i>{t('duel.perfect')}</i>
 				<i>{t('duel.inGoal')}</i>
-				<i>{t('duel.outOfRange')}</i>
+				<i class="over">{t('duel.over')}</i>
+				<i class="under">{t('duel.under')}</i>
 				<i>{t('duel.notLogged')}</i>
 				<i>{t('duel.joker')}</i>
 			</div>
@@ -136,10 +156,11 @@
 						{t('duel.dayPoints', { day: dayName(picked.idx), name: pickedSide.name, score: pickedSide.scores[picked.idx] ?? 0 })}
 					</div>
 					{#if pickedDetail}
+						{@const dir = kcalDir(pickedDetail)}
 						<div class="detail-grid">
 							<span class="dlabel">{t('duel.kcalRow')}</span>
-							<div class="dbar"><span style="width:{(pickedDetail.kcalPts / 70) * 100}%"></span></div>
-							<span class="dval">{t('duel.kcalDelta', { delta: signed(pickedDetail.kcal - pickedDetail.kcalGoal), pts: pickedDetail.kcalPts })}</span>
+							<div class="dbar {dir ?? ''}"><span style="width:{(pickedDetail.kcalPts / 70) * 100}%"></span></div>
+							<span class="dval {dir ?? ''}">{kcalLine(pickedDetail, picked.who)}</span>
 							<span class="dlabel">{t('duel.proteinRow')}</span>
 							<div class="dbar"><span style="width:{(pickedDetail.proteinPts / 30) * 100}%"></span></div>
 							<span class="dval">{t('duel.proteinOf', { protein: pickedDetail.protein, goal: pickedDetail.proteinGoal, pts: pickedDetail.proteinPts })}</span>
@@ -250,6 +271,11 @@
 	.glyph { line-height: 1; }
 	.pts { font-size: 0.58rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; opacity: 0.85; }
 	.compact .pts { font-size: 0.52rem; }
+	.dot.over { border-color: oklch(80% 0.17 45 / 0.55); }
+	.dot.under { border-color: oklch(78% 0.13 225 / 0.55); }
+	.dot.over .pts { color: var(--cal); opacity: 1; }
+	.dot.under .pts { color: var(--water); opacity: 1; }
+	.arrow { font-style: normal; font-size: 0.55rem; margin-right: 0.05rem; }
 	.dot.perfect { background: oklch(70% 0.18 165 / 0.34); border-color: oklch(80% 0.18 165 / 0.7); color: oklch(92% 0.16 160); font-weight: 700; }
 	.dot.hit { background: oklch(70% 0.18 165 / 0.18); border-color: oklch(75% 0.18 165 / 0.4); color: oklch(88% 0.16 160); font-weight: 700; }
 	.dot.miss { color: var(--text-faint); }
@@ -258,6 +284,8 @@
 	.dot.today { border-color: rgba(255,255,255,0.3); box-shadow: 0 0 0 2px rgba(255,255,255,0.06); }
 	.legend { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.75rem; font-size: 0.6rem; color: var(--text-faint); }
 	.legend i { font-style: normal; }
+	.legend i.over { color: var(--cal); }
+	.legend i.under { color: var(--water); }
 	.hint { margin-top: 0.75rem; font-size: 0.62rem; color: var(--text-faint); line-height: 1.4; }
 
 	.detail { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.07); }
@@ -265,8 +293,12 @@
 	.detail-grid { display: grid; grid-template-columns: auto 1fr auto; gap: 0.45rem 0.6rem; align-items: center; font-size: 0.68rem; }
 	.dlabel { color: var(--text-muted); }
 	.dval { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+	.dval.over { color: var(--cal); }
+	.dval.under { color: var(--water); }
 	.dbar { height: 6px; border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden; }
 	.dbar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--primary-dim), var(--primary)); transition: width 0.4s cubic-bezier(0.22,1,0.36,1); }
+	.dbar.over span { background: var(--cal); }
+	.dbar.under span { background: var(--water); }
 
 	.eyebrow { font-size: 0.6rem; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; }
 	.tally { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; margin-top: 0.9rem; }

@@ -336,12 +336,13 @@ def get_duel(
         history.append(DuelHistoryOut(week=wk, winner=winners[n - 1]))
     history.append(DuelHistoryOut(week=iso_week, winner="current"))
 
+    # Phase as a key — the client translates it (was a Spanish literal).
     weekday = today.weekday()
-    phase = "Empieza" if weekday == 0 else "Último día" if weekday == 6 else "En curso"
+    phase = "start" if weekday == 0 else "last_day" if weekday == 6 else "ongoing"
 
     base.week = iso_week
     base.phase = phase
-    base.me = _side("Tú", user, my_cur)
+    base.me = _side(user.name, user, my_cur)  # the client shows "Tú"/"You" for this side
     base.them = _side(friend.name, friend, their_cur)
     base.seasons_won = seasons
     base.history = history

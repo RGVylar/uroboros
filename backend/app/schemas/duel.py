@@ -48,7 +48,7 @@ class DuelOut(BaseModel):
     friend_name: str
     # Present only when active:
     week: int | None = None
-    phase: str | None = None
+    phase: str | None = None  # start|last_day|ongoing
     me: DuelSideOut | None = None
     them: DuelSideOut | None = None
     seasons_won: DuelSeasons | None = None
