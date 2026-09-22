@@ -38,6 +38,20 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
+def _mask_email(email: str) -> str:
+    """`rgvylar@gmail.com` → `r***@gmail.com`.
+
+    Telegram está fuera de la UE y la política de privacidad dice que no se
+    transfieren datos a terceros países, así que al chat de admin no puede
+    llegar el email en claro. Con la inicial y el dominio, más el `#id` que
+    acompaña a cada alerta, basta para saber de quién se trata.
+    """
+    local, sep, domain = email.partition("@")
+    if not sep:
+        return "***"
+    return f"{local[:1]}***@{domain}"
+
+
 async def send_alert(title: str, body: str) -> None:
     text = f"🔴 *[uroboros]* {title}\n\n{body}\n\n🕐 {_now()}"
     await _send(text)
@@ -56,12 +70,11 @@ async def send_error_alert(method: str, path: str, exc: Exception) -> None:
     await _send(text)
 
 
-async def send_new_user_alert(name: str, email: str, user_count: int) -> None:
-    """New user registered."""
+async def send_new_user_alert(user_id: int, email: str, user_count: int) -> None:
+    """New user registered. Sin nombre: no hace falta para nada y es dato personal."""
     text = (
-        f"👤 *[uroboros]* Nuevo usuario\n\n"
-        f"*Nombre:* {name}\n"
-        f"*Email:* `{email}`\n"
+        f"👤 *[uroboros]* Nuevo usuario `#{user_id}`\n\n"
+        f"*Email:* `{_mask_email(email)}`\n"
         f"*Total usuarios:* {user_count}\n\n"
         f"🕐 {_now()}"
     )
@@ -86,7 +99,7 @@ async def send_avatar_photo_alert(
     caption = (
         f"🖼 *[uroboros]* Foto de perfil nueva\n\n"
         f"*Usuario:* {name} (`#{user_id}`)\n"
-        f"*Email:* `{email}`\n\n"
+        f"*Email:* `{_mask_email(email)}`\n\n"
         f"🕐 {_now()}"
     )
 
@@ -178,7 +191,7 @@ async def send_report_alert(
         f"🚩 *[uroboros]* Denuncia de usuario\n\n"
         f"*Denuncia:* {reporter_name} (`#{reporter_id}`)\n"
         f"*Denunciado:* {reported_name} (`#{reported_id}`)\n"
-        f"*Email:* `{reported_email}`\n"
+        f"*Email:* `{_mask_email(reported_email)}`\n"
         f"*Motivo:* {reason or '— sin especificar —'}\n\n"
         f"_Ya están bloqueados entre sí._\n\n"
         f"🕐 {_now()}"

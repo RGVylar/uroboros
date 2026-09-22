@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 
-	const lastUpdated = '19 de mayo de 2026';
+	const lastUpdated = '22 de septiembre de 2026';
 	const contactEmail = 'mugrelore@gmail.com';
 	const appName = 'uroboros';
 	const devName = 'Ramón González Vignau';
@@ -110,7 +110,16 @@
 	<section style="margin-bottom:2rem;">
 		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">5. Dónde se almacenan tus datos</h2>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
-			Tus datos se almacenan en servidores ubicados en la Unión Europea. No se transfieren a terceros países. El servicio de email transaccional utilizado es <strong style="color:#fff;">Resend</strong> (resend.com), que actúa como encargado del tratamiento únicamente para el envío de emails del sistema.
+			Tus datos se almacenan en servidores ubicados en la <strong style="color:#fff;">Unión Europea</strong>. Nadie recibe tus datos para fines propios; los siguientes proveedores actúan como encargados del tratamiento, cada uno con un acceso limitado a lo que necesita:
+		</p>
+		<ul style="margin:0.75rem 0 0; padding-left:1.25rem; font-size:0.875rem; color:rgba(255,255,255,0.65); display:flex; flex-direction:column; gap:0.375rem;">
+			<li><strong style="color:#fff;">Resend</strong> (resend.com) — tu email, únicamente para enviarte los correos del sistema (recuperación de contraseña).</li>
+			<li><strong style="color:#fff;">Cloudflare</strong> — tu dirección IP y el tráfico cifrado, para el cifrado TLS y la protección frente a ataques. La IP no se almacena.</li>
+			<li><strong style="color:#fff;">Open Food Facts</strong> — solo el código de barras que escaneas, para devolver el producto. No se envía ningún dato tuyo.</li>
+			<li><strong style="color:#fff;">Telegram</strong> — canal privado de avisos al administrador. Recibe un identificador interno y tu email ofuscado (por ejemplo <em>r***@dominio.com</em>) al crear una cuenta; y, solo si subes una foto de perfil o si alguien presenta una denuncia, la imagen y el nombre implicados, para poder moderarlos.</li>
+		</ul>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Telegram tiene servidores fuera del Espacio Económico Europeo, de modo que esos avisos de moderación suponen una <strong style="color:#fff;">transferencia internacional</strong>, amparada en nuestro interés legítimo en mantener el servicio seguro (art. 6.1.f RGPD) y limitada al mínimo imprescindible. El resto de tus datos —diario, métricas, recetas, despensa— no sale de la Unión Europea en ningún caso.
 		</p>
 	</section>
 

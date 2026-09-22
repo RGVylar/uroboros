@@ -47,7 +47,7 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
     db.commit()
     db.refresh(user)
     user_count = db.scalar(select(func.count()).select_from(User)) or 0
-    await send_new_user_alert(user.name, user.email, user_count)
+    await send_new_user_alert(user.id, user.email, user_count)
     return TokenResponse(access_token=create_access_token(user.id), user=UserOut.model_validate(user))
 
 
