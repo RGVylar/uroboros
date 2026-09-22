@@ -961,6 +961,9 @@ export const pt: Dict = {
 	'recipes.wholeRecipe': 'Receita inteira',
 	'recipes.portionGrams': 'Dose em gramas',
 	'recipes.portionSummary': '{grams} g ≈ {kcal} kcal · P{p} H{c} G{f}',
+	'recipes.adjustIngredients': 'Ajustar ingredientes',
+	'recipes.adjustHint': 'Altera o que tomas hoje de cada ingrediente. Põe 0 para o saltar. A receita fica como está.',
+	'recipes.adjustDefault': 'Receita: {qty}',
 	'recipes.okCopy': 'Receita copiada para a área de transferência',
 	'recipes.errCopy': 'Não foi possível copiar',
 

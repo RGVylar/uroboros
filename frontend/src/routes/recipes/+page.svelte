@@ -6,7 +6,7 @@
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
 	import { t, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
-	import { Modal } from '$lib/components';
+	import { Modal, RecipeAmount } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 
@@ -239,6 +239,8 @@
 	let logging = $state(false);
 	// null = la receta entera; un número = esa ración en gramos del plato hecho.
 	let logGrams: number | null = $state(null);
+	// Gramos por ingrediente (id → g) cuando se retoca a mano; null = sin ajustar.
+	let logOverrides = $state<Record<number, number> | null>(null);
 
 	// Igual que al añadir un alimento: la hora exacta solo importa hoy (usamos el
 	// instante actual); para días pasados se registra al mediodía por defecto.
@@ -306,11 +308,17 @@
 		logDate = new Date().toISOString().slice(0, 10);
 		logPendingRecipe = recipe;
 		logGrams = null;
+		logOverrides = null;
 		shareMode = null;
 	}
 
+	// Con ajuste manual y todo a 0 no hay nada que registrar.
+	let logEmpty = $derived(
+		logOverrides !== null && Object.values(logOverrides).every(g => g <= 0)
+	);
+
 	async function confirmLog() {
-		if (!logPendingRecipe) return;
+		if (!logPendingRecipe || logEmpty) return;
 		logging = true;
 		error = '';
 		try {
@@ -318,7 +326,10 @@
 			// las entradas no contaban como "receta" y no salían en frecuentes.
 			await api.post<DiaryEntry[]>('/diary/recipe', {
 				recipe_id: logPendingRecipe.id,
-				grams: logGrams || null,
+				grams: logOverrides ? null : logGrams || null,
+				ingredients: logOverrides
+					? Object.entries(logOverrides).map(([id, grams]) => ({ ingredient_id: Number(id), grams }))
+					: null,
 				meal_type: logMealType,
 				consumed_at: consumedAt(logDate),
 				also_for_user_id: shareMode === 'also' ? partner?.id : null,
@@ -747,7 +758,6 @@
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}
 	<Modal onClose={() => logPendingRecipe = null} title={t('recipes.whichMeal')} subtitle={logPendingRecipe.name}>
-		{@const lm = scaledMacros(logPendingRecipe, logGrams ?? logPendingRecipe.weight)}
 		<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.4rem; margin-bottom:1rem;">
 			{#each MEAL_ORDER as mt}
 				<button
@@ -760,31 +770,15 @@
 			{/each}
 		</div>
 
-		<!-- Cantidad: la receta entera o una ración en gramos del plato hecho -->
+		<!-- Cantidad: toda, una ración en gramos del plato hecho, o ingrediente a ingrediente -->
 		<div style="margin-bottom:1rem;">
 			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('recipes.howMuch')}</div>
-			<div style="display:flex; gap:0.5rem; align-items:center;">
-				<button
-					class="chip"
-					class:active={logGrams === null}
-					onclick={() => logGrams = null}
-					style="font-size:0.78rem; flex:1;">
-					{t('recipes.wholeRecipe')} · {Math.round(logPendingRecipe.weight)} g
-				</button>
-				<input
-					type="number"
-					min="1"
-					step="1"
-					inputmode="numeric"
-					placeholder={t('recipes.portionGrams')}
-					bind:value={logGrams}
-					class="date-input"
-					style="flex:1; min-width:0;"
-				/>
-			</div>
-			<div style="font-size:0.75rem; color:rgba(255,255,255,0.55); margin-top:0.4rem; padding:0 0.25rem;">
-				{t('recipes.portionSummary', { grams: Math.round(logGrams ?? logPendingRecipe.weight), kcal: lm.cal, p: lm.p, c: lm.c, f: lm.f })}
-			</div>
+			<RecipeAmount
+				ingredients={logPendingRecipe.ingredients}
+				weight={logPendingRecipe.weight}
+				bind:grams={logGrams}
+				bind:overrides={logOverrides}
+			/>
 		</div>
 
 		<!-- Fecha: por defecto hoy, pero se puede elegir otro día -->
@@ -871,7 +865,7 @@
 
 		<div style="display:flex; gap:0.5rem;">
 			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">{t('common.cancel')}</button>
-			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging || (logGrams !== null && !(logGrams > 0))} style="flex:2;">
+			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging || logEmpty || (logGrams !== null && !(logGrams > 0))} style="flex:2;">
 				{#if logging}{t('recipes.logging')}{:else if shareMode === 'also'}{t('recipes.logBoth')}{:else if shareMode === 'only'}{t('recipes.logOnly', { name: partner?.name ?? '' })}{:else}{t('recipes.log')}{/if}
 			</button>
 		</div>

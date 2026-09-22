@@ -263,20 +263,41 @@ def log_recipe(
     # es la receta entera (factor 1), como siempre.
     factor = 1.0
     if payload.grams is not None:
+        if payload.ingredients is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Use grams or ingredients, not both"
+            )
         if recipe.weight <= 0:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Recipe has no weight")
         factor = payload.grams / recipe.weight
 
+    # Retoque por ingrediente: gramos fijos para este registro, 0 = se salta.
+    overrides: dict[int, float] = {}
+    if payload.ingredients is not None:
+        known = {ing.id for ing in recipe.ingredients}
+        for o in payload.ingredients:
+            if o.ingredient_id not in known:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST, f"Ingredient {o.ingredient_id} not in recipe"
+                )
+            overrides[o.ingredient_id] = o.grams
+
     entries: list[DiaryEntry] = []
     for uid in user_ids:
         for ing in recipe.ingredients:
+            grams = overrides.get(ing.id, ing.grams * factor)
+            if grams <= 0:
+                continue
             product = db.get(Product, ing.product_id)
             if not product:
                 continue
             entries.append(_build_entry(
-                uid, product, ing.grams * factor, payload.consumed_at, meal_type,
+                uid, product, grams, payload.consumed_at, meal_type,
                 recipe_id=recipe.id,
             ))
+
+    if not entries:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nothing to log")
 
     db.add_all(entries)
     db.commit()

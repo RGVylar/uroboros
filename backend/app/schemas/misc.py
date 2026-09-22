@@ -161,6 +161,12 @@ class FrequentRecipeOut(BaseModel):
         from_attributes = True
 
 
+class DiaryRecipeIngredientIn(BaseModel):
+    ingredient_id: int
+    # Gramos internos de ESTE ingrediente en este registro. 0 = hoy no lo tomo.
+    grams: float = Field(ge=0)
+
+
 class DiaryRecipeCreate(BaseModel):
     recipe_id: int
     meal_type: str
@@ -170,5 +176,10 @@ class DiaryRecipeCreate(BaseModel):
     # teniendo una entrada por ingrediente y los macros salen de los mismos
     # productos de siempre.
     grams: float | None = Field(default=None, gt=0)
+    # Ajuste ingrediente a ingrediente: "hoy menos huevo y más pan". Cada entrada
+    # fija los gramos de un ingrediente solo para este registro; los que no se
+    # mencionan van con lo que dice la receta. Excluyente con `grams`: o se
+    # escala el plato entero o se retoca pieza a pieza, no las dos cosas.
+    ingredients: list[DiaryRecipeIngredientIn] | None = None
     also_for_user_id: int | None = None
     only_for_user_id: int | None = None

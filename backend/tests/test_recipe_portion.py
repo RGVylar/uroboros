@@ -161,6 +161,74 @@ def test_zero_grams_is_rejected(client, db, make_user):
     assert r.status_code == 422
 
 
+def test_ingredient_overrides_change_only_the_named_ones(client, db, make_user):
+    """Hoy menos pollo y el arroz como siempre."""
+    ruben = make_user("Ruben")
+    pollo, arroz = _product(db, "Pollo", 120), _product(db, "Arroz", 350)
+    recipe = _recipe(client, ruben, [
+        {"product_id": pollo.id, "grams": 200},
+        {"product_id": arroz.id, "grams": 100},
+    ], total_weight=250)
+    pollo_ing = next(i for i in recipe["ingredients"] if i["product_id"] == pollo.id)
+
+    entries = _log(client, ruben, recipe["id"],
+                   ingredients=[{"ingredient_id": pollo_ing["id"], "grams": 150}])
+    by_product = {e["product_id"]: e for e in entries}
+    assert by_product[pollo.id]["grams"] == 150
+    assert by_product[pollo.id]["calories"] == 180
+    assert by_product[arroz.id]["grams"] == 100
+    from app.models import DiaryEntry
+    assert {e.recipe_id for e in db.query(DiaryEntry)} == {recipe["id"]}
+
+
+def test_zero_override_skips_that_ingredient(client, db, make_user):
+    ruben = make_user("Ruben")
+    pollo, arroz = _product(db, "Pollo", 120), _product(db, "Arroz", 350)
+    recipe = _recipe(client, ruben, [
+        {"product_id": pollo.id, "grams": 200},
+        {"product_id": arroz.id, "grams": 100},
+    ])
+    arroz_ing = next(i for i in recipe["ingredients"] if i["product_id"] == arroz.id)
+
+    entries = _log(client, ruben, recipe["id"],
+                   ingredients=[{"ingredient_id": arroz_ing["id"], "grams": 0}])
+    assert [e["product_id"] for e in entries] == [pollo.id]
+
+    # Quitarlo todo no registra nada.
+    pollo_ing = next(i for i in recipe["ingredients"] if i["product_id"] == pollo.id)
+    r = client.post(f"{API}/diary/recipe", json={
+        "recipe_id": recipe["id"], "meal_type": "lunch",
+        "consumed_at": "2026-09-14T14:00:00Z",
+        "ingredients": [{"ingredient_id": pollo_ing["id"], "grams": 0},
+                        {"ingredient_id": arroz_ing["id"], "grams": 0}],
+    }, headers=auth(ruben))
+    assert r.status_code == 400
+
+
+def test_overrides_are_exclusive_with_portion_grams_and_validated(client, db, make_user):
+    ruben = make_user("Ruben")
+    pollo = _product(db, "Pollo", 120)
+    recipe = _recipe(client, ruben, [{"product_id": pollo.id, "grams": 200}])
+    ing_id = recipe["ingredients"][0]["id"]
+    base = {"recipe_id": recipe["id"], "meal_type": "lunch",
+            "consumed_at": "2026-09-14T14:00:00Z"}
+
+    r = client.post(f"{API}/diary/recipe", json={
+        **base, "grams": 100, "ingredients": [{"ingredient_id": ing_id, "grams": 50}],
+    }, headers=auth(ruben))
+    assert r.status_code == 400
+
+    r = client.post(f"{API}/diary/recipe", json={
+        **base, "ingredients": [{"ingredient_id": ing_id + 999, "grams": 50}],
+    }, headers=auth(ruben))
+    assert r.status_code == 400
+
+    r = client.post(f"{API}/diary/recipe", json={
+        **base, "ingredients": [{"ingredient_id": ing_id, "grams": -1}],
+    }, headers=auth(ruben))
+    assert r.status_code == 422
+
+
 def test_a_shared_recipe_can_be_logged_by_the_friend(client, db, make_user):
     """Lo que pasó al desplegar: 'Not your recipe' al registrar una de un amigo."""
     ruben, silva, nadie = make_user("Ruben"), make_user("Silva"), make_user("Nadie")

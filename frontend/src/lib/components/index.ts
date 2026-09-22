@@ -14,3 +14,4 @@ export { default as Avatar } from './Avatar.svelte';
 export { default as QrCode } from './QrCode.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as DuelBoard } from './DuelBoard.svelte';
+export { default as RecipeAmount } from './RecipeAmount.svelte';

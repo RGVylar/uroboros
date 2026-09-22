@@ -959,6 +959,9 @@ export const en: Dict = {
 	'recipes.wholeRecipe': 'Whole recipe',
 	'recipes.portionGrams': 'Portion in grams',
 	'recipes.portionSummary': '{grams} g ≈ {kcal} kcal · P{p} C{c} F{f}',
+	'recipes.adjustIngredients': 'Adjust ingredients',
+	'recipes.adjustHint': "Change how much of each ingredient you're having today. Set 0 to skip it. The recipe itself stays as is.",
+	'recipes.adjustDefault': 'Recipe: {qty}',
 	'recipes.okCopy': 'Recipe copied to clipboard',
 	'recipes.errCopy': "Couldn't copy to clipboard",
 

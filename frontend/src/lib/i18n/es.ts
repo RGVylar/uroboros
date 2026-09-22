@@ -962,6 +962,9 @@ export const es = {
 	'recipes.wholeRecipe': 'Toda la receta',
 	'recipes.portionGrams': 'Ración en gramos',
 	'recipes.portionSummary': '{grams} g ≈ {kcal} kcal · P{p} C{c} G{f}',
+	'recipes.adjustIngredients': 'Ajustar ingredientes',
+	'recipes.adjustHint': 'Cambia lo que tomas hoy de cada ingrediente. Pon 0 para saltarlo. La receta no se toca.',
+	'recipes.adjustDefault': 'Receta: {qty}',
 	'recipes.okCopy': 'Receta copiada al portapapeles',
 	'recipes.errCopy': 'No se pudo copiar al portapapeles',
 
