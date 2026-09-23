@@ -4,7 +4,10 @@
 
 	const lastUpdated = '23 de septiembre de 2026';
 	const contactEmail = 'mugrelore@gmail.com';
-	const appName = 'uroboros';
+	// Tal como aparecen en la ficha de Play Store: Google exige que esta página
+	// referencie el nombre de la app o del desarrollador para poder identificarla.
+	const appName = 'Uroboros: calorías y macros';
+	const devName = 'Ramón González Vignau';
 
 	// Google Play exige dos caminos para borrar la cuenta: uno dentro de la app y
 	// esta página, pensada para quien ya la desinstaló y no puede llegar a Ajustes.
@@ -42,7 +45,7 @@
 	</div>
 
 	<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:16px; padding:1.25rem; margin-bottom:1.5rem; font-size:0.875rem; color:rgba(255,255,255,0.7);">
-		Puedes eliminar tu cuenta de <strong style="color:#fff;">{appName}</strong> y todos tus datos cuando quieras. Es irreversible: no hay forma de recuperarlos después.
+		Puedes eliminar tu cuenta de <strong style="color:#fff;">{appName}</strong>, la aplicación de <strong style="color:#fff;">{devName}</strong>, y todos tus datos cuando quieras. Es irreversible: no hay forma de recuperarlos después.
 	</div>
 
 	<section style="margin-bottom:2rem;">
@@ -92,14 +95,30 @@
 	</section>
 
 	<section style="margin-bottom:2rem;">
-		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">4. Antes de decidir</h2>
+		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">4. Cuánto tarda en desaparecer del todo</h2>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			En la base de datos el borrado es <strong style="color:#fff;">inmediato</strong>, y tu foto de perfil se elimina del disco en ese mismo momento.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			Hacemos una <strong style="color:#fff;">copia de seguridad cada noche</strong> y la conservamos 30 días, para poder recuperar el servicio si algo se rompe. Eso significa que durante un máximo de <strong style="color:#fff;">30 días</strong> tus datos pueden seguir existiendo dentro de esas copias, a las que no se accede salvo para restaurar el sistema tras una incidencia. Pasado ese plazo, la copia que te contenía se destruye y no queda ningún rastro tuyo.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			No conservamos ninguna otra copia, ni versiones anonimizadas o agregadas de tus datos, ni te enviamos nada después de eliminar la cuenta.
+		</p>
+	</section>
+
+	<section style="margin-bottom:2rem;">
+		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">5. Borrar solo una parte, sin eliminar la cuenta</h2>
+		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			No hace falta eliminar la cuenta para deshacerte de tus datos. Desde la propia app puedes borrar, uno a uno o de golpe, tus comidas del diario, tus pesos y medidas, tus recetas, la despensa y la lista de la compra, tus alergias, las sesiones de ejercicio, los suplementos, tu foto de perfil y tus relaciones con otras personas. El borrado es inmediato en todos los casos.
+		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			Si lo que te molesta son los avisos, puedes apagarlos todos en <strong style="color:#fff;">Ajustes → Notificaciones</strong> sin perder tu historial. Y si solo quieres dejar de compartir con alguien, en <strong style="color:#fff;">Amigos</strong> puedes revocar el acceso o bloquear a esa persona, y tu cuenta sigue intacta.
 		</p>
 	</section>
 
 	<section style="margin-bottom:2rem;">
-		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">5. Más información</h2>
+		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">6. Más información</h2>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			Qué datos tratamos y por qué está en la <a href="/privacy" style="color:oklch(85% 0.15 160);">Política de Privacidad</a>. Las condiciones de uso, en los <a href="/terms" style="color:oklch(85% 0.15 160);">Términos del Servicio</a>.
 		</p>
