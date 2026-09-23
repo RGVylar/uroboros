@@ -7,11 +7,18 @@ export const APP_VERSION = '1.15';
 const LS_KEY = 'uro_changelog_seen';
 
 // Where the "Actualizar" nudge sends the user. On Android a reload does nothing
-// (the frontend is bundled in the APK), so we point at the newest build. This
-// backend endpoint lists the Nextcloud folder, finds the most recent APK and
-// redirects to its download — so the URL is stable even though the filename
-// changes each build. Swap for the Play Store URL once published there.
-export const UPDATE_URL = 'https://comida.mugrelore.com/api/download/latest-apk';
+// (the frontend is bundled in the APK), so it has to go somewhere that can
+// install a newer build — and ese sitio sólo puede ser Play.
+//
+// Apuntaba al APK de Nextcloud (`/api/download/latest-apk`) mientras la
+// distribución era por sideload. Eso NO puede viajar en la build que se sube a
+// Play: la política Device and Network Abuse prohíbe que una app distribuida por
+// Play se actualice por cualquier vía que no sea Play. Ese endpoint sigue vivo
+// para la landing /unete, pero la app ya no lo enlaza.
+//
+// La URL es válida desde ya: el `id` es el applicationId, que es irreversible.
+// En Android abre la app de Play directamente.
+export const UPDATE_URL = 'https://play.google.com/store/apps/details?id=com.uroboros.app';
 
 export type ChangeType = 'nuevo' | 'mejora' | 'fix';
 

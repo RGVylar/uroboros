@@ -64,8 +64,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- Local notifications: exact alarms (Android 12+) and permission prompt (Android 13+) -->
+    <!-- Recordatorios locales: alarma (Android 12+) y permiso de aviso (Android 13+).
+         NO declarar USE_EXACT_ALARM: Play lo restringe a apps de alarma, temporizador
+         o calendario, y declararlo sin encajar en esos casos es motivo de rechazo.
+         Tampoco hace falta — son recordatorios diarios de comidas, agua y racha, que
+         toleran de sobra unos minutos de margen. SCHEDULE_EXACT_ALARM no está
+         restringido por política y lo concede el usuario. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
