@@ -67,6 +67,36 @@ def _f(x: object) -> float:
         return 0.0
 
 
+_NUTRITION_KEYS = (
+    "energy-kcal_100g", "energy-kj_100g", "energy_100g",
+    "proteins_100g", "carbohydrates_100g", "fat_100g",
+)
+
+
+def has_nutrition(n: dict) -> bool:
+    return any(n.get(k) is not None for k in _NUTRITION_KEYS)
+
+
+def kcal_per_100g(n: dict) -> float:
+    """Muchas fichas de OFF traen la energía solo en kJ, o las kcal a 0 con los
+    macros rellenos; leer solo `energy-kcal_100g` las guardaba a 0 kcal."""
+    if n.get("energy-kcal_100g") is not None:
+        kcal = _f(n.get("energy-kcal_100g"))
+    elif n.get("energy-kj_100g") is not None:
+        kcal = _f(n.get("energy-kj_100g")) / 4.184
+    elif n.get("energy_100g") is not None:  # en OFF, energy_100g va en kJ
+        kcal = _f(n.get("energy_100g")) / 4.184
+    else:
+        kcal = _f(n.get("energy-kcal"))
+    if kcal <= 0:
+        kcal = macro_kcal(_f(n.get("proteins_100g")), _f(n.get("carbohydrates_100g")), _f(n.get("fat_100g")))
+    return round(kcal, 1)
+
+
+def macro_kcal(protein: float, carbs: float, fat: float) -> float:
+    return 4 * protein + 4 * carbs + 9 * fat
+
+
 HEADERS = {
     "User-Agent": "Uroboros/0.2 (self-hosted macro tracker; https://github.com/RGVylar/uroboros)"
 }
@@ -91,12 +121,16 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
     for p in data.get("products", [])[:limit]:
         try:
             n = p.get("nutriments", {}) or {}
-            name = p.get("product_name") or "Unknown"
+            name = (p.get("product_name") or "").strip()
+            # Sin nombre o sin ningún dato nutricional no hay nada que registrar:
+            # en la búsqueda solo sale como ruido a 0 kcal.
+            if not name or not has_nutrition(n):
+                continue
             products.append(OFFProduct(
                 barcode=p.get("code") or "",
-                name=name.strip() or "Unknown",
+                name=name,
                 brand=p.get("brands") or None,
-                kcal=_f(n.get("energy-kcal_100g") or n.get("energy-kcal")),
+                kcal=kcal_per_100g(n),
                 protein=_f(n.get("proteins_100g")),
                 carbs=_f(n.get("carbohydrates_100g")),
                 fat=_f(n.get("fat_100g")),
@@ -124,7 +158,7 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
         barcode=p.get("code") or barcode,
         name=name.strip() or "Unknown",
         brand=(p.get("brands") or None),
-        kcal=_f(n.get("energy-kcal_100g") or n.get("energy-kcal")),
+        kcal=kcal_per_100g(n),
         protein=_f(n.get("proteins_100g")),
         carbs=_f(n.get("carbohydrates_100g")),
         fat=_f(n.get("fat_100g")),

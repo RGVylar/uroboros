@@ -129,6 +129,33 @@ def _relevance(name: str, brand: str | None, q: str) -> int:
     return 0
 
 
+def _is_empty_off(p: Product) -> bool:
+    # Fichas de OFF guardadas sin ningún dato nutricional (anteriores al filtro
+    # del importador). Siguen existiendo por si hay diario que las usa, pero en
+    # la búsqueda solo son ruido a 0 kcal. Por código de barras sí se encuentran.
+    return p.source == ProductSource.openfoodfacts and not (
+        p.calories_per_100g or p.protein_per_100g or p.carbs_per_100g or p.fat_per_100g
+    )
+
+
+def _dedup(products: list[Product], seen: set[tuple]) -> list[Product]:
+    """El mismo producto en varios formatos (distinto código de barras, mismos
+    valores) sale repetido; para registrar da igual cuál, se queda el primero,
+    que es el mejor puntuado."""
+    out = []
+    for p in products:
+        key = (
+            " ".join(p.name.lower().split()), " ".join((p.brand or "").lower().split()),
+            round(p.calories_per_100g), round(p.protein_per_100g),
+            round(p.carbs_per_100g), round(p.fat_per_100g),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(p)
+    return out
+
+
 @router.get("", response_model=list[ProductOut])
 async def search_products(
     q: str = Query(min_length=1),
@@ -172,6 +199,8 @@ async def search_products(
         return (-(rel + boost), p.name.lower())
 
     local_all.sort(key=_sort_key)
+    seen: set[tuple] = set()
+    local_all = _dedup([p for p in local_all if not _is_empty_off(p)], seen)
 
     # Paginate on the ranked list
     local = local_all[offset: offset + limit]
@@ -226,8 +255,9 @@ async def search_products(
             db.refresh(p)
 
     # Sort OFF results by relevance too before appending
-    off_combined = existing_off + new_off
+    off_combined = [p for p in existing_off + new_off if not _is_empty_off(p)]
     off_combined.sort(key=lambda p: (-_relevance(p.name, p.brand, q), p.name.lower()))
+    off_combined = _dedup(off_combined, seen)
 
     return local + off_combined[:remaining]
 
