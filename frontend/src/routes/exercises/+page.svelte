@@ -188,7 +188,7 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('ex.title')}</h1>
+		<h1 class="uro-title">{t('ex.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('ex.subtitle')}</div>
 	</div>
 </div>
@@ -211,14 +211,14 @@
 					transform="rotate(-90 50 50)"
 					style="filter: drop-shadow(0 0 6px oklch(75% 0.2 30 / 0.6)); transition: stroke-dasharray 0.4s ease;"/>
 				<!-- inner text -->
-				<text x="50" y="46" text-anchor="middle" fill="#fff" font-size="20" font-family="'Lora','Georgia',serif" font-weight="400">{totalKcal}</text>
+				<text x="50" y="46" text-anchor="middle" fill="#fff" font-size="20" font-family="'Instrument Serif', Georgia, serif" font-weight="400">{totalKcal}</text>
 				<text x="50" y="58" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Geist,sans-serif" letter-spacing="1">KCAL</text>
 			</svg>
 		</div>
 		<!-- Stats -->
 		<div style="flex:1;">
 			<div style="font-size:0.625rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700;">{t('ex.burnedToday')}</div>
-			<div style="font-size:2.25rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin-top:0.25rem; font-family:'Lora','Georgia',serif;">
+			<div style="font-size:2.25rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin-top:0.25rem; font-family:var(--uro-font-serif);">
 				{totalKcal} <span style="font-size:0.875rem; color:rgba(255,255,255,0.5); font-weight:400;">kcal</span>
 			</div>
 			<div style="display:flex; gap:0.625rem; margin-top:0.625rem; font-size:0.6875rem;">
@@ -354,7 +354,7 @@
 		<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.125rem;">
 			<div style="font-size:2.5rem;">{exerciseEmoji(showDetail.name)}</div>
 			<div>
-				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:'Lora','Georgia',serif;">{showDetail.name}</div>
+				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:var(--uro-font-serif);">{showDetail.name}</div>
 				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{showDetail.kcal_per_unit} kcal / {exerciseUnit(showDetail.unit)}</div>
 			</div>
 		</div>
@@ -380,7 +380,7 @@
 			<div style="flex:1; padding:0.875rem 1rem; border-radius:18px; background:oklch(75% 0.18 30 / 0.12); border:1px solid oklch(75% 0.18 30 / 0.25);">
 				<div style="font-size:0.5625rem; letter-spacing:0.1em; color:rgba(255,255,255,0.5); text-transform:uppercase; font-weight:700;">{t('ex.estimated')}</div>
 				<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.375rem;">
-					<div style="font-size:2rem; font-weight:400; color:#fff; letter-spacing:-0.04em; font-family:'Lora','Georgia',serif;">{Math.round(showDetail.kcal_per_unit * detailQuantity)}</div>
+					<div style="font-size:2rem; font-weight:400; color:#fff; letter-spacing:-0.04em; font-family:var(--uro-font-serif);">{Math.round(showDetail.kcal_per_unit * detailQuantity)}</div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
 				</div>
 			</div>

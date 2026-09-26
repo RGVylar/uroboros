@@ -34,7 +34,7 @@
 
 	<div style="margin-bottom:2rem;">
 		<div style="font-size:0.75rem; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">Legal</div>
-		<h1 style="font-size:2rem; font-weight:400; font-family:'Lora','Georgia',serif; letter-spacing:-0.04em; margin:0 0 0.5rem;">Términos del Servicio</h1>
+		<h1 style="font-size:2rem; font-weight:400; font-family:var(--uro-font-serif); letter-spacing:-0.04em; margin:0 0 0.5rem;">Términos del Servicio</h1>
 		<div style="font-size:0.8125rem; color:rgba(255,255,255,0.45);">Última actualización: {lastUpdated}</div>
 	</div>
 

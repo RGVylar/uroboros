@@ -276,7 +276,7 @@
 	.center { text-align: center; }
 
 	.serif {
-		font-family: 'Instrument Serif', 'Lora', Georgia, serif;
+		font-family: var(--uro-font-serif);
 		font-weight: 400;
 		font-size: 30px;
 		letter-spacing: -0.6px;

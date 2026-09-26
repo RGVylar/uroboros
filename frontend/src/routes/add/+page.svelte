@@ -1354,8 +1354,8 @@
 			</svg>
 		</button>
 		<div>
-			<div class="header-eyebrow">{t('add.eyebrow')}</div>
-			<div class="header-title">{t('add.title')}</div>
+			<h1 class="uro-title">{t('add.title')}</h1>
+			<div class="header-eyebrow" style="margin-top:0.25rem;">{t('add.eyebrow')}</div>
 		</div>
 	</div>
 
@@ -1983,13 +1983,6 @@
 		text-transform: uppercase;
 		font-weight: 600;
 	}
-	.header-title {
-		font-size: 1.25rem;
-		font-weight: 800;
-		color: #fff;
-		letter-spacing: -0.02em;
-	}
-
 	/* ── Glass button (back arrow) ── */
 	.glass-btn {
 		width: 36px;

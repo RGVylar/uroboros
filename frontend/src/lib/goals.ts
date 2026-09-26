@@ -31,3 +31,17 @@ export function adjustGoalsForExercise(goals: Goals, burned: number): Goals {
 
 	return goals;
 }
+
+// Puntuación 0–100 de un día registrado: la misma regla que el duelo y el
+// ranking (backend/app/services/duel_service.py → day_score). 70 puntos por
+// kcal (completos a ±100 del objetivo, a 0 a ±500, simétrico) y 30 por llegar
+// a la proteína.
+export const HIT_SCORE = 50;
+export function dayScore(kcal: number, protein: number, goals: Goals, burned: number): number {
+	if (!goals.kcal) return 100;
+	const g = adjustGoalsForExercise(goals, burned);
+	const over = Math.max(0, Math.abs(kcal - g.kcal) - 100);
+	const kcalPts = Math.round(70 * Math.max(0, 1 - over / 400));
+	const protPts = g.protein > 0 ? Math.round(30 * Math.min(1, protein / g.protein)) : 30;
+	return kcalPts + protPts;
+}

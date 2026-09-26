@@ -263,7 +263,7 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('friends.title')}</h1>
+		<h1 class="uro-title">{t('friends.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('friends.connected', { count: friends.length })}</div>
 	</div>
 	<button onclick={() => { showAddForm = !showAddForm; if (showAddForm) loadMyCode(); }} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>

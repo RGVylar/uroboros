@@ -233,7 +233,7 @@
 
 	.season { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
 	.compact .season { margin-bottom: 0.75rem; }
-	.season-title { font-size: 1.15rem; font-weight: 400; letter-spacing: -0.03em; font-family: 'Lora', Georgia, serif; }
+	.season-title { font-size: 1.15rem; font-weight: 400; letter-spacing: -0.03em; font-family: var(--uro-font-serif); }
 	.compact .season-title { font-size: 0.95rem; }
 	.season-phase {
 		font-size: 0.6rem; font-weight: 700; color: var(--cal);

@@ -9,6 +9,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { fmtQty } from '$lib/drink';
+	import { dayScore, HIT_SCORE } from '$lib/goals';
 	import { t, fmtDate, fmtTime as fmtTimeI18n, fmtNumber, monthNames, weekdayInitials, weekdayShort } from '$lib/i18n/index.svelte';
 
 	function download(url: string, filename: string) {
@@ -119,12 +120,13 @@
 	let moodDates: Map<string, number> = $state(new Map());
 
 	// Goals (for reference line)
-	let goals: Goals | null = $state(null);
+	let goals = $state<Goals | null>(null);
 
 	// Trend chart state
 	type TrendEntry = { date: string; calories: number; protein: number; carbs: number; fat: number; calories_burned: number };
 	type TrendMacro = 'calories' | 'protein' | 'carbs' | 'fat';
-	let trendDays: 7 | 30 = $state(7);
+	const TREND_OPTIONS = [7, 30] as const;
+	let trendDays = $state<7 | 30>(7);
 	let trendMacro: TrendMacro = $state('calories');
 	let trendData: TrendEntry[] = $state([]);
 	let loadingTrend = $state(false);
@@ -135,6 +137,11 @@
 		carbs:    { label: t('history.macroCarbs'),    color: 'var(--carb)', raw: '75% 0.16 295', unit: 'g' },
 		fat:      { label: t('history.macroFat'),      color: 'var(--fat)',  raw: '72% 0.18 25',  unit: 'g' },
 	});
+
+	// Mismos colores en la gráfica, su leyenda y los puntos de la lista de días.
+	const IN_RANGE_COLOR = 'oklch(85% 0.17 160 / 0.8)';
+	const OVER_COLOR = 'oklch(72% 0.19 30)';
+	const UNDER_COLOR = 'oklch(70% 0.14 270)';
 
 	// Vía Intl: se traducen solos y respetan el formato de cada idioma.
 	let MONTH_NAMES = $derived(monthNames());
@@ -309,13 +316,14 @@
 		const goalVal = chartGoalVal();
 		return goalVal ? Math.max(dataMax, goalVal * 1.05) : dataMax;
 	});
+	// Un día sin registros no es ni déficit ni fallo: fuera de medias y adherencia.
+	let loggedDays = $derived(trendData.filter(d => d.calories > 0));
 	let trendNonZero = $derived(trendValues.filter(v => v > 0));
 	let trendAvg = $derived(trendNonZero.length ? Math.round(trendNonZero.reduce((a, b) => a + b, 0) / trendNonZero.length) : 0);
-	let trendPeak = $derived(Math.round(Math.max(...trendValues, 0)));
-	// Average effective kcal goal across the trend period (accounts for exercise days)
+	// Media del objetivo efectivo sobre los mismos días que la media de arriba
 	let avgEffectiveKcalGoal = $derived(
-		goals?.kcal && trendData.length > 0
-			? Math.round(trendData.reduce((sum, d) => sum + effectiveKcalGoal(d.calories_burned), 0) / trendData.length)
+		goals?.kcal && loggedDays.length > 0
+			? Math.round(loggedDays.reduce((sum, d) => sum + effectiveKcalGoal(d.calories_burned), 0) / loggedDays.length)
 			: (goals?.kcal ?? 0)
 	);
 
@@ -347,24 +355,31 @@
 		return cells;
 	});
 	let isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
-	let adherenceDays = $derived(trendData.filter(d =>
-		goals?.kcal ? Math.abs(d.calories - effectiveKcalGoal(d.calories_burned)) < 250 : false
-	).length);
+	// Hoy va a medias: igual que en el duelo, no puntúa hasta que acaba.
+	let scoredDays = $derived(
+		goals ? loggedDays.filter(d => !isToday(d.date)).map(d => dayScore(d.calories, d.protein, goals!, d.calories_burned)) : []
+	);
+	let adherencePct = $derived(scoredDays.length ? Math.round(scoredDays.reduce((a, b) => a + b, 0) / scoredDays.length) : null);
+	let adherenceDays = $derived(scoredDays.filter(s => s >= HIT_SCORE).length);
+
+	// Días sin registros seguidos se agrupan en una sola fila de la lista.
+	type DayRow = { kind: 'day'; d: TrendEntry } | { kind: 'gap'; count: number; key: string };
+	let dayRows = $derived.by(() => {
+		const rows: DayRow[] = [];
+		for (const d of [...trendData].reverse()) {
+			const last = rows[rows.length - 1];
+			if (d.calories > 0) rows.push({ kind: 'day', d });
+			else if (last?.kind === 'gap') last.count++;
+			else rows.push({ kind: 'gap', count: 1, key: d.date });
+		}
+		return rows;
+	});
 </script>
 
 <!-- ── Header ── -->
-<div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
-	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; padding:0; font-family:inherit; flex-shrink:0; font-size:1rem;">←</button>
-	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('history.title')}</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('history.last7')}</div>
-	</div>
-	{#if subscription.is_premium}
-	<div style="display:flex; gap:0.3rem;">
-		<button class="csv-btn" onclick={() => exportZip(true)}>{t('history.exportMonth')}</button>
-		<button class="csv-btn" onclick={() => exportZip(false)}>{t('history.exportAll')}</button>
-	</div>
-	{/if}
+<div style="padding:0.25rem 0 1rem;">
+	<h1 class="uro-title">{t('history.title')}</h1>
+	<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('history.lastN', { count: trendDays })}</div>
 </div>
 
 {#if loadingTrend}
@@ -377,15 +392,17 @@
 	<div class="glass-card">
 		<div class="stat-eyebrow">{TREND_STAT_META[trendMacro].label}</div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
-			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{fmtNumber(trendAvg)}</div>
-			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">{TREND_STAT_META[trendMacro].unit}</div>
+			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendNonZero.length ? fmtNumber(trendAvg) : '—'}</div>
+			{#if trendNonZero.length}<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">{TREND_STAT_META[trendMacro].unit}</div>{/if}
 		</div>
-		{#if trendMacro === 'calories' && goals?.kcal}
-			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
+		{#if trendNonZero.length === 0}
+			<div class="stat-foot">{t('history.noData')}</div>
+		{:else if trendMacro === 'calories' && goals?.kcal}
+			<div class="stat-foot">
 				{trendAvg < avgEffectiveKcalGoal ? '↓' : '↑'} {Math.abs(trendAvg - avgEffectiveKcalGoal)} {t('history.vsGoal')}
 			</div>
 		{:else if trendMacro !== 'calories' && chartGoalVal()}
-			<div style="font-size:0.625rem; color:oklch(85% 0.17 160); font-weight:700; margin-top:0.25rem;">
+			<div class="stat-foot">
 				{trendAvg < chartGoalVal()! ? '↓' : '↑'} {Math.abs(trendAvg - chartGoalVal()!)} g {t('history.vsGoal')}
 			</div>
 		{/if}
@@ -394,18 +411,18 @@
 	<div class="glass-card">
 		<div class="stat-eyebrow">{t('history.adherence')}</div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
-			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{trendData.length > 0 ? Math.round(adherenceDays / trendData.length * 100) : 0}</div>
-			<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>
+			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{adherencePct ?? '—'}</div>
+			{#if adherencePct !== null}<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>{/if}
 		</div>
-		<div style="font-size:0.625rem; color:rgba(255,255,255,0.55); margin-top:0.25rem;">
-			{t('history.adherenceDays', { done: adherenceDays, total: trendData.length })}
+		<div class="stat-foot">
+			{adherencePct === null ? t('history.noData') : t('history.adherenceDays', { done: adherenceDays, total: scoredDays.length })}
 		</div>
 	</div>
 </div>
 
 <!-- ── Trend days selector ── -->
 <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-	{#each [7, 30] as days}
+	{#each TREND_OPTIONS as days}
 		{@const locked = days === 30 && !subscription.is_premium}
 		<button
 			onclick={() => locked ? goto('/premium') : (trendDays = days)}
@@ -433,7 +450,7 @@
 <div style="display:flex; gap:0.5rem; margin-bottom:0.875rem;">
 	{#each Object.entries(MACRO_CONFIG) as [macro, config]}
 		<button
-			onclick={() => trendMacro = macro}
+			onclick={() => trendMacro = macro as TrendMacro}
 			style="
 				flex:1;
 				padding:0.5rem 0.625rem;
@@ -457,11 +474,15 @@
 <!-- ── Bar chart ── -->
 <div class="glass-card" style="margin-bottom:0.625rem;">
 	<div style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:0.875rem;">{t('history.perDay', { macro: MACRO_CONFIG[trendMacro].label })}</div>
-	{#if trendData.length > 0}
+	{#if trendNonZero.length === 0}
+		<div style="text-align:center; padding:1.5rem 0 1rem; color:rgba(255,255,255,0.45); font-size:0.8rem;">
+			<div>{t('history.chartEmpty', { count: trendDays })}</div>
+			<a href="/add" style="display:inline-block; margin-top:0.625rem; font-size:0.75rem; font-weight:600;">{t('diary.addFood')} →</a>
+		</div>
+	{:else}
 		{@const goalVal = chartGoalVal() ?? 0}
 		{@const maxVal = trendMax}
 		{@const BAR_MAX_PX = 90}
-		{@const macroRaw = MACRO_CONFIG[trendMacro].raw}
 		{@const is30 = trendDays === 30}
 		<div style="display:flex; align-items:flex-end; gap:{is30 ? '2px' : '0.375rem'};">
 			{#each trendData as d, i}
@@ -477,17 +498,16 @@
 					{#if !is30}
 						<div style="font-size:0.5rem; color:{val > 0 ? 'rgba(255,255,255,0.4)' : 'transparent'}; line-height:1; min-height:0.625rem; white-space:nowrap;">{val > 0 ? Math.round(val) : '·'}</div>
 					{/if}
-					<div style="width:100%; border-radius:{is30 ? '3px' : '6px'}; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? `oklch(${macroRaw} / 0.9)` : under ? `oklch(${macroRaw} / 0.35)` : 'oklch(85% 0.18 160 / 0.75)'}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none'}; transition:height 0.3s ease;"></div>
+					<div style="width:100%; border-radius:{is30 ? '3px' : '6px'}; height:{barPx}px; background:{val === 0 ? 'rgba(255,255,255,0.06)' : over ? OVER_COLOR : under ? UNDER_COLOR : IN_RANGE_COLOR}; box-shadow:{val > 0 ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'none'}; transition:height 0.3s ease;"></div>
 					<div style="font-size:{is30 ? '0.45rem' : '0.625rem'}; color:{showLabel ? 'rgba(255,255,255,0.5)' : 'transparent'}; font-weight:600; white-space:nowrap; overflow:hidden;">{is30 ? dayNum : dayLabel}</div>
 				</div>
 			{/each}
 		</div>
 		<!-- Legend -->
-		{@const legRaw = MACRO_CONFIG[trendMacro].raw}
-		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.45);">
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch(85% 0.18 160 / 0.75);"></div> {t('history.inRange')}</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.9);"></div> {t('history.over')}</div>
-			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:oklch({legRaw} / 0.35);"></div> {t('history.under')}</div>
+		<div style="display:flex; gap:0.75rem; margin-top:0.875rem; font-size:0.625rem; color:rgba(255,255,255,0.55);">
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{IN_RANGE_COLOR};"></div> {t('history.inRange')}</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{OVER_COLOR};"></div> {t('history.over')}</div>
+			<div style="display:flex; align-items:center; gap:0.3rem;"><div style="width:8px; height:8px; border-radius:2px; background:{UNDER_COLOR};"></div> {t('history.under')}</div>
 		</div>
 	{/if}
 </div>
@@ -495,16 +515,22 @@
 <!-- ── Day list ── -->
 <div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:1.25rem 0.25rem 0.625rem;">{t('history.days')}</div>
 <div class="glass-card" style="padding:0.375rem;">
-	{#each [...trendData].reverse() as d, i}
-		{@const goalKcal2 = goals?.kcal ?? 0}
+	{#each dayRows as row, i (row.kind === 'day' ? row.d.date : row.key)}
+		{#if row.kind === 'gap'}
+			<div style="padding:0.625rem 0.875rem; font-size:0.6875rem; color:rgba(255,255,255,0.4); border-bottom:{i < dayRows.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
+				{row.count === 1 ? t('history.noEntries') : t('history.noEntriesDays', { count: row.count })}
+			</div>
+		{:else}
+		{@const d = row.d}
+		{@const goalKcal2 = effectiveKcalGoal(d.calories_burned)}
 		{@const over2 = goalKcal2 > 0 && d.calories > goalKcal2 + 100}
-		{@const under2 = goalKcal2 > 0 && d.calories > 0 && d.calories < goalKcal2 - 350}
-		{@const statusColor = over2 ? 'oklch(75% 0.18 30)' : under2 ? 'oklch(75% 0.13 270)' : 'oklch(85% 0.17 160)'}
+		{@const under2 = goalKcal2 > 0 && d.calories < goalKcal2 - 350}
+		{@const statusColor = over2 ? OVER_COLOR : under2 ? UNDER_COLOR : IN_RANGE_COLOR}
 		{@const isSelected = selectedDay === d.date}
 		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div
 			onclick={() => selectDay(d.date)}
-			style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < trendData.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'}; cursor:pointer; border-radius:12px; background:{isSelected ? 'rgba(255,255,255,0.05)' : 'transparent'};"
+			style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < dayRows.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'}; cursor:pointer; border-radius:12px; background:{isSelected ? 'rgba(255,255,255,0.05)' : 'transparent'};"
 		>
 			<!-- Date box -->
 			<div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
@@ -514,14 +540,15 @@
 			<div style="flex:1; min-width:0;">
 				<div style="font-size:0.8125rem; font-weight:600; display:flex; align-items:center; gap:0.375rem;">
 					{isToday(d.date) ? t('common.today') : fmtDate(new Date(d.date + 'T12:00'), { weekday:'short' })}
-					<div style="width:6px; height:6px; border-radius:99px; background:{d.calories > 0 ? statusColor : 'rgba(255,255,255,0.2)'};"></div>
+					<div style="width:6px; height:6px; border-radius:99px; background:{statusColor};"></div>
 				</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
-					{d.calories > 0 ? `${Math.round(d.calories)} kcal · P ${Math.round(d.protein)}g · C ${Math.round(d.carbs)}g · G ${Math.round(d.fat)}g` : 'Sin registros'}
+					{Math.round(d.calories)} kcal · P {Math.round(d.protein)}g · C {Math.round(d.carbs)}g · G {Math.round(d.fat)}g
 				</div>
 			</div>
 			<div style="font-size:0.625rem; color:rgba(255,255,255,0.3);">›</div>
 		</div>
+		{/if}
 	{/each}
 </div>
 
@@ -572,7 +599,7 @@
 					{#each meal.entries as entry (entry.id)}
 						<div class="glass-card" style="margin-bottom:0.3rem; padding:0.625rem; display:flex; justify-content:space-between; align-items:center; border-radius:14px;">
 							<div>
-								<div style="font-size:0.8125rem; font-weight:600;">{entry.product?.name ?? `Producto #${entry.product_id}`}</div>
+								<div style="font-size:0.8125rem; font-weight:600;">{entry.product?.name ?? t('history.productFallback', { id: entry.product_id })}</div>
 								<div style="font-size:0.6875rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;">{fmtQty(entry.grams, entry.product)} · {fmtTime(entry.consumed_at)}</div>
 							</div>
 							<div style="text-align:right; flex-shrink:0; margin-left:0.75rem;">
@@ -590,7 +617,7 @@
 		{:else}
 			<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4); font-size:0.85rem;">
 				<div style="font-size:2rem; margin-bottom:0.5rem;">📅</div>
-				Sin registros este día
+				{t('history.noEntriesDay')}
 			</div>
 		{/if}
 	</div>
@@ -674,13 +701,16 @@
 		<span>{t('history.legendExercise')}</span>
 		{#if moodEnabled}<span>{t('history.legendMood')}</span>{/if}
 	</div>
+
+	<!-- Exporta el mes que se ve en el calendario, por eso va aquí debajo -->
+	<div style="display:flex; gap:0.5rem; margin-top:1rem;">
+		<button class="btn-secondary" style="flex:1; font-size:0.75rem; padding:0.55rem;" onclick={() => exportZip(true)}>{t('history.exportMonthOf', { month: MONTH_NAMES[viewMonth] })}</button>
+		<button class="btn-secondary" style="flex:1; font-size:0.75rem; padding:0.55rem;" onclick={() => exportZip(false)}>{t('history.exportAll')}</button>
+	</div>
 {/if}
 </div>
 
 {/if}
-
-<!-- Bottom spacing -->
-<div style="height:6rem;"></div>
 
 <style>
 	.glass-card {
@@ -698,16 +728,11 @@
 		color: rgba(255,255,255,0.5);
 		font-weight: 700;
 	}
-	.csv-btn {
-		padding: 0.25rem 0.5rem;
-		border-radius: 8px;
-		background: rgba(255,255,255,0.07);
-		border: 1px solid rgba(255,255,255,0.1);
-		color: rgba(255,255,255,0.65);
-		font-size: 0.6875rem;
+	.stat-foot {
+		font-size: 0.625rem;
+		color: rgba(255,255,255,0.55);
 		font-weight: 600;
-		font-family: inherit;
-		cursor: pointer;
+		margin-top: 0.25rem;
 	}
 	.nav-btn {
 		padding: 0.375rem 0.75rem;

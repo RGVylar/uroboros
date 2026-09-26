@@ -32,7 +32,7 @@
 <div style="display:flex; flex-direction:column; justify-content:center; min-height:85dvh; padding:1.25rem;">
 	<div style="text-align:center; margin-bottom:2rem;">
 		<div style="width:64px; height:64px; border-radius:20px; margin:0 auto 0.875rem; background:linear-gradient(135deg, oklch(82% 0.18 160), oklch(62% 0.2 210)); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; color:#041010; letter-spacing:-0.125em; box-shadow:0 14px 40px oklch(75% 0.2 190 / 0.45);">U</div>
-		<h1 style="font-size:1.75rem; color:#fff; letter-spacing:-0.05em; font-family:'Lora','Georgia',serif; font-weight:400; margin:0;">{t('reset.newPassword')}</h1>
+		<h1 style="font-size:1.75rem; color:#fff; letter-spacing:-0.05em; font-family:var(--uro-font-serif); font-weight:400; margin:0;">{t('reset.newPassword')}</h1>
 	</div>
 
 	{#if !token}

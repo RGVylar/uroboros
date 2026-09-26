@@ -443,10 +443,9 @@
 
 <!-- Header -->
 <div class="page-header">
-	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; font-family:inherit; flex-shrink:0;">←</button>
 	<div style="flex:1;">
-		<div class="header-eyebrow">{t('recipes.eyebrow')}</div>
-		<div class="header-title">{t('recipes.title')}</div>
+		<h1 class="uro-title">{t('recipes.title')}</h1>
+		<div class="header-eyebrow" style="margin-top:0.25rem;">{t('recipes.eyebrow')}</div>
 	</div>
 	<button
 		class="btn-new"
@@ -458,6 +457,7 @@
 	</button>
 </div>
 
+{#if recipes.length > 0 || sharedRecipes.length > 0}
 <!-- Stats strip -->
 <div class="glass-card" style="margin-bottom:1rem; padding:0.875rem;">
 	<div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:center;">
@@ -488,6 +488,7 @@
 		</button>
 	{/each}
 </div>
+{/if}
 
 <!-- ═══════════════════════════════════════ CREAR ═══════════════════════════ -->
 {#if showCreate}
@@ -574,11 +575,12 @@
 	</div>
 {/if}
 
-{#if recipes.length === 0 && !showCreate}
+{#if recipes.length === 0 && sharedRecipes.length === 0 && !showCreate}
 	<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
 		<div style="font-size:2.5rem; margin-bottom:0.5rem;">🍳</div>
 		<div style="font-size:0.875rem; font-weight:600;">{t('recipes.empty')}</div>
 		<div style="font-size:0.75rem; margin-top:0.25rem;">{t('recipes.emptySub')}</div>
+		<button onclick={() => (showCreate = true)} style="margin-top:1rem; font-size:0.85rem;">{t('recipes.createFirst')}</button>
 	</div>
 {/if}
 
@@ -964,12 +966,6 @@
 		color: rgba(255,255,255,0.45);
 		text-transform: uppercase;
 		font-weight: 600;
-	}
-	.header-title {
-		font-size: 1.25rem;
-		font-weight: 800;
-		color: #fff;
-		letter-spacing: -0.02em;
 	}
 	.btn-new {
 		padding: 0.625rem 0.875rem;

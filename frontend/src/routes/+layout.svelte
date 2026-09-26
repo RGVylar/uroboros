@@ -144,6 +144,27 @@
 
 	const NO_NAV_ROUTES = ['/onboarding', '/premium'];
 	let hideNav = $derived(NO_NAV_ROUTES.some(r => page.url.pathname.startsWith(r)));
+
+	// Con el teclado abierto la barra flotante se queda encima de los resultados
+	// de búsqueda. No hay evento fiable de "teclado abierto" en la web, pero en
+	// móvil enfocar un campo de texto es lo que lo abre.
+	let typing = $state(false);
+	const NON_TEXT_INPUTS = new Set(['checkbox', 'radio', 'button', 'submit', 'range', 'color', 'file']);
+	function isTextField(el: EventTarget | null): boolean {
+		if (!(el instanceof HTMLElement)) return false;
+		if (el instanceof HTMLInputElement) return !NON_TEXT_INPUTS.has(el.type);
+		return el instanceof HTMLTextAreaElement || el.isContentEditable;
+	}
+	onMount(() => {
+		const onIn = (e: FocusEvent) => { typing = isTextField(e.target); };
+		const onOut = (e: FocusEvent) => { if (!isTextField(e.relatedTarget)) typing = false; };
+		document.addEventListener('focusin', onIn);
+		document.addEventListener('focusout', onOut);
+		return () => {
+			document.removeEventListener('focusin', onIn);
+			document.removeEventListener('focusout', onOut);
+		};
+	});
 </script>
 
 {#if auth.isLoggedIn}
@@ -240,7 +261,7 @@
 {/if}
 
 {#if auth.isLoggedIn && !hideNav}
-	<nav class="bottom" aria-label={t('nav.aria.main')}>
+	<nav class="bottom" class:typing aria-label={t('nav.aria.main')}>
 		{#each mobileNav as item}
 			{#if 'fab' in item}
 				<!-- FAB centrado, flota por encima del pill -->

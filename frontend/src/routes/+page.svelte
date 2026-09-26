@@ -911,7 +911,7 @@
 					{:else}
 						<!-- No supplements yet -->
 						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
-							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">＋</div>
+							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary);">＋</div>
 							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{t('diary.supplements')}</div>
 							<div style="font-size:0.7rem; color:var(--text-muted);">{t('diary.addSupplement')}</div>
 						</button>

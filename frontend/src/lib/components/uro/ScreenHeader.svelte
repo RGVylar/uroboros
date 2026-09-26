@@ -18,7 +18,7 @@
 
 <div class="head">
 	{#if onBack}
-		<button class="back" aria-label={t('screenHeader.back')} onclick={onBack}>‹</button>
+		<button class="back" aria-label={t('screenHeader.back')} onclick={onBack}>←</button>
 	{/if}
 	<div class="texts">
 		<h1 class="title">{title}</h1>
@@ -65,7 +65,7 @@
 		line-height: 1;
 		font-weight: 400;
 		margin: 0;
-		font-family: 'Instrument Serif', 'Lora', Georgia, serif;
+		font-family: var(--uro-font-serif);
 	}
 	.sub {
 		font-size: 11px;

@@ -329,7 +329,7 @@
 		color: #fff;
 		line-height: 1;
 		margin: 0;
-		font-family: 'Lora', 'Georgia', serif;
+		font-family: var(--uro-font-serif);
 	}
 	.trk-sub {
 		font-size: 0.6875rem;
@@ -382,7 +382,7 @@
 		line-height: 0.95;
 		letter-spacing: -0.05em;
 		color: #fff;
-		font-family: 'Lora', 'Georgia', serif;
+		font-family: var(--uro-font-serif);
 	}
 	.delta-badge {
 		display: inline-flex;
@@ -544,7 +544,7 @@
 		color: #fff;
 		letter-spacing: -0.05em;
 		margin-bottom: 0.375rem;
-		font-family: 'Lora', 'Georgia', serif;
+		font-family: var(--uro-font-serif);
 		font-weight: 400;
 	}
 	.modal-sub {

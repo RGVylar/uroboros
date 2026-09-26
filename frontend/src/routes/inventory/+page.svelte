@@ -274,7 +274,7 @@
 	</button>
 	<div style="flex:1; min-width:0;">
 		<h1
-			style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;"
+			style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:var(--uro-font-serif);"
 		>
 			{t('inventory.title')}
 		</h1>

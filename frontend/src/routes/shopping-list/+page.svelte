@@ -222,7 +222,7 @@
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<button onclick={() => goto('/inventory')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('shopping.title')}</h1>
+		<h1 class="uro-title">{t('shopping.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{checked.length}/{items.length} completados</div>
 	</div>
 	{#if subscription.is_premium}
@@ -243,7 +243,7 @@
 		<div style="flex:1;">
 			<div style="font-size:0.625rem; letter-spacing:0.08em; color:rgba(255,255,255,0.45); text-transform:uppercase; font-weight:700;">{t('shopping.progress')}</div>
 			<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.25rem;">
-				<div style="font-size:2rem; font-weight:800; color:#fff; letter-spacing:-0.05em; font-family:'Lora','Georgia',serif;">{checked.length}</div>
+				<div style="font-size:2rem; font-weight:800; color:#fff; letter-spacing:-0.05em; font-family:var(--uro-font-serif);">{checked.length}</div>
 				<div style="font-size:0.875rem; color:rgba(255,255,255,0.5);">/ {items.length}</div>
 			</div>
 		</div>

@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -319,7 +319,7 @@
 <!-- ── Header ── -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
 	<div style="flex:1; min-width:0;">
-		<h1 style="font-size:1.875rem; font-weight:400; letter-spacing:-0.05em; color:#fff; line-height:1; margin:0; font-family:'Lora','Georgia',serif;">{t('settings.title')}</h1>
+		<h1 class="uro-title">{t('settings.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('settings.subtitle')}</div>
 	</div>
 </div>
@@ -1076,7 +1076,9 @@
 	}
 	.row-detail {
 		font-size: 0.6875rem;
-		color: rgba(255,255,255,0.45);
+		/* Explícito: las filas que son <button> heredaban el 800 global de los botones */
+		font-weight: 400;
+		color: rgba(255,255,255,0.5);
 		margin-top: 0.125rem;
 	}
 	.rank-chip,
@@ -1151,7 +1153,7 @@
 		width: 18px;
 		height: 18px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+		background: #9ba1a8;
 		box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 		transition: left 0.2s;
 		display: block;
@@ -1164,11 +1166,14 @@
 		width: 18px;
 		height: 18px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, #fff, oklch(85% 0.1 165));
+		background: #9ba1a8;
 		box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 		transition: left 0.2s;
 		display: block;
 	}
+	/* Apagado: pomo gris. El verdoso de antes hacía que un interruptor apagado pareciera encendido. */
+	[aria-pressed='true'] > .toggle-knob,
+	.toggle-on .toggle-thumb { background: linear-gradient(135deg, #fff, oklch(85% 0.1 165)); }
 	.toggle-on .toggle-thumb { left: 18px; }
 	.toggle-btn:not(.toggle-on) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
 	.toggle-btn.toggle-on { background: var(--primary); border-color: var(--primary); }

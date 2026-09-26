@@ -72,13 +72,14 @@
 				{Math.round(Math.abs(remaining))}<span class="stat-unit">kcal</span>
 			</div>
 		</div>
-		<div class="hero-stat">
-			<div class="stat-label">{t('ring.consumed')}</div>
-			<div class="stat-val" style="color:var(--cal)">
-				{Math.round(consumed)}<span class="stat-unit">kcal</span>
-			</div>
-		</div>
 		{#if burned > 0}
+			<!-- Sin ejercicio, lo consumido es el número del anillo: repetirlo sobra. -->
+			<div class="hero-stat">
+				<div class="stat-label">{t('ring.consumed')}</div>
+				<div class="stat-val" style="color:var(--cal)">
+					{Math.round(consumed)}<span class="stat-unit">kcal</span>
+				</div>
+			</div>
 			<div class="hero-stat">
 				<div class="stat-label">{t('ring.burned')}</div>
 				<div class="stat-val" style="color:var(--danger)">

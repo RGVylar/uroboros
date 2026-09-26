@@ -234,7 +234,9 @@ button:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; filter: 
 	position: relative;
 }
 
-.page { padding-bottom: 6rem; }
+/* La barra flotante mide ~5rem y se apoya en la zona segura: sin sumarla, en
+   el iPhone (34px de home indicator) tapaba el final de cada pantalla. */
+.page { padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
 
 /* ═══════════════════ Progress ═══════════════════ */
 .progress-bar {
@@ -427,6 +429,7 @@ nav.bottom {
 	max-width: calc(100% - 1.6rem);
 	overflow: visible;
 }
+nav.bottom.typing { display: none; }
 nav.bottom a {
 	display: flex;
 	flex-direction: column;
@@ -668,4 +671,16 @@ nav.bottom a.active {
 .uro-serif {
 	font-family: var(--uro-font-serif);
 	font-weight: 400;
+}
+
+/* Título de pantalla. Antes cada ruta lo escribía a mano y la mitad pedía
+   'Lora', que no se carga y caía a Georgia: dos serifs distintas en la app. */
+.uro-title {
+	font-family: var(--uro-font-serif);
+	font-size: 1.875rem;
+	font-weight: 400;
+	letter-spacing: -0.03em;
+	line-height: 1;
+	color: #fff;
+	margin: 0;
 }

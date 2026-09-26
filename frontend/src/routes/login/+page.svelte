@@ -140,7 +140,7 @@
 		filter: drop-shadow(0 8px 24px oklch(75% 0.2 190 / 0.5));
 	}
 	.title {
-		font-family: 'Instrument Serif', 'Lora', Georgia, serif;
+		font-family: var(--uro-font-serif);
 		font-weight: 400;
 		font-size: 42px;
 		letter-spacing: -1.2px;
