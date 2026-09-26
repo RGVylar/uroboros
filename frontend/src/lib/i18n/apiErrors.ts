@@ -10,6 +10,7 @@ const EXACT: Record<string, TKey> = {
 	'Invalid token': 'errors.session',
 	'Invalid credentials': 'errors.invalidCredentials',
 	'Email already registered': 'errors.emailRegistered',
+	'Name not allowed': 'errors.nameNotAllowed',
 	'User not found': 'errors.userNotFound',
 	'Usuario no encontrado': 'errors.userNotFound',
 	'No existe ningún usuario con ese email': 'errors.noUserWithEmail',

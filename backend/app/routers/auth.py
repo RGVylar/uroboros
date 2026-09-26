@@ -14,6 +14,7 @@ from app.models import User
 from app.models.password_reset import PasswordResetToken
 from app.schemas.auth import TokenResponse, UserLogin, UserOut, UserRegister
 from app.security import create_access_token, hash_password, verify_password
+from app.services.name_moderation import is_offensive_name
 from app.services.telegram_alerts import send_new_user_alert
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -34,6 +35,8 @@ async def register(request: Request, payload: UserRegister, db: Session = Depend
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+    if is_offensive_name(payload.name):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Name not allowed")
     # New users start on the free tier. The 14-day trial will be re-enabled
     # (at first use) once Google Play Billing is wired up — a trial countdown
     # is pointless while there is nothing to buy at the end.
