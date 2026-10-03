@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { untrack } from 'svelte';
+	import { health } from '$lib/stores/health.svelte';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -10,7 +12,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnitOf, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
-	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_EMOJI } from '$lib/types';
 	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
@@ -34,6 +36,8 @@
 	let summary: DaySummary | null = $state(null);
 	let goals: Goals | null = $state(null);
 	let water: WaterDay | null = $state(null);
+	// Pasos del día desde Health Connect; null = sin lectura (≠ 0 pasos).
+	let steps = $state<number | null>(null);
 	let frequent: FrequentProduct[] = $state([]);
 	let frequentRecipes: FrequentRecipe[] = $state([]);
 	// The streak itself doesn't depend on which day is being browsed (the
@@ -203,6 +207,17 @@
 		if (g) cacheSet('goals', g);
 	}
 
+	async function loadSteps() {
+		const day = today;
+		const rows = await api.get<StepsDay[]>(`/steps?start=${day}&end=${day}`).catch(() => []);
+		if (day === today) steps = rows[0]?.steps ?? null;
+	}
+
+	// Cuando la APK sube pasos nuevos (al abrir o volver a la app), refrescamos.
+	$effect(() => {
+		if (health.version > 0) untrack(() => loadSteps());
+	});
+
 	async function loadDay() {
 		fromCache = false;
 		// Cache-first: paint instantly with cached data, then refresh in background
@@ -219,6 +234,7 @@
 			const [s, w] = await Promise.all([
 				api.get<DaySummary>(`/diary/day?day=${today}`),
 				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => null),
+				loadSteps(),
 			]);
 			summary = s;
 			water = w;
@@ -828,6 +844,16 @@
 					</div>
 				{/if}
 			</div>
+
+			{#if steps !== null || (health.enabled && isToday)}
+				<div class="card steps-card">
+					<span style="font-size:0.95rem;">👣</span>
+					<span style="font-size:0.82rem; font-weight:700; color:var(--text);">{t('diary.steps')}</span>
+					<span class="steps-value">
+						{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
+					</span>
+				</div>
+			{/if}
 
 			<!-- Water + Supplements -->
 			<div style="display:grid; grid-template-columns:{isToday && suppCount > 0 ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
@@ -1786,4 +1812,19 @@
 	}
 	.copy-today-btn:hover { filter: brightness(1.1); }
 	.copy-today-btn:disabled { opacity: 0.6; }
+
+	.steps-card {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.7rem 0.85rem;
+		margin-bottom: 0.6rem;
+	}
+	.steps-value {
+		margin-left: auto;
+		font-size: 0.95rem;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		color: var(--text);
+	}
 </style>

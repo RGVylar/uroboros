@@ -12,7 +12,7 @@ from app.limiter import client_ip, limiter
 from app.routers import (
     auth, cheat_days, creatine, diary, downloads, duel, exercises, exercise_sessions,
     export, favorites, friends, goals, inventory, measurements, mood, products,
-    push, receipts, recipes, release_notes, shopping_list, supplements, telegram, users, water, weight, allergies,
+    push, receipts, recipes, release_notes, shopping_list, steps, supplements, telegram, users, water, weight, allergies,
 )
 from app.services.avatar_photo_service import media_root
 from app.services.notification_scheduler import start_scheduler, stop_scheduler
@@ -94,6 +94,7 @@ app.include_router(goals.router, prefix=api_prefix)
 app.include_router(weight.router, prefix=api_prefix)
 app.include_router(measurements.router, prefix=api_prefix)
 app.include_router(water.router, prefix=api_prefix)
+app.include_router(steps.router, prefix=api_prefix)
 app.include_router(recipes.router, prefix=api_prefix)
 app.include_router(friends.router, prefix=api_prefix)
 app.include_router(creatine.router, prefix=api_prefix)

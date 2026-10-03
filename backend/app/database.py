@@ -28,6 +28,7 @@ def _get_engine():
     from app.models.body_measurement import BodyMeasurementLog
     from app.models.goals import UserGoals
     from app.models.water import WaterLog
+    from app.models.steps import DailySteps
     from app.models.friendship import Friendship
     from app.models.creatine import CreatineLog
     from app.models.cheat_day import CheatDayLog

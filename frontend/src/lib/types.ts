@@ -255,7 +255,19 @@ export interface Recipe {
 	total_weight: number | null;
 	/** total_weight o la suma de ingredientes: lo que pesa "toda la receta". */
 	weight: number;
+	/** Pasos de cocina en orden; [] = la receta aún no dice cómo se hace. */
+	steps: string[];
+	servings: number | null;
+	prep_minutes: number | null;
+	cook_minutes: number | null;
 	ingredients: RecipeIngredient[];
+}
+
+/** Total de pasos de un día (Health Connect). */
+export interface StepsDay {
+	day: string;
+	steps: number;
+	source: string;
 }
 
 export interface SharedRecipe extends Recipe {

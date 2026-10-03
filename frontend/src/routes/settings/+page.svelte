@@ -4,6 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
+	import { health, type ConnectResult } from '$lib/stores/health.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { APP_VERSION, UPDATE_URL, isNewerVersion } from '$lib/changelog';
@@ -314,6 +315,26 @@
 		auth.logout();
 		goto('/login');
 	}
+
+	// ── Pasos (Health Connect, solo APK Android) ──
+	const HEALTH_ERR: Record<Exclude<ConnectResult, 'ok'>, 'settings.stepsDenied' | 'settings.stepsUnavailable' | 'settings.stepsError'> = {
+		denied: 'settings.stepsDenied',
+		unavailable: 'settings.stepsUnavailable',
+		error: 'settings.stepsError',
+	};
+	let healthBusy = $state(false);
+
+	async function toggleSteps() {
+		if (health.enabled) {
+			health.disconnect();
+			return;
+		}
+		healthBusy = true;
+		const res = await health.connect();
+		healthBusy = false;
+		if (res === 'ok') toast.success(t('settings.stepsOn'));
+		else toast.error(t(HEALTH_ERR[res]));
+	}
 </script>
 
 <!-- ── Header ── -->
@@ -530,6 +551,37 @@
 			</div>
 			<span class="chevron">›</span>
 		</button>
+		{#if health.supported}
+		<div class="row-divider"></div>
+		<div class="settings-row" style="cursor:default;">
+			<div class="icon-box">👣</div>
+			<div class="row-content">
+				<div class="row-label">{t('settings.steps')}</div>
+				<div class="row-sub">{health.enabled ? t('settings.stepsSubOn') : t('settings.stepsSubOff')}</div>
+			</div>
+			<button
+				class="toggle-btn"
+				class:toggle-on={health.enabled}
+				onclick={toggleSteps}
+				disabled={healthBusy}
+				aria-label={t('settings.steps')}
+				aria-pressed={health.enabled}
+			>
+				<span class="toggle-thumb"></span>
+			</button>
+		</div>
+		{#if health.enabled}
+			<div class="row-divider"></div>
+			<button class="settings-row" onclick={() => health.openSettings()}>
+				<div class="icon-box">⚙️</div>
+				<div class="row-content">
+					<div class="row-label">{t('settings.stepsManage')}</div>
+					<div class="row-detail">{t('settings.stepsManageDetail')}</div>
+				</div>
+				<span class="chevron">›</span>
+			</button>
+		{/if}
+		{/if}
 	</div>
 </div>
 <!-- ── Group: Datos ── -->

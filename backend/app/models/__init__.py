@@ -6,6 +6,7 @@ from app.models.weight import WeightLog
 from app.models.body_measurement import BodyMeasurementLog
 from app.models.goals import UserGoals
 from app.models.water import WaterLog
+from app.models.steps import DailySteps
 from app.models.friendship import Friendship, FriendshipStatus
 from app.models.creatine import CreatineLog
 from app.models.cheat_day import CheatDayLog
@@ -41,6 +42,7 @@ __all__ = [
     "BodyMeasurementLog",
     "UserGoals",
     "WaterLog",
+    "DailySteps",
     "Friendship",
     "FriendshipStatus",
     "CreatineLog",

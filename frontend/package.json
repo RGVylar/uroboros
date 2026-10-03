@@ -32,6 +32,7 @@
 		"@capacitor/core": "^8.3.0",
 		"@capacitor/local-notifications": "^8.2.0",
 		"@capacitor/push-notifications": "^8.1.1",
+		"@capgo/capacitor-health": "^8.11.4",
 		"@zxing/browser": "^0.1.5",
 		"@zxing/library": "^0.21.3",
 		"canvas": "^3.2.3",

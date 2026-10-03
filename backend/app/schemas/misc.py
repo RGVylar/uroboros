@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Literal
+from datetime import date, datetime
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -30,6 +30,26 @@ class GoalsOut(GoalsIn):
 class CreatineTodayOut(BaseModel):
     taken: bool
     logged_date: str  # YYYY-MM-DD
+
+
+class StepsDayIn(BaseModel):
+    day: date
+    steps: int = Field(ge=0, le=200_000)
+
+
+class StepsSyncIn(BaseModel):
+    # Una semana es lo normal; el tope evita que un cliente roto mande años.
+    days: list[StepsDayIn] = Field(max_length=62)
+    source: Literal["health_connect"] = "health_connect"
+
+
+class StepsDayOut(BaseModel):
+    day: date
+    steps: int
+    source: str
+
+    class Config:
+        from_attributes = True
 
 
 class WaterLogIn(BaseModel):
@@ -106,6 +126,11 @@ class RecipeIn(BaseModel):
     ingredients: list[RecipeIngredientIn]
     # Peso del plato ya hecho; nulo = suma de ingredientes (ver Recipe.weight).
     total_weight: float | None = Field(default=None, gt=0)
+    # Ficha de cocina. Pasos vacíos se descartan en el router.
+    steps: list[Annotated[str, Field(max_length=2000)]] = Field(default_factory=list, max_length=50)
+    servings: int | None = Field(default=None, ge=1, le=100)
+    prep_minutes: int | None = Field(default=None, ge=0, le=10000)
+    cook_minutes: int | None = Field(default=None, ge=0, le=10000)
     # New recipes go out to friends by default: recipes are the social side of the
     # app, and nothing here is private the way the diary is. Narrow it per recipe
     # with PATCH /recipes/{id}/share.
@@ -124,6 +149,10 @@ class RecipeOut(BaseModel):
     is_shared: bool  # computed: share_scope is not none
     total_weight: float | None = None
     weight: float  # computed: total_weight or sum of ingredient grams
+    steps: list[str] = []
+    servings: int | None = None
+    prep_minutes: int | None = None
+    cook_minutes: int | None = None
     ingredients: list[RecipeIngredientOut]
 
     class Config:

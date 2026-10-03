@@ -48,6 +48,17 @@ def _can_see(db: Session, user_id: int, recipe: Recipe) -> bool:
     return recipe.owner_id in friends and recipe.share_scope is RecipeScope.friends
 
 
+def _card_fields(payload: RecipeIn) -> dict:
+    """Campos de la ficha de cocina tal como se guardan: pasos sin espacios
+    sobrantes y sin huecos (un paso en blanco no es un paso)."""
+    return {
+        "steps": [s.strip() for s in payload.steps if s.strip()],
+        "servings": payload.servings,
+        "prep_minutes": payload.prep_minutes,
+        "cook_minutes": payload.cook_minutes,
+    }
+
+
 # ── GET /recipes/frequent ────────────────────────────────────────────────────
 @router.get("/frequent", response_model=list[FrequentRecipeOut])
 def get_frequent_recipes(
@@ -112,6 +123,10 @@ def list_shared_recipes(
             "is_shared": recipe.is_shared,
             "total_weight": recipe.total_weight,
             "weight": recipe.weight,
+            "steps": recipe.steps,
+            "servings": recipe.servings,
+            "prep_minutes": recipe.prep_minutes,
+            "cook_minutes": recipe.cook_minutes,
             "ingredients": recipe.ingredients,
             "owner_name": owner.name,
         })
@@ -173,6 +188,7 @@ def create_recipe(
         owner_id=user.id,
         share_scope=RecipeScope(payload.share_scope),
         total_weight=payload.total_weight,
+        **_card_fields(payload),
         ingredients=[
             RecipeIngredient(product_id=i.product_id, grams=i.grams)
             for i in payload.ingredients
@@ -225,6 +241,10 @@ def copy_recipe(
         owner_id=user.id,
         share_scope=RecipeScope.none,
         total_weight=source.total_weight,
+        steps=list(source.steps),
+        servings=source.servings,
+        prep_minutes=source.prep_minutes,
+        cook_minutes=source.cook_minutes,
         ingredients=[
             RecipeIngredient(product_id=ing.product_id, grams=ing.grams)
             for ing in source.ingredients
@@ -249,6 +269,8 @@ def update_recipe(
     recipe.name = payload.name
     recipe.share_scope = RecipeScope(payload.share_scope)
     recipe.total_weight = payload.total_weight
+    for field, value in _card_fields(payload).items():
+        setattr(recipe, field, value)
     for ing in list(recipe.ingredients):
         db.delete(ing)
     recipe.ingredients = [

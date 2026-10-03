@@ -33,6 +33,7 @@ from app.models.password_reset import PasswordResetToken
 from app.models.recipe import Recipe, RecipeIngredient
 from app.models.supplement import UserSupplement, SupplementLog
 from app.models.water import WaterLog
+from app.models.steps import DailySteps
 from app.models.weight import WeightLog
 from app.schemas.auth import UserOut
 
@@ -291,6 +292,7 @@ def delete_account(
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == uid))
     db.execute(delete(UserAllergy).where(UserAllergy.user_id == uid))
     db.execute(delete(WaterLog).where(WaterLog.user_id == uid))
+    db.execute(delete(DailySteps).where(DailySteps.user_id == uid))
     db.execute(delete(CheatDayLog).where(CheatDayLog.user_id == uid))
     db.execute(delete(CreatineLog).where(CreatineLog.user_id == uid))
     db.execute(delete(BodyMeasurementLog).where(BodyMeasurementLog.user_id == uid))

@@ -15,6 +15,7 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
+	import { health } from '$lib/stores/health.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
@@ -45,6 +46,8 @@
 		// Arranque en frío: la URL con la que el widget lanzó la app
 		const launch = await App.getLaunchUrl();
 		openWidgetTarget(launch?.url);
+		// Pasos de Health Connect: al volver a primer plano (sync() se limita solo).
+		App.addListener('resume', () => { if (auth.isLoggedIn) health.sync(); });
 	});
 
 	// Solo debe depender de auth.isLoggedIn: sin untrack, pushStore.init()
@@ -63,6 +66,7 @@
 				// phone wouldn't show up on the desktop). Refresh it from the server;
 				// on failure we keep the cached copy so offline still works.
 				api.get<User>('/auth/me').then((u) => auth.updateUser(u)).catch(() => {});
+				health.sync();
 			} else {
 				pendingFriends.stop();
 			}
@@ -157,7 +161,12 @@
 	}
 	onMount(() => {
 		const onIn = (e: FocusEvent) => { typing = isTextField(e.target); };
-		const onOut = (e: FocusEvent) => { if (!isTextField(e.relatedTarget)) typing = false; };
+		// Diferido: si el campo enfocado desaparece del DOM (se cierra un
+		// formulario), el focusout salta en mitad del desmontaje y Svelte no
+		// deja tocar estado ahí (state_unsafe_mutation).
+		const onOut = (e: FocusEvent) => {
+			if (!isTextField(e.relatedTarget)) queueMicrotask(() => (typing = false));
+		};
 		document.addEventListener('focusin', onIn);
 		document.addEventListener('focusout', onOut);
 		return () => {

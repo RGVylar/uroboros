@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func
+from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -37,6 +37,15 @@ class Recipe(Base):
     # quien pesa la ración pesa lo cocinado: sin esto los macros "por 100 g"
     # de la receta no cuadran con lo que hay en el plato.
     total_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Ficha de cocina: cómo se hace. Los pasos son una lista ordenada de textos
+    # (el número lo pone quien la pinta). Todo opcional: una receta puede seguir
+    # siendo solo una lista de ingredientes para registrar macros.
+    steps: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
+    servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    prep_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cook_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

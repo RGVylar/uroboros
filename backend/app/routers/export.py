@@ -20,6 +20,7 @@ from app.models.mood import MoodEntry
 from app.models.supplement import SupplementLog, UserSupplement
 from app.models.user import User
 from app.models.water import WaterLog
+from app.models.steps import DailySteps
 from app.models.weight import WeightLog
 
 router = APIRouter(prefix="/export", tags=["export"])
@@ -131,6 +132,13 @@ def export_full_xlsx(
     agua_rows = [[w.logged_date.isoformat(), int(w.ml)] for w in db.scalars(stmt)]
     ws = wb.create_sheet("Agua")
     _write_sheet(ws, ["Fecha", "ml"], agua_rows)
+
+    # ── Pasos ─────────────────────────────────────────────────────────────────
+    stmt = select(DailySteps).where(DailySteps.user_id == uid).order_by(DailySteps.day)
+    stmt = _date_filter(stmt, DailySteps.day, date_from, date_to)
+    pasos_rows = [[s.day.isoformat(), s.steps] for s in db.scalars(stmt)]
+    ws = wb.create_sheet("Pasos")
+    _write_sheet(ws, ["Fecha", "Pasos"], pasos_rows)
 
     # ── Peso ──────────────────────────────────────────────────────────────────
     stmt = select(WeightLog).where(WeightLog.user_id == uid).order_by(WeightLog.logged_at)

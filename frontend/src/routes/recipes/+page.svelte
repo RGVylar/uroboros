@@ -5,8 +5,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { t, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
-	import { Modal, RecipeAmount } from '$lib/components';
+	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
+	import { Modal, RecipeAmount, RecipeCardEditor } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 
@@ -43,6 +43,21 @@
 	let barcodeLoading = $state(false);
 	let barcodeError = $state('');
 
+	// Ficha de cocina (pasos, raciones, tiempos). Va en un objeto para poder
+	// enlazarla entera al editor, igual en crear que en editar.
+	type CardDraft = { steps: string[]; servings: number | null; prepMinutes: number | null; cookMinutes: number | null };
+	const emptyCard = (): CardDraft => ({ steps: [], servings: null, prepMinutes: null, cookMinutes: null });
+	let card = $state<CardDraft>(emptyCard());
+
+	function cardPayload(c: CardDraft) {
+		return {
+			steps: c.steps.map(s => s.trim()).filter(Boolean),
+			servings: c.servings || null,
+			prep_minutes: c.prepMinutes ?? null,
+			cook_minutes: c.cookMinutes ?? null,
+		};
+	}
+
 	// ── Editar receta ───────────────────────────────────────────────────────
 	let editingRecipe: Recipe | null = $state(null);
 	let editName = $state('');
@@ -55,6 +70,9 @@
 	let editBarcodeError = $state('');
 	let editError = $state('');
 	let editSaving = $state(false);
+	let editCard = $state<CardDraft>(emptyCard());
+	// Al pulsar "Añadir pasos" desde la vista, la edición abre con la ficha desplegada.
+	let editCardOpen = $state(false);
 
 	// ── Carga ────────────────────────────────────────────────────────────────
 	async function load() {
@@ -154,9 +172,10 @@
 				name: recipeName,
 				ingredients: ingredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
 				total_weight: recipeWeight || null,
+				...cardPayload(card),
 				share_scope: 'friends',
 			});
-			recipeName = ''; ingredients = []; recipeWeight = null; showCreate = false;
+			recipeName = ''; ingredients = []; recipeWeight = null; card = emptyCard(); showCreate = false;
 			load();
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : '';
@@ -168,8 +187,15 @@
 		}
 	}
 
-	function startEdit(recipe: Recipe) {
+	function startEdit(recipe: Recipe, openCard = false) {
 		editingRecipe = recipe;
+		editCard = {
+			steps: [...recipe.steps],
+			servings: recipe.servings,
+			prepMinutes: recipe.prep_minutes,
+			cookMinutes: recipe.cook_minutes,
+		};
+		editCardOpen = openCard || recipe.steps.length > 0;
 		editName = recipe.name;
 		editIngredients = recipe.ingredients.map(ing => ({ product: ing.product, grams: ing.grams }));
 		editWeight = recipe.total_weight;
@@ -190,6 +216,7 @@
 				name: editName,
 				ingredients: editIngredients.map(i => ({ product_id: i.product.id, grams: i.grams })),
 				total_weight: editWeight || null,
+				...cardPayload(editCard),
 				share_scope: editingRecipe.share_scope, // keep the circle; editing isn't unpublishing
 			});
 			cancelEdit(); load();
@@ -363,7 +390,7 @@
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
-	function totalMacros(ings: { product: Product; grams: number }[]) {
+	function totalMacros(ings: { product: MacroSource; grams: number }[]) {
 		let cal = 0, p = 0, c = 0, f = 0;
 		for (const i of ings) {
 			const factor = i.grams / 100;
@@ -410,22 +437,68 @@
 		return h;
 	}
 
-	async function copyRecipe(recipe: Recipe | SharedRecipe) {
+	function fmtMinutes(n: number): string {
+		if (n < 60) return t('recipes.minutes', { n });
+		const h = Math.floor(n / 60), m = n % 60;
+		return m ? t('recipes.hoursMinutes', { h, m }) : t('recipes.hours', { h });
+	}
+
+	/** Raciones y tiempos en trozos ("4 raciones", "Preparación 10 min", …). */
+	function metaParts(r: Recipe): string[] {
+		const parts: string[] = [];
+		if (r.servings) parts.push(tc('recipes.servingsCount', r.servings));
+		if (r.prep_minutes) parts.push(`${t('recipes.prep')} ${fmtMinutes(r.prep_minutes)}`);
+		if (r.cook_minutes) parts.push(`${t('recipes.cook')} ${fmtMinutes(r.cook_minutes)}`);
+		if (r.prep_minutes && r.cook_minutes) parts.push(`${t('recipes.totalTime')} ${fmtMinutes(r.prep_minutes + r.cook_minutes)}`);
+		return parts;
+	}
+
+	function macroText(m: { cal: number; p: number; c: number; f: number }): string {
+		return `${m.cal} kcal · P${m.p}g · C${m.c}g · G${m.f}g`;
+	}
+
+	/** La receta como texto plano para mandarla por WhatsApp, notas, etc. */
+	function recipeText(recipe: Recipe): string {
+		const rule = '─'.repeat(Math.min(recipe.name.length + 4, 28));
 		const macros = totalMacros(recipe.ingredients.map(i => ({ product: i.product, grams: i.grams })));
-		const lines = [
-			`${recipeGlyph(recipe.name)} ${recipe.name}`,
-			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
-			...recipe.ingredients.map(i => `• ${i.product.name} – ${fmtQty(i.grams, i.product)}`),
-			'─'.repeat(Math.min(recipe.name.length + 4, 28)),
-			`${macros.cal} kcal · P${macros.p}g · C${macros.c}g · G${macros.f}g`,
-		];
+		const meta = metaParts(recipe);
+		const lines = [`${recipeGlyph(recipe.name)} ${recipe.name}`];
+		if (meta.length) lines.push(meta.join(' · '));
+		lines.push(rule, t('recipes.ingredients').toLocaleUpperCase());
+		lines.push(...recipe.ingredients.map(i => `• ${i.product.name} – ${fmtQty(i.grams, i.product)}`));
+		if (recipe.steps.length) {
+			lines.push('', t('recipes.howTo').toLocaleUpperCase());
+			lines.push(...recipe.steps.map((step, i) => `${i + 1}. ${step}`));
+		}
+		lines.push(rule, `${t('recipes.wholeMacros')}: ${macroText(macros)}`);
+		if (recipe.servings && recipe.servings > 1) {
+			lines.push(`${t('recipes.perServing')}: ${macroText(scaledMacros(recipe, recipe.weight / recipe.servings))}`);
+		}
+		return lines.join('\n');
+	}
+
+	// En el móvil abre la hoja de compartir del sistema; donde no la hay
+	// (o falla), cae al portapapeles como antes.
+	async function shareRecipe(recipe: Recipe) {
+		const text = recipeText(recipe);
+		if (navigator.share) {
+			try {
+				await navigator.share({ title: recipe.name, text });
+				return;
+			} catch (e) {
+				if (e instanceof DOMException && e.name === 'AbortError') return;
+			}
+		}
 		try {
-			await navigator.clipboard.writeText(lines.join('\n'));
+			await navigator.clipboard.writeText(text);
 			toast.success(t('recipes.okCopy'));
 		} catch {
 			toast.error(t('recipes.errCopy'));
 		}
 	}
+
+	// ── Ver receta ────────────────────────────────────────────────────────────
+	let viewingRecipe = $state<Recipe | SharedRecipe | null>(null);
 
 	function recipeGlyph(name: string): string {
 		const n = name.toLowerCase();
@@ -566,10 +639,15 @@
 			</div>
 		{/if}
 
+		<details class="card-details">
+			<summary>{t('recipes.howToOptional')}</summary>
+			<RecipeCardEditor idPrefix="r" bind:steps={card.steps} bind:servings={card.servings} bind:prepMinutes={card.prepMinutes} bind:cookMinutes={card.cookMinutes} />
+		</details>
+
 		{#if error}<p class="error">{error}</p>{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; recipeWeight = null; }} style="flex:1;">{t('common.cancel')}</button>
+			<button class="action-btn action-btn-ghost" onclick={() => { showCreate = false; ingredients = []; recipeWeight = null; card = emptyCard(); }} style="flex:1;">{t('common.cancel')}</button>
 			<button class="action-btn action-btn-primary" onclick={createRecipe} style="flex:2;">{t('recipes.save')}</button>
 		</div>
 	</div>
@@ -662,6 +740,11 @@
 				</button>
 			{/each}
 
+			<details class="card-details" open={editCardOpen}>
+				<summary>{t('recipes.howToOptional')}</summary>
+				<RecipeCardEditor idPrefix="edit" bind:steps={editCard.steps} bind:servings={editCard.servings} bind:prepMinutes={editCard.prepMinutes} bind:cookMinutes={editCard.cookMinutes} />
+			</details>
+
 			{#if editError}<p class="error">{editError}</p>{/if}
 
 			<button onclick={saveEdit} disabled={editSaving} style="width:100%; margin-top:0.5rem; color:black;">
@@ -685,7 +768,7 @@
 							<span class="shared-badge" title={SCOPE_LABEL[recipe.share_scope]}>{SCOPE_ICON[recipe.share_scope]}</span>
 						{/if}
 					</div>
-					<div class="recipe-sub">{recipe.ingredients.length} ing · {preview}</div>
+					<div class="recipe-sub">{recipe.ingredients.length} ing{#if recipe.steps.length} · {tc('recipes.stepsCount', recipe.steps.length)}{/if} · {preview}</div>
 					<div class="recipe-macros">
 						<span style="color:oklch(85% 0.17 55);">{macros.cal}</span><span class="macro-unit">kcal</span>
 						<span style="color:oklch(78% 0.14 220); margin-left:0.5rem;">P{macros.p}</span>
@@ -697,7 +780,8 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">{t('recipes.log')}</button>
-				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title={t('recipes.copyClipboard')}>📋</button>
+				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}>📤</button>
+				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}>📖</button>
 				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')}>✏️</button>
 				<button class="icon-btn" onclick={() => cycleScope(recipe)} title={t('recipes.scopeTitle', { scope: SCOPE_LABEL[recipe.share_scope] })} aria-label={t('recipes.scopeAria', { scope: SCOPE_LABEL[recipe.share_scope] })}>
 					{SCOPE_ICON[recipe.share_scope]}
@@ -730,7 +814,7 @@
 					<div class="recipe-name">{recipe.name}</div>
 					<div class="recipe-sub">
 						<span class="owner-badge">@{recipe.owner_name}</span>
-						{recipe.ingredients.length} ing
+						{recipe.ingredients.length} ing{#if recipe.steps.length} · {tc('recipes.stepsCount', recipe.steps.length)}{/if}
 					</div>
 					<div class="recipe-macros">
 						<span style="color:oklch(85% 0.17 55);">{macros.cal}</span><span class="macro-unit">kcal</span>
@@ -742,7 +826,8 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">{t('recipes.log')}</button>
-				<button class="icon-btn" onclick={() => copyRecipe(recipe)} title={t('recipes.copyClipboard')}>📋</button>
+				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}>📖</button>
+				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}>📤</button>
 				<button class="action-btn" style="padding:0 0.875rem; background:oklch(75% 0.18 295 / 0.2); color:oklch(85% 0.15 295); border:none; border-radius:10px; font-family:inherit; cursor:pointer; font-weight:700; font-size:0.75rem;"
 					onclick={() => copySharedRecipe(recipe.id)}>{t('recipes.saveCopy')}</button>
 			</div>
@@ -756,6 +841,54 @@
 
 <!-- Bottom spacing for mobile nav -->
 <div style="height:6rem;"></div>
+
+<!-- ═══════════════════════════ MODAL: ver receta ═══════════════════════════ -->
+{#if viewingRecipe}
+	{@const r = viewingRecipe}
+	{@const whole = totalMacros(r.ingredients.map(i => ({ product: i.product, grams: i.grams })))}
+	{@const meta = metaParts(r)}
+	{@const isMine = r.owner_id === auth.user?.id}
+	<Modal onClose={() => (viewingRecipe = null)} title={`${recipeGlyph(r.name)} ${r.name}`} subtitle={'owner_name' in r ? `@${r.owner_name}` : undefined}>
+		{#if meta.length}
+			<div class="view-meta">
+				{#each meta as part}<span class="view-chip">{part}</span>{/each}
+			</div>
+		{/if}
+
+		<div class="view-macros">
+			<div><span class="view-k">{t('recipes.wholeMacros')}</span> {macroText(whole)}</div>
+			{#if r.servings && r.servings > 1}
+				<div><span class="view-k">{t('recipes.perServing')}</span> {macroText(scaledMacros(r, r.weight / r.servings))}</div>
+			{/if}
+		</div>
+
+		<h3 class="view-h">{t('recipes.ingredients')}</h3>
+		<ul class="view-ings">
+			{#each r.ingredients as ing (ing.id)}
+				<li><span>{ing.product.name}</span><span class="view-qty">{fmtQty(ing.grams, ing.product)}</span></li>
+			{/each}
+		</ul>
+
+		<h3 class="view-h">{t('recipes.howTo')}</h3>
+		{#if r.steps.length}
+			<ol class="view-steps">
+				{#each r.steps as step, i}
+					<li><span class="view-num">{i + 1}</span><p>{step}</p></li>
+				{/each}
+			</ol>
+		{:else}
+			<p class="view-empty">{t('recipes.noSteps')}</p>
+			{#if isMine}
+				<button class="action-btn action-btn-ghost" style="width:100%;" onclick={() => { const target = r; viewingRecipe = null; startEdit(target, true); }}>{t('recipes.addSteps')}</button>
+			{/if}
+		{/if}
+
+		<div style="display:flex; gap:0.5rem; margin-top:1rem;">
+			<button class="action-btn action-btn-ghost" style="flex:1;" onclick={() => shareRecipe(r)}>📤 {t('recipes.share')}</button>
+			<button class="action-btn action-btn-primary" style="flex:1;" onclick={() => { const target = r; viewingRecipe = null; logRecipe(target); }}>{t('recipes.log')}</button>
+		</div>
+	</Modal>
+{/if}
 
 <!-- ═══════════════════════ MODAL: elegir tipo de comida ════════════════════ -->
 {#if logPendingRecipe}
@@ -1165,4 +1298,108 @@
 		opacity: 0.3; transition: opacity 0.18s; padding: 0; line-height: 1; color: #fff;
 	}
 	.seg-pill-active { opacity: 1; }
+
+	/* ── Ficha de cocina ── */
+	.card-details {
+		margin-top: 0.75rem;
+		border-top: 1px solid rgba(255,255,255,0.08);
+		padding-top: 0.6rem;
+	}
+	.card-details summary {
+		cursor: pointer;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: oklch(85% 0.15 160);
+	}
+	.view-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		margin-bottom: 0.75rem;
+	}
+	.view-chip {
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 0.25rem 0.6rem;
+		border-radius: 99px;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		color: rgba(255,255,255,0.75);
+	}
+	.view-macros {
+		font-size: 0.8rem;
+		color: rgba(255,255,255,0.8);
+		display: grid;
+		gap: 0.2rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 12px;
+		background: rgba(255,255,255,0.04);
+	}
+	.view-k {
+		color: var(--text-muted);
+		font-weight: 600;
+		margin-right: 0.25rem;
+	}
+	.view-h {
+		font-size: 0.7rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: rgba(255,255,255,0.5);
+		margin: 1rem 0 0.5rem;
+	}
+	.view-ings {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.view-ings li {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.75rem;
+		font-size: 0.85rem;
+		padding: 0.35rem 0;
+		border-bottom: 1px dashed rgba(255,255,255,0.08);
+	}
+	.view-qty {
+		color: var(--text-muted);
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+	.view-steps {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+	.view-steps li {
+		display: flex;
+		gap: 0.65rem;
+		align-items: flex-start;
+	}
+	.view-steps p {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.5;
+		white-space: pre-wrap;
+		color: rgba(255,255,255,0.88);
+	}
+	.view-num {
+		flex-shrink: 0;
+		width: 1.6rem;
+		height: 1.6rem;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		font-size: 0.75rem;
+		font-weight: 800;
+		background: oklch(75% 0.18 160 / 0.18);
+		color: oklch(85% 0.15 160);
+	}
+	.view-empty {
+		font-size: 0.8rem;
+		color: var(--text-muted);
+		margin: 0 0 0.5rem;
+	}
 </style>

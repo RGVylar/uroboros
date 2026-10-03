@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 
-	const lastUpdated = '22 de septiembre de 2026';
+	const lastUpdated = '3 de octubre de 2026';
 	const contactEmail = 'mugrelore@gmail.com';
 	const appName = 'uroboros';
 	const devName = 'Ramón González Vignau';
@@ -58,6 +58,7 @@
 			<li><strong style="color:#fff;">Diario alimenticio:</strong> alimentos consumidos, cantidades y calorías</li>
 			<li><strong style="color:#fff;">Métricas corporales:</strong> peso, medidas corporales (opcionales)</li>
 			<li><strong style="color:#fff;">Actividad física:</strong> sesiones de ejercicio registradas (opcional)</li>
+			<li><strong style="color:#fff;">Pasos diarios:</strong> solo en la app de Android y solo si lo activas en Ajustes (ver más abajo)</li>
 			<li><strong style="color:#fff;">Inventario:</strong> productos y cantidades en tu despensa (opcional)</li>
 			<li><strong style="color:#fff;">Recetas:</strong> recetas personales que crees en la app (opcional)</li>
 			<li><strong style="color:#fff;">Foto de perfil:</strong> la imagen que subas como avatar (opcional)</li>
@@ -69,6 +70,16 @@
 			las coordenadas GPS que suelen incorporar las fotos hechas con el móvil. El archivo
 			original no se almacena en ningún momento.
 		</p>
+		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
+			<strong style="color:#fff;">Pasos (Health Connect).</strong> Si en la app de Android activas
+			«Pasos de Health Connect», leemos de Health Connect únicamente el <strong style="color:#fff;">total de pasos
+			de cada día</strong> de la última semana, con el permiso que tú concedes. No leemos ningún otro dato de
+			salud (ni pulso, sueño, peso ni ubicación) ni escribimos nada en Health Connect. Los totales diarios se
+			guardan en tu cuenta para mostrártelos en el diario, no se comparten con otros usuarios y se borran al
+			eliminar tu cuenta. Puedes retirar el permiso cuando quieras desde Ajustes o desde Health Connect.
+			El uso de la información recibida de Health Connect cumple la política de permisos de Health Connect,
+			incluidos los requisitos de uso limitado.
+		</p>
 	</section>
 
 	<section style="margin-bottom:2rem;">
@@ -77,6 +88,7 @@
 			Tratamos tus datos para los siguientes fines, con la base jurídica correspondiente según el artículo 6 del RGPD:
 		</p>
 		<ul style="margin:0; padding-left:1.25rem; font-size:0.875rem; color:rgba(255,255,255,0.65); display:flex; flex-direction:column; gap:0.5rem;">
+			<li><strong style="color:#fff;">Lectura de pasos de Health Connect</strong> — <em>Consentimiento</em> (art. 6.1.a y 9.2.a): solo si lo activas, y puedes retirarlo en cualquier momento.</li>
 			<li><strong style="color:#fff;">Servicio de seguimiento nutricional</strong> — <em>Ejecución del contrato</em> (art. 6.1.b): es la prestación que solicitas al registrarte.</li>
 			<li><strong style="color:#fff;">Compartir datos con tu pareja o amigos</strong> — <em>Consentimiento</em> (art. 6.1.a): solo se activa si tú lo solicitas explícitamente.</li>
 			<li><strong style="color:#fff;">Emails transaccionales</strong> (recuperación de contraseña) — <em>Ejecución del contrato</em> (art. 6.1.b).</li>
