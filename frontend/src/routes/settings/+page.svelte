@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
@@ -11,7 +11,7 @@
 	import type { Goals, User } from '$lib/types';
 	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
 	import Flag from '$lib/components/Flag.svelte';
-	import { Avatar } from '$lib/components';
+	import { Avatar, BugReportModal } from '$lib/components';
 	import { identityColor } from '$lib/avatars';
 
 	const LOCALES: Locale[] = ['es', 'en', 'pt'];
@@ -194,6 +194,11 @@
 	let savingCheatDays = $state(false);
 	let savingInventory = $state(false);
 	let moodEnabled = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
+	let showBugReport = $state(false);
+	// La pantalla de la que venía: casi siempre es donde vio el problema, y
+	// /settings no le dice nada a nadie.
+	let fromRoute = $state('');
+	afterNavigate(({ from }) => { if (from?.url) fromRoute = from.url.pathname; });
 	let showDeleteModal = $state(false);
 	let deletingAccount = $state(false);
 	let deleteConfirmText = $state('');
@@ -927,8 +932,21 @@
 				</button>
 			{/if}
 		</div>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={() => (showBugReport = true)}>
+			<div class="icon-box">🐞</div>
+			<div class="row-content">
+				<div class="row-label">{t('settings.reportBug')}</div>
+				<div class="row-detail">{t('settings.reportBugDetail')}</div>
+			</div>
+			<span class="chevron">›</span>
+		</button>
 	</div>
 </div>
+
+{#if showBugReport}
+	<BugReportModal onClose={() => (showBugReport = false)} {fromRoute} />
+{/if}
 
 <!-- ── Group: Plan ── -->
 <div style="margin-bottom:1.125rem;">

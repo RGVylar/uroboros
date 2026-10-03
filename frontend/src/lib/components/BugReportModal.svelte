@@ -69,7 +69,8 @@
 		style="width:100%; resize:vertical; font-family:inherit;"
 	></textarea>
 
-	<label style="display:flex; align-items:center; gap:0.625rem; margin-top:0.625rem; padding:0.625rem 0.75rem; border-radius:12px; border:1px dashed rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); cursor:pointer;">
+	<!-- text-transform y compañía: el `label` global es el de los títulos de campo -->
+	<label style="display:flex; align-items:center; gap:0.625rem; margin-top:0.625rem; text-transform:none; letter-spacing:normal; font-weight:400; padding:0.625rem 0.75rem; border-radius:12px; border:1px dashed rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); cursor:pointer;">
 		<span style="font-size:1.125rem;">📎</span>
 		<span style="flex:1; min-width:0; font-size:0.75rem; color:rgba(255,255,255,0.65); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
 			{screenshot ? screenshot.name : t('bugReport.attach')}

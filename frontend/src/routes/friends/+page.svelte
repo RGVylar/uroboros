@@ -383,7 +383,9 @@
 				{@const fName = friendName(f)}
 				{@const fId = f.requester.id === auth.user?.id ? f.receiver.id : f.requester.id}
 				<div style="padding:0.875rem; border-bottom:{i < friends.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-					<div style="display:flex; align-items:center; gap:0.75rem;">
+					<!-- flex-wrap: con tres botones, en un móvil de 375 px el nombre se
+					     quedaba a 0 de ancho y "Hacer pareja" se le montaba encima -->
+					<div style="display:flex; align-items:center; gap:0.5rem 0.75rem; flex-wrap:wrap;">
 						<!-- Avatar — toca para ver perfil -->
 						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer; box-shadow:none; border-radius:50%; line-height:0;">
 							<Avatar name={fName} avatarId={friendAvatar(f)} avatarPhoto={friendPhoto(f)} size={46} />
@@ -391,7 +393,7 @@
 								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;">★</div>
 							{/if}
 						</button>
-						<div style="flex:1; min-width:0;">
+						<div style="flex:1 1 9rem; min-width:0; overflow:hidden; text-overflow:ellipsis;">
 							{#if f.kind === 'partner'}
 								<div style="font-size:0.5625rem; font-weight:800; letter-spacing:0.075em; text-transform:uppercase; color:oklch(85% 0.15 160);">{t('friends.kindPartner')}</div>
 							{/if}
@@ -403,7 +405,7 @@
 								{f.partner_proposed_by === auth.user?.id ? t('friends.partnerProposed') : f.partner_proposed_by ? t('friends.partnerWants') : t('friends.makePartner')}
 							</button>
 						{/if}
-						<button onclick={() => removeFriend(f.id)} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">{t('friends.remove')}</button>
+						<button onclick={() => removeFriend(f.id)} style="margin-left:auto; font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); cursor:pointer; font-family:inherit;">{t('friends.remove')}</button>
 						<button onclick={() => { reportId = f.id; reportReason = ''; }} title={t('friends.reportTitle')} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:oklch(72% 0.16 30); cursor:pointer; font-family:inherit;">{t('friends.report')}</button>
 					</div>
 					{#if f.partner_proposed_by && f.partner_proposed_by !== auth.user?.id && f.kind !== 'partner'}
