@@ -16,3 +16,4 @@ export { default as Toast } from './Toast.svelte';
 export { default as DuelBoard } from './DuelBoard.svelte';
 export { default as RecipeAmount } from './RecipeAmount.svelte';
 export { default as RecipeCardEditor } from './RecipeCardEditor.svelte';
+export { default as BugReportModal } from './BugReportModal.svelte';
