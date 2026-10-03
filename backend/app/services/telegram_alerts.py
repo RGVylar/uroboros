@@ -216,6 +216,72 @@ async def send_report_alert(
         pass
 
 
+def _md_escape(text: str) -> str:
+    """Texto libre del usuario dentro de un mensaje en Markdown (el legacy).
+
+    Un `_` o un `*` sueltos dejan la entidad sin cerrar y Telegram rechaza el
+    mensaje entero, así que el informe no llegaría por culpa de un guion bajo.
+    """
+    for ch in ("\\", "_", "*", "`", "["):
+        text = text.replace(ch, "\\" + ch)
+    return text
+
+
+async def send_bug_report_alert(
+    report_id: int,
+    user_id: int,
+    user_name: str,
+    message: str,
+    app_version: str,
+    platform: str,
+    device: str,
+    locale: str,
+    route: str,
+    screenshot: bytes | None,
+) -> None:
+    """Un probador ha reportado un problema. La versión va arriba del todo:
+    es lo primero que hay que mirar antes de buscar el bug en el código."""
+    if not settings.telegram_bot_token or not settings.telegram_chat_id:
+        return
+
+    header = (
+        f"🐞 *[uroboros]* Problema reportado `#{report_id}`\n\n"
+        f"*Versión:* `{app_version or '?'}` · {platform or '?'}\n"
+        f"*Usuario:* {_md_escape(user_name)} (`#{user_id}`)\n"
+        f"*Dispositivo:* {_md_escape(device or '?')}\n"
+        f"*Idioma:* {locale or '?'} · *Pantalla:* `{route or '?'}`\n\n"
+    )
+    footer = f"\n\n🕐 {_now()}"
+
+    if screenshot is None:
+        await _send(header + _md_escape(message) + footer)
+        return
+
+    # El pie de una foto admite 1024 caracteres; lo que no quepa va aparte para
+    # no perder el texto del informe, que es lo que más importa.
+    caption = header + _md_escape(message) + footer
+    overflow = None
+    if len(caption) > 1024:
+        caption = header + "_(texto en el mensaje siguiente)_" + footer
+        overflow = f"🐞 `#{report_id}`\n\n{_md_escape(message)}"
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            await client.post(
+                TELEGRAM_PHOTO_API.format(token=settings.telegram_bot_token),
+                data={
+                    "chat_id": settings.telegram_chat_id,
+                    "caption": caption,
+                    "parse_mode": "Markdown",
+                },
+                files={"photo": (f"bug-{report_id}.jpg", screenshot, "image/jpeg")},
+            )
+    except Exception:
+        pass
+    if overflow:
+        await _send(overflow)
+
+
 async def send_brute_force_alert(ip: str, endpoint: str) -> None:
     """Rate limit exceeded on an auth endpoint."""
     text = (
