@@ -55,6 +55,19 @@ def upgrade() -> None:
                         "pt": "Pesquisa «peru» ou «arroz» e a versão genérica aparece primeiro, com valores médios, sem teres de escolher marca. O que muda ao cozinhar vem cru e cozinhado.",
                     },
                 },
+                {
+                    "type": "mejora",
+                    "title": {
+                        "es": "Medallas en el perfil de los demás",
+                        "en": "Medals on other people's profiles",
+                        "pt": "Medalhas no perfil dos outros",
+                    },
+                    "desc": {
+                        "es": "En el perfil de tu pareja o de un amigo ya ves sus medallas del ranking semanal.",
+                        "en": "Your partner's or a friend's profile now shows their weekly ranking medals.",
+                        "pt": "No perfil do teu par ou de um amigo já vês as medalhas do ranking semanal.",
+                    },
+                },
             ],
         },
     ])
