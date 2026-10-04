@@ -75,3 +75,12 @@ def test_friend_profile_shows_their_medals_and_kind(client, db, make_user):
     body = r.json()
     assert body["kind"] == "partner"
     assert body["medals"] == {"gold": 1, "silver": 0, "bronze": 0}
+
+
+def test_percentile_endpoint_answers(client, db, make_user):
+    # Cubre el 500 de producción: el refactor de las medallas dejó a
+    # /me/percentile sin sus imports y ningún test lo llamaba.
+    me = make_user("Mugre")
+    _snapshot(db, me, 1, 70)
+    r = client.get(f"{API}/duel/me/percentile", headers=auth(me))
+    assert r.status_code == 200, r.text

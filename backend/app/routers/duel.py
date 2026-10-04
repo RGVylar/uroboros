@@ -81,8 +81,9 @@ def my_percentile(
     from datetime import datetime as _dt, timedelta
     from math import ceil
 
+    from app.models.weekly_adherence import WeeklyAdherence
     from app.services.adherence_snapshot import upsert_snapshot
-    from app.services.awards import weekly_awards
+    from app.services.duel_service import week_start_for
 
     def _population(week_start) -> int:
         return db.scalar(
