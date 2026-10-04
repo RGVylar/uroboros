@@ -230,10 +230,11 @@ def get_friend_profile(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """Return public profile data for a friend."""
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta, timezone
     from sqlalchemy import func, cast, Date
     from app.models.diary import DiaryEntry
     from app.models.recipe import Recipe
+    from app.services.awards import weekly_awards
     from app.services.streak_service import calculate_streak
 
     # Must be a friend
@@ -266,6 +267,7 @@ def get_friend_profile(
     recipe_count = db.scalar(
         select(func.count()).select_from(Recipe).where(Recipe.owner_id == user_id)
     ) or 0
+    awards = weekly_awards(db, user_id, datetime.now(timezone.utc).date())
 
     return {
         "id": target.id,
@@ -278,6 +280,10 @@ def get_friend_profile(
         "streak": streak,
         "active_days": active_days,
         "recipe_count": recipe_count,
+        "kind": is_friend.kind.value if is_friend else None,
+        # Solo el recuento de podios, no el puesto de esta semana: a un amigo
+        # le basta con ver las medallas.
+        "medals": {k: awards[k] for k in ("gold", "silver", "bronze")},
     }
 
 

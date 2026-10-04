@@ -17,15 +17,17 @@
 		streak: number;
 		active_days: number;
 		recipe_count: number;
+		kind: 'friend' | 'partner' | null;
+		medals: { gold: number; silver: number; bronze: number };
 	}
 
 	const ACHIEVEMENTS = [
-		{ id: 1, label: 'Primer log',  desc: 'Primera comida registrada', hue: 160, check: (p: FriendProfile) => p.active_days >= 1 },
-		{ id: 2, label: '7 días',      desc: 'Racha de 7 días',           hue: 45,  check: (p: FriendProfile) => p.streak >= 7 },
-		{ id: 3, label: 'Recetas',     desc: '3 recetas creadas',          hue: 295, check: (p: FriendProfile) => p.recipe_count >= 3 },
-		{ id: 5, label: 'Activo',      desc: '20 días activos este mes',   hue: 330, check: (p: FriendProfile) => p.active_days >= 20 },
-		{ id: 6, label: '30 días',     desc: 'Racha de 30 días',           hue: 25,  check: (p: FriendProfile) => p.streak >= 30 },
-	];
+		{ id: 1, label: 'friendProfile.ach.firstLog', desc: 'friendProfile.ach.firstLogDesc', hue: 160, check: (p: FriendProfile) => p.active_days >= 1 },
+		{ id: 2, label: 'friendProfile.ach.streak7', desc: 'friendProfile.ach.streak7Desc',  hue: 45,  check: (p: FriendProfile) => p.streak >= 7 },
+		{ id: 3, label: 'friendProfile.ach.recipes', desc: 'friendProfile.ach.recipesDesc',  hue: 295, check: (p: FriendProfile) => p.recipe_count >= 3 },
+		{ id: 5, label: 'friendProfile.ach.active', desc: 'friendProfile.ach.activeDesc',   hue: 330, check: (p: FriendProfile) => p.active_days >= 20 },
+		{ id: 6, label: 'friendProfile.ach.streak30', desc: 'friendProfile.ach.streak30Desc', hue: 25,  check: (p: FriendProfile) => p.streak >= 30 },
+	] as const;
 
 	let profile = $state<FriendProfile | null>(null);
 	let loading = $state(true);
@@ -39,7 +41,7 @@
 		try {
 			profile = await api.get<FriendProfile>(`/users/${userId}/profile`);
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'No se pudo cargar el perfil';
+			error = e instanceof Error ? e.message : t('friendProfile.loadError');
 		} finally {
 			loading = false;
 		}
@@ -124,7 +126,7 @@
 	<button onclick={() => history.back()} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="uro-title">{t('friendProfile.title')}</h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('friendProfile.sub')}</div>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t(profile?.kind === 'partner' ? 'friendProfile.subPartner' : 'friendProfile.sub')}</div>
 	</div>
 </div>
 
@@ -155,6 +157,20 @@
 				<div style="font-size:0.5625rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">{t('friendProfile.of30')}</div>
 			</div>
 		</div>
+
+		<!-- Medallas: podios semanales en el ranking global, como en tu perfil -->
+		<div style="margin-top:1rem; padding-top:0.875rem; border-top:1px solid rgba(255,255,255,0.08);">
+			<div style="font-size:0.5625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">{t('friendProfile.medals')}</div>
+			{#if profile.medals.gold + profile.medals.silver + profile.medals.bronze > 0}
+				<div style="display:flex; justify-content:center; gap:1.25rem; font-size:1.125rem; font-weight:800; color:#fff;">
+					{#if profile.medals.gold}<span title={t('profile.awardsGold', { n: profile.medals.gold })}>🥇 {profile.medals.gold}</span>{/if}
+					{#if profile.medals.silver}<span title={t('profile.awardsSilver', { n: profile.medals.silver })}>🥈 {profile.medals.silver}</span>{/if}
+					{#if profile.medals.bronze}<span title={t('profile.awardsBronze', { n: profile.medals.bronze })}>🥉 {profile.medals.bronze}</span>{/if}
+				</div>
+			{:else}
+				<div style="font-size:0.75rem; color:rgba(255,255,255,0.35);">{t('friendProfile.noMedals')}</div>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Duelo semanal -->
@@ -169,7 +185,7 @@
 				onclick={() => (showDuel = true)}
 				style="width:100%; margin-top:1.125rem; padding:0.75rem; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer;"
 			>
-				Ver duelo completo →
+				{t('friendProfile.seeFullDuel')}
 			</button>
 		</div>
 	{:else if duelApi && !duelApi.active}
@@ -181,11 +197,11 @@
 			<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">{t('friendProfile.duelTitle')}</div>
 			<div style="font-size:0.875rem; font-weight:600;">
 				{#if duelApi.my_opt_in && !duelApi.their_opt_in}
-					Esperando a que {profile.name} lo active
+					{t('friendProfile.duelWaiting', { name: profile.name })}
 				{:else if !duelApi.my_opt_in && duelApi.their_opt_in}
-					{profile.name} quiere competir · <span style="color:oklch(85% 0.17 160);">{t('friendProfile.enableIt')}</span>
+					{t('friendProfile.duelWants', { name: profile.name })} · <span style="color:oklch(85% 0.17 160);">{t('friendProfile.enableIt')}</span>
 				{:else}
-					Compite en adherencia con {profile.name}
+					{t('friendProfile.duelInvite', { name: profile.name })}
 				{/if}
 			</div>
 			<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.25rem;">{t('friendProfile.enableInFriends')}</div>
@@ -201,8 +217,8 @@
 				<div style="font-size:1.5rem; margin-bottom:0.375rem; filter:{unlocked ? 'none' : 'grayscale(1) opacity(0.3)'};">
 					{#if a.id === 1}🥗{:else if a.id === 2}🔥{:else if a.id === 3}🍳{:else if a.id === 5}⚡{:else}🏆{/if}
 				</div>
-				<div style="font-size:0.6875rem; font-weight:700; color:{unlocked ? '#fff' : 'rgba(255,255,255,0.25)'};">{a.label}</div>
-				<div style="font-size:0.5625rem; color:{unlocked ? `oklch(75% 0.12 {a.hue})` : 'rgba(255,255,255,0.2)'}; margin-top:0.2rem; line-height:1.3;">{a.desc}</div>
+				<div style="font-size:0.6875rem; font-weight:700; color:{unlocked ? '#fff' : 'rgba(255,255,255,0.25)'};">{t(a.label)}</div>
+				<div style="font-size:0.5625rem; color:{unlocked ? `oklch(75% 0.12 {a.hue})` : 'rgba(255,255,255,0.2)'}; margin-top:0.2rem; line-height:1.3;">{t(a.desc)}</div>
 			</div>
 		{/each}
 	</div>

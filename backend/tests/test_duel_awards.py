@@ -59,3 +59,19 @@ def test_no_past_weeks_means_no_metal(client, make_user):
     a = client.get(f"{API}/duel/me/awards", headers=auth(me)).json()
     assert (a["gold"], a["silver"], a["bronze"]) == (0, 0, 0)
     assert (a["best_rank"], a["best_total"]) == (None, None)
+
+
+def test_friend_profile_shows_their_medals_and_kind(client, db, make_user):
+    from test_friendships import _befriend
+
+    me, karma = make_user("Mugre"), make_user("Karma")
+    _befriend(client, me, karma, kind="partner")
+    stranger = make_user("Stranger")
+    _snapshot(db, karma, 1, 90)
+    _snapshot(db, stranger, 1, 50)
+
+    r = client.get(f"{API}/users/{karma.id}/profile", headers=auth(me))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["kind"] == "partner"
+    assert body["medals"] == {"gold": 1, "silver": 0, "bronze": 0}
