@@ -16,6 +16,7 @@ from app.routers import (
 )
 from app.services.avatar_photo_service import media_root
 from app.services.notification_scheduler import start_scheduler, stop_scheduler
+from app.services.request_lang import set_request_lang
 from app.services.telegram_alerts import (
     send_brute_force_alert,
     send_error_alert,
@@ -49,6 +50,12 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     await send_error_alert(request.method, request.url.path, exc)
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+@app.middleware("http")
+async def request_language(request: Request, call_next):
+    set_request_lang(request.headers.get("x-lang"))
+    return await call_next(request)
 
 
 @app.middleware("http")

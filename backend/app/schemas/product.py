@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 ProductUnit = Literal["g", "ml", "unit"]
 
@@ -33,6 +33,9 @@ class ProductUpdate(BaseModel):
 
 
 class ProductOut(ProductBase):
+    # De un Product se lee display_name (traducido si es un genérico); de un
+    # dict, name a secas.
+    name: str = Field(validation_alias=AliasChoices("display_name", "name"))
     id: int
     barcode: str | None
     source: ProductSource

@@ -11,6 +11,8 @@ class ProductSource(str, enum.Enum):
     openfoodfacts = "openfoodfacts"
     manual = "manual"
     edited = "edited"
+    # Catálogo propio sin marca (app/data/generic_foods.py). Solo lectura.
+    generic = "generic"
 
 
 class Product(Base):
@@ -20,6 +22,11 @@ class Product(Base):
     barcode: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     brand: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Solo los genéricos: `name` va en español y estas son sus traducciones.
+    # Lo que se muestra lo decide display_name según el idioma de la petición.
+    name_en: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    name_pt: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    generic_key: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
 
     calories_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
     protein_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
@@ -42,3 +49,8 @@ class Product(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    @property
+    def display_name(self) -> str:
+        from app.services.request_lang import localized_name
+        return localized_name(self)

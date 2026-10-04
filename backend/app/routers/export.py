@@ -115,7 +115,7 @@ def export_full_xlsx(
             dt.strftime("%Y-%m-%d"),
             dt.strftime("%H:%M"),
             e.meal_type.value if e.meal_type else "",
-            e.product.name if e.product else f"#{e.product_id}",
+            e.product.display_name if e.product else f"#{e.product_id}",
             e.product.brand if e.product and e.product.brand else "",
             round(e.grams, 1),
             round(e.calories, 1),

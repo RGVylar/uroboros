@@ -1,9 +1,12 @@
+import re
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.data.generic_foods import GENERIC_FOODS
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Product, User
@@ -129,6 +132,44 @@ def _relevance(name: str, brand: str | None, q: str) -> int:
     return 0
 
 
+def _fold(text: str) -> str:
+    """Minúsculas y sin tildes: "platano" tiene que encontrar "Plátano"."""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", text.lower()) if unicodedata.category(c) != "Mn"
+    )
+
+
+# Ventaja de un genérico sobre un producto de marca con el mismo encaje: con
+# "pavo" sale antes la pechuga de pavo genérica que el fiambre de una marca.
+GENERIC_BOOST = 40
+
+# A igual relevancia, los genéricos salen en el orden del catálogo, que pone
+# primero lo más habitual (pechuga antes que carne picada) y después las marcas.
+_GENERIC_ORDER = {row[0]: i for i, row in enumerate(GENERIC_FOODS)}
+
+
+def _generic_matches(db: Session, q: str) -> list[tuple[Product, int]]:
+    """Genéricos que encajan con la búsqueda en cualquiera de sus idiomas, con
+    su relevancia. Son unos cientos: se filtran aquí, sin tildes y palabra a
+    palabra: cada palabra buscada tiene que empezar alguna del nombre, así
+    "pechuga pavo" encuentra "Pechuga de pavo (cruda)" y "pollo" no "Repollo"."""
+    words = _fold(q).split()
+    if not words:
+        return []
+
+    def _fits(name: str) -> bool:
+        name_words = re.findall(r"\w+", name)
+        return all(any(nw.startswith(w) for nw in name_words) for w in words)
+
+    out = []
+    for p in db.scalars(select(Product).where(Product.generic_key.is_not(None))):
+        names = [_fold(n) for n in (p.display_name, p.name, p.name_en, p.name_pt) if n]
+        if not any(_fits(n) for n in names):
+            continue
+        out.append((p, max(_relevance(n, None, _fold(q)) for n in names) or 40))
+    return out
+
+
 def _is_empty_off(p: Product) -> bool:
     # Fichas de OFF guardadas sin ningún dato nutricional (anteriores al filtro
     # del importador). Siguen existiendo por si hay diario que las usa, pero en
@@ -186,17 +227,23 @@ async def search_products(
     # a best-effort dedup filter against this capped set, same as before.
     stmt = (
         select(Product)
-        .where(or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")))
+        .where(
+            or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")),
+            Product.generic_key.is_(None),
+        )
         .limit(300)
     )
     local_all = list(db.scalars(stmt))
+    generics = _generic_matches(db, q)
+    generic_rel = {p.id: rel + GENERIC_BOOST for p, rel in generics}
+    local_all += [p for p, _ in generics]
 
     # Sort by relevance + user history boost, then alphabetically as tiebreaker
     # Boost: up to +30 points for products the user has logged before (capped)
     def _sort_key(p: Product) -> tuple:
-        rel = _relevance(p.name, p.brand, q)
+        rel = generic_rel.get(p.id) or _relevance(p.name, p.brand, q)
         boost = min(30, user_freq.get(p.id, 0) * 3) if rel > 0 else 0
-        return (-(rel + boost), p.name.lower())
+        return (-(rel + boost), _GENERIC_ORDER.get(p.generic_key, len(_GENERIC_ORDER)), p.display_name.lower())
 
     local_all.sort(key=_sort_key)
     seen: set[tuple] = set()
@@ -321,6 +368,9 @@ def update_product(
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+    if product.source == ProductSource.generic:
+        # El catálogo es de todos: editarlo cambiaría el diario de cualquiera.
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "generic_read_only")
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(product, k, v)

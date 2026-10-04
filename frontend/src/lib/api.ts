@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { auth } from '$lib/stores/auth.svelte';
 import { connectivity } from '$lib/stores/connectivity.svelte';
-import { t } from '$lib/i18n/index.svelte';
+import { t, i18n } from '$lib/i18n/index.svelte';
 
 // In native app, API calls go to the remote server.
 // In web, they go through Caddy's reverse proxy at /api.
@@ -27,6 +27,9 @@ async function request<T>(path: string, opts: RequestInit = {}, timeoutMs = REQU
 	if (!(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 	const token = auth.token;
 	if (token) headers['Authorization'] = `Bearer ${token}`;
+	// El backend traduce lo poco que traduce (nombres de alimentos genéricos)
+	// con esto.
+	headers['X-Lang'] = i18n.locale;
 
 	const controller = isNative ? null : new AbortController();
 	const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;

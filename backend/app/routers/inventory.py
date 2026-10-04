@@ -43,7 +43,7 @@ def _to_out_personal(item: InventoryItem) -> InventoryItemOut:
         id=item.id,
         user_id=item.user_id,
         product_id=item.product_id,
-        product_name=item.product.name,
+        product_name=item.product.display_name,
         product_brand=item.product.brand,
         calories_per_100g=item.product.calories_per_100g,
         quantity_g=item.quantity_g,
@@ -60,7 +60,7 @@ def _to_out_shared(item: SharedInventoryItem, user_id: int) -> InventoryItemOut:
         id=item.id,
         user_id=user_id,  # caller's user_id for compatibility
         product_id=item.product_id,
-        product_name=item.product.name,
+        product_name=item.product.display_name,
         product_brand=item.product.brand,
         calories_per_100g=item.product.calories_per_100g,
         quantity_g=item.quantity_g,
@@ -117,14 +117,14 @@ def list_inventory(
         if location:
             q = q.where(SharedInventoryItem.location == location)
         items = list(db.scalars(q))
-        items.sort(key=lambda i: i.product.name.lower())
+        items.sort(key=lambda i: i.product.display_name.lower())
         return [_to_out_shared(i, user.id) for i in items]
 
     q = select(InventoryItem).where(InventoryItem.user_id == user.id)
     if location:
         q = q.where(InventoryItem.location == location)
     items = list(db.scalars(q))
-    items.sort(key=lambda i: i.product.name.lower())
+    items.sort(key=lambda i: i.product.display_name.lower())
     return [_to_out_personal(i) for i in items]
 
 
@@ -540,7 +540,7 @@ def list_inventory_logs(
             user_id=log.user_id,
             item_id=log.item_id,
             product_id=log.product_id,
-            product_name=log.product.name if log.product else None,
+            product_name=log.product.display_name if log.product else None,
             quantity_change=log.quantity_change,
             unit=log.unit,
             quantity_base_change=log.quantity_base_change,

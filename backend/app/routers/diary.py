@@ -343,7 +343,7 @@ def meal_conflict_check(
         has_entries=len(entries) > 0,
         count=len(entries),
         calories=sum(e.calories for e in entries),
-        product_names=[e.product.name for e in entries if e.product],
+        product_names=[e.product.display_name for e in entries if e.product],
     )
 
 
@@ -603,7 +603,7 @@ def export_csv(
             dt.strftime("%Y-%m-%d"),
             dt.strftime("%H:%M"),
             e.meal_type.value if e.meal_type else "",
-            product.name if product else f"#{e.product_id}",
+            product.display_name if product else f"#{e.product_id}",
             round(e.grams, 1),
             round(e.calories, 1),
             round(e.protein, 1),

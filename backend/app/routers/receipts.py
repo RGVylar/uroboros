@@ -153,7 +153,7 @@ async def scan_receipt(
                 suggestion=(
                     SuggestionOut(
                         product_id=m.product.id,
-                        product_name=m.product.name,
+                        product_name=m.product.display_name,
                         score=round(m.score, 2),
                         source=m.source,
                         confident=m.is_confident,

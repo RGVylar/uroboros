@@ -326,6 +326,7 @@ export const es = {
 	'add.edit': 'Editar',
 	'add.name': 'Nombre',
 	'add.brand': 'Marca',
+	'add.generic': 'Genérico',
 	'add.optional': '(opcional)',
 	'add.kcal100': 'Kcal {per}',
 	'add.prot100': 'Prot {per}',

@@ -269,6 +269,11 @@
 
 	// ── Editar producto ─────────────────────────────────────────────────────────
 	let showEdit = $state(false);
+
+	// Los genéricos no tienen marca: en su lugar se dice que lo son.
+	function brandLabel(p: Product): string {
+		return p.source === 'generic' ? t('add.generic') : (p.brand ?? '—');
+	}
 	let editName = $state('');
 	let editBrand = $state('');
 	let editCal = $state(0);
@@ -993,12 +998,14 @@
 				<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
-		<button class="glass-btn" onclick={startEdit} aria-label={t('add.editProduct')} title={t('add.editProductTitle')}>
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-				<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>
-		</button>
+		{#if selected.source !== 'generic'}
+			<button class="glass-btn" onclick={startEdit} aria-label={t('add.editProduct')} title={t('add.editProductTitle')}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</button>
+		{/if}
 	</div>
 
 
@@ -1488,14 +1495,14 @@
 					<button
 						class="product-row"
 						onclick={() => selectProduct(product)}
-						aria-label={t('add.productAria', { name: product.name, brand: product.brand ? `, ${product.brand}` : '', kcal: product.calories_per_100g, per: perLabel(product) })}
+						aria-label={t('add.productAria', { name: product.name, brand: `, ${brandLabel(product)}`, kcal: product.calories_per_100g, per: perLabel(product) })}
 					>
 						<div class="product-avatar" style="
 							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
 						">{productGlyph(product.name)}</div>
 						<div style="flex:1; min-width:0; text-align:left;">
 							<div class="product-name">{product.name}</div>
-							<div class="product-brand">{product.brand ?? '—'}</div>
+							<div class="product-brand">{brandLabel(product)}</div>
 						</div>
 						<div style="text-align:right; flex-shrink:0;">
 							<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
@@ -1588,7 +1595,7 @@
 								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{product.name}</div>
-									<div class="product-brand">{product.brand ?? '—'}</div>
+									<div class="product-brand">{brandLabel(product)}</div>
 								</div>
 								<div style="text-align:right; flex-shrink:0;">
 									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
@@ -1744,7 +1751,7 @@
 								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{product.name}</div>
-									<div class="product-brand">{product.brand ?? '—'}</div>
+									<div class="product-brand">{brandLabel(product)}</div>
 								</div>
 								<div style="text-align:right; flex-shrink:0;">
 									<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>
@@ -1764,7 +1771,7 @@
 										<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
 										<div style="flex:1; min-width:0; text-align:left;">
 											<div class="product-name">{product.name}</div>
-											<div class="product-brand">{product.brand ?? '—'}</div>
+											<div class="product-brand">{brandLabel(product)}</div>
 										</div>
 										<div style="text-align:right; flex-shrink:0;">
 											<div class="product-kcal">{product.calories_per_100g}<span class="product-kcal-unit">kcal</span></div>

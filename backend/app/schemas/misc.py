@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from app.measurement_keys import MEASUREMENT_KEYS
 from app.models.recipe import RecipeScope
@@ -165,7 +165,7 @@ class SharedRecipeOut(RecipeOut):
 
 class ProductOutMinimal(BaseModel):
     id: int
-    name: str
+    name: str = Field(validation_alias=AliasChoices("display_name", "name"))
     brand: str | None
     calories_per_100g: float
     protein_per_100g: float

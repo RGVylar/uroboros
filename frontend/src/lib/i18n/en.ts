@@ -323,6 +323,7 @@ export const en: Dict = {
 	'add.edit': 'Edit',
 	'add.name': 'Name',
 	'add.brand': 'Brand',
+	'add.generic': 'Generic',
 	'add.optional': '(optional)',
 	'add.kcal100': 'Kcal {per}',
 	'add.prot100': 'Prot {per}',

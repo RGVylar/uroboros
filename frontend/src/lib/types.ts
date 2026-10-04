@@ -77,7 +77,7 @@ export interface Product {
 	// Nula = se adivina por el nombre (ver $lib/drink). Para 'unit' los
 	// *_per_100g son por unidad y 1 ud = 100 g internos.
 	unit: 'g' | 'ml' | 'unit' | null;
-	source: 'openfoodfacts' | 'manual' | 'edited';
+	source: 'openfoodfacts' | 'manual' | 'edited' | 'generic';
 	edited_by: number | null;
 	edited_at: string | null;
 	created_at: string;
