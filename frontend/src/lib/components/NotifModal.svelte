@@ -16,6 +16,9 @@
 				// Mark as enabled in server prefs so scheduleNativeNotifications()
 				// actually queues the daily alarms (default prefs have enabled=false).
 				await api.put('/push/prefs', { enabled: true }).catch(() => {});
+				// subscribe() ya programó, pero leyendo enabled=false del servidor:
+				// sin reprogramar no queda nada en cola hasta el siguiente arranque en frío.
+				await pushStore.reschedule();
 				onclose();
 				return;
 			}
