@@ -2,6 +2,7 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { api } from '$lib/api';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -28,7 +29,12 @@
 				typeof Notification !== 'undefined' &&
 				Notification.permission === 'denied';
 			denied = isNativeApp || webDenied;
-			if (!denied) onclose(); // user dismissed the web dialog without blocking
+			if (!denied) {
+				// Permiso dado pero el navegador no puede recibir push: que lo sepa.
+				const f = pushStore.failure;
+				if (f && f !== 'denied') toast.error(t(`push.fail.${f}`));
+				onclose(); // or user dismissed the web dialog without blocking
+			}
 		} finally {
 			loading = false;
 		}

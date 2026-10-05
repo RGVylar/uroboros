@@ -177,6 +177,7 @@
 	async function enableNotifs() {
 		const ok = await pushStore.subscribe();
 		if (ok) await savePrefs({ enabled: true });
+		else if (pushStore.failure && pushStore.failure !== 'denied') toast.error(t(`push.fail.${pushStore.failure}`));
 	}
 
 	async function disableNotifs() {

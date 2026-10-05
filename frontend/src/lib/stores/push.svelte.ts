@@ -42,10 +42,29 @@ export const isNativeApp: boolean = (() => {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Por qué falló el último subscribe() en la web, para decírselo a la persona
+ * en vez de dejar el interruptor apagado sin más.
+ *   push_service → el navegador no logra darse de alta en su servicio de push
+ *                  (VPN, bloqueador, Chromium sin servicios de Google…)
+ *   brave        → lo mismo en Brave, que trae el push de Google apagado
+ */
+export type PushFailure = 'denied' | 'push_service' | 'brave' | 'error';
+
 let _isSupported = $state(false);
 let _permission = $state<NotificationPermission>('default');
 let _isSubscribed = $state(false);
 let _registration = $state<ServiceWorkerRegistration | null>(null);
+let _failure = $state<PushFailure | null>(null);
+
+async function isBrave(): Promise<boolean> {
+	try {
+		const brave = (navigator as Navigator & { brave?: { isBrave(): Promise<boolean> } }).brave;
+		return !!brave && (await brave.isBrave());
+	} catch {
+		return false;
+	}
+}
 
 // ── Helpers (web push only) ───────────────────────────────────────────────────
 
@@ -67,6 +86,7 @@ export const pushStore = {
 	get isSupported() { return _isSupported; },
 	get permission()  { return _permission;  },
 	get isSubscribed() { return _isSubscribed; },
+	get failure() { return _failure; },
 
 	/** Call once on app start after auth is confirmed. */
 	async init() {
@@ -121,10 +141,17 @@ export const pushStore = {
 		}
 
 		// ── Web Push ──
-		if (!_registration) return false;
+		_failure = null;
+		if (!_registration) {
+			_failure = 'error';
+			return false;
+		}
 		const permission = await Notification.requestPermission();
 		_permission = permission;
-		if (permission !== 'granted') return false;
+		if (permission !== 'granted') {
+			_failure = 'denied';
+			return false;
+		}
 
 		try {
 			const vapidKey = await getVapidKey();
@@ -143,6 +170,10 @@ export const pushStore = {
 			return true;
 		} catch (e) {
 			console.error('[push] web subscribe failed', e);
+			// "Registration failed - push service error": el permiso está dado
+			// pero el navegador no llega a su servicio de push. No es cosa nuestra.
+			const pushService = e instanceof DOMException && e.name === 'AbortError';
+			_failure = pushService ? ((await isBrave()) ? 'brave' : 'push_service') : 'error';
 			return false;
 		}
 	},
