@@ -42,6 +42,7 @@
 	--carb:  oklch(75% 0.16 295);  /* carbohidratos / morado */
 	--fat:   oklch(72% 0.18 25);   /* grasa / rojo */
 	--water: oklch(78% 0.13 225);  /* agua */
+	--steps: oklch(85% 0.15 90);   /* pasos / amarillo */
 
 	/* Blur */
 	--blur:   blur(22px) saturate(1.3);

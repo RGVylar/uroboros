@@ -34,10 +34,26 @@
 	let today = $state(new Date().toISOString().slice(0, 10));
 	let isToday = $derived(today === new Date().toISOString().slice(0, 10));
 	let summary: DaySummary | null = $state(null);
-	let goals: Goals | null = $state(null);
+	let goals = $state<Goals | null>(null);
 	let water: WaterDay | null = $state(null);
 	// Pasos del día desde Health Connect; null = sin lectura (≠ 0 pasos).
 	let steps = $state<number | null>(null);
+	// Los 7 días que acaban en el día que se mira (el último es ese día), para
+	// las barras de la tarjeta. Mismo criterio: null = sin lectura.
+	let stepsWeek = $state<(number | null)[]>([]);
+	let stepsGoal = $derived(goals?.steps_goal ?? 8000);
+	// Tarjeta de suplementos: en columna junto al agua, o en fila fina debajo
+	// cuando los pasos ocupan ese hueco.
+	const SUPP_COL = 'padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;';
+	const SUPP_ROW = 'padding:0.6rem 0.85rem; display:flex; flex-direction:row; align-items:center; gap:0.75rem; text-align:left;';
+	// La tarjeta sale si hay algo que enseñar, o si hoy está conectado y aún
+	// no ha llegado la primera lectura ("—").
+	let showSteps = $derived(
+		steps !== null || stepsWeek.some((v) => v !== null) || (health.enabled && isToday),
+	);
+	// Altura de cada barra (0..1) contra el máximo entre el objetivo y el mejor
+	// día: así la línea del objetivo se queda dentro de la tarjeta.
+	let stepsScale = $derived(Math.max(stepsGoal, ...stepsWeek.map((v) => v ?? 0), 1));
 	let frequent: FrequentProduct[] = $state([]);
 	let frequentRecipes: FrequentRecipe[] = $state([]);
 	// The streak itself doesn't depend on which day is being browsed (the
@@ -207,10 +223,21 @@
 		if (g) cacheSet('goals', g);
 	}
 
+	/** YYYY-MM-DD `n` días antes (o después, si es negativo) de `day`. */
+	function shiftDay(day: string, n: number): string {
+		const d = new Date(`${day}T12:00:00Z`);
+		d.setUTCDate(d.getUTCDate() - n);
+		return d.toISOString().slice(0, 10);
+	}
+
 	async function loadSteps() {
 		const day = today;
-		const rows = await api.get<StepsDay[]>(`/steps?start=${day}&end=${day}`).catch(() => []);
-		if (day === today) steps = rows[0]?.steps ?? null;
+		const start = shiftDay(day, 6);
+		const rows = await api.get<StepsDay[]>(`/steps?start=${start}&end=${day}`).catch(() => []);
+		if (day !== today) return;
+		const byDay = new Map(rows.map((r) => [r.day, r.steps]));
+		stepsWeek = Array.from({ length: 7 }, (_, i) => byDay.get(shiftDay(day, 6 - i)) ?? null);
+		steps = stepsWeek[6];
 	}
 
 	// Cuando la APK sube pasos nuevos (al abrir o volver a la app), refrescamos.
@@ -845,18 +872,9 @@
 				{/if}
 			</div>
 
-			{#if steps !== null || (health.enabled && isToday)}
-				<div class="card steps-card">
-					<span style="font-size:0.95rem;">👣</span>
-					<span style="font-size:0.82rem; font-weight:700; color:var(--text);">{t('diary.steps')}</span>
-					<span class="steps-value">
-						{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
-					</span>
-				</div>
-			{/if}
 
-			<!-- Water + Supplements -->
-			<div style="display:grid; grid-template-columns:{isToday && suppCount > 0 ? '1fr 1fr' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
+			<!-- Agua + pasos; sin pasos, agua + suplementos como siempre -->
+			<div style="display:grid; grid-template-columns:{showSteps || (isToday && suppCount > 0) ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
 				<div class="card" style="padding:0.85rem;">
 					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
 						<span style="font-size:0.95rem;">💧</span>
@@ -880,70 +898,35 @@
 							disabled={!water || water.total_ml <= 0}>↩</button>
 					</div>
 				</div>
-				{#if isToday && suppEnabled}
-					{#if suppCount === 1}
-						<!-- Single supplement: tap to toggle directly -->
-						<div class="card" role="button" tabindex="0"
-							onclick={() => toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
-							onkeydown={(e) => e.key === 'Enter' && toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
-							style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center; cursor:pointer;
-							{supplements[0].taken ? 'background:linear-gradient(135deg, var(--primary) -20%, var(--surface) 70%); border-color: var(--primary);' : ''}">
-							<div style="
-								width:42px; height:42px; border-radius:50%;
-								background:{supplements[0].taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
-								border:{supplements[0].taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
-								display:flex; align-items:center; justify-content:center;
-								font-size:1.05rem; font-weight:800; color:var(--primary-ink);
-								transition: background 0.25s;
-							">{supplements[0].taken ? '✓' : ''}</div>
-							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{supplements[0].name}</div>
-							<!-- Dos acciones = dos controles separados (antes era un único target confuso) -->
-							<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; font-weight:600; color:var(--text-muted);">
-								<span role="button" tabindex="0"
-									onclick={(e) => { e.stopPropagation(); toggleSupp(supplements[0].supplement_id, supplements[0].taken); }}
-									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), toggleSupp(supplements[0].supplement_id, supplements[0].taken))}
-									style="cursor:pointer; padding:0.2rem 0.1rem;">
-									{supplements[0].taken ? t('diary.suppUndo') : t('diary.suppMark')}
-								</span>
-								<span aria-hidden="true">·</span>
-								<span role="button" tabindex="0"
-									onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
-									onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
-									style="cursor:pointer; padding:0.2rem 0.1rem;">
-									{t('diary.suppManage')}
-								</span>
-							</div>
+				{#if showSteps}
+					<div class="card steps-card" role="img" aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
+						<div style="display:flex; align-items:center; gap:0.4rem;">
+							<span style="font-size:0.95rem;">👣</span>
+							<span style="font-size:0.82rem; color:var(--steps); font-weight:700;">{t('diary.steps')}</span>
 						</div>
-					{:else if suppCount > 1}
-						<!-- Multiple supplements: tap opens modal with ring -->
-						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
-							<div style="position:relative; width:42px; height:42px;">
-								<svg viewBox="0 0 42 42" style="width:42px; height:42px; transform:rotate(-90deg);">
-									<circle cx="21" cy="21" r="17" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
-									<circle cx="21" cy="21" r="17" fill="none"
-										stroke="{suppTaken === suppCount ? 'var(--primary)' : 'oklch(75% 0.18 160)'}"
-										stroke-width="4"
-										stroke-dasharray="{Math.round(2 * 3.14159 * 17)}"
-										stroke-dashoffset="{Math.round(2 * 3.14159 * 17 * (1 - suppTaken / suppCount))}"
-										stroke-linecap="round"/>
-								</svg>
-								<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:{suppTaken === suppCount ? 'var(--primary)' : '#fff'};">
-									{suppTaken}/{suppCount}
-								</div>
-							</div>
-							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{t('diary.supplements')}</div>
-							<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? t('diary.suppAllTaken') : t('diary.suppTapToMark')}</div>
-						</button>
-					{:else}
-						<!-- No supplements yet -->
-						<button class="card" onclick={() => showSupplModal = true} style="padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center; cursor:pointer; border:none; width:100%;">
-							<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary);">＋</div>
-							<div style="font-weight:700; font-size:0.82rem; color:#fff;">{t('diary.supplements')}</div>
-							<div style="font-size:0.7rem; color:var(--text-muted);">{t('diary.addSupplement')}</div>
-						</button>
-					{/if}
+						<div class="steps-value">
+							{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
+							<span class="steps-goal">/ {stepsGoal >= 1000 ? `${Math.round(stepsGoal / 100) / 10}k` : stepsGoal}</span>
+						</div>
+						<div class="steps-bars">
+							<div class="steps-goal-line" style="bottom:{(stepsGoal / stepsScale) * 100}%;"></div>
+							{#each stepsWeek as v, i}
+								<div
+									class="steps-bar"
+									class:steps-bar-today={i === 6}
+									class:steps-bar-met={v !== null && v >= stepsGoal}
+									style="height:{v === null ? 0 : Math.max(4, (v / stepsScale) * 100)}%;"
+								></div>
+							{/each}
+						</div>
+					</div>
+				{:else if isToday && suppEnabled}
+					{@render suppCard(false)}
 				{/if}
 			</div>
+			{#if showSteps && isToday && suppEnabled}
+				<div style="margin-bottom:0.75rem;">{@render suppCard(true)}</div>
+			{/if}
 
 			<!-- Mood chip -->
 			{#if moodEnabled}
@@ -1517,6 +1500,71 @@
 	<NotifModal onclose={() => showNotifModal = false} />
 {/if}
 
+
+{#snippet suppCard(row: boolean)}
+	{#if suppCount === 1}
+		<!-- Single supplement: tap to toggle directly -->
+		<div class="card" role="button" tabindex="0"
+			onclick={() => toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
+			onkeydown={(e) => e.key === 'Enter' && toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
+			style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer;
+			{supplements[0].taken ? 'background:linear-gradient(135deg, var(--primary) -20%, var(--surface) 70%); border-color: var(--primary);' : ''}">
+			<div style="
+				width:42px; height:42px; border-radius:50%;
+				background:{supplements[0].taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
+				border:{supplements[0].taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
+				display:flex; align-items:center; justify-content:center;
+				font-size:1.05rem; font-weight:800; color:var(--primary-ink);
+				transition: background 0.25s;
+			">{supplements[0].taken ? '✓' : ''}</div>
+			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{supplements[0].name}</div>
+			<!-- Dos acciones = dos controles separados (antes era un único target confuso) -->
+			<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; font-weight:600; color:var(--text-muted);">
+				<span role="button" tabindex="0"
+					onclick={(e) => { e.stopPropagation(); toggleSupp(supplements[0].supplement_id, supplements[0].taken); }}
+					onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), toggleSupp(supplements[0].supplement_id, supplements[0].taken))}
+					style="cursor:pointer; padding:0.2rem 0.1rem;">
+					{supplements[0].taken ? t('diary.suppUndo') : t('diary.suppMark')}
+				</span>
+				<span aria-hidden="true">·</span>
+				<span role="button" tabindex="0"
+					onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
+					onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
+					style="cursor:pointer; padding:0.2rem 0.1rem;">
+					{t('diary.suppManage')}
+				</span>
+			</div>
+		</div>
+	{:else if suppCount > 1}
+		<!-- Multiple supplements: tap opens modal with ring -->
+		<button class="card" onclick={() => showSupplModal = true} style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer; border:none; width:100%;">
+			<div style="position:relative; width:42px; height:42px;">
+				<svg viewBox="0 0 42 42" style="width:42px; height:42px; transform:rotate(-90deg);">
+					<circle cx="21" cy="21" r="17" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+					<circle cx="21" cy="21" r="17" fill="none"
+						stroke="{suppTaken === suppCount ? 'var(--primary)' : 'oklch(75% 0.18 160)'}"
+						stroke-width="4"
+						stroke-dasharray="{Math.round(2 * 3.14159 * 17)}"
+						stroke-dashoffset="{Math.round(2 * 3.14159 * 17 * (1 - suppTaken / suppCount))}"
+						stroke-linecap="round"/>
+				</svg>
+				<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:{suppTaken === suppCount ? 'var(--primary)' : '#fff'};">
+					{suppTaken}/{suppCount}
+				</div>
+			</div>
+			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{t('diary.supplements')}</div>
+			<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? t('diary.suppAllTaken') : t('diary.suppTapToMark')}</div>
+		</button>
+	{:else}
+		<!-- No supplements yet -->
+		<button class="card" onclick={() => showSupplModal = true} style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer; border:none; width:100%;">
+			<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary);">＋</div>
+			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{t('diary.supplements')}</div>
+			<div style="font-size:0.7rem; color:var(--text-muted);">{t('diary.addSupplement')}</div>
+		</button>
+	{/if}
+{/snippet}
+
 <style>
 	/* ── Pareja: chip + su día intercalado ── */
 	.diary-toolbar {
@@ -1814,17 +1862,47 @@
 	.copy-today-btn:disabled { opacity: 0.6; }
 
 	.steps-card {
+		padding: 0.85rem;
 		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.7rem 0.85rem;
-		margin-bottom: 0.6rem;
+		flex-direction: column;
 	}
 	.steps-value {
-		margin-left: auto;
-		font-size: 0.95rem;
+		margin-top: 0.35rem;
+		font-size: 1rem;
 		font-weight: 800;
 		font-variant-numeric: tabular-nums;
 		color: var(--text);
+	}
+	.steps-goal {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--text-muted);
+	}
+	/* La semana: 7 barras, la última es el día que se mira. */
+	.steps-bars {
+		position: relative;
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 4px;
+		height: 34px;
+		margin-top: auto;
+		padding-top: 0.5rem;
+		box-sizing: content-box;
+	}
+	.steps-bar {
+		flex: 1;
+		max-width: 12px;
+		border-radius: 3px;
+		background: oklch(85% 0.15 90 / 0.28);
+	}
+	.steps-bar-met { background: oklch(85% 0.15 90 / 0.5); }
+	.steps-bar-today { background: var(--steps); }
+	.steps-goal-line {
+		position: absolute;
+		left: 0;
+		right: 0;
+		border-top: 1px dashed oklch(85% 0.15 90 / 0.35);
+		pointer-events: none;
 	}
 </style>

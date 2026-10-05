@@ -1050,6 +1050,8 @@ export const pt: Dict = {
 	'diary.macroFat': 'Gord',
 	'diary.water': 'Água',
 	'diary.steps': 'Passos',
+	'diary.stepsAria': 'Passos: {steps} de {goal}, com uma barra para cada um dos últimos 7 dias',
+	'goals.stepsGoal': 'Passos por dia',
 	'diary.waterUndo': 'Água ↩',
 	'diary.supplements': 'Suplementos',
 	'diary.addSupplement': 'Adicionar suplemento',

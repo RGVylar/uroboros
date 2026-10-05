@@ -17,6 +17,7 @@
 	let carbs = $state(250);
 	let fat = $state(65);
 	let water_ml = $state(2000);
+	let steps_goal = $state(8000);
 	let track_creatine = $state(false);
 	let saved = $state(false);
 	let loading = $state(true);
@@ -113,6 +114,7 @@
 				carbs = g.carbs;
 				fat = g.fat;
 				water_ml = g.water_ml;
+				steps_goal = g.steps_goal ?? 8000;
 				track_creatine = g.track_creatine ?? false;
 			})
 			.catch(() => {})
@@ -125,7 +127,7 @@
 			carbs = cGrams;
 			fat = fGrams;
 		}
-		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, track_creatine });
+		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, steps_goal, track_creatine });
 		if (isOnboarding) {
 			goto('/');
 		} else {
@@ -315,6 +317,10 @@
 		<div class="form-group">
 			<label for="g-water">Agua (ml)</label>
 			<input id="g-water" type="number" bind:value={water_ml} min="0" step="250" />
+		</div>
+		<div class="form-group">
+			<label for="g-steps">{t('goals.stepsGoal')}</label>
+			<input id="g-steps" type="number" bind:value={steps_goal} min="0" max="100000" step="500" />
 		</div>
 
 		<button onclick={save} disabled={macroMode === 'percent' && pctSum !== 100} style="width:100%; opacity:{macroMode === 'percent' && pctSum !== 100 ? 0.5 : 1};">

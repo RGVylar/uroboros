@@ -1051,6 +1051,8 @@ export const es = {
 	'diary.macroFat': 'Grasa',
 	'diary.water': 'Agua',
 	'diary.steps': 'Pasos',
+	'diary.stepsAria': 'Pasos: {steps} de {goal}, con la barra de cada uno de los últimos 7 días',
+	'goals.stepsGoal': 'Pasos al día',
 	'diary.waterUndo': 'Agua ↩',
 	'diary.supplements': 'Suplementos',
 	'diary.addSupplement': 'Añadir suplemento',

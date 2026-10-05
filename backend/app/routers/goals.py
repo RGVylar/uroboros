@@ -62,7 +62,10 @@ def upsert_goals(
         ):
             raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, "premium_required")
     if goals:
-        for k, v in payload.model_dump().items():
+        # Solo lo que llega: la página de Objetivos manda kcal, macros y agua, y
+        # rellenar el resto con los valores por defecto apagaba los cheat days,
+        # el inventario y el ajuste de macros cada vez que se guardaba.
+        for k, v in payload.model_dump(exclude_unset=True).items():
             setattr(goals, k, v)
     else:
         goals = UserGoals(user_id=user.id, **payload.model_dump())

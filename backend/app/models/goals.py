@@ -13,6 +13,8 @@ class UserGoals(Base):
     carbs: Mapped[float] = mapped_column(Float, nullable=False)
     fat: Mapped[float] = mapped_column(Float, nullable=False)
     water_ml: Mapped[float] = mapped_column(Float, nullable=False, server_default="2000")
+    # Objetivo diario de pasos (Health Connect). Solo pinta la barra del diario.
+    steps_goal: Mapped[int] = mapped_column(Integer, nullable=False, server_default="8000")
     track_creatine: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     cheat_days_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     # Cuántos comodines se pueden gastar por semana (lunes a domingo). 1..7;

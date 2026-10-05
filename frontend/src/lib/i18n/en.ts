@@ -1048,6 +1048,8 @@ export const en: Dict = {
 	'diary.macroFat': 'Fat',
 	'diary.water': 'Water',
 	'diary.steps': 'Steps',
+	'diary.stepsAria': 'Steps: {steps} of {goal}, with a bar for each of the last 7 days',
+	'goals.stepsGoal': 'Steps per day',
 	'diary.waterUndo': 'Water ↩',
 	'diary.supplements': 'Supplements',
 	'diary.addSupplement': 'Add supplement',

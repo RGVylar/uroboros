@@ -13,6 +13,7 @@ class GoalsIn(BaseModel):
     carbs: float = Field(ge=0)
     fat: float = Field(ge=0)
     water_ml: float = Field(ge=0, default=2000)
+    steps_goal: int = Field(default=8000, ge=0, le=100_000)
     track_creatine: bool = False
     cheat_days_enabled: bool = False
     cheat_days_per_week: int = Field(default=1, ge=1, le=7)

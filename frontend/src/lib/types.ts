@@ -137,6 +137,7 @@ export interface Goals {
 	carbs: number;
 	fat: number;
 	water_ml: number;
+	steps_goal: number;
 	track_creatine: boolean;
 	cheat_days_enabled: boolean;
 	cheat_days_per_week: number; // 1..7, 7 = sin límite
