@@ -1,10 +1,10 @@
-"""Seed the release note for 1.23 (tarjeta de pasos con la semana)
+"""Seed the release note for 1.24 (tarjeta de pasos con la semana)
 
-Revision ID: 0073
-Revises: 0072
+Revision ID: 0074
+Revises: 0073
 Create Date: 2026-10-05
 
-Data migration, misma forma que 0071. Cambia cómo se ve el diario, no reglas ni datos
+Data migration, misma forma que 0072. Cambia cómo se ve el diario, no reglas ni datos
 de nadie: va como `minor`.
 """
 
@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0073"
-down_revision = "0072"
+revision = "0074"
+down_revision = "0073"
 branch_labels = None
 depends_on = None
 
@@ -32,7 +32,7 @@ _release_notes = sa.table(
 def upgrade() -> None:
     op.bulk_insert(_release_notes, [
         {
-            "version": "1.23",
+            "version": "1.24",
             "title": {
                 "es": "Tus pasos de la semana",
                 "en": "Your steps this week",
@@ -74,4 +74,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("DELETE FROM release_notes WHERE version = '1.23'")
+    op.execute("DELETE FROM release_notes WHERE version = '1.24'")
