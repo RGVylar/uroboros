@@ -10,6 +10,14 @@ import { api } from '$lib/api';
 import { reportDiagnostic, type DiagData } from '$lib/services/diagnostics';
 
 const LS_KEY = 'uro_health_steps';
+// Puesto mientras la pantalla de permisos de Health Connect está abierta. Si
+// Android recrea la app al volver de ella (pasa en Pixel con Android 17), la
+// promesa de connect() se pierde y "activado" nunca se guardaba; con esta
+// marca el siguiente arranque sabe que hubo una conexión a medias.
+const PENDING_KEY = 'uro_health_connecting';
+// Una llamada al plugin que no contesta dejaba `syncing` en true para siempre
+// y la app ya no volvía a leer ni a mandar diagnósticos.
+const CALL_TIMEOUT_MS = 20_000;
 const SYNC_DAYS = 7;
 // Volver a la app cada pocos segundos no debe disparar una consulta cada vez.
 const MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -22,7 +30,7 @@ export type ConnectResult = 'ok' | 'denied' | 'unavailable' | 'error';
  * pasos: solo datos técnicos, que Telegram está fuera de la UE.
  */
 export interface HealthDiag {
-	/** 'ok' | 'no_data' | 'denied' | 'unavailable' | 'error' | 'off' */
+	/** 'ok' | 'no_data' | 'denied' | 'unavailable' | 'error' | 'off' | 'busy' | 'interrupted' */
 	outcome: string;
 	/** En qué paso se quedó: availability, permission, query, upload. */
 	stage: string;
@@ -35,19 +43,33 @@ export interface HealthDiag {
 	at: string;
 }
 
-function readEnabled(): boolean {
+function readFlag(key: string): boolean {
 	try {
-		return localStorage.getItem(LS_KEY) === '1';
+		return localStorage.getItem(key) === '1';
 	} catch {
 		return false;
 	}
 }
 
-function writeEnabled(on: boolean) {
+function writeFlag(key: string, on: boolean) {
 	try {
-		if (on) localStorage.setItem(LS_KEY, '1');
-		else localStorage.removeItem(LS_KEY);
+		if (on) localStorage.setItem(key, '1');
+		else localStorage.removeItem(key);
 	} catch {}
+}
+
+const readEnabled = () => readFlag(LS_KEY);
+const writeEnabled = (on: boolean) => writeFlag(LS_KEY, on);
+
+/** Rechaza con 'timeout:<qué>' si el plugin no contesta: así el diagnóstico dice dónde se colgó. */
+function withTimeout<T>(p: Promise<T>, what: string): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`timeout:${what}`)), CALL_TIMEOUT_MS);
+		p.then(
+			(v) => { clearTimeout(timer); resolve(v); },
+			(e) => { clearTimeout(timer); reject(e); },
+		);
+	});
 }
 
 /** YYYY-MM-DD en hora local: los pasos son "del día" tal como lo vive el usuario. */
@@ -92,13 +114,17 @@ class HealthStore {
 		let stage = 'availability';
 		try {
 			const Health = await plugin();
-			const { available, reason } = await Health.isAvailable();
+			const { available, reason } = await withTimeout(Health.isAvailable(), 'availability');
 			if (!available) {
 				this.record({ ...base, outcome: 'unavailable', stage, available, reason: reason ?? null }, true);
 				return 'unavailable';
 			}
 			stage = 'permission';
-			const status = await Health.requestAuthorization({ read: ['steps'] });
+			// Sin tiempo límite: aquí la persona está leyendo la pantalla de permisos.
+			writeFlag(PENDING_KEY, true);
+			const status = await Health.requestAuthorization({ read: ['steps'] }).finally(() =>
+				writeFlag(PENDING_KEY, false),
+			);
 			if (!status.readAuthorized.includes('steps')) {
 				this.record({ ...base, outcome: 'denied', stage, available, authorized: false }, true);
 				return 'denied';
@@ -121,16 +147,53 @@ class HealthStore {
 	}
 
 	/**
+	 * Al arrancar la app y al volver a primer plano. Si la pantalla de permisos
+	 * se cerró sin que llegara su respuesta (Android recreó la app, o la perdió),
+	 * termina la conexión aquí: con el permiso ya concedido se activa sin tener
+	 * que pulsar otra vez.
+	 */
+	async resume(): Promise<void> {
+		if (this.supported && !this.enabled && readFlag(PENDING_KEY)) {
+			// Al volver de la pantalla de permisos la respuesta normal llega en
+			// milisegundos y quita la marca; solo si sigue puesta se recupera.
+			await new Promise((r) => setTimeout(r, 3000));
+			if (this.enabled || !readFlag(PENDING_KEY)) return this.sync();
+			writeFlag(PENDING_KEY, false);
+			const base = { available: true, reason: null, daysWithSteps: null, error: null };
+			try {
+				const Health = await plugin();
+				const status = await withTimeout(Health.checkAuthorization({ read: ['steps'] }), 'permission');
+				const granted = status.readAuthorized.includes('steps');
+				this.record({ ...base, outcome: 'interrupted', stage: 'permission', authorized: granted }, true);
+				if (!granted) return;
+				this.enabled = true;
+				writeEnabled(true);
+				return this.sync(true, true);
+			} catch (e) {
+				const error = e instanceof Error ? e.message : String(e);
+				this.record({ ...base, outcome: 'error', stage: 'permission', authorized: null, error }, true);
+				return;
+			}
+		}
+		return this.sync();
+	}
+
+	/**
 	 * Para Ajustes → Diagnóstico: comprueba el estado ahora mismo y, si está
 	 * activado, sincroniza; manda el resultado aunque no haya cambiado.
 	 */
 	async diagnose(): Promise<void> {
 		if (!this.supported) return;
+		if (this.syncing) {
+			// Con los tiempos límite no dura más de unos segundos, pero que se vea.
+			this.record({ outcome: 'busy', stage: 'sync', available: null, reason: null, authorized: null, daysWithSteps: null, error: null }, true);
+			return;
+		}
 		if (this.enabled) return this.sync(true, true);
 		const base = { authorized: null, daysWithSteps: null, error: null };
 		try {
 			const Health = await plugin();
-			const { available, reason } = await Health.isAvailable();
+			const { available, reason } = await withTimeout(Health.isAvailable(), 'availability');
 			this.record({ ...base, outcome: available ? 'off' : 'unavailable', stage: 'availability', available, reason: reason ?? null }, true);
 		} catch (e) {
 			const error = e instanceof Error ? e.message : String(e);
@@ -156,7 +219,7 @@ class HealthStore {
 			const Health = await plugin();
 			// Si el permiso se retiró desde Health Connect, no insistimos: se
 			// queda activado aquí pero sin leer hasta que se vuelva a conceder.
-			const status = await Health.checkAuthorization({ read: ['steps'] });
+			const status = await withTimeout(Health.checkAuthorization({ read: ['steps'] }), 'permission');
 			if (!status.readAuthorized.includes('steps')) {
 				this.lastError = 'denied';
 				this.record({ ...base, outcome: 'denied', stage, authorized: false }, report);
@@ -166,13 +229,16 @@ class HealthStore {
 			const start = new Date();
 			start.setHours(0, 0, 0, 0);
 			start.setDate(start.getDate() - (SYNC_DAYS - 1));
-			const { samples } = await Health.queryAggregated({
-				dataType: 'steps',
-				startDate: start.toISOString(),
-				endDate: new Date().toISOString(),
-				bucket: 'day',
-				aggregation: 'sum',
-			});
+			const { samples } = await withTimeout(
+				Health.queryAggregated({
+					dataType: 'steps',
+					startDate: start.toISOString(),
+					endDate: new Date().toISOString(),
+					bucket: 'day',
+					aggregation: 'sum',
+				}),
+				'query',
+			);
 			const days = samples
 				.filter((s) => s.value > 0)
 				.map((s) => ({ day: localDay(new Date(s.startDate)), steps: Math.round(s.value) }));

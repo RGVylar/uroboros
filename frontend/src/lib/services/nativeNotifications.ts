@@ -59,8 +59,10 @@ export async function scheduleNativeNotifications(): Promise<boolean> {
 
 		const prefs = await api.get<NotifPrefs>('/push/prefs').catch(() => null);
 		if (!prefs?.enabled) {
-			// permission granted but user disabled notifs
-			reportDiagnostic('notifications', prefs ? 'off' : 'prefs_error', { permission: perm.display });
+			// permission granted but user disabled notifs. 'off' no se manda: es
+			// decisión suya, y al activarlas desde Ajustes pasa un instante por
+			// aquí antes de guardar enabled=true (sería un off → ok de ruido).
+			if (!prefs) reportDiagnostic('notifications', 'prefs_error', { permission: perm.display });
 			return true;
 		}
 

@@ -594,7 +594,7 @@
 				class="toggle-btn"
 				class:toggle-on={health.enabled}
 				onclick={toggleSteps}
-				disabled={healthBusy}
+				disabled={healthBusy && !health.enabled}
 				aria-label={t('settings.steps')}
 				aria-pressed={health.enabled}
 			>

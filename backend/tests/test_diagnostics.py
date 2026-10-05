@@ -48,3 +48,11 @@ def test_rejects_huge_data(client, make_user, alerts):
     r = _post(client, ana, data={"blob": "x" * 5000})
     assert r.status_code == 413
     assert alerts == []
+
+
+def test_off_only_alerts_when_manual(client, make_user, alerts):
+    ana = make_user("Ana")
+    assert _post(client, ana, outcome="off").status_code == 204
+    assert alerts == []
+    _post(client, ana, outcome="off", manual=True)
+    assert len(alerts) == 1

@@ -46,8 +46,8 @@
 		// Arranque en frío: la URL con la que el widget lanzó la app
 		const launch = await App.getLaunchUrl();
 		openWidgetTarget(launch?.url);
-		// Pasos de Health Connect: al volver a primer plano (sync() se limita solo).
-		App.addListener('resume', () => { if (auth.isLoggedIn) health.sync(); });
+		// Pasos de Health Connect: al volver a primer plano (resume() se limita solo).
+		App.addListener('resume', () => { if (auth.isLoggedIn) health.resume(); });
 	});
 
 	// Solo debe depender de auth.isLoggedIn: sin untrack, pushStore.init()
@@ -66,7 +66,7 @@
 				// phone wouldn't show up on the desktop). Refresh it from the server;
 				// on failure we keep the cached copy so offline still works.
 				api.get<User>('/auth/me').then((u) => auth.updateUser(u)).catch(() => {});
-				health.sync();
+				health.resume();
 			} else {
 				pendingFriends.stop();
 			}

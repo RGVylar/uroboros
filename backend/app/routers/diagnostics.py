@@ -26,6 +26,8 @@ class DiagnosticIn(BaseModel):
     outcome: str = Field(..., min_length=1, max_length=32)
     # Lo último que mandó este móvil; None la primera vez.
     previous: str | None = Field(None, max_length=32)
+    # Lo ha provocado la persona (un interruptor, el botón Diagnóstico).
+    manual: bool = False
     app_version: str = Field("", max_length=16)
     platform: Literal["android", "ios", "pwa", "web"]
     data: dict[str, Any] = Field(default_factory=dict)
@@ -41,6 +43,11 @@ def report_diagnostic(
 ) -> None:
     if len(json.dumps(body.data, default=str)) > MAX_DATA_BYTES:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Diagnóstico demasiado grande")
+    # 'off' es que la persona no lo ha activado, no un fallo. Solo interesa si
+    # lo pide ella con Diagnóstico; si no, los robots de revisión de Play (que
+    # nunca tocan los interruptores) llenan el chat de avisos.
+    if body.outcome == "off" and not body.manual:
+        return
     background.add_task(
         send_diagnostic_alert,
         user.id,

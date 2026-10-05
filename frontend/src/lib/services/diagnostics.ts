@@ -36,12 +36,16 @@ function platform(): string {
 	return window.matchMedia('(display-mode: standalone)').matches ? 'pwa' : 'web';
 }
 
-/** Fire-and-forget: un diagnóstico que no llega no debe romper nada. */
+/**
+ * Fire-and-forget: un diagnóstico que no llega no debe romper nada.
+ * @param force mandarlo aunque no haya cambiado; solo para acciones de la persona.
+ */
 export function reportDiagnostic(kind: DiagKind, outcome: string, data: DiagData, force = false) {
 	const previous = readLast(kind);
 	if (!force && previous === outcome) return;
 	api
-		.post('/diagnostics', { kind, outcome, previous, app_version: APP_VERSION, platform: platform(), data })
+		// manual: lo ha provocado la persona (pulsar un interruptor o Diagnóstico).
+		.post('/diagnostics', { kind, outcome, previous, manual: force, app_version: APP_VERSION, platform: platform(), data })
 		// Solo se da por mandado si llegó: si no, se reintenta la próxima vez.
 		.then(() => writeLast(kind, outcome))
 		.catch(() => {});
