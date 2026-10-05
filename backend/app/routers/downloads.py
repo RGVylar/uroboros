@@ -1,23 +1,11 @@
-"""Resolve the latest Android build and redirect to its download.
+"""Invite landing (/unete) and the old APK download link.
 
-The GitHub pipeline uploads each debug APK to a Nextcloud folder with a
-timestamped name (`uroboros-debug-YYYYMMDD-HHMM.apk`). Because the upload share
-renames duplicates instead of overwriting, there is no stable "latest" filename
-to link to. So the in-app "Actualizar" button points here: we list the folder
-via the read-only public share (WebDAV PROPFIND), pick the most recently
-modified `.apk`, and redirect to its direct download.
-
-Public + unauthenticated on purpose: the button opens this in an external
-browser (Android), where there is no session/JWT to send.
+La app se distribuye por Google Play. Antes se repartía un APK de debug desde
+Nextcloud y `/api/download/latest-apk` resolvía el más reciente; ese endpoint
+sigue existiendo porque lo llevan dentro los APK sideload antiguos (su botón
+"Actualizar") y los enlaces ya compartidos, pero ahora manda a la ficha de Play.
 """
-import threading
-import time as _time
-import xml.etree.ElementTree as ET
-from email.utils import parsedate_to_datetime
-from urllib.parse import quote, unquote
-
-import httpx
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter(prefix="/download", tags=["download"])
@@ -29,103 +17,28 @@ landing_router = APIRouter(tags=["download"])
 # Ruta antigua (/api/unete), viva solo para redirigir los enlaces ya compartidos.
 legacy_landing_router = APIRouter(tags=["download"])
 
-# Read-only public share of the APK folder. The pipeline uploads via a separate
-# upload-only share; this one only exposes listing + download.
-_SHARE_TOKEN = "ww2FbfP67R6PNiR"
-_NC_BASE = "https://files.mugrelore.com"
-_WEBDAV_URL = f"{_NC_BASE}/public.php/dav/files/{_SHARE_TOKEN}/"
-_SHARE_URL = f"{_NC_BASE}/index.php/s/{_SHARE_TOKEN}"
-# Fallback: the share's folder page, so a failure still lands the user somewhere useful.
-_FOLDER_FALLBACK = _SHARE_URL
-
-_DAV_NS = "{DAV:}"
-
-
-# The WebDAV listing takes 1-3s against Nextcloud, which made the download
-# button feel sluggish. Cache the resolved name and refresh it in the
-# background from the landing view, so the click itself is instant.
-_CACHE_TTL = 600.0  # seconds
-_cache: dict = {"name": None, "at": 0.0}
-
-
-def _cached_apk_name() -> str | None:
-    if _time.monotonic() - _cache["at"] < _CACHE_TTL and _cache["name"]:
-        return _cache["name"]
-    name = _latest_apk_name()
-    if name:
-        _cache.update(name=name, at=_time.monotonic())
-    return name
-
-
-def _warm_cache_async() -> None:
-    """Refresh the cache off-thread if stale (fire-and-forget)."""
-    if _time.monotonic() - _cache["at"] < _CACHE_TTL:
-        return
-    threading.Thread(target=_cached_apk_name, daemon=True).start()
-
-
-def _latest_apk_name() -> str | None:
-    """Return the filename of the most recently modified .apk, or None."""
-    try:
-        with httpx.Client(timeout=10) as client:
-            resp = client.request(
-                "PROPFIND",
-                _WEBDAV_URL,
-                auth=(_SHARE_TOKEN, ""),
-                headers={"Depth": "1"},
-            )
-        resp.raise_for_status()
-    except httpx.HTTPError:
-        return None
-
-    try:
-        root = ET.fromstring(resp.content)
-    except ET.ParseError:
-        return None
-
-    latest_name: str | None = None
-    latest_dt = None
-    for response in root.findall(f"{_DAV_NS}response"):
-        href = response.findtext(f"{_DAV_NS}href") or ""
-        # href is URL-encoded (spaces as %20 etc.); decode for a clean filename.
-        name = unquote(href.rstrip("/").rsplit("/", 1)[-1])
-        if not name.lower().endswith(".apk"):
-            continue
-        modified = response.find(
-            f".//{_DAV_NS}getlastmodified"
-        )
-        if modified is None or not modified.text:
-            continue
-        try:
-            dt = parsedate_to_datetime(modified.text)
-        except (TypeError, ValueError):
-            continue
-        if latest_dt is None or dt > latest_dt:
-            latest_dt = dt
-            latest_name = name
-
-    return latest_name
+# El `id` es el applicationId, igual que `UPDATE_URL` en frontend/src/lib/changelog.ts.
+_PLAY_URL = "https://play.google.com/store/apps/details?id=com.uroboros.app"
 
 
 @router.get("/latest-apk")
 def latest_apk() -> RedirectResponse:
-    """Redirect to the direct download of the newest debug APK."""
-    name = _cached_apk_name()
-    if not name:
-        # Couldn't resolve a specific file — send them to the folder instead.
-        return RedirectResponse(_FOLDER_FALLBACK, status_code=302)
-    download_url = f"{_SHARE_URL}/download?path=%2F&files={quote(name)}"
-    return RedirectResponse(download_url, status_code=302)
+    """Antes bajaba el último APK de Nextcloud; ahora lleva a Google Play.
+
+    Quien llega aquí suele tener un APK sideload antiguo (firmado con la clave
+    de debug): Play no puede actualizarlo encima, tendrá que desinstalarlo e
+    instalar la de la tienda. La landing /unete lo explica.
+    """
+    return RedirectResponse(_PLAY_URL, status_code=302)
 
 
 _APP_URL = "https://comida.mugrelore.com"
 
-# The invite message links here instead of at the raw APK: messaging apps'
-# crawlers need an HTML page with Open Graph tags to render a preview card
-# (a 302 to a binary shows a bare domain), and — until the app is on Google
-# Play — this page has to earn the trust of someone about to sideload an APK:
-# clear pitch, install steps, and the open-source link. It's also where a
-# future invite deep-link would plug in (open the add-friend modal in the app).
+# The invite message links here instead of straight at Google Play: messaging
+# apps' crawlers need an HTML page with Open Graph tags to render a preview card,
+# and the page can explain what the app is and how to start before sending
+# Android users to the store (and iPhone users to the web app). It's also where
+# a future invite deep-link would plug in (open the add-friend modal in the app).
 _LANDING_HTML = """<!doctype html>
 <html lang="{L_LANG}">
 <head>
@@ -306,10 +219,10 @@ _LANDING_HTML = """<!doctype html>
 
   <div class="col">
   <div class="dl">
-  <a class="btn" href="{APP}/api/download/latest-apk">{L_BTN}</a>
+  <a class="btn" href="{PLAY}&amp;hl={L_HL}">{L_BTN}</a>
 
   <div class="qr">
-    <svg viewBox="0 0 37 37" role="img" aria-label="{L_QR_ARIA}"><rect width="37" height="37" fill="none"/><path stroke="#04150f" d="M2 2.5h7m4 0h2m3 0h1m1 0h4m1 0h1m2 0h7m-33 1h1m5 0h1m3 0h2m3 0h2m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m7 0h2m2 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m3 0h5m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m1 0h1m1 0h2m5 0h1m2 0h2m4 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m2 0h1m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m-25 1h1m1 0h5m2 0h2m2 0h2m2 0h1m1 0h1m4 0h1m1 0h5m-28 1h1m1 0h1m1 0h2m3 0h3m2 0h1m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-31 1h1m1 0h4m1 0h3m1 0h5m2 0h3m2 0h2m1 0h1m1 0h2m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h4m1 0h3m1 0h3m1 0h5m-33 1h1m5 0h1m2 0h4m1 0h1m1 0h1m5 0h4m1 0h3m1 0h2m-33 1h2m2 0h1m2 0h4m4 0h1m2 0h3m1 0h2m2 0h1m2 0h4m-31 1h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h4m3 0h1m1 0h4m2 0h2m-32 1h1m1 0h1m6 0h3m1 0h3m2 0h1m2 0h1m3 0h2m1 0h3m-27 1h1m1 0h7m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1m-32 1h1m3 0h1m4 0h1m1 0h1m3 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1m-33 1h1m3 0h1m1 0h1m1 0h2m5 0h2m1 0h1m8 0h2m1 0h1m-31 1h1m4 0h1m4 0h1m2 0h1m2 0h1m2 0h1m1 0h2m2 0h1m1 0h5m-32 1h2m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h3m2 0h1m-33 1h2m2 0h2m1 0h1m6 0h3m2 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-33 1h1m1 0h2m1 0h7m2 0h1m5 0h3m4 0h3m1 0h1m-32 1h1m1 0h2m1 0h1m1 0h3m2 0h3m1 0h1m4 0h3m1 0h2m1 0h3m-31 1h1m2 0h6m4 0h1m3 0h2m1 0h1m1 0h8m1 0h1m-24 1h1m2 0h3m2 0h7m1 0h1m3 0h1m1 0h1m1 0h1m-33 1h7m2 0h1m1 0h1m2 0h4m2 0h5m1 0h1m1 0h1m1 0h2m-32 1h1m5 0h1m1 0h5m4 0h5m1 0h2m3 0h3m-31 1h1m1 0h3m1 0h1m1 0h4m3 0h2m7 0h6m-30 1h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m1 0h1m2 0h5m-33 1h1m1 0h3m1 0h1m1 0h5m2 0h3m2 0h4m2 0h2m1 0h1m-30 1h1m5 0h1m2 0h1m5 0h1m2 0h1m1 0h3m2 0h1m2 0h3m-31 1h7m1 0h1m2 0h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1"/></svg>
+    <svg viewBox="0 0 37 37" role="img" aria-label="{L_QR_ARIA}"><rect width="37" height="37" fill="none"/><path stroke="#04150f" d="M2 2.5h7m1 0h1m3 0h1m4 0h5m1 0h1m2 0h7m-33 1h1m5 0h1m1 0h4m2 0h1m1 0h1m1 0h1m3 0h2m2 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m3 0h1m1 0h2m4 0h1m3 0h3m1 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h3m1 0h6m5 0h2m1 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m4 0h1m1 0h1m1 0h2m2 0h1m2 0h1m1 0h1m1 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m2 0h1m1 0h1m2 0h1m2 0h3m1 0h1m2 0h1m1 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h1m1 0h3m4 0h4m1 0h2m-24 1h1m1 0h2m1 0h3m2 0h2m2 0h1m1 0h4m1 0h1m1 0h1m2 0h1m2 0h1m1 0h2m-33 1h2m2 0h1m4 0h1m6 0h1m1 0h3m2 0h2m1 0h2m1 0h4m-32 1h7m6 0h1m5 0h1m1 0h3m1 0h4m1 0h2m-33 1h3m2 0h1m1 0h1m1 0h1m2 0h2m1 0h2m3 0h1m6 0h1m1 0h1m1 0h1m-32 1h2m2 0h1m1 0h4m5 0h1m1 0h1m1 0h2m1 0h4m1 0h3m-29 1h1m2 0h2m2 0h5m1 0h3m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m1 0h1m-32 1h2m1 0h1m1 0h3m3 0h1m4 0h1m1 0h4m2 0h1m1 0h1m1 0h3m-31 1h1m2 0h1m4 0h1m1 0h2m4 0h1m3 0h4m1 0h2m3 0h1m-30 1h9m1 0h1m2 0h3m3 0h3m1 0h3m1 0h3m-31 1h1m2 0h2m2 0h1m7 0h1m1 0h1m4 0h3m1 0h1m1 0h2m2 0h1m-33 1h4m1 0h2m2 0h1m4 0h4m2 0h1m5 0h3m1 0h2m-32 1h1m2 0h2m2 0h1m2 0h3m2 0h4m3 0h2m1 0h2m1 0h1m3 0h1m-29 1h3m1 0h3m1 0h1m2 0h7m2 0h1m2 0h1m1 0h3m-32 1h1m1 0h3m3 0h1m3 0h1m4 0h1m1 0h2m2 0h2m1 0h1m2 0h1m2 0h1m-30 1h1m1 0h2m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h5m1 0h2m2 0h3m-32 1h1m7 0h3m1 0h4m1 0h1m1 0h1m2 0h1m1 0h1m1 0h3m1 0h2m-33 1h1m1 0h1m1 0h1m1 0h3m2 0h3m1 0h1m1 0h1m1 0h1m2 0h1m1 0h5m2 0h2m-25 1h1m6 0h5m1 0h1m1 0h2m3 0h2m1 0h1m-32 1h7m1 0h1m1 0h2m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m-29 1h1m5 0h1m1 0h4m3 0h2m1 0h1m1 0h5m3 0h4m-32 1h1m1 0h3m1 0h1m4 0h4m1 0h1m1 0h11m1 0h1m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h4m1 0h3m6 0h1m4 0h1m1 0h1m2 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h3m1 0h5m1 0h1m1 0h2m2 0h2m2 0h1m-31 1h1m5 0h1m2 0h1m1 0h2m1 0h5m3 0h1m1 0h2m1 0h2m3 0h1m-33 1h7m1 0h3m4 0h1m1 0h2m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1"/></svg>
     <div>
       <b>{L_QR_T}</b>
       <span>{L_QR_D}</span>
@@ -337,7 +250,7 @@ _LANDING_HTML = """<!doctype html>
  </div>
 </div>
 </body>
-</html>""".replace("{APP}", _APP_URL)
+</html>""".replace("{APP}", _APP_URL).replace("{PLAY}", _PLAY_URL)
 
 
 # Copy de la landing en los tres idiomas. Es HTML servido por el servidor, así
@@ -346,6 +259,7 @@ _LANDING_HTML = """<!doctype html>
 _LANDING_COPY: dict[str, dict[str, str]] = {
     "es": {
         "L_LANG": "es",
+        "L_HL": "es",
         "L_TITLE": "Únete a uroboros 🐍",
         "L_OG_TITLE": "uroboros — come mejor, en pareja",
         "L_OG_DESC": "La app para llevar la comida con tu pareja: registra una comida para los dos a la vez, compite en constancia y comparte la lista de la compra.",
@@ -359,22 +273,23 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_F3_D": "La despensa y la lista de la compra, comunes de verdad.",
         "L_F4_T": "Duelo semanal",
         "L_F4_D": "Un pique sano: quién cumple más sus propios objetivos cada semana.",
-        "L_BTN": "📥 Descargar para Android",
-        "L_QR_ARIA": "Código QR para descargar la app en el móvil",
+        "L_BTN": "Disponible en Google Play",
+        "L_QR_ARIA": "Código QR para abrir la app en Google Play desde el móvil",
         "L_QR_T": "¿Estás en el ordenador?",
-        "L_QR_D": "Escanea este código con la cámara del móvil y la descarga empezará ahí.",
-        "L_TRUST_T": "🔒 Sobre la descarga",
-        "L_TRUST_INTRO": "Todavía no estamos en Google Play (estamos en ello), así que la app se instala directamente con su archivo APK. Android te avisará porque no viene de la tienda — es lo normal en este caso:",
-        "L_STEP1": "Toca <b>Descargar de todos modos</b> cuando Chrome pregunte.",
-        "L_STEP2": "Abre el archivo y toca <b>Instalar</b>. Si Android pide permiso para \"instalar apps desconocidas\", actívalo solo para Chrome.",
-        "L_STEP3": "Listo — la app se actualiza avisándote dentro.",
-        "L_TRUST_OUTRO": "La descarga viene directa de nuestro servidor, siempre en su última versión.",
+        "L_QR_D": "Escanea este código con la cámara del móvil Android y se abrirá la app en Google Play.",
+        "L_TRUST_T": "📲 Cómo empezar",
+        "L_TRUST_INTRO": "En tres pasos estáis registrando juntos:",
+        "L_STEP1": "Instala uroboros desde <b>Google Play</b>.",
+        "L_STEP2": "Crea tu cuenta, o entra con la que ya tengas.",
+        "L_STEP3": "En <b>Amigos</b>, añade a quien te ha invitado.",
+        "L_TRUST_OUTRO": "¿Tenías la versión antigua instalada con un archivo APK? Desinstálala e instala la de Google Play: tus datos están en tu cuenta, no pierdes nada.",
         "L_WEB": "¿Sin Android? Úsala desde el navegador →",
         "L_PRIVACY": "privacidad",
         "L_TERMS": "términos",
     },
     "en": {
         "L_LANG": "en",
+        "L_HL": "en",
         "L_TITLE": "Join uroboros 🐍",
         "L_OG_TITLE": "uroboros — eat better, together",
         "L_OG_DESC": "The app for tracking food with your partner: log one meal for both of you at once, compete on consistency and share the shopping list.",
@@ -388,22 +303,23 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_F3_D": "The pantry and the shopping list, genuinely shared.",
         "L_F4_T": "Weekly duel",
         "L_F4_D": "A friendly rivalry: who sticks to their own goals best each week.",
-        "L_BTN": "📥 Download for Android",
-        "L_QR_ARIA": "QR code to download the app on your phone",
+        "L_BTN": "Get it on Google Play",
+        "L_QR_ARIA": "QR code to open the app on Google Play from your phone",
         "L_QR_T": "On your computer?",
-        "L_QR_D": "Scan this code with your phone's camera and the download starts there.",
-        "L_TRUST_T": "🔒 About the download",
-        "L_TRUST_INTRO": "We're not on Google Play yet (we're working on it), so the app installs directly from its APK file. Android will warn you because it isn't from the store — that's normal here:",
-        "L_STEP1": "Tap <b>Download anyway</b> when Chrome asks.",
-        "L_STEP2": "Open the file and tap <b>Install</b>. If Android asks for permission to \"install unknown apps\", turn it on for Chrome only.",
-        "L_STEP3": "Done — the app tells you from the inside when there's an update.",
-        "L_TRUST_OUTRO": "The download comes straight from our server, always the latest version.",
+        "L_QR_D": "Scan this code with your Android phone's camera to open the app on Google Play.",
+        "L_TRUST_T": "📲 Getting started",
+        "L_TRUST_INTRO": "Three steps and you're logging together:",
+        "L_STEP1": "Install uroboros from <b>Google Play</b>.",
+        "L_STEP2": "Create your account, or sign in with the one you already have.",
+        "L_STEP3": "In <b>Friends</b>, add whoever invited you.",
+        "L_TRUST_OUTRO": "Had the old version installed from an APK file? Uninstall it and install the one from Google Play: your data lives in your account, you won't lose anything.",
         "L_WEB": "No Android? Use it in your browser →",
         "L_PRIVACY": "privacy",
         "L_TERMS": "terms",
     },
     "pt": {
         "L_LANG": "pt",
+        "L_HL": "pt-PT",
         "L_TITLE": "Junta-te ao uroboros 🐍",
         "L_OG_TITLE": "uroboros — comer melhor, a dois",
         "L_OG_DESC": "A app para gerir a comida com o teu par: regista uma refeição para os dois de uma vez, compete na constância e partilha a lista de compras.",
@@ -417,16 +333,16 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_F3_D": "A despensa e a lista de compras, partilhadas a sério.",
         "L_F4_T": "Duelo semanal",
         "L_F4_D": "Uma piadinha saudável: quem cumpre melhor os seus próprios objetivos cada semana.",
-        "L_BTN": "📥 Descarregar para Android",
-        "L_QR_ARIA": "Código QR para descarregar a app no telemóvel",
+        "L_BTN": "Disponível no Google Play",
+        "L_QR_ARIA": "Código QR para abrir a app no Google Play a partir do telemóvel",
         "L_QR_T": "Estás no computador?",
-        "L_QR_D": "Lê este código com a câmara do telemóvel e a transferência começa aí.",
-        "L_TRUST_T": "🔒 Sobre a transferência",
-        "L_TRUST_INTRO": "Ainda não estamos no Google Play (estamos a tratar disso), por isso a app instala-se diretamente a partir do ficheiro APK. O Android vai avisar-te porque não vem da loja — é normal neste caso:",
-        "L_STEP1": "Toca em <b>Transferir mesmo assim</b> quando o Chrome perguntar.",
-        "L_STEP2": "Abre o ficheiro e toca em <b>Instalar</b>. Se o Android pedir permissão para \"instalar apps desconhecidas\", ativa-a só para o Chrome.",
-        "L_STEP3": "Pronto — a app avisa-te por dentro quando houver atualização.",
-        "L_TRUST_OUTRO": "A transferência vem diretamente do nosso servidor, sempre na versão mais recente.",
+        "L_QR_D": "Lê este código com a câmara do telemóvel Android e a app abre-se no Google Play.",
+        "L_TRUST_T": "📲 Como começar",
+        "L_TRUST_INTRO": "Em três passos estão a registar juntos:",
+        "L_STEP1": "Instala o uroboros a partir do <b>Google Play</b>.",
+        "L_STEP2": "Cria a tua conta, ou entra com a que já tens.",
+        "L_STEP3": "Em <b>Amigos</b>, adiciona quem te convidou.",
+        "L_TRUST_OUTRO": "Tinhas a versão antiga instalada a partir de um ficheiro APK? Desinstala-a e instala a do Google Play: os teus dados estão na tua conta, não perdes nada.",
         "L_WEB": "Sem Android? Usa-a no navegador →",
         "L_PRIVACY": "privacidade",
         "L_TERMS": "termos",
@@ -473,14 +389,12 @@ def invite_landing(
     accept_language: str | None = Header(default=None),
     lang: str | None = None,
 ) -> HTMLResponse:
-    """Public invite landing: OG preview card + download + trust notes.
+    """Public invite landing: OG preview card + Google Play link + how to start.
 
     Se sirve en es/en/pt. Aquí no hay sesión ni localStorage — quien abre este
     enlace todavía no tiene la app —, así que el idioma sale de ?lang= o, en su
     defecto, de Accept-Language.
     """
-    # Warm the latest-APK cache so the download button redirects instantly.
-    _warm_cache_async()
     resolved = _pick_language(accept_language, lang)
     # La canónica refleja lo que se pidió: si el enlace traía ?lang=, se queda,
     # que es lo que hace que cada idioma tenga su propia tarjeta cacheada.

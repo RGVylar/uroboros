@@ -13,8 +13,8 @@ const LS_KEY = 'uro_changelog_seen';
 // Apuntaba al APK de Nextcloud (`/api/download/latest-apk`) mientras la
 // distribución era por sideload. Eso NO puede viajar en la build que se sube a
 // Play: la política Device and Network Abuse prohíbe que una app distribuida por
-// Play se actualice por cualquier vía que no sea Play. Ese endpoint sigue vivo
-// para la landing /unete, pero la app ya no lo enlaza.
+// Play se actualice por cualquier vía que no sea Play. Ese endpoint ahora solo
+// redirige a Play (para los APK sideload antiguos que aún lo llevan dentro).
 //
 // La URL es válida desde ya: el `id` es el applicationId, que es irreversible.
 // En Android abre la app de Play directamente.
