@@ -5,7 +5,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import require_premium
 from app.models import (
     InventoryItem,
     InventoryLog,
@@ -108,7 +108,7 @@ def _log_change(
 def list_inventory(
     location: str | None = Query(default=None),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[InventoryItemOut]:
     friendship = _get_active_shared_friendship(db, user.id)
 
@@ -132,7 +132,7 @@ def list_inventory(
 def upsert_inventory(
     payload: InventoryItemIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> InventoryItemOut:
     """Add or update item. Uses shared table if shared_inventory is active.
 
@@ -272,7 +272,7 @@ def update_inventory_item(
     item_id: int,
     payload: InventoryItemUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> InventoryItemOut:
     friendship = _get_active_shared_friendship(db, user.id)
 
@@ -332,7 +332,7 @@ def _apply_update_shared(
 def delete_inventory_item(
     item_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> None:
     friendship = _get_active_shared_friendship(db, user.id)
 
@@ -363,7 +363,7 @@ def consume_inventory_item(
     item_id: int,
     payload: InventoryConsumeIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> InventoryItemOut:
     """Subtract a quantity from stock. Creates a 'consume' log entry."""
     friendship = _get_active_shared_friendship(db, user.id)
@@ -451,7 +451,7 @@ def adjust_inventory_item(
     item_id: int,
     payload: InventoryAdjustIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> InventoryItemOut:
     """Set absolute quantity (used for stock-count corrections). Logs the delta."""
     friendship = _get_active_shared_friendship(db, user.id)
@@ -521,7 +521,7 @@ def list_inventory_logs(
     log_type: str | None = Query(default=None),
     limit: int = Query(default=100, le=500),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[InventoryLogOut]:
     q = (
         select(InventoryLog)
@@ -558,7 +558,7 @@ def list_inventory_logs(
 @router.get("/cost-summary", response_model=CostSummaryOut)
 def cost_summary(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> CostSummaryOut:
     """
     Calculates food spend for today / this week / this month
@@ -623,7 +623,7 @@ def list_conversions(
     to_unit: str | None = Query(default=None),
     product_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[UnitConversionOut]:
     q = select(UnitConversion)
     if from_unit:

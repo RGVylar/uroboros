@@ -408,9 +408,12 @@
 			<div class="icon-box">🍕</div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.cheatDays')}</div>
-				<div class="row-detail">{goals?.cheat_days_enabled ? t('settings.active') : t('settings.inactive')}</div>
+				<div class="row-detail">{goals?.cheat_days_enabled ? t('settings.active') : subscription.is_premium ? t('settings.inactive') : t('settings.premiumOnly')}</div>
 			</div>
-			{#if goals}
+			{#if !subscription.is_premium && !goals?.cheat_days_enabled}
+				<!-- El servidor rechaza activarlo sin Premium (PUT /goals → 402) -->
+				<button class="pro-badge-row" onclick={() => goto('/premium')} style="border:none; cursor:pointer; font-family:inherit;">PRO</button>
+			{:else if goals}
 				<button
 					onclick={toggleCheatDays}
 					disabled={savingCheatDays}
@@ -1016,13 +1019,15 @@
 			</div>
 			<div class="row-content">
 				<div class="row-label" style="color:{subscription.status === 'premium' ? 'oklch(85% 0.19 160)' : subscription.status === 'trial' ? 'oklch(85% 0.16 60)' : '#fff'};">
-					{subscription.status === 'premium' ? t('settings.planPremium') : subscription.status === 'trial' ? t('settings.planTrial') : t('settings.planFree')}
+					{subscription.status === 'premium' ? t('settings.planPremium') : subscription.status === 'trial' ? t('settings.planTrial') : subscription.launch_access ? t('settings.planLaunch') : t('settings.planFree')}
 				</div>
 				<div class="row-detail">
 					{#if subscription.status === 'trial' && subscription.trial_days_left !== null}
 						{subscription.trial_days_left === 0 ? t('settings.trialEndsToday') : tc('settings.trialLeft', subscription.trial_days_left)}
 					{:else if subscription.status === 'premium'}
 						{t('settings.planPremiumDetail')}
+					{:else if subscription.launch_access}
+						{t('settings.planLaunchDetail')}
 					{:else}
 						{t('settings.planFreeDetail')}
 					{/if}

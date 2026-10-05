@@ -125,6 +125,11 @@
 	// Trend chart state
 	type TrendEntry = { date: string; calories: number; protein: number; carbs: number; fat: number; calories_burned: number };
 	type TrendMacro = 'calories' | 'protein' | 'carbs' | 'fat';
+	// El plan gratis ve los últimos 90 días (FREE_HISTORY_DAYS en backend/app/routers/diary.py).
+	const FREE_HISTORY_DAYS = 90;
+	const freeCutoff = new Date(Date.now() - (FREE_HISTORY_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
+	function isLocked(date: string) { return !subscription.is_premium && date < freeCutoff; }
+
 	const TREND_OPTIONS = [7, 30] as const;
 	let trendDays = $state<7 | 30>(7);
 	let trendMacro: TrendMacro = $state('calories');
@@ -191,7 +196,9 @@
 		loadingMonth = true;
 		monthData = {};
 		const days = getDaysInMonth(viewYear, viewMonth);
-		const from = formatDay(viewYear, viewMonth, 1);
+		const monthStart = formatDay(viewYear, viewMonth, 1);
+		// Sin Premium el servidor responde 402 si se pide antes del corte de 90 días.
+		const from = isLocked(monthStart) ? freeCutoff : monthStart;
 		const to = formatDay(viewYear, viewMonth, days);
 		const [daySummaries, supplementDatesArr, moodEntries] = await Promise.all([
 			api.get<DaySummary[]>(`/diary/days?date_from=${from}&date_to=${to}`).catch(() => []),
@@ -241,6 +248,9 @@
 	}
 
 	function prevMonth() {
+		// Último día del mes anterior: si ya cae fuera de los 90 días, no hay nada que ver.
+		const lastOfPrev = new Date(Date.UTC(viewYear, viewMonth, 0)).toISOString().slice(0, 10);
+		if (isLocked(lastOfPrev)) { goto('/premium'); return; }
 		if (viewMonth === 0) { viewMonth = 11; viewYear--; }
 		else viewMonth--;
 		selectedDay = null; selectedSummary = null;
@@ -625,13 +635,6 @@
 
 <!-- ── Calendar section ── -->
 <div style="margin-top:1.5rem;">
-{#if !subscription.is_premium}
-	<PaywallCard
-		title={t('history.paywallTitle')}
-		description={t('history.paywallDesc')}
-		onUpgrade={() => goto('/premium')}
-	/>
-{:else}
 	<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin-bottom:0.75rem;">{t('history.calendar')}</div>
 
 	<!-- Month navigation -->
@@ -666,9 +669,10 @@
 						{@const tookCreatine = suppEnabled && cell.date ? supplementDates.has(cell.date) : false}
 						{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
 						{@const moodLevel = moodEnabled && cell.date ? moodDates.get(cell.date) : undefined}
+						{@const lockedDay = cell.date ? isLocked(cell.date) : false}
 						<button
-							onclick={() => cell.date && selectDay(cell.date)}
-							style="aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative; border:{isCalSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'}; background:{isCalSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'}; font-weight:{isTodayCell ? '700' : '400'}; color:{isTodayCell ? 'var(--primary)' : 'var(--text)'}; transition:border-color 0.15s;">
+							onclick={() => cell.date && (lockedDay ? goto('/premium') : selectDay(cell.date))}
+							style="opacity:{lockedDay ? 0.35 : 1}; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; padding:0; font-size:0.8rem; position:relative; border:{isCalSelected ? '2px solid var(--primary)' : isTodayCell ? '1px solid var(--primary)' : '1px solid transparent'}; background:{isCalSelected ? 'rgba(79,255,153,0.15)' : hasData && cell.date ? calColor(monthData[cell.date]) : 'var(--surface2)'}; font-weight:{isTodayCell ? '700' : '400'}; color:{isTodayCell ? 'var(--primary)' : 'var(--text)'}; transition:border-color 0.15s;">
 							<span>{cell.day}</span>
 							{#if hasData && cell.date}
 								<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
@@ -702,12 +706,19 @@
 		{#if moodEnabled}<span>{t('history.legendMood')}</span>{/if}
 	</div>
 
+	{#if subscription.is_premium}
 	<!-- Exporta el mes que se ve en el calendario, por eso va aquí debajo -->
 	<div style="display:flex; gap:0.5rem; margin-top:1rem;">
 		<button class="btn-secondary" style="flex:1; font-size:0.75rem; padding:0.55rem;" onclick={() => exportZip(true)}>{t('history.exportMonthOf', { month: MONTH_NAMES[viewMonth] })}</button>
 		<button class="btn-secondary" style="flex:1; font-size:0.75rem; padding:0.55rem;" onclick={() => exportZip(false)}>{t('history.exportAll')}</button>
 	</div>
-{/if}
+	{:else}
+	<PaywallCard
+		title={t('history.paywallTitle')}
+		description={t('history.paywallDesc')}
+		onUpgrade={() => goto('/premium')}
+	/>
+	{/if}
 </div>
 
 {/if}

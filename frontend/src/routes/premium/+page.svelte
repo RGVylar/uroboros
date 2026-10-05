@@ -40,7 +40,7 @@
 		<!-- Grandfathered / premium users already have everything -->
 		<div class="status-box ok">
 			<div class="status-title">{t('premium.haveAccess')}</div>
-			<div class="status-sub">{t('premium.haveAccessSub')}</div>
+			<div class="status-sub">{subscription.launch_access ? t('premium.launchAccessSub') : t('premium.haveAccessSub')}</div>
 		</div>
 
 		<div class="features">
@@ -69,7 +69,7 @@
 		</div>
 
 		<button class="cta-btn" onclick={() => goto('/')}>
-			Seguir con la versión gratuita
+			{t('premium.continueFree')}
 		</button>
 	{/if}
 </div>

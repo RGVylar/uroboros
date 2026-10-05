@@ -52,6 +52,15 @@ def upsert_goals(
     user: User = Depends(get_current_user),
 ) -> UserGoals:
     goals = db.get(UserGoals, user.id)
+    if not user.is_premium_or_trial:
+        # Solo se bloquea *activar* lo Premium: quien ya lo tenía y pasó a free
+        # puede seguir guardando el resto de objetivos sin tocarlo.
+        prev_mode = goals.macro_adjust_mode if goals else "off"
+        prev_cheat = goals.cheat_days_enabled if goals else False
+        if (payload.macro_adjust_mode not in ("off", prev_mode)) or (
+            payload.cheat_days_enabled and not prev_cheat
+        ):
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, "premium_required")
     if goals:
         for k, v in payload.model_dump().items():
             setattr(goals, k, v)

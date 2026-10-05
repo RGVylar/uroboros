@@ -61,6 +61,14 @@ def _no_rate_limits():
     limiter.enabled = True
 
 
+@pytest.fixture(autouse=True)
+def _no_launch_open_access(monkeypatch):
+    """Los tests ven los muros reales; la fase de lanzamiento se prueba aparte."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "launch_open_access", False)
+
+
 @pytest.fixture()
 def client(db):
     def _get_db():

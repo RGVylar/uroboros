@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import require_premium
 from app.models import InventoryItem, SharedInventoryItem, SharedShoppingListItem, User
 from app.models.friendship import Friendship
 from app.services.household import active_household
@@ -62,7 +62,7 @@ def _to_out_shared(item: SharedShoppingListItem, user_id: int) -> ShoppingListIt
 @router.get("", response_model=list[ShoppingListItemOut])
 def list_shopping(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[ShoppingListItemOut]:
     friendship = _get_active_shared_friendship(db, user.id)
     if friendship:
@@ -85,7 +85,7 @@ def list_shopping(
 def add_to_shopping(
     payload: ShoppingListItemIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> ShoppingListItemOut:
     friendship = _get_active_shared_friendship(db, user.id)
     if friendship:
@@ -120,7 +120,7 @@ def update_shopping_item(
     item_id: int,
     payload: ShoppingListItemUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> ShoppingListItemOut:
     friendship = _get_active_shared_friendship(db, user.id)
     if friendship:
@@ -155,7 +155,7 @@ def update_shopping_item(
 @router.delete("/checked", status_code=status.HTTP_204_NO_CONTENT)
 def clear_checked(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> None:
     friendship = _get_active_shared_friendship(db, user.id)
     if friendship:
@@ -183,7 +183,7 @@ def clear_checked(
 def delete_shopping_item(
     item_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> None:
     friendship = _get_active_shared_friendship(db, user.id)
     if friendship:
@@ -214,7 +214,7 @@ def delete_shopping_item(
 def shopping_from_recipe(
     recipe_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> list[ShoppingListItemOut]:
     """Compare recipe ingredients with inventory and add missing to shopping list."""
     stmt = (
@@ -286,7 +286,7 @@ def shopping_from_recipe(
 def purchase_item(
     item_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ) -> ShoppingListItemOut:
     """Mark as purchased and add quantity to (shared or personal) inventory."""
     friendship = _get_active_shared_friendship(db, user.id)

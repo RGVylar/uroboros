@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 90  # 90 días
     off_base_url: str = "https://es.openfoodfacts.org"
     demo_mode: bool = False
+    # Fase de lanzamiento: mientras no se pueda pagar (Play Billing / App Store)
+    # todo el mundo tiene las funciones Premium. No es `grandfathered`, que es de
+    # por vida: al apagarlo, cada cual vuelve a su plan real.
+    launch_open_access: bool = True
     resend_api_key: str = ""
     email_from: str = "uroboros <noreply@mugrelore.com>"
     app_url: str = "https://comida.mugrelore.com"

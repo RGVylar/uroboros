@@ -4,6 +4,7 @@ from typing import Literal
 from sqlalchemy import JSON, Boolean, DateTime, Integer, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.config import settings
 from app.database import Base
 
 TRIAL_DAYS = 14
@@ -48,8 +49,10 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
     # Launch-cohort users: full access for life, regardless of subscription.
+    # false(), no "false": SQLite guarda el literal como texto y lo lee como
+    # verdadero, así que en tests y DEMO_MODE todo el mundo salía grandfathered.
     grandfathered: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default="false"
+        Boolean, nullable=False, server_default=false()
     )
     # Opt-out of the in-app "what's new" changelog. When true, only notes marked
     # as major (feature launches) are shown; minor notes and the update nudge
@@ -83,8 +86,13 @@ class User(Base):
         return "free"
 
     @property
+    def launch_access(self) -> bool:
+        """Premium solo por la fase de lanzamiento (`settings.launch_open_access`)."""
+        return settings.launch_open_access and self.effective_status == "free"
+
+    @property
     def is_premium_or_trial(self) -> bool:
-        return self.effective_status in ("premium", "trial")
+        return self.launch_access or self.effective_status in ("premium", "trial")
 
     @property
     def trial_days_left(self) -> int | None:

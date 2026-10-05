@@ -224,15 +224,23 @@ def _share_household(client, fid, a, b):
     client.patch(f"{API}/friends/{fid}", json={"shared_inventory_receiver": True}, headers=auth(b))
 
 
+def _premium(db, *users):
+    """La despensa es Premium: estos tests prueban el hogar, no el muro."""
+    for u in users:
+        u.grandfathered = True
+    db.commit()
+
+
 def _stock(client, user) -> float:
     r = client.get(f"{API}/inventory", headers=auth(user))
     return sum(i["quantity_g"] for i in r.json())
 
 
-def test_splitting_a_household_does_not_duplicate_stock(client, make_user, make_product):
+def test_splitting_a_household_does_not_duplicate_stock(client, db, make_user, make_product):
     """Merging used to copy personal rows in without deleting them, and the split
     added the shared stock back on top — so 500g became 1000g."""
     ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    _premium(db, ruben, pilar)
     fid = _befriend(client, ruben, pilar, kind="partner")
     product = make_product()
 
@@ -253,10 +261,11 @@ def test_splitting_a_household_does_not_duplicate_stock(client, make_user, make_
     assert _stock(client, ruben) == 500, "the split gave back more than went in"
 
 
-def test_deleting_a_partner_gives_the_household_back(client, make_user, make_product):
+def test_deleting_a_partner_gives_the_household_back(client, db, make_user, make_product):
     """shared_inventory_items cascades from friendships, so a naive delete used to
     wipe the shared stock instead of returning it."""
     ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    _premium(db, ruben, pilar)
     fid = _befriend(client, ruben, pilar, kind="partner")
     product = make_product()
     client.post(
@@ -282,8 +291,9 @@ def test_deleting_a_plain_friend_works(client, make_user):
     assert client.get(f"{API}/friends", headers=auth(ruben)).json() == []
 
 
-def test_demoting_a_partner_splits_the_household(client, make_user, make_product):
+def test_demoting_a_partner_splits_the_household(client, db, make_user, make_product):
     ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    _premium(db, ruben, pilar)
     fid = _befriend(client, ruben, pilar, kind="partner")
     product = make_product()
     client.post(

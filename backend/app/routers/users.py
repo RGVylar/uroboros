@@ -47,6 +47,7 @@ def get_subscription(user: User = Depends(get_current_user)) -> dict:
         "status": user.effective_status,
         "trial_days_left": user.trial_days_left,
         "is_premium": user.is_premium_or_trial,
+        "launch_access": user.launch_access,
     }
 
 

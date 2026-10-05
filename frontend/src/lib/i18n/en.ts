@@ -410,6 +410,7 @@ export const en: Dict = {
 	'trial.left_other': '{count} trial days left',
 	'trial.seePlans': 'See plans',
 	'paywall.soon': 'Very soon · free in the meantime',
+	'paywall.cta': 'See Premium',
 	'screenHeader.back': 'Back',
 
 	// ── onboarding ──
@@ -610,6 +611,8 @@ export const en: Dict = {
 	'premium.tagline': 'Everything you need to look after yourself properly',
 	'premium.haveAccess': '✅ You have full access',
 	'premium.haveAccessSub': "You've got every uroboros feature. Thanks for being here from the start 💚",
+	'premium.continueFree': 'Continue with the free version',
+	'premium.launchAccessSub': "During launch every feature is open to everyone. When Premium arrives, we'll let you know well in advance.",
 	'premium.soon': '✨ Coming soon',
 	'premium.feat1': 'Advanced trends and charts',
 	'premium.feat2': 'Exercise sessions',
@@ -839,7 +842,7 @@ export const en: Dict = {
 	'history.copy': 'Copy',
 	'history.seeDiary': 'See diary →',
 	'history.paywallTitle': 'Full history',
-	'history.paywallDesc': 'Look up any past day, the monthly calendar and 30-day trends.',
+	'history.paywallDesc': 'Look up days older than 90, 30-day trends, and export your history.',
 	'history.calendar': 'Calendar',
 	'history.legendSupplements': '💊 Supplements',
 	'history.legendExercise': '💪 Exercise',
@@ -1020,6 +1023,8 @@ export const en: Dict = {
 	'recipes.minutes': '{n} min',
 	'recipes.hours': '{h} h',
 	'recipes.hoursMinutes': '{h} h {m} min',
+	'recipes.freeLimit': 'Free plan: up to {count} recipes. Premium makes them unlimited.',
+	'recipes.freeLimitTitle': 'Limit of {count} recipes on the free plan',
 
 	// ── anillo de calorías ──
 	'ring.of': 'of {goal}',
@@ -1289,6 +1294,8 @@ export const en: Dict = {
 	'settings.planFree': 'Free version',
 	'settings.planPremiumDetail': 'All features unlocked',
 	'settings.planFreeDetail': 'Upgrade to unlock everything',
+	'settings.planLaunchDetail': 'Everything unlocked during launch',
+	'settings.planLaunch': 'Launch access',
 	'settings.trialEndsToday': 'Your trial ends today',
 	'settings.trialLeft_one': '{count} day left',
 	'settings.trialLeft_other': '{count} days left',

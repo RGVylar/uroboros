@@ -412,6 +412,7 @@ export const pt: Dict = {
 	'trial.left_other': 'faltam {count} dias de teste',
 	'trial.seePlans': 'Ver planos',
 	'paywall.soon': 'Muito em breve · entretanto continua grátis',
+	'paywall.cta': 'Ver Premium',
 	'screenHeader.back': 'Voltar',
 
 	// ── onboarding ──
@@ -612,6 +613,8 @@ export const pt: Dict = {
 	'premium.tagline': 'Tudo o que precisas para cuidares mesmo de ti',
 	'premium.haveAccess': '✅ Tens acesso completo',
 	'premium.haveAccessSub': 'Tens todas as funcionalidades do uroboros. Obrigado por estares aqui desde o início 💚',
+	'premium.continueFree': 'Continuar com a versão gratuita',
+	'premium.launchAccessSub': 'Durante o lançamento todas as funcionalidades estão abertas para todos. Quando o Premium chegar, avisamos-te com antecedência.',
 	'premium.soon': '✨ Brevemente',
 	'premium.feat1': 'Tendências e gráficos avançados',
 	'premium.feat2': 'Sessões de exercício',
@@ -841,7 +844,7 @@ export const pt: Dict = {
 	'history.copy': 'Copiar',
 	'history.seeDiary': 'Ver diário →',
 	'history.paywallTitle': 'Histórico completo',
-	'history.paywallDesc': 'Consulta qualquer dia passado, o calendário mensal e as tendências de 30 dias.',
+	'history.paywallDesc': 'Consulta os dias com mais de 90, as tendências de 30 dias e exporta o teu histórico.',
 	'history.calendar': 'Calendário',
 	'history.legendSupplements': '💊 Suplementos',
 	'history.legendExercise': '💪 Exercício',
@@ -1022,6 +1025,8 @@ export const pt: Dict = {
 	'recipes.minutes': '{n} min',
 	'recipes.hours': '{h} h',
 	'recipes.hoursMinutes': '{h} h {m} min',
+	'recipes.freeLimit': 'Plano gratuito: máximo {count} receitas. Com Premium são ilimitadas.',
+	'recipes.freeLimitTitle': 'Limite de {count} receitas no plano gratuito',
 
 	// ── anillo de calorías ──
 	'ring.of': 'de {goal}',
@@ -1291,6 +1296,8 @@ export const pt: Dict = {
 	'settings.planFree': 'Versão gratuita',
 	'settings.planPremiumDetail': 'Todas as funcionalidades desbloqueadas',
 	'settings.planFreeDetail': 'Atualiza para desbloquear tudo',
+	'settings.planLaunchDetail': 'Tudo desbloqueado durante o lançamento',
+	'settings.planLaunch': 'Acesso de lançamento',
 	'settings.trialEndsToday': 'O teu teste termina hoje',
 	'settings.trialLeft_one': 'falta {count} dia',
 	'settings.trialLeft_other': 'faltam {count} dias',

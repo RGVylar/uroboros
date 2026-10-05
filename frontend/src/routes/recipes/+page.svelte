@@ -179,8 +179,8 @@
 			load();
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : '';
-			if (msg.includes('premium_required') || msg.includes('402')) {
-				error = `Plan gratuito: máximo ${FREE_RECIPE_LIMIT} recetas. Actualiza a Premium para recetas ilimitadas.`;
+			if (msg === t('errors.premiumRequired')) {
+				error = t('recipes.freeLimit', { count: FREE_RECIPE_LIMIT });
 			} else {
 				error = msg || 'Error';
 			}
@@ -524,7 +524,7 @@
 		class="btn-new"
 		onclick={() => (!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? goto('/premium') : (showCreate = !showCreate)}
 		style={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
-		title={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `Límite de ${FREE_RECIPE_LIMIT} recetas en plan gratuito` : ''}
+		title={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? t('recipes.freeLimitTitle', { count: FREE_RECIPE_LIMIT }) : ''}
 	>
 		{(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : t('recipes.newShort')}
 	</button>

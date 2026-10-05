@@ -413,6 +413,7 @@ export const es = {
 	'trial.left_other': '{count} días de prueba restantes',
 	'trial.seePlans': 'Ver planes',
 	'paywall.soon': 'Muy pronto · mientras tanto sigue gratis',
+	'paywall.cta': 'Ver Premium',
 	'screenHeader.back': 'Atrás',
 
 	// ── onboarding ──
@@ -613,6 +614,8 @@ export const es = {
 	'premium.tagline': 'Todo lo que necesitas para cuidarte de verdad',
 	'premium.haveAccess': '✅ Tienes acceso completo',
 	'premium.haveAccessSub': 'Disfrutas de todas las funciones de uroboros. Gracias por estar desde el principio 💚',
+	'premium.continueFree': 'Seguir con la versión gratuita',
+	'premium.launchAccessSub': 'Durante el lanzamiento todas las funciones están abiertas para todo el mundo. Cuando llegue Premium, te avisaremos con tiempo.',
 	'premium.soon': '✨ Próximamente',
 	'premium.feat1': 'Tendencias y gráficas avanzadas',
 	'premium.feat2': 'Sesiones de ejercicio',
@@ -842,7 +845,7 @@ export const es = {
 	'history.copy': 'Copiar',
 	'history.seeDiary': 'Ver diario →',
 	'history.paywallTitle': 'Historial completo',
-	'history.paywallDesc': 'Consulta cualquier día pasado, el calendario mensual y las tendencias de 30 días.',
+	'history.paywallDesc': 'Consulta los días de hace más de 90, las tendencias de 30 días y exporta tu historial.',
 	'history.calendar': 'Calendario',
 	'history.legendSupplements': '💊 Suplementos',
 	'history.legendExercise': '💪 Ejercicio',
@@ -1023,6 +1026,8 @@ export const es = {
 	'recipes.minutes': '{n} min',
 	'recipes.hours': '{h} h',
 	'recipes.hoursMinutes': '{h} h {m} min',
+	'recipes.freeLimit': 'Plan gratuito: máximo {count} recetas. Con Premium son ilimitadas.',
+	'recipes.freeLimitTitle': 'Límite de {count} recetas en el plan gratuito',
 
 	// ── anillo de calorías ──
 	'ring.of': 'de {goal}',
@@ -1292,6 +1297,8 @@ export const es = {
 	'settings.planFree': 'Versión gratuita',
 	'settings.planPremiumDetail': 'Todas las funciones desbloqueadas',
 	'settings.planFreeDetail': 'Actualiza para desbloquear todo',
+	'settings.planLaunchDetail': 'Todo abierto mientras dure el lanzamiento',
+	'settings.planLaunch': 'Acceso de lanzamiento',
 	'settings.trialEndsToday': 'Tu prueba termina hoy',
 	'settings.trialLeft_one': '{count} día restante',
 	'settings.trialLeft_other': '{count} días restantes',

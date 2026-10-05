@@ -6,6 +6,8 @@ interface SubscriptionState {
 	status: SubscriptionStatus;
 	trial_days_left: number | null;
 	is_premium: boolean;
+	/** Premium solo por la fase de lanzamiento (todo abierto mientras no se pueda pagar). */
+	launch_access: boolean;
 	loaded: boolean;
 }
 
@@ -13,6 +15,7 @@ function createSubscriptionStore() {
 	let status: SubscriptionStatus = $state('free');
 	let trial_days_left: number | null = $state(null);
 	let is_premium: boolean = $state(false);
+	let launch_access: boolean = $state(false);
 	let loaded: boolean = $state(false);
 
 	async function load() {
@@ -21,6 +24,7 @@ function createSubscriptionStore() {
 			status = data.status;
 			trial_days_left = data.trial_days_left;
 			is_premium = data.is_premium;
+			launch_access = data.launch_access ?? false;
 		} catch {
 			// silently fail — defaults to free
 		} finally {
@@ -32,6 +36,7 @@ function createSubscriptionStore() {
 		get status() { return status; },
 		get trial_days_left() { return trial_days_left; },
 		get is_premium() { return is_premium; },
+		get launch_access() { return launch_access; },
 		get loaded() { return loaded; },
 		load,
 	};

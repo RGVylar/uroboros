@@ -10,7 +10,7 @@
 		onUpgrade?: () => void;
 	}
 
-	let { title, description, cta = 'Ver Premium', onUpgrade = () => goto('/premium') }: Props = $props();
+	let { title, description, cta, onUpgrade = () => goto('/premium') }: Props = $props();
 </script>
 
 <div class="paywall">
@@ -18,7 +18,7 @@
 	<div class="title">{title}</div>
 	<div class="desc">{description}</div>
 	<button class="upgrade-btn" onclick={onUpgrade}>
-		{cta}
+		{cta ?? t('paywall.cta')}
 	</button>
 	<!-- Sin promesa de prueba: /premium aún es "Próximamente" y no se puede
 	     iniciar ningún trial. Reponer el hint cuando exista la compra real. -->
