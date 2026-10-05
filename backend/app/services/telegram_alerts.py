@@ -303,3 +303,31 @@ async def send_unusual_4xx_alert(method: str, path: str, status: int, detail: st
         f"🕐 {_now()}"
     )
     await _send(text)
+
+
+async def send_diagnostic_alert(
+    user_id: int,
+    user_name: str,
+    kind: str,
+    outcome: str,
+    previous: str | None,
+    app_version: str,
+    platform: str,
+    device: str,
+    data: dict,
+) -> None:
+    """Algo que solo existe en la APK ha cambiado de estado en el móvil de
+    alguien (p. ej. los pasos pasan de 'ok' a 'denied', o al revés)."""
+    icon = "✅" if outcome == "ok" else "🩺"
+    change = f"`{previous}` → `{outcome}`" if previous else f"`{outcome}`"
+    details = "\n".join(
+        f"• {_md_escape(str(k))}: `{str(v)[:200].replace('`', chr(39))}`" for k, v in data.items()
+    )
+    text = (
+        f"{icon} *[uroboros]* Diagnóstico *{kind}*: {change}\n\n"
+        f"*Versión:* `{app_version or '?'}` · {platform or '?'}\n"
+        f"*Usuario:* {_md_escape(user_name)} (`#{user_id}`)\n"
+        f"*Dispositivo:* {_md_escape(device or '?')}\n\n"
+        f"{details}\n\n🕐 {_now()}"
+    )
+    await _send(text)

@@ -6,6 +6,7 @@
 
 import { api } from '$lib/api';
 import { t } from '$lib/i18n/index.svelte';
+import { reportDiagnostic } from '$lib/services/diagnostics';
 
 interface NotifPrefs {
 	enabled: boolean;
@@ -46,7 +47,10 @@ export async function scheduleNativeNotifications(): Promise<boolean> {
 		const { LocalNotifications } = await import('@capacitor/local-notifications');
 
 		const perm = await LocalNotifications.requestPermissions();
-		if (perm.display !== 'granted') return false;
+		if (perm.display !== 'granted') {
+			reportDiagnostic('notifications', 'denied', { permission: perm.display });
+			return false;
+		}
 
 		// Cancel all previously scheduled ones first
 		await LocalNotifications.cancel({
@@ -54,7 +58,11 @@ export async function scheduleNativeNotifications(): Promise<boolean> {
 		});
 
 		const prefs = await api.get<NotifPrefs>('/push/prefs').catch(() => null);
-		if (!prefs?.enabled) return true; // permission granted but user disabled notifs
+		if (!prefs?.enabled) {
+			// permission granted but user disabled notifs
+			reportDiagnostic('notifications', prefs ? 'off' : 'prefs_error', { permission: perm.display });
+			return true;
+		}
 
 		const notifications: Parameters<typeof LocalNotifications.schedule>[0]['notifications'] = [];
 
@@ -85,11 +93,57 @@ export async function scheduleNativeNotifications(): Promise<boolean> {
 			await LocalNotifications.schedule({ notifications });
 		}
 
+		// Comprobar que de verdad han quedado en cola, y si Android deja usar
+		// alarmas exactas (sin ese permiso llegan con retraso o agrupadas).
+		const { notifications: pending } = await LocalNotifications.getPending();
+		const queued = pending.filter((n) => (Object.values(IDS) as number[]).includes(n.id)).length;
+		const exact = await LocalNotifications.checkExactNotificationSetting()
+			.then((r) => r.exact_alarm)
+			.catch(() => 'unknown');
+		reportDiagnostic('notifications', queued === notifications.length ? 'ok' : 'not_queued', {
+			permission: perm.display,
+			wanted: notifications.length,
+			queued,
+			exact_alarm: exact,
+		});
+
 		return true;
 	} catch (e) {
 		console.error('[nativeNotifications] schedule failed', e);
+		reportDiagnostic('notifications', 'error', { error: e instanceof Error ? e.message : String(e) });
 		return false;
 	}
+}
+
+export interface NotifDiag {
+	permission: string;
+	exactAlarm: string;
+	queued: number;
+	serverEnabled: boolean | null;
+}
+
+/** Estado actual de los recordatorios, para Ajustes → Diagnóstico. */
+export async function diagnoseNativeNotifications(): Promise<NotifDiag> {
+	const { LocalNotifications } = await import('@capacitor/local-notifications');
+	const perm = await LocalNotifications.checkPermissions();
+	const exact = await LocalNotifications.checkExactNotificationSetting()
+		.then((r) => r.exact_alarm as string)
+		.catch(() => 'unknown');
+	const { notifications: pending } = await LocalNotifications.getPending();
+	const prefs = await api.get<NotifPrefs>('/push/prefs').catch(() => null);
+	const d: NotifDiag = {
+		permission: perm.display,
+		exactAlarm: exact,
+		queued: pending.filter((n) => (Object.values(IDS) as number[]).includes(n.id)).length,
+		serverEnabled: prefs ? prefs.enabled : null,
+	};
+	reportDiagnostic(
+		'notifications',
+		d.permission !== 'granted' ? 'denied' : d.serverEnabled === false ? 'off' : d.queued ? 'ok' : 'not_queued',
+		{ permission: d.permission, exact_alarm: d.exactAlarm, queued: d.queued, server_enabled: d.serverEnabled },
+		true,
+	);
+	return d;
 }
 
 /** Cancel all scheduled local notifications (call on logout or when user disables notifs). */

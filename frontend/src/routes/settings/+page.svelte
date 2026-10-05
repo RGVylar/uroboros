@@ -5,6 +5,7 @@
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { health, type ConnectResult } from '$lib/stores/health.svelte';
+	import { diagnoseNativeNotifications, type NotifDiag } from '$lib/services/nativeNotifications';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { APP_VERSION, UPDATE_URL, isNewerVersion } from '$lib/changelog';
@@ -328,6 +329,31 @@
 		error: 'settings.stepsError',
 	};
 	let healthBusy = $state(false);
+
+	// Diagnóstico (solo APK): comprueba pasos y recordatorios en este móvil y lo
+	// manda al Telegram de admin aunque no haya cambiado.
+	let diagBusy = $state(false);
+	let notifDiag = $state<NotifDiag | null>(null);
+	let diagError = $state('');
+	async function runDiagnostics() {
+		if (diagBusy) return;
+		diagBusy = true;
+		diagError = '';
+		try {
+			const [, n] = await Promise.all([health.diagnose(), diagnoseNativeNotifications()]);
+			notifDiag = n;
+			toast.success(t('settings.diagSent'));
+		} catch (e) {
+			diagError = e instanceof Error ? e.message : String(e);
+		} finally {
+			diagBusy = false;
+		}
+	}
+	const DIAG_HINTS = ['no_data', 'unavailable', 'denied', 'off'] as const;
+	type DiagHint = (typeof DIAG_HINTS)[number];
+	function isHint(o: string | undefined): o is DiagHint {
+		return !!o && (DIAG_HINTS as readonly string[]).includes(o);
+	}
 
 	async function toggleSteps() {
 		if (health.enabled) {
@@ -941,6 +967,33 @@
 			</div>
 			<span class="chevron">›</span>
 		</button>
+		{#if isNativeApp}
+			<div class="row-divider"></div>
+			<button class="settings-row" onclick={runDiagnostics} disabled={diagBusy}>
+				<div class="icon-box">🩺</div>
+				<div class="row-content">
+					<div class="row-label">{t('settings.diag')}</div>
+					<div class="row-detail">{diagBusy ? '…' : t('settings.diagDetail')}</div>
+				</div>
+				<span class="chevron">›</span>
+			</button>
+			{#if health.diag || notifDiag || diagError}
+				<div class="diag-box">
+					{#if health.diag}
+						<div class="diag-title">👣 {t('settings.diagSteps')}: <code>{health.diag.outcome}</code></div>
+						{#if isHint(health.diag.outcome)}
+							<div class="diag-hint">{t(`settings.diagHint.${health.diag.outcome}`)}</div>
+						{/if}
+						<code class="diag-raw">stage={health.diag.stage} available={health.diag.available} authorized={health.diag.authorized} days={health.diag.daysWithSteps}{health.diag.reason ? ` reason=${health.diag.reason}` : ''}{health.diag.error ? ` error=${health.diag.error}` : ''}</code>
+					{/if}
+					{#if notifDiag}
+						<div class="diag-title">🔔 {t('settings.diagNotifs')}</div>
+						<code class="diag-raw">permission={notifDiag.permission} exact_alarm={notifDiag.exactAlarm} queued={notifDiag.queued} server_enabled={notifDiag.serverEnabled}</code>
+					{/if}
+					{#if diagError}<code class="diag-raw">error={diagError}</code>{/if}
+				</div>
+			{/if}
+		{/if}
 	</div>
 </div>
 
@@ -1333,5 +1386,26 @@
 		background: linear-gradient(90deg, oklch(88% 0.19 160), oklch(72% 0.2 170));
 		color: #041010;
 		flex-shrink: 0;
+	}
+	.diag-box {
+		padding: 0.75rem 1rem 0.875rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		font-size: 0.75rem;
+		color: rgba(255, 255, 255, 0.75);
+	}
+	.diag-title {
+		font-weight: 600;
+		margin-top: 0.25rem;
+	}
+	.diag-hint {
+		color: rgba(255, 255, 255, 0.6);
+		line-height: 1.4;
+	}
+	.diag-raw {
+		font-size: 0.6875rem;
+		color: rgba(255, 255, 255, 0.5);
+		word-break: break-all;
 	}
 </style>
