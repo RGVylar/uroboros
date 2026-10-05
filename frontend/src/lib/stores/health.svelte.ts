@@ -78,9 +78,13 @@ function localDay(d: Date): string {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-async function plugin() {
-	const { Health } = await import('@capgo/capacitor-health');
-	return Health;
+// Devuelve el módulo, NO el plugin: el proxy de Capacitor responde a cualquier
+// propiedad, también a `then`, así que parece una promesa. Devolverlo desde una
+// función async (o hacerle await) llama a un método nativo `then` que no existe
+// y se queda esperando para siempre: los pasos nunca llegaron a pedir permiso.
+// Siempre `const { Health } = await plugin()`.
+function plugin() {
+	return import('@capgo/capacitor-health');
 }
 
 class HealthStore {
@@ -113,7 +117,7 @@ class HealthStore {
 		const base = { available: null, reason: null, authorized: null, daysWithSteps: null, error: null };
 		let stage = 'availability';
 		try {
-			const Health = await plugin();
+			const { Health } = await plugin();
 			const { available, reason } = await withTimeout(Health.isAvailable(), 'availability');
 			if (!available) {
 				this.record({ ...base, outcome: 'unavailable', stage, available, reason: reason ?? null }, true);
@@ -161,7 +165,7 @@ class HealthStore {
 			writeFlag(PENDING_KEY, false);
 			const base = { available: true, reason: null, daysWithSteps: null, error: null };
 			try {
-				const Health = await plugin();
+				const { Health } = await plugin();
 				const status = await withTimeout(Health.checkAuthorization({ read: ['steps'] }), 'permission');
 				const granted = status.readAuthorized.includes('steps');
 				this.record({ ...base, outcome: 'interrupted', stage: 'permission', authorized: granted }, true);
@@ -192,7 +196,7 @@ class HealthStore {
 		if (this.enabled) return this.sync(true, true);
 		const base = { authorized: null, daysWithSteps: null, error: null };
 		try {
-			const Health = await plugin();
+			const { Health } = await plugin();
 			const { available, reason } = await withTimeout(Health.isAvailable(), 'availability');
 			this.record({ ...base, outcome: available ? 'off' : 'unavailable', stage: 'availability', available, reason: reason ?? null }, true);
 		} catch (e) {
@@ -204,7 +208,7 @@ class HealthStore {
 	/** Abre Health Connect para que el usuario revise o retire el permiso. */
 	async openSettings() {
 		if (!this.supported) return;
-		const Health = await plugin();
+		const { Health } = await plugin();
 		await Health.openHealthConnectSettings();
 	}
 
@@ -216,7 +220,7 @@ class HealthStore {
 		const base = { available: true, reason: null, daysWithSteps: null, error: null };
 		let stage = 'permission';
 		try {
-			const Health = await plugin();
+			const { Health } = await plugin();
 			// Si el permiso se retiró desde Health Connect, no insistimos: se
 			// queda activado aquí pero sin leer hasta que se vuelva a conceder.
 			const status = await withTimeout(Health.checkAuthorization({ read: ['steps'] }), 'permission');
