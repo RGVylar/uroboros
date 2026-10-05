@@ -8,6 +8,11 @@ import os
 
 # Must be set before app.config is imported, or the engine tries to reach Postgres.
 os.environ.setdefault("DEMO_MODE", "true")
+# Sin esto los tests leen el bot real del .env y cada pasada de la suite manda
+# una docena de alertas (fotos de perfil, 422…) al chat de admin. Las variables
+# de entorno ganan al .env, y vacías apagan _send() y compañía.
+os.environ["TELEGRAM_BOT_TOKEN"] = ""
+os.environ["TELEGRAM_CHAT_ID"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
