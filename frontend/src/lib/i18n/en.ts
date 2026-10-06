@@ -618,7 +618,7 @@ export const en: Dict = {
 	'premium.back': '← Back',
 	'premium.tagline': 'Everything you need to look after yourself properly',
 	'premium.haveAccess': 'You have full access',
-	'premium.haveAccessSub': "You've got every uroboros feature. Thanks for being here from the start 💚",
+	'premium.haveAccessSub': "You've got every uroboros feature. Thanks for being here from the start",
 	'premium.continueFree': 'Continue with the free version',
 	'premium.launchAccessSub': "During launch every feature is open to everyone. When Premium arrives, we'll let you know well in advance.",
 	'premium.soon': 'Coming soon',
