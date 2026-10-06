@@ -6,7 +6,8 @@
 	import { Capacitor } from '@capacitor/core';
 	import { page } from '$app/state';
 	import { Modal, Avatar, QrCode } from '$lib/components';
-	import { t } from '$lib/i18n/index.svelte';
+	import { t, tc } from '$lib/i18n/index.svelte';
+	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { onMount, untrack } from 'svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
@@ -53,6 +54,11 @@
 				api.get<Friendship[]>('/friends'),
 				api.get<Friendship[]>('/friends/pending'),
 			]);
+			// El aviso de la barra no se entera solo de que has aceptado o rechazado.
+			pendingFriends.refresh();
+			// Sin nadie aún y con solicitudes esperando: lo que buscas está ahí.
+			if (!openedPending && friends.length === 0 && pending.length > 0) activeTab = 'solicitudes';
+			openedPending = true;
 		} catch {
 			// ignore
 		} finally {
@@ -268,6 +274,7 @@
 	}
 
 	let activeTab = $state<'lista' | 'solicitudes'>('lista');
+	let openedPending = false;
 	let showAddForm = $state(false);
 
 	// The partner is the one the relationship *says* is the partner. This used to
@@ -282,7 +289,7 @@
 	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="uro-title">{t('friends.title')}<InfoTip id="circles" /></h1>
-		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('friends.connected', { count: friends.length })}</div>
+		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{tc('friends.connected', friends.length)}</div>
 	</div>
 	<button onclick={() => { showAddForm = !showAddForm; if (showAddForm) loadMyCode(); }} style="padding:0.5625rem 0.875rem; border-radius:14px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.75rem; font-family:inherit; white-space:nowrap;">{t('friends.add')}</button>
 </div>

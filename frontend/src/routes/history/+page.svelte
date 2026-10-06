@@ -12,12 +12,10 @@
 	import { fmtQty } from '$lib/drink';
 	import { dayScore, HIT_SCORE } from '$lib/goals';
 	import { t, fmtDate, fmtTime as fmtTimeI18n, fmtNumber, monthNames, weekdayInitials, weekdayShort } from '$lib/i18n/index.svelte';
-	import { onMount } from 'svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 
 	// La adherencia no es "días cumplidos": puntúa cada día y se salta los vacíos.
-	onMount(() => tips.request('adherence'));
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -185,6 +183,8 @@
 		const dateTo = dates[dates.length - 1];
 		const summaries = await api.get<DaySummary[]>(`/diary/days?date_from=${dateFrom}&date_to=${dateTo}`).catch(() => []);
 		const byDate = new Map(summaries.map(s => [s.date, s]));
+		// La adherencia se explica cuando hay algo que puntuar, no en el historial vacío.
+		if (summaries.some(s => s.entries?.length || s.totals.calories > 0)) tips.request('adherence');
 		trendData = dates.map(date => {
 			const s = byDate.get(date);
 			return {

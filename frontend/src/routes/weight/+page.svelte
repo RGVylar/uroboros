@@ -122,12 +122,13 @@
 
 <!-- Page header -->
 <div class="trk-header">
+	<button class="trk-back" aria-label={t('screenHeader.back')} onclick={() => goto('/settings')}>←</button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="trk-title">{t('weight.title')}</h1>
 		<div class="trk-sub">{t('weight.subtitle')}</div>
 	</div>
 	<button class="btn-reg" onclick={() => { newWeightValue = current ?? 75; showAdd = true; }}>
-		+ Registrar
+		{t('weight.add')}
 	</button>
 </div>
 
@@ -591,4 +592,11 @@
 			inset 0 1px 0 rgba(255,255,255,0.4);
 	}
 	.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+	/* En móvil se llega desde Ajustes y no había forma de volver salvo la barra. */
+	.trk-back {
+		width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+		background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);
+		color: #fff; font: inherit; font-size: 1rem; cursor: pointer;
+		display: flex; align-items: center; justify-content: center;
+	}
 </style>

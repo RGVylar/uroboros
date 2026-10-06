@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
@@ -8,6 +9,10 @@
 	import { t } from '$lib/i18n/index.svelte';
 
 	let step = $state(0);
+	// Desde Ajustes → "Ver introducción": se repasa, pero no se toca nada. Antes
+	// "Entrar" guardaba el plan de los sliders (70 kg, 25 años…) encima de los
+	// objetivos que el usuario ya tenía ajustados.
+	const review = page.url.searchParams.has('review');
 
 	// ── Objetivo y cuerpo ─────────────────────────────────────────────────
 	let objective: 'lose' | 'maintain' | 'gain' = $state('maintain');
@@ -66,6 +71,7 @@
 	// `dest`: a dónde ir después de guardar. "Invitar pareja" pasa /friends; antes
 	// navegaba por su cuenta y este goto('/') la pisaba, dejándote en el Diario.
 	async function finish(dest = '/') {
+		if (review) { goto(dest); return; }
 		saving = true;
 		try {
 			await api.put('/goals', {
@@ -76,6 +82,13 @@
 				water_ml: 2500,
 				track_creatine: false,
 			});
+		} catch {
+			// silently continue
+		}
+		// El peso que acaba de decirnos es su primer registro: si no, Peso sale
+		// vacío y propone 75 kg.
+		try {
+			await api.post('/weight', { weight: bodyWeight, logged_at: new Date().toISOString() });
 		} catch {
 			// silently continue
 		} finally {
@@ -173,7 +186,7 @@
 		<!-- Step 4: Resumen -->
 		{:else if step === 4}
 			<h1 class="serif">{t('onb.planTitle')}</h1>
-			<p class="sub">{t('onb.planSub')}</p>
+			<p class="sub">{review ? t('onb.planSubReview') : t('onb.planSub')}</p>
 
 			<GlassCard padding={20}>
 				<div class="summary">

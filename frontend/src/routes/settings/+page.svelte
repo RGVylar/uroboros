@@ -959,7 +959,7 @@
 		</button>
 		<div class="row-divider"></div>
 		<!-- Onboarding -->
-		<button class="settings-row" onclick={() => goto('/onboarding')}>
+		<button class="settings-row" onclick={() => goto('/onboarding?review=1')}>
 			<div class="icon-box">🧭</div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.onboarding')}</div>

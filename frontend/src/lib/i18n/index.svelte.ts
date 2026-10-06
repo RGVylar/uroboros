@@ -129,6 +129,13 @@ export function exerciseLabel(name: string): string {
 	return key in es ? t(key) : name;
 }
 
+/** "kcal por …": la unidad en singular y corta ("0,25 kcal/rep."). Las de
+ *  ejercicios propios no tienen traducción y salen tal cual. */
+export function exerciseUnitPer(unit: string): string {
+	const key = `exerciseUnitPer.${unit}` as TKey;
+	return key in es ? t(key) : unit;
+}
+
 /** Unidad de un ejercicio ('minutos' | 'repeticiones'), misma lógica. */
 export function exerciseUnit(unit: string): string {
 	const key = `exerciseUnit.${unit}` as TKey;

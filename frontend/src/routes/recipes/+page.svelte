@@ -6,12 +6,10 @@
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
 	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
-	import { onMount } from 'svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 
 	// Para quién es cada receta (🔒 💚 🔗) no se adivina mirando el icono.
-	onMount(() => tips.request('recipe_sharing'));
 	import { Modal, RecipeAmount, RecipeCardEditor } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
@@ -86,6 +84,9 @@
 			api.get<Recipe[]>('/recipes'),
 			api.get<SharedRecipe[]>('/recipes/shared').catch(() => []),
 		]);
+		// Lo de los círculos habla del icono de cada receta: sin recetas no hay
+		// icono que tocar, así que espera a la primera.
+		if (recipes.length > 0 || sharedRecipes.length > 0) tips.request('recipe_sharing');
 		// Load partner + allergies
 		try {
 			const users = await api.get<Array<{ id: number; name: string }>>('/users');
@@ -110,6 +111,13 @@
 	async function searchEditProducts() {
 		if (!editSearchQuery.trim()) return;
 		editSearchResults = await api.get<Product[]>(`/products?q=${encodeURIComponent(editSearchQuery)}`);
+	}
+
+	// Busca mientras escribes, como en Añadir comida; el botón y Enter siguen valiendo.
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	function searchSoon(isEdit: boolean) {
+		if (searchTimer) clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => (isEdit ? searchEditProducts() : searchProducts()), 350);
 	}
 
 	// ── Búsqueda por código de barras ────────────────────────────────────────
@@ -584,6 +592,7 @@
 			<label for="r-search">{t('recipes.searchByName')}</label>
 			<div style="display:flex; gap:0.5rem;">
 				<input id="r-search" bind:value={searchQuery} placeholder={t('recipes.searchPlaceholder')}
+					oninput={() => searchSoon(false)}
 					onkeydown={(e) => { if (e.key === 'Enter') searchProducts(); }} style="flex:1;" />
 				<button onclick={searchProducts} style="color:black;">{t('recipes.searchBtn')}</button>
 			</div>
@@ -609,7 +618,7 @@
 			<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
 				aria-label={t('recipes.addIngredientAria', { name: p.name, brand: p.brand ? ` (${p.brand})` : '' })}
 				onclick={() => addIngredient(p)}>
-				<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
+				<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand}{' '}<span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 				<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
 			</button>
 		{/each}
@@ -718,6 +727,7 @@
 				<label for="edit-search">{t('recipes.searchByName')}</label>
 				<div style="display:flex; gap:0.5rem;">
 					<input id="edit-search" bind:value={editSearchQuery} placeholder={t('recipes.searchPlaceholderShort')}
+						oninput={() => searchSoon(true)}
 						onkeydown={(e) => { if (e.key === 'Enter') searchEditProducts(); }} style="flex:1;" />
 					<button onclick={searchEditProducts} style="font-size:0.85rem; padding:0.4rem 0.7rem; color:black;">{t('recipes.searchBtn')}</button>
 				</div>
@@ -741,7 +751,7 @@
 				<button class="btn-secondary" style="width:100%; text-align:left; margin-bottom:0.25rem;"
 					aria-label={t('recipes.addIngredientAria', { name: p.name, brand: p.brand ? ` (${p.brand})` : '' })}
 					onclick={() => addEditIngredient(p)}>
-					<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand} <span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
+					<div style="font-size:0.85rem; font-weight:600;">+ {p.name}{#if p.brand}{' '}<span style="font-weight:400; color:var(--text-muted);">({p.brand})</span>{/if}</div>
 					<div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">{macroLine(p)}</div>
 				</button>
 			{/each}

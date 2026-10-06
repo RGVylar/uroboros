@@ -5,7 +5,7 @@
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import type { Exercise, ExerciseSession, ExerciseSessionEntry } from '$lib/types';
-	import { t, exerciseLabel, exerciseUnit } from '$lib/i18n/index.svelte';
+	import { t, exerciseLabel, exerciseUnit, exerciseUnitPer, fmtNumber } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -323,7 +323,7 @@
 				">
 					<div style="font-size:1.75rem;">{exerciseEmoji(ex.name)}</div>
 					<div style="font-size:0.8125rem; font-weight:600; color:#fff; line-height:1.2;">{exerciseLabel(ex.name)}</div>
-					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{ex.kcal_per_unit} kcal/{exerciseUnit(ex.unit)}</div>
+					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{fmtNumber(ex.kcal_per_unit)} kcal/{exerciseUnitPer(ex.unit)}</div>
 					{#if !ex.is_predefined}
 						<div style="font-size:0.5625rem; color:oklch(80% 0.15 160); font-weight:600;">{t('ex.custom')}</div>
 					{/if}
@@ -355,7 +355,7 @@
 			<div style="font-size:2.5rem;">{exerciseEmoji(showDetail.name)}</div>
 			<div>
 				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:var(--uro-font-serif);">{showDetail.name}</div>
-				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{showDetail.kcal_per_unit} kcal / {exerciseUnit(showDetail.unit)}</div>
+				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{fmtNumber(showDetail.kcal_per_unit)} kcal/{exerciseUnitPer(showDetail.unit)}</div>
 			</div>
 		</div>
 
