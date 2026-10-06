@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import Modal from './Modal.svelte';
+	import TipVisual from './TipVisual.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 </script>
@@ -13,6 +14,7 @@
 	{@const id = tips.current}
 	<Modal onClose={() => tips.close()} title={t(`tips.${id}.title`)} maxWidth={420}>
 		<div class="tip">
+			<TipVisual {id} />
 			{#each t(`tips.${id}.body`).split('\n') as para}
 				<p>{para}</p>
 			{/each}
