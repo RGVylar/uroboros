@@ -36,7 +36,7 @@
 	<div class="handle"></div>
 
 	<div class="header">
-		<div class="icon">🐍</div>
+		<div class="icon"><img src="/logo-192.png" alt="" width="48" height="48" /></div>
 		<div class="header-text">
 			<div class="eyebrow">{t('changelog.title')}</div>
 			<div class="version-title">Versión {topVersion}</div>

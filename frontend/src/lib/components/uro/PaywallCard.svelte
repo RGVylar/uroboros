@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { goto } from '$app/navigation';
 
@@ -14,7 +15,7 @@
 </script>
 
 <div class="paywall">
-	<div class="lock">🔒</div>
+	<div class="lock"><Icon name="lock" /></div>
 	<div class="title">{title}</div>
 	<div class="desc">{description}</div>
 	<button class="upgrade-btn" onclick={onUpgrade}>

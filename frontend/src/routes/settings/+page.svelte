@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto, afterNavigate } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -38,7 +39,8 @@
 	let percentile = $state<Percentile | null>(null);
 	api.get<Percentile>('/duel/me/percentile').then((p) => (percentile = p)).catch(() => {});
 
-	const MEDALS = ['🥇', '🥈', '🥉'];
+	// Oro, plata y bronce: el icono es el mismo, cambia el color.
+	const MEDAL_COLORS = ['oklch(85% 0.15 90)', 'oklch(85% 0.02 250)', 'oklch(70% 0.12 55)'];
 
 	// A band needs a crowd to mean anything: with 4 people active, the best
 	// possible band is "top 25%", which reads like mediocrity when you're
@@ -342,7 +344,7 @@
 	<div class="settings-group">
 		<!-- Kcal y macros -->
 		<button class="settings-row" onclick={() => goto('/goals')}>
-			<div class="icon-box">🎯</div>
+			<div class="icon-box"><Icon name="goals" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.kcalMacros')}</div>
 				{#if goals}
@@ -354,7 +356,7 @@
 		<div class="row-divider"></div>
 		<!-- Módulos: qué partes de la app se ven -->
 		<button class="settings-row" onclick={() => goto('/modules')}>
-			<div class="icon-box">🧩</div>
+			<div class="icon-box"><Icon name="modules" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.modules')}</div>
 				<div class="row-detail">{t('settings.modulesDetail')}</div>
@@ -364,7 +366,7 @@
 		{#if modules.on('supplements')}
 			<div class="row-divider"></div>
 			<button class="settings-row" onclick={() => goto('/supplements')}>
-				<div class="icon-box">💊</div>
+				<div class="icon-box"><Icon name="supplements" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.supplements')}</div>
 					<div class="row-detail">{t('settings.supplementsDetail')}</div>
@@ -379,7 +381,7 @@
 			     está en Módulos. -->
 			<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.5rem;">
 				<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
-					<div class="icon-box">🍕</div>
+					<div class="icon-box"><Icon name="cheat" /></div>
 					<div class="row-content">
 						<div class="row-label">{t('settings.cheatDaysPerWeek')}</div>
 					</div>
@@ -412,7 +414,7 @@
 		<!-- Macro adjust mode -->
 		<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.625rem;">
 			<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
-				<div class="icon-box">⚡</div>
+				<div class="icon-box"><Icon name="quick" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.macroAdjust')}<InfoTip id="macro_adjust" /></div>
 					<div class="row-detail">{t('settings.macroAdjustDetail')}</div>
@@ -446,7 +448,7 @@
 							"
 						>
 							{opt.label}<br>
-							<span style="font-size:0.5625rem; opacity:0.7;">{locked ? '🔒 PRO' : opt.note}</span>
+							<span style="font-size:0.5625rem; opacity:0.7;">{#if locked}<Icon name="lock" /> PRO{:else}{opt.note}{/if}</span>
 						</button>
 					{/each}
 				</div>
@@ -480,7 +482,7 @@
 		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => goto('/friends')}>
-			<div class="icon-box">💑</div>
+			<div class="icon-box"><Icon name="couple" /></div>
 			<div class="row-content">
 				<div class="row-label" style="display:flex; align-items:center; gap:0.4rem;">
 					{t('settings.friends')}
@@ -495,7 +497,7 @@
 		<div class="row-divider"></div>
 		<!-- Percentil anónimo de constancia -->
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box medal-{percentile?.medal ?? 0}">{percentile?.medal ? MEDALS[percentile.medal - 1] : '🏅'}</div>
+			<div class="icon-box medal-{percentile?.medal ?? 0}"><Icon name="medal" style={percentile?.medal ? `color:${MEDAL_COLORS[percentile.medal - 1]}` : undefined} /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.consistency')}<InfoTip id="consistency" />{#if percentile?.in_ranking && percentile.active_users > 1}<span class="rank-chip medal-{percentile.medal ?? 0}">{#if showRank}{ordinal(percentile.rank ?? 1)}<span class="of">{t('settings.consistencyOfTotal', { total: percentile.active_users })}</span>{:else}{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}{/if}</span>{/if}</div>
 				<div class="row-detail">
@@ -516,7 +518,7 @@
 		<div class="row-divider"></div>
 		<!-- Invitar -->
 		<button class="settings-row" onclick={shareApp}>
-			<div class="icon-box">📤</div>
+			<div class="icon-box"><Icon name="export" /></div>
 			<div class="row-content">
 				<div class="row-label">{inviteCopied ? t('settings.inviteCopied') : t('settings.invite')}</div>
 				<div class="row-detail">{t('settings.inviteDetail')}</div>
@@ -532,7 +534,7 @@
 	<div class="settings-group">
 		<!-- Alergias (gratis: /premium promete que lo son y el backend no las restringe) -->
 		<button class="settings-row" onclick={() => goto('/allergies')}>
-			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);">⚠️</div>
+			<div class="icon-box" style="background:oklch(35% 0.15 40 / 0.3); border:1px solid oklch(60% 0.2 40 / 0.3);"><Icon name="warning" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.allergies')}</div>
 				<div class="row-detail">{allergyCount > 0 ? tc('settings.allergiesCount', allergyCount) : t('settings.allergiesEmpty')}</div>
@@ -542,7 +544,7 @@
 		{#if health.supported}
 		<div class="row-divider"></div>
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">👣</div>
+			<div class="icon-box"><Icon name="steps" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.steps')}</div>
 				<div class="row-sub">{health.enabled ? t('settings.stepsSubOn') : t('settings.stepsSubOff')}</div>
@@ -561,7 +563,7 @@
 		{#if health.enabled}
 			<div class="row-divider"></div>
 			<button class="settings-row" onclick={() => health.openSettings()}>
-				<div class="icon-box">⚙️</div>
+				<div class="icon-box"><Icon name="settings" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.stepsManage')}</div>
 					<div class="row-detail">{t('settings.stepsManageDetail')}</div>
@@ -578,7 +580,7 @@
 	<div class="settings-group">
 		{#if modules.on('weight')}
 		<button class="settings-row" onclick={() => goto('/weight')}>
-			<div class="icon-box">⚖️</div>
+			<div class="icon-box"><Icon name="weight" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.weightLog')}</div>
 				<div class="row-detail">{t('settings.weightLogDetail')}</div>
@@ -589,7 +591,7 @@
 		{/if}
 		{#if modules.on('measurements')}
 		<button class="settings-row" onclick={() => goto('/measurements')}>
-			<div class="icon-box">📏</div>
+			<div class="icon-box"><Icon name="measurements" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.measurements')}</div>
 				<div class="row-detail">{subscription.is_premium ? t('settings.measurementsDetail') : t('settings.premiumOnly')}</div>
@@ -600,7 +602,7 @@
 		{/if}
 		{#if modules.on('exercise')}
 		<button class="settings-row" onclick={() => goto('/exercises')}>
-			<div class="icon-box">💪</div>
+			<div class="icon-box"><Icon name="exercise" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.exercises')}</div>
 				<div class="row-detail">{subscription.is_premium ? t('settings.exercisesDetail') : t('settings.premiumOnly')}</div>
@@ -612,7 +614,7 @@
 		<!-- Despensa y lista de la compra: el interruptor está en Módulos -->
 		{#if modules.on('inventory')}
 			<button class="settings-row" onclick={() => goto('/inventory')}>
-				<div class="icon-box">📦</div>
+				<div class="icon-box"><Icon name="inventory" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.inventoryView')}</div>
 					<div class="row-detail">{t('settings.inventoryViewDetail')}</div>
@@ -621,7 +623,7 @@
 			</button>
 			<div class="row-divider"></div>
 			<button class="settings-row" onclick={() => goto('/shopping-list')}>
-				<div class="icon-box">🛒</div>
+				<div class="icon-box"><Icon name="shopping" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.shoppingList')}</div>
 					<div class="row-detail">{t('settings.shoppingListDetail')}</div>
@@ -631,7 +633,7 @@
 		{/if}
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => goto('/history')}>
-			<div class="icon-box">📤</div>
+			<div class="icon-box"><Icon name="export" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.export')}</div>
 				<div class="row-detail">{t('settings.exportDetail')}</div>
@@ -648,7 +650,7 @@
 		{#if isNativeApp && !pushStore.isSupported}
 			<!-- Native app but plugin not ready yet — show spinner / wait for init -->
 			<div class="settings-row" style="cursor:default; opacity:0.6;">
-				<div class="icon-box">🔔</div>
+				<div class="icon-box"><Icon name="bell" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.notifs')}</div>
 					<div class="row-sub">{t('settings.notifsInit')}</div>
@@ -656,7 +658,7 @@
 			</div>
 		{:else if !isNativeApp && !pushStore.isSupported}
 			<div class="settings-row" style="cursor:default; opacity:0.5;">
-				<div class="icon-box">🔔</div>
+				<div class="icon-box"><Icon name="bell" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.notifsUnsupported')}</div>
 					<div class="row-sub">{t('settings.notifsUnsupportedSub')}</div>
@@ -664,7 +666,7 @@
 			</div>
 		{:else if pushStore.permission === 'denied'}
 			<div class="settings-row" style="cursor:default;">
-				<div class="icon-box">🔕</div>
+				<div class="icon-box"><Icon name="bellOff" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.notifsBlocked')}</div>
 					<div class="row-sub">{t('settings.notifsBlockedSub')}</div>
@@ -673,7 +675,7 @@
 		{:else}
 			<!-- Master toggle -->
 			<div class="settings-row" style="cursor:default;">
-				<div class="icon-box">🔔</div>
+				<div class="icon-box"><Icon name="bell" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.notifsEnable')}</div>
 					<div class="row-sub">
@@ -696,7 +698,7 @@
 				{#if !subscription.is_premium}
 					<!-- Notifs avanzadas bloqueadas para free -->
 					<button class="settings-row" onclick={() => goto('/premium')} style="border-top:1px solid rgba(255,255,255,0.06);">
-						<div class="icon-box">⚙️</div>
+						<div class="icon-box"><Icon name="settings" /></div>
 						<div class="row-content">
 							<div class="row-label">{t('settings.notifsCustom')}</div>
 							<div class="row-detail">{t('settings.notifsCustomDetail')}</div>
@@ -708,12 +710,12 @@
 				<div class="notif-subsection">
 					<div class="notif-sub-label">{t('settings.notifMeals')}</div>
 					{#each [
-						{ key: 'breakfast', label: mealLabel('breakfast'), emoji: '🍳', on: prefs.breakfast_on, time: prefs.breakfast_time },
-						{ key: 'lunch',     label: mealLabel('lunch'), emoji: '🥗', on: prefs.lunch_on,     time: prefs.lunch_time     },
-						{ key: 'dinner',    label: mealLabel('dinner'),     emoji: '🍽️', on: prefs.dinner_on,    time: prefs.dinner_time    },
+						{ key: 'breakfast', label: mealLabel('breakfast'), icon: 'breakfast' as const, on: prefs.breakfast_on, time: prefs.breakfast_time },
+						{ key: 'lunch',     label: mealLabel('lunch'), icon: 'salad' as const, on: prefs.lunch_on,     time: prefs.lunch_time     },
+						{ key: 'dinner',    label: mealLabel('dinner'),     icon: 'meal' as const, on: prefs.dinner_on,    time: prefs.dinner_time    },
 					] as meal}
 						<div class="notif-row">
-							<span class="notif-emoji">{meal.emoji}</span>
+							<span class="notif-emoji"><Icon name={meal.icon} /></span>
 							<span class="notif-meal-label">{meal.label}</span>
 							<input
 								type="time"
@@ -736,7 +738,7 @@
 				<div class="notif-subsection">
 					<div class="notif-sub-label">{t('settings.notifStreak')}</div>
 					<div class="notif-row">
-						<span class="notif-emoji">🔥</span>
+						<span class="notif-emoji"><Icon name="streak" /></span>
 						<span class="notif-meal-label">{t('settings.notifStreakDanger')}</span>
 						<input type="time" class="time-input" value={prefs.streak_time} disabled={!prefs.streak_on}
 							onchange={(e) => savePrefs({ streak_time: (e.target as HTMLInputElement).value })} />
@@ -745,7 +747,7 @@
 							aria-label={t('settings.notifToggle', { what: t('settings.notifStreak') })}><span class="toggle-thumb"></span></button>
 					</div>
 					<div class="notif-row">
-						<span class="notif-emoji">🏆</span>
+						<span class="notif-emoji"><Icon name="trophy" /></span>
 						<span class="notif-meal-label">{t('settings.notifStreakMilestones')}</span>
 						<span class="notif-hint">{t('settings.milestoneHint')}</span>
 						<span class="notif-always">{t('settings.notifAlways')}</span>
@@ -756,7 +758,7 @@
 				<div class="notif-subsection">
 					<div class="notif-sub-label">{t('settings.notifSummaryWater')}</div>
 					<div class="notif-row">
-						<span class="notif-emoji">📊</span>
+						<span class="notif-emoji"><Icon name="stats" /></span>
 						<span class="notif-meal-label">{t('settings.notifDailySummary')}</span>
 						<input type="time" class="time-input" value={prefs.summary_time} disabled={!prefs.summary_on}
 							onchange={(e) => savePrefs({ summary_time: (e.target as HTMLInputElement).value })} />
@@ -765,7 +767,7 @@
 							aria-label={t('settings.notifToggle', { what: t('settings.notifDailySummary') })}><span class="toggle-thumb"></span></button>
 					</div>
 					<div class="notif-row">
-						<span class="notif-emoji">💧</span>
+						<span class="notif-emoji"><Icon name="water" /></span>
 						<span class="notif-meal-label">{t('settings.notifWater')}</span>
 						<input type="time" class="time-input" value={prefs.water_time} disabled={!prefs.water_on}
 							onchange={(e) => savePrefs({ water_time: (e.target as HTMLInputElement).value })} />
@@ -779,7 +781,7 @@
 				<div class="notif-subsection">
 					<div class="notif-sub-label">{t('settings.notifQuiet')}</div>
 					<div class="notif-row" style="gap:0.5rem;">
-						<span class="notif-emoji">🌙</span>
+						<span class="notif-emoji"><Icon name="night" /></span>
 						<span class="notif-meal-label">{t('settings.notifQuietFrom')}</span>
 						<input type="number" min="0" max="23" class="hour-input" value={prefs.quiet_start}
 							onchange={(e) => savePrefs({ quiet_start: Number((e.target as HTMLInputElement).value) })} />
@@ -789,7 +791,7 @@
 						<span style="color:var(--text-muted); font-size:0.75rem;">h</span>
 					</div>
 					<div class="notif-row" style="gap:0.5rem; margin-top:0.25rem;">
-						<span class="notif-emoji">🌍</span>
+						<span class="notif-emoji"><Icon name="globe" /></span>
 						<span class="notif-meal-label">{t('settings.notifTimezone')}</span>
 						<select
 							class="tz-select"
@@ -805,7 +807,7 @@
 
 				<!-- Test button -->
 				<button class="settings-row" onclick={sendTestNotif} style="border-top:1px solid rgba(255,255,255,0.06);">
-					<div class="icon-box">📨</div>
+					<div class="icon-box"><Icon name="send" /></div>
 					<div class="row-content">
 						<div class="row-label">{testSent ? t('settings.notifTestSent') : t('settings.notifTest')}</div>
 						<div class="row-sub">{t('settings.notifTestSub')}</div>
@@ -833,7 +835,7 @@
 					{/if}
 				</div>
 				{#if i18n.locale === loc}
-					<span style="color:oklch(80% 0.17 165); font-weight:800;">✓</span>
+					<span style="color:oklch(80% 0.17 165);"><Icon name="check" strokeWidth={3} /></span>
 				{/if}
 			</button>
 		{/each}
@@ -846,7 +848,7 @@
 	<div class="group-label">{t('settings.group.news')}</div>
 	<div class="settings-group">
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">📣</div>
+			<div class="icon-box"><Icon name="announce" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.news')}</div>
 				<div class="row-detail">{changelogOptOut ? t('settings.newsOff') : t('settings.newsOn')}</div>
@@ -886,7 +888,7 @@
 		</div>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => (showBugReport = true)}>
-			<div class="icon-box">🐞</div>
+			<div class="icon-box"><Icon name="bug" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.reportBug')}</div>
 				<div class="row-detail">{t('settings.reportBugDetail')}</div>
@@ -896,7 +898,7 @@
 		{#if isNativeApp}
 			<div class="row-divider"></div>
 			<button class="settings-row" onclick={runDiagnostics} disabled={diagBusy}>
-				<div class="icon-box">🩺</div>
+				<div class="icon-box"><Icon name="diagnostics" /></div>
 				<div class="row-content">
 					<div class="row-label">{t('settings.diag')}</div>
 					<div class="row-detail">{diagBusy ? '…' : t('settings.diagDetail')}</div>
@@ -906,14 +908,14 @@
 			{#if health.diag || notifDiag || diagError}
 				<div class="diag-box">
 					{#if health.diag}
-						<div class="diag-title">👣 {t('settings.diagSteps')}: <code>{health.diag.outcome}</code></div>
+						<div class="diag-title"><Icon name="steps" /> {t('settings.diagSteps')}: <code>{health.diag.outcome}</code></div>
 						{#if isHint(health.diag.outcome)}
 							<div class="diag-hint">{t(`settings.diagHint.${health.diag.outcome}`)}</div>
 						{/if}
 						<code class="diag-raw">stage={health.diag.stage} available={health.diag.available} authorized={health.diag.authorized} days={health.diag.daysWithSteps}{health.diag.reason ? ` reason=${health.diag.reason}` : ''}{health.diag.error ? ` error=${health.diag.error}` : ''}</code>
 					{/if}
 					{#if notifDiag}
-						<div class="diag-title">🔔 {t('settings.diagNotifs')}</div>
+						<div class="diag-title"><Icon name="bell" /> {t('settings.diagNotifs')}</div>
 						<code class="diag-raw">permission={notifDiag.permission} exact_alarm={notifDiag.exactAlarm} queued={notifDiag.queued} server_enabled={notifDiag.serverEnabled}</code>
 					{/if}
 					{#if diagError}<code class="diag-raw">error={diagError}</code>{/if}
@@ -937,7 +939,7 @@
 				background:{subscription.status === 'premium' ? 'oklch(75% 0.2 165 / 0.2)' : subscription.status === 'trial' ? 'oklch(72% 0.18 55 / 0.2)' : 'rgba(255,255,255,0.05)'};
 				border:1px solid {subscription.status === 'premium' ? 'oklch(75% 0.2 165 / 0.35)' : subscription.status === 'trial' ? 'oklch(72% 0.18 55 / 0.35)' : 'rgba(255,255,255,0.08)'};
 			">
-				{subscription.status === 'premium' ? '👑' : subscription.status === 'trial' ? '⏳' : '🔓'}
+				<Icon name={subscription.status === 'premium' ? 'premium' : subscription.status === 'trial' ? 'trial' : 'unlock'} />
 			</div>
 			<div class="row-content">
 				<div class="row-label" style="color:{subscription.status === 'premium' ? 'oklch(85% 0.19 160)' : subscription.status === 'trial' ? 'oklch(85% 0.16 60)' : '#fff'};">
@@ -960,7 +962,7 @@
 		<div class="row-divider"></div>
 		<!-- Onboarding -->
 		<button class="settings-row" onclick={() => goto('/onboarding?review=1')}>
-			<div class="icon-box">🧭</div>
+			<div class="icon-box"><Icon name="compass" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.onboarding')}</div>
 				<div class="row-detail">{t('settings.onboardingDetail')}</div>
@@ -975,7 +977,7 @@
 	<div class="group-label">{t('settings.group.account')}</div>
 	<div class="settings-group">
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">✉️</div>
+			<div class="icon-box"><Icon name="mail" /></div>
 			<div class="row-content">
 				<div class="row-label">{auth.user?.email ?? ''}</div>
 				<div class="row-detail">{t('settings.signedIn')}</div>
@@ -983,14 +985,14 @@
 		</div>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={logout} style="cursor:pointer;">
-			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15);">→</div>
+			<div class="icon-box" style="background:oklch(55% 0.23 25 / 0.15); color:oklch(75% 0.2 25);"><Icon name="logout" /></div>
 			<div class="row-content">
 				<div class="row-label" style="color:oklch(75% 0.2 25);">{t('settings.logout')}</div>
 			</div>
 		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => { showDeleteModal = true; deleteConfirmText = ''; }} style="cursor:pointer;">
-			<div class="icon-box" style="background:oklch(40% 0.2 25 / 0.2);">🗑️</div>
+			<div class="icon-box" style="background:oklch(40% 0.2 25 / 0.2); color:oklch(75% 0.2 25);"><Icon name="delete" /></div>
 			<div class="row-content">
 				<div class="row-label" style="color:oklch(65% 0.2 25);">{t('settings.deleteAccount')}</div>
 				<div class="row-detail">{t('settings.deleteAccountDetail')}</div>
@@ -1004,7 +1006,7 @@
 	<div class="group-label">{t('settings.group.legal')}</div>
 	<div class="settings-group">
 		<button class="settings-row" onclick={() => goto('/privacy')}>
-			<div class="icon-box">🔒</div>
+			<div class="icon-box"><Icon name="lock" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.privacy')}</div>
 				<div class="row-detail">{t('settings.privacyDetail')}</div>
@@ -1013,7 +1015,7 @@
 		</button>
 		<div class="row-divider"></div>
 		<button class="settings-row" onclick={() => goto('/terms')}>
-			<div class="icon-box">📜</div>
+			<div class="icon-box"><Icon name="legal" /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.terms')}</div>
 				<div class="row-detail">{t('settings.termsDetail')}</div>
@@ -1027,7 +1029,7 @@
 {#if showDeleteModal}
 	<div style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1.5rem;" onclick={() => showDeleteModal = false}>
 		<div style="background:#0f1520; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:1.5rem; width:100%; max-width:360px;" onclick={(e) => e.stopPropagation()}>
-			<div style="font-size:2rem; text-align:center; margin-bottom:0.75rem;">⚠️</div>
+			<div style="font-size:2rem; text-align:center; margin-bottom:0.75rem; color:var(--danger);"><Icon name="warning" /></div>
 			<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.5rem; text-align:center;">{t('settings.deleteAccount')}</h2>
 			<p style="font-size:0.8125rem; color:rgba(255,255,255,0.6); margin:0 0 1.25rem; text-align:center; line-height:1.5;">
 				{@html t('settings.deleteWarning')}
@@ -1057,7 +1059,7 @@
 <div style="text-align:center; margin-top:1rem; padding-bottom:0.5rem;">
 	<a href="https://ko-fi.com/Z8Z81OW7UV" target="_blank" rel="noopener noreferrer"
 		style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:rgba(255,255,255,0.45); text-decoration:none; padding:0.35rem 0.875rem; border-radius:99px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
-		{t('settings.kofi')}
+		<Icon name="coffee" /> {t('settings.kofi')}
 	</a>
 </div>
 

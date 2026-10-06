@@ -12,6 +12,8 @@
   Datos: recibe un `DuelData` (hoy de ejemplo, ver $lib/duel-example).
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { onMount } from 'svelte';
 	import Avatar from './Avatar.svelte';
 	import InfoTip from './InfoTip.svelte';
@@ -29,9 +31,14 @@
 	onMount(() => { if (!compact) tips.request('duel'); });
 
 	const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+	// Los días con significado llevan icono; los vacíos, un signo tipográfico.
+	const DAY_ICON: Partial<Record<DuelDay, IconName>> = { perfect: 'goals', hit: 'check', joker: 'cheat' };
 	const DAY_GLYPH: Record<DuelDay, string> = {
-		perfect: '🎯', hit: '✓', miss: '·', empty: '○', joker: '🍕', today: '◌',
+		perfect: '', hit: '', miss: '·', empty: '○', joker: '', today: '◌',
 	};
+	// El backend manda las insignias con emoji (lo leen también APKs viejas):
+	// aquí se traduce cada uno a su icono.
+	const BADGE_ICON: Record<string, IconName> = { '🧹': 'sweep', '🎢': 'comeback', '📸': 'camera' };
 
 	// Día seleccionado para ver el desglose (solo en la vista completa).
 	type Who = 'me' | 'them';
@@ -93,7 +100,7 @@
 	<div class="row" class:lead>
 		<div class="ava"><Avatar name={side.name} avatarId={side.avatarId} avatarPhoto={side.avatarPhoto} size={34} /></div>
 		<div class="rowmid">
-			<div class="name">{side.name}{#if lead}<span class="crown">👑</span>{/if}</div>
+			<div class="name">{side.name}{#if lead}<span class="crown"><Icon name="premium" /></span>{/if}</div>
 			<div class="bar"><span style="width:{side.pct ?? 0}%"></span></div>
 		</div>
 		<div class="pct">{side.pct === null ? '—' : `${side.pct}%`}</div>
@@ -107,7 +114,7 @@
 		{@const dir = kcalDir(side.details[i])}
 		{#if compact}
 			<div class="dot {d} {dir ?? ''}">
-				<span class="glyph">{DAY_GLYPH[d]}</span>
+				<span class="glyph">{#if DAY_ICON[d]}<Icon name={DAY_ICON[d]!} />{:else}{DAY_GLYPH[d]}{/if}</span>
 				{#if score != null}<span class="pts">{#if dir}<i class="arrow">{DIR_ARROW[dir]}</i>{/if}{score}</span>{/if}
 			</div>
 		{:else}
@@ -118,7 +125,7 @@
 				disabled={score == null}
 				onclick={() => pick(who, i)}
 			>
-				<span class="glyph">{DAY_GLYPH[d]}</span>
+				<span class="glyph">{#if DAY_ICON[d]}<Icon name={DAY_ICON[d]!} />{:else}{DAY_GLYPH[d]}{/if}</span>
 				{#if score != null}<span class="pts">{#if dir}<i class="arrow">{DIR_ARROW[dir]}</i>{/if}{score}</span>{/if}
 			</button>
 		{/if}
@@ -128,7 +135,7 @@
 <div class="board" class:compact>
 	<div class="scorecard">
 		<div class="season">
-			<div class="season-title">⚔️ {weekLabel}{#if !compact}<InfoTip id="duel" />{/if}</div>
+			<div class="season-title"><Icon name="duel" /> {weekLabel}{#if !compact}<InfoTip id="duel" />{/if}</div>
 			<div class="season-phase">{duel.phase}</div>
 		</div>
 		{@render scoreRow(duel.me, meLeads)}
@@ -147,12 +154,12 @@
 		</div>
 		{#if !compact}
 			<div class="legend">
-				<i>{t('duel.perfect')}</i>
-				<i>{t('duel.inGoal')}</i>
+				<i><Icon name="goals" /> {t('duel.perfect')}</i>
+				<i><Icon name="check" /> {t('duel.inGoal')}</i>
 				<i class="over">{t('duel.over')}</i>
 				<i class="under">{t('duel.under')}</i>
 				<i>{t('duel.notLogged')}</i>
-				<i>{t('duel.joker')}</i>
+				<i><Icon name="cheat" /> {t('duel.joker')}</i>
 			</div>
 
 			<!-- ── Desglose del día tocado ── -->
@@ -202,7 +209,7 @@
 				{/each}
 			</div>
 			{#if duel.streakWeeks > 1}
-				<div class="streak">{t('duel.streakPre')} <b>{t('duel.streakWeeks', { count: duel.streakWeeks })}</b> 🔥</div>
+				<div class="streak">{t('duel.streakPre')} <b>{t('duel.streakWeeks', { count: duel.streakWeeks })}</b> <Icon name="streak" /></div>
 			{/if}
 		</div>
 
@@ -211,7 +218,7 @@
 		<div class="badges">
 			{#each duel.badges as b}
 				<div class="badge" class:on={b.unlocked}>
-					<div class="ico">{b.icon}</div>
+					<div class="ico"><Icon name={BADGE_ICON[b.icon] ?? 'trophy'} /></div>
 					<div class="lab">{b.label}</div>
 					<div class="desc">{b.desc}</div>
 				</div>

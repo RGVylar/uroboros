@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -122,7 +123,7 @@
 
 <!-- Page header -->
 <div class="trk-header">
-	<button class="trk-back" aria-label={t('screenHeader.back')} onclick={() => goto('/settings')}>←</button>
+	<button class="trk-back" aria-label={t('screenHeader.back')} onclick={() => goto('/settings')}><Icon name="back" /></button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="trk-title">{t('weight.title')}</h1>
 		<div class="trk-sub">{t('weight.subtitle')}</div>
@@ -181,7 +182,7 @@
 {:else}
 <!-- Estado vacío: antes la pantalla quedaba completamente en blanco -->
 <div class="glass-card" style="text-align:center; padding:2.5rem 1.25rem;">
-	<div style="font-size:2rem; margin-bottom:0.625rem;">⚖️</div>
+	<div style="font-size:2rem; margin-bottom:0.625rem; color:var(--text-faint);"><Icon name="weight" strokeWidth={1.5} /></div>
 	<div style="font-size:0.9375rem; font-weight:700; color:#fff;">{t('weight.empty')}</div>
 	<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.375rem; line-height:1.5;">
 		Registra tu peso de hoy con el botón <strong>{t('weight.add')}</strong> y aquí verás tu evolución con gráfica.
@@ -263,7 +264,7 @@
 <div class="glass-card entry-list">
 	{#each weights.slice(0, 8) as w, i (w.id)}
 		<div class="entry-row" style="border-bottom:{i < Math.min(weights.length, 8) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-			<div class="entry-icon">⚖</div>
+			<div class="entry-icon"><Icon name="weight" /></div>
 			<div style="flex:1;">
 				<div class="entry-val">{w.weight.toFixed(1)} kg</div>
 				<div class="entry-date">{fmt(w.logged_at)}</div>
@@ -271,7 +272,7 @@
 			{#if confirmingDelete === w.id}
 				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>{t('weight.deleteAsk')}</button>
 			{:else}
-				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: w.weight.toFixed(1) })}>✕</button>
+				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: w.weight.toFixed(1) })}><Icon name="close" /></button>
 			{/if}
 		</div>
 	{/each}

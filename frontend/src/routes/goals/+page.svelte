@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
@@ -76,10 +78,10 @@
 		very_active:  { label: t('goals.actVeryActive'), factor: 1.9 },
 	});
 
-	let objectives: Record<string, { label: string; emoji: string; kcalDelta: number; pPct: number; cPct: number; fPct: number; hint: string }> = $derived({
-		lose:     { label: t('goals.objLose'),     emoji: '🔥', kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hint: t('goals.objLoseHint') },
-		maintain: { label: t('goals.objMaintain'), emoji: '⚖️', kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hint: t('goals.objMaintainHint') },
-		gain:     { label: t('goals.objGain'),     emoji: '💪', kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hint: t('goals.objGainHint') },
+	let objectives: Record<string, { label: string; icon: IconName; kcalDelta: number; pPct: number; cPct: number; fPct: number; hint: string }> = $derived({
+		lose:     { label: t('goals.objLose'),     icon: 'trendDown', kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hint: t('goals.objLoseHint') },
+		maintain: { label: t('goals.objMaintain'), icon: 'weight', kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hint: t('goals.objMaintainHint') },
+		gain:     { label: t('goals.objGain'),     icon: 'exercise', kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hint: t('goals.objGainHint') },
 	});
 
 	function calcTdee() {
@@ -155,7 +157,7 @@
 			style="width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; box-shadow:none; cursor:pointer; padding:0;"
 		>
 			<div style="display:flex; align-items:center; gap:0.6rem;">
-				<span style="font-size:1.2rem;">🧮</span>
+				<Icon name="calc" size="1.2rem" />
 				<div style="text-align:left;">
 					<div style="font-weight:700; font-size:0.95rem; color:var(--text);">{t('goals.tdeeTitle')}</div>
 					<div style="font-size:0.75rem; color:var(--text-muted);">{t('goals.tdeeSub')}</div>
@@ -204,7 +206,7 @@
 							<button
 								onclick={() => { tdeeObjective = key; tdeeResult = null; }}
 								style="padding:0.5rem 0.25rem; border-radius:8px; border:1px solid {tdeeObjective === key ? 'var(--primary)' : 'var(--border)'}; background:{tdeeObjective === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); box-shadow:none; cursor:pointer; font-size:0.78rem; text-align:center; line-height:1.3;">
-								<div style="font-size:1rem;">{obj.emoji}</div>
+								<div style="font-size:1rem;"><Icon name={obj.icon} /></div>
 								{obj.label}
 							</button>
 						{/each}

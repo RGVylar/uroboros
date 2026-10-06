@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	// Bloque "¿Cuánto?" al registrar una receta: toda, una ración en gramos del
 	// plato hecho, o retocando ingrediente a ingrediente ("hoy menos huevo y más
 	// pan"). Lo usan la página de Recetas y la de Añadir; el payload lo montan
@@ -100,7 +101,7 @@
 	class="chip adjust-chip"
 	class:active={overrides !== null}
 	onclick={() => overrides ? (overrides = null) : startAdjust()}>
-	✎ {t('recipes.adjustIngredients')}
+	<Icon name="edit" /> {t('recipes.adjustIngredients')}
 </button>
 
 {#if overrides}

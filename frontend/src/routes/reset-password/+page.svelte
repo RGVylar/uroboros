@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
@@ -37,13 +38,13 @@
 
 	{#if !token}
 		<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:22px; padding:1.5rem; text-align:center;">
-			<div style="font-size:2rem; margin-bottom:0.5rem;">⚠️</div>
+			<div style="font-size:2rem; margin-bottom:0.5rem; color:var(--danger);"><Icon name="warning" /></div>
 			<div style="color:oklch(75% 0.2 25); font-size:0.875rem;">{t('reset.invalidLink')}</div>
 			<a href="/forgot-password" style="display:inline-block; margin-top:1rem; color:oklch(85% 0.15 160); font-weight:600; text-decoration:none;">{t('reset.requestLink')}</a>
 		</div>
 	{:else if done}
 		<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:22px; padding:1.5rem; text-align:center;">
-			<div style="font-size:2.5rem; margin-bottom:0.75rem;">✅</div>
+			<div style="font-size:2.5rem; margin-bottom:0.75rem; color:var(--primary);"><Icon name="success" /></div>
 			<div style="font-size:1rem; font-weight:700; color:#fff; margin-bottom:0.5rem;">{t('reset.changed')}</div>
 			<div style="font-size:0.8125rem; color:rgba(255,255,255,0.55);">{t('reset.redirecting')}</div>
 		</div>

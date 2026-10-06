@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { onDestroy } from 'svelte';
 	import { Capacitor } from '@capacitor/core';
@@ -98,7 +99,7 @@
 			onclick={stopScan}
 			style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"
 			aria-label={t('scanner.stopAria')}
-		>✕</button>
+		><Icon name="close" /></button>
 	</div>
 {/if}
 

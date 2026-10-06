@@ -1,3 +1,4 @@
+import type { IconName } from '$lib/icons';
 export interface User {
 	id: number;
 	email: string;
@@ -391,8 +392,8 @@ export interface MoodEntry {
 	worst: MoodLevel | null;
 }
 
-export const MOOD_ENERGY_EMOJI: Record<number, string> = { 1: '🪫', 2: '⚡', 3: '🔥' };
-export const MOOD_DIGESTION_EMOJI: Record<number, string> = { 1: '🤢', 2: '😐', 3: '✅' };
-export const MOOD_MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '🙂', 3: '😄' };
-export const MOOD_WORST_EMOJI: Record<number, string> = { 1: '😞', 2: '🙂', 3: '😄' };
+export const MOOD_ENERGY_ICON: Record<number, IconName> = { 1: 'batteryLow', 2: 'quick', 3: 'streak' };
+export const MOOD_DIGESTION_ICON: Record<number, IconName> = { 1: 'frown', 2: 'meh', 3: 'success' };
+export const MOOD_MOOD_ICON: Record<number, IconName> = { 1: 'frown', 2: 'meh', 3: 'laugh' };
+export const MOOD_WORST_ICON: Record<number, IconName> = { 1: 'frown', 2: 'meh', 3: 'laugh' };
 

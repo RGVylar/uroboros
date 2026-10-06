@@ -11,6 +11,7 @@
     />
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t, tc, fmtDate } from '$lib/i18n/index.svelte';
 
 	interface Props {
@@ -51,7 +52,7 @@
 	<div class="center">
 		<div class="date">{fmt(date)}</div>
 		{#if isToday && showStreakOnToday && streak > 0}
-			<div class="streak">🔥 {tc('common.day', streak)}</div>
+			<div class="streak"><Icon name="streak" /> {tc('common.day', streak)}</div>
 		{/if}
 	</div>
 	<button

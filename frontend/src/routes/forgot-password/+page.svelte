@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { api } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 
@@ -30,7 +31,7 @@
 
 	{#if sent}
 		<div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:22px; padding:1.5rem; text-align:center;">
-			<div style="font-size:2.5rem; margin-bottom:0.75rem;">📬</div>
+			<div style="font-size:2.5rem; margin-bottom:0.75rem; color:var(--primary);"><Icon name="mail" /></div>
 			<div style="font-size:1rem; font-weight:700; color:#fff; margin-bottom:0.5rem;">{t('forgot.sent')}</div>
 			<div style="font-size:0.8125rem; color:rgba(255,255,255,0.55);">
 				Si hay una cuenta con ese email, recibirás un enlace para restablecer tu contraseña.<br><br>

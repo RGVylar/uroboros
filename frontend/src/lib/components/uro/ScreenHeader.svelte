@@ -2,6 +2,7 @@
   ScreenHeader.svelte — botón back + título serif + subtítulo
 -->
 <script lang="ts">
+	import Icon from '../Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	let {
 		title,
@@ -18,7 +19,7 @@
 
 <div class="head">
 	{#if onBack}
-		<button class="back" aria-label={t('screenHeader.back')} onclick={onBack}>←</button>
+		<button class="back" aria-label={t('screenHeader.back')} onclick={onBack}><Icon name="back" /></button>
 	{/if}
 	<div class="texts">
 		<h1 class="title">{title}</h1>

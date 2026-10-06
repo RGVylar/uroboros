@@ -11,6 +11,7 @@
     {/if}
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
@@ -63,7 +64,7 @@
 					{#if subtitle}<div class="s">{subtitle}</div>{/if}
 				</div>
 				{#if dismissable}
-					<button class="close" aria-label={t('common.close')} onclick={onClose}>✕</button>
+					<button class="close" aria-label={t('common.close')} onclick={onClose}><Icon name="close" /></button>
 				{/if}
 			</div>
 		{/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { IconName } from '$lib/icons';
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -155,29 +157,29 @@
 	// Lo que orbita el avatar. Izquierda: lo ganado. Derecha: lo que llevas.
 	// Sólo entra lo que existe — un lado vacío no deja hueco porque los datos no
 	// tienen ni fondo ni borde, sólo son texto en el aire.
-	type Orbiter = { e: string; v: string; cls: string; title: string };
+	type Orbiter = { e: IconName; v: string; cls: string; title: string };
 
 	const leftItems = $derived.by<Orbiter[]>(() => {
 		const a = awards;
 		if (!a) return [];
 		const out: Orbiter[] = [];
-		if (a.gold) out.push({ e: '🥇', v: String(a.gold), cls: 'gold', title: t('profile.awardsGold', { n: a.gold }) });
-		if (a.silver) out.push({ e: '🥈', v: String(a.silver), cls: 'silver', title: t('profile.awardsSilver', { n: a.silver }) });
-		if (a.bronze) out.push({ e: '🥉', v: String(a.bronze), cls: 'bronze', title: t('profile.awardsBronze', { n: a.bronze }) });
+		if (a.gold) out.push({ e: 'medal', v: String(a.gold), cls: 'gold', title: t('profile.awardsGold', { n: a.gold }) });
+		if (a.silver) out.push({ e: 'medal', v: String(a.silver), cls: 'silver', title: t('profile.awardsSilver', { n: a.silver }) });
+		if (a.bronze) out.push({ e: 'medal', v: String(a.bronze), cls: 'bronze', title: t('profile.awardsBronze', { n: a.bronze }) });
 		return out;
 	});
 
 	const rightItems = $derived.by<Orbiter[]>(() => {
 		const out: Orbiter[] = [];
-		if (streak > 0) out.push({ e: '🔥', v: String(streak), cls: 'fire', title: t('profile.awardsStreak', { n: streak }) });
+		if (streak > 0) out.push({ e: 'streak', v: String(streak), cls: 'fire', title: t('profile.awardsStreak', { n: streak }) });
 		const a = awards;
 		if (a?.current_rank) out.push({
-			e: '📊',
+			e: 'stats',
 			v: t('profile.awardsPosition', { rank: ordinal(a.current_rank), total: a.current_total }),
 			cls: 'now', title: t('profile.awardsNow'),
 		});
 		if (a?.best_rank) out.push({
-			e: '👑',
+			e: 'premium',
 			v: t('profile.awardsPosition', { rank: ordinal(a.best_rank), total: a.best_total ?? 0 }),
 			cls: 'best', title: t('profile.awardsBest'),
 		});
@@ -224,15 +226,15 @@
 					<div class="avatar-shadow" style:--hue={userColorHue ?? nameHue}>
 						<Avatar name={userName} avatarId={userAvatar} avatarPhoto={userPhoto} size={92} identityHue={userColorHue} ring="2.5px solid {identityColor(userName, userColorHue)}" />
 					</div>
-					<div class="edit-badge">✏️</div>
+					<div class="edit-badge"><Icon name="edit" /></div>
 				</button>
 				{#each leftItems.slice(0, 3) as it, i (it.cls)}
 					{@const p = ORBIT_L[slots(Math.min(leftItems.length, 3))[i]]}
-					<span class="orbiter l {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}>{it.e} {it.v}</span>
+					<span class="orbiter l {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}><Icon name={it.e} /> {it.v}</span>
 				{/each}
 				{#each rightItems.slice(0, 3) as it, i (it.cls)}
 					{@const p = ORBIT_R[slots(Math.min(rightItems.length, 3))[i]]}
-					<span class="orbiter r {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}>{it.e} {it.v}</span>
+					<span class="orbiter r {it.cls}" style="margin-left:{p.dx}px; top:{p.y}px;" title={it.title}><Icon name={it.e} /> {it.v}</span>
 				{/each}
 			</div>
 			<div class="name">{userName}</div>
@@ -285,7 +287,7 @@
 		{#each ACHIEVEMENTS as a}
 			{@const unlocked = !loading && a.unlocked()}
 			<div class="ach" class:unlocked style:--hue={a.hue}>
-				<div class="ach-icon">{unlocked ? '🏆' : '🔒'}</div>
+				<div class="ach-icon"><Icon name={unlocked ? 'trophy' : 'lock'} /></div>
 				<div class="ach-label">{a.label}</div>
 				<div class="ach-desc">{a.desc}</div>
 			</div>
@@ -313,7 +315,7 @@
 				style="display:none"
 			/>
 			<button class="photo-btn" disabled={uploadingPhoto} onclick={() => photoInput?.click()}>
-				{uploadingPhoto ? t('profile.photoUploading') : userPhoto ? t('profile.photoChange') : t('profile.photoUpload')}
+				{#if !uploadingPhoto}<Icon name="camera" /> {/if}{uploadingPhoto ? t('profile.photoUploading') : userPhoto ? t('profile.photoChange') : t('profile.photoUpload')}
 			</button>
 			{#if userPhoto}
 				<button class="photo-btn ghost" disabled={uploadingPhoto} onclick={removePhoto}>

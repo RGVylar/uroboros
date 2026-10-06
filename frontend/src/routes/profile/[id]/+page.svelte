@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { api } from '$lib/api';
@@ -123,7 +124,7 @@
 
 <!-- Header -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
-	<button onclick={() => history.back()} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
+	<button onclick={() => history.back()} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;"><Icon name="back" /></button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="uro-title">{t('friendProfile.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t(profile?.kind === 'partner' ? 'friendProfile.subPartner' : 'friendProfile.sub')}</div>
@@ -146,7 +147,7 @@
 			<div style="text-align:center;">
 				<div style="font-size:0.5625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.25rem;">{t('friendProfile.streak')}</div>
 				<div style="font-size:1.5rem; font-weight:800; color:oklch(85% 0.17 45); letter-spacing:-0.03em;">
-					{profile.streak > 0 ? `${profile.streak}🔥` : '—'}
+					{#if profile.streak > 0}{profile.streak} <Icon name="streak" />{:else}—{/if}
 				</div>
 				<div style="font-size:0.5625rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">{t('friendProfile.days')}</div>
 			</div>
@@ -163,9 +164,9 @@
 			<div style="font-size:0.5625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">{t('friendProfile.medals')}</div>
 			{#if profile.medals.gold + profile.medals.silver + profile.medals.bronze > 0}
 				<div style="display:flex; justify-content:center; gap:1.25rem; font-size:1.125rem; font-weight:800; color:#fff;">
-					{#if profile.medals.gold}<span title={t('profile.awardsGold', { n: profile.medals.gold })}>🥇 {profile.medals.gold}</span>{/if}
-					{#if profile.medals.silver}<span title={t('profile.awardsSilver', { n: profile.medals.silver })}>🥈 {profile.medals.silver}</span>{/if}
-					{#if profile.medals.bronze}<span title={t('profile.awardsBronze', { n: profile.medals.bronze })}>🥉 {profile.medals.bronze}</span>{/if}
+					{#if profile.medals.gold}<span title={t('profile.awardsGold', { n: profile.medals.gold })}><Icon name="medal" style="color:oklch(85% 0.15 90)" /> {profile.medals.gold}</span>{/if}
+					{#if profile.medals.silver}<span title={t('profile.awardsSilver', { n: profile.medals.silver })}><Icon name="medal" style="color:oklch(85% 0.02 250)" /> {profile.medals.silver}</span>{/if}
+					{#if profile.medals.bronze}<span title={t('profile.awardsBronze', { n: profile.medals.bronze })}><Icon name="medal" style="color:oklch(70% 0.12 55)" /> {profile.medals.bronze}</span>{/if}
 				</div>
 			{:else}
 				<div style="font-size:0.75rem; color:rgba(255,255,255,0.35);">{t('friendProfile.noMedals')}</div>
@@ -177,7 +178,7 @@
 	{#if duel}
 		<div style="background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem;">
 			<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;">{t('friendProfile.duelWeek')}</div>
+				<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em;"><Icon name="duel" /> {t('friendProfile.duelWeek')}</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">{t('diary.you')} {duel.seasonsWon.me} — {profile.name} {duel.seasonsWon.them}</div>
 			</div>
 			<DuelBoard {duel} compact />
@@ -194,7 +195,7 @@
 			onclick={() => goto('/friends')}
 			style="width:100%; text-align:left; background:rgba(255,255,255,0.05); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.09); border-radius:20px; padding:1.375rem; margin-bottom:0.75rem; color:#fff; font-family:inherit; cursor:pointer;"
 		>
-			<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">{t('friendProfile.duelTitle')}</div>
+			<div style="font-size:0.625rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;"><Icon name="duel" /> {t('friendProfile.duelTitle')}</div>
 			<div style="font-size:0.875rem; font-weight:600;">
 				{#if duelApi.my_opt_in && !duelApi.their_opt_in}
 					{t('friendProfile.duelWaiting', { name: profile.name })}
@@ -215,7 +216,7 @@
 			{@const unlocked = a.check(profile)}
 			<div style="background:{unlocked ? `oklch(30% 0.1 {a.hue} / 0.4)` : 'rgba(255,255,255,0.03)'}; border:1px solid {unlocked ? `oklch(65% 0.18 {a.hue} / 0.4)` : 'rgba(255,255,255,0.07)'}; border-radius:16px; padding:0.875rem 0.5rem; text-align:center;">
 				<div style="font-size:1.5rem; margin-bottom:0.375rem; filter:{unlocked ? 'none' : 'grayscale(1) opacity(0.3)'};">
-					{#if a.id === 1}🥗{:else if a.id === 2}🔥{:else if a.id === 3}🍳{:else if a.id === 5}⚡{:else}🏆{/if}
+					<Icon name={a.id === 1 ? 'salad' : a.id === 2 ? 'streak' : a.id === 3 ? 'cook' : a.id === 5 ? 'quick' : 'trophy'} />
 				</div>
 				<div style="font-size:0.6875rem; font-weight:700; color:{unlocked ? '#fff' : 'rgba(255,255,255,0.25)'};">{t(a.label)}</div>
 				<div style="font-size:0.5625rem; color:{unlocked ? `oklch(75% 0.12 {a.hue})` : 'rgba(255,255,255,0.2)'}; margin-top:0.2rem; line-height:1.3;">{t(a.desc)}</div>

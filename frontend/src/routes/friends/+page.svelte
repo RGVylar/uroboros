@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -286,7 +287,7 @@
 
 <!-- ── Header ── -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
-	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
+	<button onclick={() => goto('/settings')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;"><Icon name="back" /></button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="uro-title">{t('friends.title')}<InfoTip id="circles" /></h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{tc('friends.connected', friends.length)}</div>
@@ -326,7 +327,7 @@
 			<!-- Escanear solo en la app: el escáner es un plugin nativo -->
 			{#if isNativeApp}
 				<button onclick={scanFriendCode} style="flex:0 0 auto; padding:0 0.75rem; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; cursor:pointer;">
-					{t('friends.scan')}
+					<Icon name="camera" /> {t('friends.scan')}
 				</button>
 			{/if}
 		</div>
@@ -338,18 +339,18 @@
 				disabled={!!partner}
 				aria-pressed={addKind === 'partner'}
 				style="flex:1; text-align:left; padding:0.8125rem; border-radius:14px; cursor:{partner ? 'not-allowed' : 'pointer'}; opacity:{partner ? 0.4 : 1}; font-family:inherit; border:1px solid {addKind === 'partner' ? 'oklch(80% 0.17 165 / 0.55)' : 'rgba(255,255,255,0.1)'}; background:{addKind === 'partner' ? 'oklch(75% 0.15 160 / 0.1)' : 'rgba(255,255,255,0.03)'};">
-				<div style="font-size:1.0625rem;">💚</div>
+				<div style="font-size:1.0625rem;"><Icon name="partner" fill="currentColor" /></div>
 				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'partner' ? 'oklch(88% 0.15 160)' : '#fff'};">{t('friends.kindPartner')}</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">{t('friends.kindPartnerSub')}</div>
 				{#if partner}
-					<div style="font-size:0.5938rem; color:oklch(80% 0.13 85); margin-top:0.4375rem; line-height:1.4;">🔒 Ya tienes a {friendName(partner)} como pareja</div>
+					<div style="font-size:0.5938rem; color:oklch(80% 0.13 85); margin-top:0.4375rem; line-height:1.4;"><Icon name="lock" /> Ya tienes a {friendName(partner)} como pareja</div>
 				{/if}
 			</button>
 			<button
 				onclick={() => (addKind = 'friend')}
 				aria-pressed={addKind === 'friend'}
 				style="flex:1; text-align:left; padding:0.8125rem; border-radius:14px; cursor:pointer; font-family:inherit; border:1px solid {addKind === 'friend' ? 'oklch(80% 0.17 165 / 0.55)' : 'rgba(255,255,255,0.1)'}; background:{addKind === 'friend' ? 'oklch(75% 0.15 160 / 0.1)' : 'rgba(255,255,255,0.03)'};">
-				<div style="font-size:1.0625rem;">👋</div>
+				<div style="font-size:1.0625rem;"><Icon name="userPlus" /></div>
 				<div style="font-size:0.8125rem; font-weight:700; margin-top:0.25rem; color:{addKind === 'friend' ? 'oklch(88% 0.15 160)' : '#fff'};">{t('friends.kindFriend')}</div>
 				<div style="font-size:0.625rem; color:rgba(255,255,255,0.45); margin-top:0.3125rem; line-height:1.45;">{t('friends.kindFriendSub')}</div>
 			</button>
@@ -397,7 +398,7 @@
 {#if activeTab === 'lista'}
 	{#if friends.length === 0}
 		<div class="glass-card" style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;">
-			<div style="font-size:2rem; margin-bottom:0.5rem;">👥</div>
+			<div style="font-size:2rem; margin-bottom:0.5rem;"><Icon name="users" strokeWidth={1.5} /></div>
 			<div style="font-size:0.875rem; font-weight:600;">{t('friends.empty')}</div>
 			<div style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.35);">{t('friends.emptySub')}</div>
 		</div>
@@ -415,7 +416,7 @@
 						<button onclick={() => goto(`/profile/${fId}`)} style="position:relative; flex-shrink:0; background:none; border:none; padding:0; cursor:pointer; box-shadow:none; border-radius:50%; line-height:0;">
 							<Avatar name={fName} avatarId={friendAvatar(f)} avatarPhoto={friendPhoto(f)} size={46} />
 							{#if f.kind === 'partner'}
-								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;">★</div>
+								<div style="position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, oklch(85% 0.17 160), oklch(72% 0.18 170)); border:2px solid #0a0d14; display:flex; align-items:center; justify-content:center; font-size:0.5rem; font-weight:800; color:#041010;"><Icon name="partner" fill="currentColor" size="0.6rem" /></div>
 							{/if}
 						</button>
 						<div style="flex:1 1 9rem; min-width:0; overflow:hidden; text-overflow:ellipsis;">
@@ -434,14 +435,14 @@
 						<button onclick={() => { reportId = f.id; reportReason = ''; }} title={t('friends.reportTitle')} style="font-size:0.625rem; padding:0.25rem 0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:oklch(72% 0.16 30); cursor:pointer; font-family:inherit;">{t('friends.report')}</button>
 					</div>
 					{#if f.partner_proposed_by && f.partner_proposed_by !== auth.user?.id && f.kind !== 'partner'}
-						<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.5rem;">👆 {fName} quiere que seáis pareja. Toca para aceptar.</div>
+						<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.5rem;">{fName} quiere que seáis pareja. Toca para aceptar.</div>
 					{/if}
 					<!-- Shared inventory double-flag — partners only: a household is a 1:1 thing -->
 					{#if f.kind === 'partner'}
 					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.625rem;">
 						<div style="display:flex; align-items:center; justify-content:space-between;">
 							<div>
-								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.sharedInventory')}</div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;"><Icon name="home" /> {t('friends.sharedInventory')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.shared_inventory}
 										{t('friends.sharedOn')}
@@ -467,7 +468,7 @@
 					<div style="padding:0.5rem 0.625rem; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-top:0.375rem;">
 						<div style="display:flex; align-items:center; justify-content:space-between;">
 							<div>
-								<div style="font-size:0.75rem; font-weight:600; color:#fff;">{t('friends.duel')}</div>
+								<div style="font-size:0.75rem; font-weight:600; color:#fff;"><Icon name="duel" /> {t('friends.duel')}</div>
 								<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 									{#if f.duel_active}
 										{t('friends.duelOn')}
@@ -515,7 +516,7 @@
 {#if activeTab === 'solicitudes'}
 	{#if pending.length === 0}
 		<div class="glass-card" style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;">
-			<div style="font-size:2rem; margin-bottom:0.5rem;">✉️</div>
+			<div style="font-size:2rem; margin-bottom:0.5rem;"><Icon name="mail" strokeWidth={1.5} /></div>
 			<div style="font-size:0.875rem; font-weight:600;">{t('friends.noPending')}</div>
 		</div>
 	{:else}
@@ -556,11 +557,11 @@
 							Aceptar como pareja
 						</button>
 						{#if partner}
-							<div style="font-size:0.5938rem; color:oklch(80% 0.13 85); margin-top:0.375rem; text-align:center;">🔒 Ya tienes a {friendName(partner)} como pareja</div>
+							<div style="font-size:0.5938rem; color:oklch(80% 0.13 85); margin-top:0.375rem; text-align:center;"><Icon name="lock" /> Ya tienes a {friendName(partner)} como pareja</div>
 						{/if}
 						<div style="display:flex; gap:0.4375rem; margin-top:0.4375rem;">
 							<button onclick={() => accept(f.id, 'friend')} style="flex:1; padding:0.5625rem; border-radius:11px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-size:0.7188rem; cursor:pointer; font-family:inherit;">Aceptar solo como amigo</button>
-							<button onclick={() => reject(f.id)} aria-label="Rechazar" style="width:38px; padding:0.5625rem 0; border-radius:11px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-size:0.8125rem; cursor:pointer; font-family:inherit;">✕</button>
+							<button onclick={() => reject(f.id)} aria-label="Rechazar" style="width:38px; padding:0.5625rem 0; border-radius:11px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-size:0.8125rem; cursor:pointer; font-family:inherit;"><Icon name="close" /></button>
 						</div>
 					{:else}
 						<button onclick={() => accept(f.id)} style="width:100%; margin-top:0.6875rem; padding:0.6875rem; border-radius:13px; border:none; cursor:pointer; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); color:#041010; font-weight:800; font-size:0.8125rem; font-family:inherit;">

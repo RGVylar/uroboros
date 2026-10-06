@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { api } from '$lib/api';
 	import type { InventoryItem, InventoryUnit } from '$lib/types';
@@ -61,7 +62,7 @@
 
 <div class="backdrop" onclick={onclose} role="presentation"></div>
 <div class="modal" role="dialog" aria-modal="true" aria-label={t('consume.aria')}>
-	<div class="modal-icon">📦</div>
+	<div class="modal-icon"><Icon name="inventory" /></div>
 	<h2 class="modal-title">{t('consume.title')}</h2>
 	<p class="modal-sub">{item.product_name}</p>
 

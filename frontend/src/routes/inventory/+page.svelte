@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -358,7 +359,7 @@
 	<div
 		style="position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.4); font-size:0.875rem; pointer-events:none;"
 	>
-		🔍
+		<Icon name="search" />
 	</div>
 </div>
 
@@ -417,7 +418,7 @@
 						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; showManual = true; }}
 						style="flex:1; padding:0.5rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;"
 					>
-						✏️ Crear manual
+						<Icon name="edit" /> Crear manual
 					</button>
 				</div>
 			</div>
@@ -454,7 +455,7 @@
 					}}
 					style="padding:0.3125rem 0.625rem; border-radius:99px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.6875rem; font-weight:700; cursor:pointer;"
 				>
-					{showManual ? t('inventory.backToSearch') : t('inventory.manual')}
+					{#if !showManual}<Icon name="edit" /> {/if}{showManual ? t('inventory.backToSearch') : t('inventory.manual')}
 				</button>
 			{/if}
 		</div>
@@ -638,7 +639,7 @@
 		class="glass-card"
 		style="text-align:center; color:rgba(255,255,255,0.4); padding:2.5rem 1rem;"
 	>
-		<div style="font-size:2rem; margin-bottom:0.5rem;">🥫</div>
+		<div style="font-size:2rem; margin-bottom:0.5rem; color:var(--text-faint);"><Icon name="empty" strokeWidth={1.5} /></div>
 		<div style="font-size:0.875rem; font-weight:600;">{t('inventory.empty')}</div>
 		<div
 			style="font-size:0.75rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);"
@@ -761,7 +762,7 @@
 					<div
 						style="width:38px; height:38px; border-radius:10px; background:oklch(72% 0.15 70 / 0.15); border:1px solid oklch(72% 0.15 70 / 0.25); display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;"
 					>
-						{item.location === 'fridge' ? '❄️' : item.location === 'freezer' ? '🧊' : '🏠'}
+						<Icon name={item.location === 'fridge' ? 'fridge' : item.location === 'freezer' ? 'freezer' : 'home'} />
 					</div>
 					<div style="flex:1; min-width:0;">
 						<div
@@ -803,13 +804,13 @@
 							onclick={() => startEdit(item)}
 							style="padding:0.25rem 0.4rem; font-size:0.625rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.6); cursor:pointer; font-family:inherit;"
 						>
-							✏️
+							<Icon name="edit" />
 						</button>
 						<button
 							onclick={() => (deletingId = item.id)}
 							style="padding:0.25rem 0.4rem; font-size:0.625rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.5); cursor:pointer; font-family:inherit;"
 						>
-							✕
+							<Icon name="close" />
 						</button>
 					</div>
 				</div>
@@ -833,7 +834,7 @@
 		onclick={() => goto('/shopping-list')}
 		style="display:inline-flex; align-items:center; gap:0.375rem; font-size:0.75rem; color:rgba(255,255,255,0.55); padding:0.5rem 1rem; border-radius:99px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); cursor:pointer; font-family:inherit;"
 	>
-		{t('inventory.seeShoppingList')}
+		<Icon name="shopping" /> {t('inventory.seeShoppingList')}
 	</button>
 </div>
 

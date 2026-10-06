@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	/**
 	 * Escaneo de tickets — detrás del flag `receipt_scan`.
 	 *
@@ -190,7 +191,7 @@
 			disabled={busy}
 			style="padding:0.375rem 0.75rem; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.08); color:#fff; font-family:inherit; font-size:0.75rem; cursor:pointer; white-space:nowrap;"
 		>
-			{busy ? 'Leyendo…' : '📷 Foto'}
+			{#if busy}Leyendo…{:else}<Icon name="camera" /> Foto{/if}
 		</button>
 	</div>
 	<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-bottom:0.5rem;">

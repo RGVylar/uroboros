@@ -9,8 +9,10 @@
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 
-	// Para quién es cada receta (🔒 💚 🔗) no se adivina mirando el icono.
-	import { Modal, RecipeAmount, RecipeCardEditor } from '$lib/components';
+	// Para quién es cada receta (candado, corazón, enlace) no se adivina mirando el icono.
+	import { Modal, RecipeAmount, RecipeCardEditor, Icon } from '$lib/components';
+	import { recipeIcon } from '$lib/foodIcons';
+	import type { IconName } from '$lib/icons';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 
@@ -254,7 +256,7 @@
 		partner: t('recipes.scopePartner'),
 		friends: t('recipes.scopeFriends'),
 	});
-	const SCOPE_ICON: Record<RecipeScope, string> = { none: '🔒', partner: '💚', friends: '🔗' };
+	const SCOPE_ICON: Record<RecipeScope, IconName> = { none: 'lock', partner: 'partner', friends: 'link' };
 
 	let hasPartner = $state(false);
 	api.get<{ kind: string }[]>('/friends')
@@ -514,6 +516,7 @@
 	// ── Ver receta ────────────────────────────────────────────────────────────
 	let viewingRecipe = $state<Recipe | SharedRecipe | null>(null);
 
+	// Solo para el texto que se copia al portapapeles; en pantalla va recipeIcon().
 	function recipeGlyph(name: string): string {
 		const n = name.toLowerCase();
 		if (/desayun|avena|porridge/.test(n)) return '🥣';
@@ -540,7 +543,7 @@
 		style={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35);' : ''}
 		title={(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? t('recipes.freeLimitTitle', { count: FREE_RECIPE_LIMIT }) : ''}
 	>
-		{(!subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT) ? `🔒 ${recipes.length}/${FREE_RECIPE_LIMIT}` : t('recipes.newShort')}
+		{#if !subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT}<Icon name="lock" /> {recipes.length}/{FREE_RECIPE_LIMIT}{:else}{t('recipes.newShort')}{/if}
 	</button>
 </div>
 
@@ -634,7 +637,7 @@
 						<span style="flex:1; font-size:0.85rem;">{ing.product.name}</span>
 						<input type="number" bind:value={() => gramsToQty(ing.grams, u), (v) => (ing.grams = qtyToGrams(v, u))} min={u === 'unit' ? 0.25 : 1} step={u === 'unit' ? 0.25 : 1} style="width:5rem;" />
 						<span style="font-size:0.8rem; color:var(--text-muted);">{unitSuffix(u).trim()}</span>
-						<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeIngredient(idx)}>✕</button>
+						<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeIngredient(idx)}><Icon name="close" /></button>
 					</div>
 				{/each}
 				<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
@@ -670,7 +673,7 @@
 
 {#if recipes.length === 0 && sharedRecipes.length === 0 && !showCreate}
 	<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
-		<div style="font-size:2.5rem; margin-bottom:0.5rem;">🍳</div>
+		<div style="font-size:2.5rem; margin-bottom:0.5rem; color:var(--text-faint);"><Icon name="cook" strokeWidth={1.5} /></div>
 		<div style="font-size:0.875rem; font-weight:600;">{t('recipes.empty')}</div>
 		<div style="font-size:0.75rem; margin-top:0.25rem;">{t('recipes.emptySub')}</div>
 		<button onclick={() => (showCreate = true)} style="margin-top:1rem; font-size:0.85rem;">{t('recipes.createFirst')}</button>
@@ -684,7 +687,7 @@
 		<div class="glass-card" style="margin-bottom:0.75rem; border-color:oklch(75% 0.18 165 / 0.4);">
 			<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
 				<h2 style="margin:0; font-size:1rem; color:var(--text);">{t('recipes.edit')}</h2>
-				<button class="btn-secondary" onclick={cancelEdit} style="font-size:0.75rem; padding:0.25rem 0.6rem;">✕</button>
+				<button class="btn-secondary" onclick={cancelEdit} style="font-size:0.75rem; padding:0.25rem 0.6rem;"><Icon name="close" /></button>
 			</div>
 
 			<div class="form-group">
@@ -702,7 +705,7 @@
 							<span style="flex:1; font-size:0.85rem;">{ing.product.name}</span>
 							<input type="number" bind:value={() => gramsToQty(ing.grams, u), (v) => (ing.grams = qtyToGrams(v, u))} min={u === 'unit' ? 0.25 : 1} step={u === 'unit' ? 0.25 : 1} style="width:5rem;" />
 							<span style="font-size:0.8rem; color:var(--text-muted);">{unitSuffix(u).trim()}</span>
-							<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeEditIngredient(idx)}>✕</button>
+							<button class="btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick={() => removeEditIngredient(idx)}><Icon name="close" /></button>
 						</div>
 					{/each}
 					<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
@@ -775,13 +778,13 @@
 			<div style="display:flex; gap:0.75rem; margin-bottom:0.75rem;">
 				<!-- Emoji avatar -->
 				<div class="recipe-avatar" style="background:linear-gradient(135deg, oklch(72% 0.16 {hue}), oklch(55% 0.14 {(hue+30) % 360}));">
-					{recipeGlyph(recipe.name)}
+					<Icon name={recipeIcon(recipe.name)} />
 				</div>
 				<div style="flex:1; min-width:0;">
 					<div style="display:flex; align-items:center; gap:0.375rem;">
 						<span class="recipe-name">{recipe.name}</span>
 						{#if recipe.is_shared}
-							<span class="shared-badge" title={SCOPE_LABEL[recipe.share_scope]}>{SCOPE_ICON[recipe.share_scope]}</span>
+							<span class="shared-badge" title={SCOPE_LABEL[recipe.share_scope]}><Icon name={SCOPE_ICON[recipe.share_scope]} fill={recipe.share_scope === 'partner' ? 'currentColor' : undefined} /></span>
 						{/if}
 					</div>
 					<div class="recipe-sub">{recipe.ingredients.length} ing{#if recipe.steps.length} · {tc('recipes.stepsCount', recipe.steps.length)}{/if} · {preview}</div>
@@ -796,16 +799,16 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">{t('recipes.log')}</button>
-				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}>📤</button>
-				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}>📖</button>
-				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')}>✏️</button>
+				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}><Icon name="share" /></button>
+				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}><Icon name="recipes" /></button>
+				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')} aria-label={t('recipes.editTitle')}><Icon name="edit" /></button>
 				<button class="icon-btn" onclick={() => cycleScope(recipe)} title={t('recipes.scopeTitle', { scope: SCOPE_LABEL[recipe.share_scope] })} aria-label={t('recipes.scopeAria', { scope: SCOPE_LABEL[recipe.share_scope] })}>
-					{SCOPE_ICON[recipe.share_scope]}
+					<Icon name={SCOPE_ICON[recipe.share_scope]} fill={recipe.share_scope === 'partner' ? 'currentColor' : undefined} />
 				</button>
 				{#if confirmingDelete === recipe.id}
 					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.confirmDelete')}>{t('recipes.deleteAsk')}</button>
 				{:else}
-					<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.delete')} aria-label={t('recipes.deleteAria', { name: recipe.name })}>✕</button>
+					<button class="icon-btn icon-btn-danger" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.delete')} aria-label={t('recipes.deleteAria', { name: recipe.name })}><Icon name="close" /></button>
 				{/if}
 			</div>
 		</div>
@@ -824,7 +827,7 @@
 		<div class="glass-card recipe-card">
 			<div style="display:flex; gap:0.75rem; margin-bottom:0.625rem;">
 				<div class="recipe-avatar" style="width:48px; height:48px; background:linear-gradient(135deg, oklch(68% 0.15 {(hue+60) % 360}), oklch(50% 0.13 {(hue+90) % 360}));">
-					{recipeGlyph(recipe.name)}
+					<Icon name={recipeIcon(recipe.name)} />
 				</div>
 				<div style="flex:1; min-width:0;">
 					<div class="recipe-name">{recipe.name}</div>
@@ -842,8 +845,8 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-ghost" style="flex:1;">{t('recipes.log')}</button>
-				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}>📖</button>
-				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}>📤</button>
+				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}><Icon name="recipes" /></button>
+				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}><Icon name="share" /></button>
 				<button class="action-btn" style="padding:0 0.875rem; background:oklch(75% 0.18 295 / 0.2); color:oklch(85% 0.15 295); border:none; border-radius:10px; font-family:inherit; cursor:pointer; font-weight:700; font-size:0.75rem;"
 					onclick={() => copySharedRecipe(recipe.id)}>{t('recipes.saveCopy')}</button>
 			</div>
@@ -864,7 +867,7 @@
 	{@const whole = totalMacros(r.ingredients.map(i => ({ product: i.product, grams: i.grams })))}
 	{@const meta = metaParts(r)}
 	{@const isMine = r.owner_id === auth.user?.id}
-	<Modal onClose={() => (viewingRecipe = null)} title={`${recipeGlyph(r.name)} ${r.name}`} subtitle={'owner_name' in r ? `@${r.owner_name}` : undefined}>
+	<Modal onClose={() => (viewingRecipe = null)} title={r.name} subtitle={'owner_name' in r ? `@${r.owner_name}` : undefined}>
 		{#if meta.length}
 			<div class="view-meta">
 				{#each meta as part}<span class="view-chip">{part}</span>{/each}
@@ -900,7 +903,7 @@
 		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:1rem;">
-			<button class="action-btn action-btn-ghost" style="flex:1;" onclick={() => shareRecipe(r)}>📤 {t('recipes.share')}</button>
+			<button class="action-btn action-btn-ghost" style="flex:1;" onclick={() => shareRecipe(r)}><Icon name="share" /> {t('recipes.share')}</button>
 			<button class="action-btn action-btn-primary" style="flex:1;" onclick={() => { const target = r; viewingRecipe = null; logRecipe(target); }}>{t('recipes.log')}</button>
 		</div>
 	</Modal>
@@ -954,7 +957,7 @@
 					class:share-badge-icon-also={shareMode === 'also'}
 					class:share-badge-icon-only={shareMode === 'only'}
 				>
-					{#if shareMode === null}👤{:else if shareMode === 'also'}👥{:else}<span style="font-size:0.625rem;">👤→</span>{/if}
+					{#if shareMode === null}<Icon name="user" />{:else if shareMode === 'also'}<Icon name="users" />{:else}<Icon name="forPartner" />{/if}
 				</div>
 				<div style="flex:1; min-width:0; text-align:left;">
 					{#if shareMode === null}
@@ -979,11 +982,11 @@
 								: 'rgba(255,255,255,0.12)'};
 					"></div>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
-						onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}>👤</button>
+						onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}><Icon name="user" /></button>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
-						onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}>👥</button>
+						onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}><Icon name="users" /></button>
 					<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
-						onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}>👤→</button>
+						onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}><Icon name="forPartner" /></button>
 				</div>
 			</div>
 		{/if}
@@ -991,7 +994,7 @@
 		<!-- Allergy warning -->
 		{#if recipeAllergenWarnings.mine.length > 0 || recipeAllergenWarnings.partner.length > 0}
 			<div class="allergy-banner" style="margin-bottom:1rem;">
-				<div class="allergy-banner-icon">⚠️</div>
+				<div class="allergy-banner-icon"><Icon name="warning" /></div>
 				<div class="allergy-banner-body">
 					<div class="allergy-banner-title">{t('add.allergenDetected')}</div>
 					{#if recipeAllergenWarnings.mine.length > 0}
@@ -1017,7 +1020,7 @@
 		<div style="display:flex; gap:0.5rem;">
 			<button class="action-btn action-btn-ghost" onclick={() => logPendingRecipe = null} style="flex:1;">{t('common.cancel')}</button>
 			<button class="action-btn action-btn-primary" onclick={confirmLog} disabled={logging || logEmpty || (logGrams !== null && !(logGrams > 0))} style="flex:2;">
-				{#if logging}{t('recipes.logging')}{:else if shareMode === 'also'}{t('recipes.logBoth')}{:else if shareMode === 'only'}{t('recipes.logOnly', { name: partner?.name ?? '' })}{:else}{t('recipes.log')}{/if}
+				{#if logging}{t('recipes.logging')}{:else if shareMode === 'also'}{t('recipes.logBoth')} <Icon name="users" />{:else if shareMode === 'only'}{t('recipes.logOnly', { name: partner?.name ?? '' })}{:else}{t('recipes.log')}{/if}
 			</button>
 		</div>
 	</Modal>

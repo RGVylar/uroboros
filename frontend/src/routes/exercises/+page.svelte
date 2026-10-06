@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -135,20 +137,20 @@
 		return exercises.find(e => e.id === id);
 	}
 
-	function exerciseEmoji(name: string): string {
+	function exerciseIcon(name: string): IconName {
 		const n = name.toLowerCase();
-		if (/corr|run/.test(n)) return '🏃';
-		if (/cicl|bici/.test(n)) return '🚴';
-		if (/nata|swim/.test(n)) return '🏊';
-		if (/pesa|gym|muscul|fuerza|weight/.test(n)) return '🏋️';
-		if (/yoga|estira|flex/.test(n)) return '🧘';
-		if (/camin|walk/.test(n)) return '🚶';
-		if (/hiit|intens|interval/.test(n)) return '⚡';
-		if (/escal/.test(n)) return '🧗';
-		if (/baile|dance/.test(n)) return '💃';
-		if (/futbol|basket|tenis|padel/.test(n)) return '⚽';
-		if (/creat/.test(n)) return '💊';
-		return '💪';
+		if (/corr|run/.test(n)) return 'run';
+		if (/cicl|bici/.test(n)) return 'bike';
+		if (/nata|swim/.test(n)) return 'swim';
+		if (/pesa|gym|muscul|fuerza|weight/.test(n)) return 'exercise';
+		if (/yoga|estira|flex/.test(n)) return 'stretch';
+		if (/camin|walk/.test(n)) return 'steps';
+		if (/hiit|intens|interval/.test(n)) return 'quick';
+		if (/escal/.test(n)) return 'climb';
+		if (/baile|dance/.test(n)) return 'dance';
+		if (/futbol|basket|tenis|padel/.test(n)) return 'sport';
+		if (/creat/.test(n)) return 'supplements';
+		return 'strength';
 	}
 
 	// Ring SVG helper: r=40, cx=cy=50, viewBox 0 0 100 100
@@ -186,7 +188,7 @@
 
 <!-- ── Header ── -->
 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.25rem 0 1rem;">
-	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;">←</button>
+	<button onclick={() => goto('/')} style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-family:inherit; font-size:1rem; flex-shrink:0;"><Icon name="back" /></button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="uro-title">{t('ex.title')}</h1>
 		<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5); margin-top:0.25rem;">{t('ex.subtitle')}</div>
@@ -252,7 +254,7 @@
 					display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem;
 					border-bottom:{i < session.entries.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};
 				">
-					<div style="width:40px; height:40px; border-radius:12px; background:oklch(75% 0.18 30 / 0.15); border:1px solid oklch(75% 0.18 30 / 0.2); display:flex; align-items:center; justify-content:center; font-size:1.125rem; flex-shrink:0;">{exerciseEmoji(ex?.name ?? '')}</div>
+					<div style="width:40px; height:40px; border-radius:12px; background:oklch(75% 0.18 30 / 0.15); border:1px solid oklch(75% 0.18 30 / 0.2); display:flex; align-items:center; justify-content:center; font-size:1.125rem; flex-shrink:0;"><Icon name={exerciseIcon(ex?.name ?? '')} /></div>
 					<div style="flex:1; min-width:0;">
 						<div style="font-size:0.8125rem; font-weight:600; color:#fff;">{ex?.name ?? '—'}</div>
 						<div style="font-size:0.6875rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">{entry.quantity} {ex?.unit ?? ''}</div>
@@ -261,13 +263,13 @@
 						<div style="font-size:0.875rem; font-weight:700; color:oklch(82% 0.17 30);">-{Math.round(entry.calories)}</div>
 						<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">kcal</div>
 					</div>
-					<button onclick={() => deleteEntry(entry.id)} disabled={sessionLoading} style="width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0;">✕</button>
+					<button onclick={() => deleteEntry(entry.id)} disabled={sessionLoading} style="width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0;"><Icon name="close" /></button>
 				</div>
 			{/each}
 		</div>
 	{:else}
 		<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4);">
-			<div style="font-size:2rem; margin-bottom:0.5rem;">🏃</div>
+			<div style="font-size:2rem; margin-bottom:0.5rem; color:var(--text-faint);"><Icon name="run" strokeWidth={1.5} /></div>
 			<div style="font-size:0.8125rem; font-weight:600; color:rgba(255,255,255,0.5);">{t('ex.emptyToday')}</div>
 			<div style="font-size:0.6875rem; margin-top:0.25rem; color:rgba(255,255,255,0.3);">{t('ex.emptyTodaySub')}</div>
 		</div>
@@ -280,7 +282,7 @@
 {:else}
 	<!-- Search -->
 	<div style="position:relative; margin-bottom:0.75rem;">
-		<div style="position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.4); pointer-events:none; font-size:0.875rem;">🔍</div>
+		<div style="position:absolute; left:0.875rem; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.4); pointer-events:none; font-size:0.875rem;"><Icon name="search" /></div>
 		<input
 			bind:value={catalogQuery}
 			placeholder={t('ex.searchPlaceholder')}
@@ -290,7 +292,7 @@
 
 	<!-- Add new exercise button -->
 	<button onclick={() => { showNewForm = !showNewForm; createError = ''; }} style="width:100%; margin-bottom:0.75rem; padding:0.75rem; border-radius:14px; background:linear-gradient(180deg, oklch(88% 0.19 160), oklch(72% 0.2 170)); border:none; color:#041010; font-family:inherit; font-size:0.8125rem; font-weight:700; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);">
-		{showNewForm ? t('ex.cancelNew') : t('ex.createOwn')}
+		{#if showNewForm}<Icon name="close" /> {/if}{showNewForm ? t('ex.cancelNew') : t('ex.createOwn')}
 	</button>
 
 	{#if showNewForm}
@@ -321,7 +323,7 @@
 					display:flex; flex-direction:column; gap:0.375rem;
 					transition:background 0.15s;
 				">
-					<div style="font-size:1.75rem;">{exerciseEmoji(ex.name)}</div>
+					<div style="font-size:1.75rem;"><Icon name={exerciseIcon(ex.name)} /></div>
 					<div style="font-size:0.8125rem; font-weight:600; color:#fff; line-height:1.2;">{exerciseLabel(ex.name)}</div>
 					<div style="font-size:0.625rem; color:rgba(255,255,255,0.45);">{fmtNumber(ex.kcal_per_unit)} kcal/{exerciseUnitPer(ex.unit)}</div>
 					{#if !ex.is_predefined}
@@ -352,7 +354,7 @@
 
 		<!-- Exercise info -->
 		<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.125rem;">
-			<div style="font-size:2.5rem;">{exerciseEmoji(showDetail.name)}</div>
+			<div style="font-size:2.5rem;"><Icon name={exerciseIcon(showDetail.name)} /></div>
 			<div>
 				<div style="font-size:1.625rem; font-weight:400; letter-spacing:-0.04em; color:#fff; font-family:var(--uro-font-serif);">{showDetail.name}</div>
 				<div style="font-size:0.6875rem; color:rgba(255,255,255,0.5);">{fmtNumber(showDetail.kcal_per_unit)} kcal/{exerciseUnitPer(showDetail.unit)}</div>

@@ -3,6 +3,8 @@
   diario, de la navegación y de Ajustes; los datos se quedan donde estaban.
 -->
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { modules, type ModuleKey } from '$lib/stores/modules.svelte';
@@ -15,7 +17,7 @@
 
 	if (!auth.isLoggedIn) goto('/login');
 
-	type Item = { key: ModuleKey; icon: string; pro?: boolean };
+	type Item = { key: ModuleKey; icon: IconName; pro?: boolean };
 
 	// `pro` solo en lo que el servidor no deja *encender* sin Premium. Medidas y
 	// ejercicio son de pago al entrar, pero enseñarlos o no es libre.
@@ -23,17 +25,17 @@
 		{
 			label: 'modules.group.tracking',
 			items: [
-				{ key: 'water', icon: '💧' },
-				{ key: 'weight', icon: '⚖️' },
-				{ key: 'measurements', icon: '📏' },
-				{ key: 'exercise', icon: '💪' },
-				{ key: 'supplements', icon: '💊' },
-				{ key: 'creatine', icon: '🧪' },
-				{ key: 'mood', icon: '🫥' },
+				{ key: 'water', icon: 'water' },
+				{ key: 'weight', icon: 'weight' },
+				{ key: 'measurements', icon: 'measurements' },
+				{ key: 'exercise', icon: 'exercise' },
+				{ key: 'supplements', icon: 'supplements' },
+				{ key: 'creatine', icon: 'creatine' },
+				{ key: 'mood', icon: 'mood' },
 			],
 		},
-		{ label: 'modules.group.home', items: [{ key: 'inventory', icon: '🏠' }] },
-		{ label: 'modules.group.extras', items: [{ key: 'cheat_days', icon: '🍕', pro: true }] },
+		{ label: 'modules.group.home', items: [{ key: 'inventory', icon: 'home' }] },
+		{ label: 'modules.group.extras', items: [{ key: 'cheat_days', icon: 'cheat', pro: true }] },
 	];
 
 	let busy = $state<ModuleKey | null>(null);
@@ -69,7 +71,7 @@
 				{@const locked = item.pro && !on && !subscription.is_premium}
 				{#if i > 0}<div class="divider"></div>{/if}
 				<div class="row">
-					<div class="icon" class:on>{item.icon}</div>
+					<div class="icon" class:on><Icon name={item.icon} /></div>
 					<div class="texts">
 						<div class="name">{t(`modules.${item.key}`)}</div>
 						<div class="desc">{t(`modules.${item.key}.desc`)}</div>

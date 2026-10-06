@@ -7,6 +7,7 @@
   puede traer una receta copiada de otro sitio de un golpe.
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
@@ -83,9 +84,9 @@
 				aria-label={t('recipes.stepAria', { n: idx + 1 })}
 			></textarea>
 			<div class="step-actions">
-				<button type="button" class="mini" onclick={() => moveStep(idx, -1)} disabled={idx === 0} aria-label={t('recipes.stepUp')}>↑</button>
-				<button type="button" class="mini" onclick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} aria-label={t('recipes.stepDown')}>↓</button>
-				<button type="button" class="mini mini-danger" onclick={() => removeStep(idx)} aria-label={t('recipes.stepRemove')}>✕</button>
+				<button type="button" class="mini" onclick={() => moveStep(idx, -1)} disabled={idx === 0} aria-label={t('recipes.stepUp')}><Icon name="up" /></button>
+				<button type="button" class="mini" onclick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} aria-label={t('recipes.stepDown')}><Icon name="down" /></button>
+				<button type="button" class="mini mini-danger" onclick={() => removeStep(idx)} aria-label={t('recipes.stepRemove')}><Icon name="close" /></button>
 			</div>
 		</div>
 	{/each}

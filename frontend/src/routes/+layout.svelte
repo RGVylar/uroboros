@@ -20,6 +20,8 @@
 	import { modules, type ModuleKey } from '$lib/stores/modules.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import Explainer from '$lib/components/Explainer.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
@@ -129,31 +131,31 @@
 	});
 
 	// Móvil: 4 items + FAB en el centro
-	type NavLink = { href: string; label: string; pro?: boolean };
+	type NavLink = { href: string; label: string; icon: IconName; pro?: boolean };
 	type FabSlot = { fab: true };
 	type NavItem = NavLink | FabSlot;
 
 	// $derived, no const: al cambiar de idioma en Ajustes la nav se retraduce sola.
 	let mobileNav = $derived<NavItem[]>([
-		{ href: '/', label: t('nav.diary') },
-		{ href: '/history', label: t('nav.history'), pro: true },
+		{ href: '/', label: t('nav.diary'), icon: 'diary' },
+		{ href: '/history', label: t('nav.history'), icon: 'history', pro: true },
 		{ fab: true },
-		{ href: '/recipes', label: t('nav.recipes') },
-		{ href: '/settings', label: t('nav.settings') },
+		{ href: '/recipes', label: t('nav.recipes'), icon: 'recipes' },
+		{ href: '/settings', label: t('nav.settings'), icon: 'settings' },
 	]);
 
-	// Escritorio: todos los ítems en el sidebar (con emoji como icono)
+	// Escritorio: todos los ítems en el sidebar, con su icono
 	// Los que llevan `module` desaparecen si el usuario lo ha apagado.
 	let sidebarNav = $derived(([
-		{ href: '/', label: t('nav.diary'), icon: '📋' },
-		{ href: '/history', label: t('nav.history'), icon: '📅', pro: true },
-		{ href: '/recipes', label: t('nav.recipes'), icon: '📖' },
-		{ href: '/exercises', label: t('nav.exercises'), icon: '💪', pro: true, module: 'exercise' },
-		{ href: '/weight', label: t('nav.weight'), icon: '⚖️', module: 'weight' },
-		{ href: '/measurements', label: t('nav.measurements'), icon: '📏', pro: true, module: 'measurements' },
-		{ href: '/friends', label: t('nav.friends'), icon: '👥' },
-		{ href: '/settings', label: t('nav.settings'), icon: '⚙️' },
-	] as { href: string; label: string; icon: string; pro?: boolean; module?: ModuleKey }[])
+		{ href: '/', label: t('nav.diary'), icon: 'diary' },
+		{ href: '/history', label: t('nav.history'), icon: 'history', pro: true },
+		{ href: '/recipes', label: t('nav.recipes'), icon: 'recipes' },
+		{ href: '/exercises', label: t('nav.exercises'), icon: 'exercise', pro: true, module: 'exercise' },
+		{ href: '/weight', label: t('nav.weight'), icon: 'weight', module: 'weight' },
+		{ href: '/measurements', label: t('nav.measurements'), icon: 'measurements', pro: true, module: 'measurements' },
+		{ href: '/friends', label: t('nav.friends'), icon: 'users' },
+		{ href: '/settings', label: t('nav.settings'), icon: 'settings' },
+	] as { href: string; label: string; icon: IconName; pro?: boolean; module?: ModuleKey }[])
 		.filter((item) => !item.module || modules.on(item.module)));
 
 	function isActive(href: string): boolean {
@@ -209,7 +211,7 @@
 				<!-- En móvil el FAB de la barra inferior lleva a /add; en escritorio no
 				     había ninguna forma de llegar sin escribir la URL a mano. -->
 				<a href="/add" class="sidebar-add" class:active={isActive('/add')} aria-label={t('nav.aria.addFood')}>
-					<span class="icon" aria-hidden="true">＋</span>
+					<span class="icon"><Icon name="add" /></span>
 					<span>{t('nav.aria.addFood')}</span>
 				</a>
 				{#each sidebarNav as item}
@@ -218,7 +220,7 @@
 						class:active={isActive(item.href)}
 						aria-current={isActive(item.href) ? 'page' : undefined}
 					>
-						<span class="icon" aria-hidden="true">{item.icon}</span>
+						<span class="icon"><Icon name={item.icon} /></span>
 						<span>{item.label}</span>
 						{#if item.href === '/friends' && pendingFriends.count > 0}
 							<span class="sidebar-badge" aria-label={t('nav.aria.requests', { count: pendingFriends.count })}>{pendingFriends.count}</span>
@@ -251,7 +253,7 @@
 							<!-- Web: recargar ya trae el bundle nuevo tras un deploy. -->
 							<button class="update-nudge-cta" onclick={() => window.location.reload()}>{t('layout.update.cta')}</button>
 						{/if}
-						<button class="update-nudge-later" aria-label={t('layout.update.later')} onclick={() => updateDismissed = true}>✕</button>
+						<button class="update-nudge-later" aria-label={t('layout.update.later')} onclick={() => updateDismissed = true}><Icon name="close" /></button>
 					</div>
 				</div>
 			{:else if updateAvailable}
@@ -262,7 +264,7 @@
 			{/if}
 			{#if connectivity.isOffline}
 				<div class="offline-strip" role="alert" aria-live="assertive">
-					<span>⚽</span>
+					<Icon name="offline" />
 					<span>{t('layout.offline')}</span>
 				</div>
 			{/if}
@@ -302,30 +304,7 @@
 					class:active={page.url.pathname === link.href}
 					aria-current={page.url.pathname === link.href ? 'page' : undefined}
 				>
-					<!-- SVG icons por ruta -->
-					{#if link.href === '/'}
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<rect x="4" y="4" width="16" height="16" rx="4"
-								fill={page.url.pathname === '/' ? 'oklch(85% 0.17 160 / 0.2)' : 'none'}
-								stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-						</svg>
-					{:else if link.href === '/history'}
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-							<path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-						</svg>
-					{:else if link.href === '/recipes'}
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M12 7c-1.6-1.4-4-2-7-2v12c3 0 5.4.6 7 2c1.6-1.4 4-2 7-2V5c-3 0-5.4.6-7 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M12 7v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-						</svg>
-					{:else if link.href === '/settings'}
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-							<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-						</svg>
-					{/if}
+					<Icon name={link.icon} size={22} strokeWidth={1.8} />
 					<span>{link.label}</span>
 					{#if link.href === '/settings' && pendingFriends.count > 0}
 						<span class="nav-badge" aria-label={t('nav.aria.pendingRequests', { count: pendingFriends.count })}>

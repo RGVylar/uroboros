@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import { MOOD_ENERGY_ICON, MOOD_DIGESTION_ICON, MOOD_MOOD_ICON } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
@@ -51,19 +53,19 @@
 	}
 
 	let ENERGY = $derived([
-		{ level: 1 as MoodLevel, emoji: '🪫', label: t('mood.energy1') },
-		{ level: 2 as MoodLevel, emoji: '⚡', label: t('mood.energy2') },
-		{ level: 3 as MoodLevel, emoji: '🔥', label: t('mood.energy3') },
+		{ level: 1 as MoodLevel, icon: MOOD_ENERGY_ICON[1], label: t('mood.energy1') },
+		{ level: 2 as MoodLevel, icon: MOOD_ENERGY_ICON[2], label: t('mood.energy2') },
+		{ level: 3 as MoodLevel, icon: MOOD_ENERGY_ICON[3], label: t('mood.energy3') },
 	]);
 	let DIGESTION = $derived([
-		{ level: 1 as MoodLevel, emoji: '🤢', label: t('mood.digestion1') },
-		{ level: 2 as MoodLevel, emoji: '😐', label: t('mood.digestion2') },
-		{ level: 3 as MoodLevel, emoji: '✅', label: t('mood.digestion3') },
+		{ level: 1 as MoodLevel, icon: MOOD_DIGESTION_ICON[1], label: t('mood.digestion1') },
+		{ level: 2 as MoodLevel, icon: MOOD_DIGESTION_ICON[2], label: t('mood.digestion2') },
+		{ level: 3 as MoodLevel, icon: MOOD_DIGESTION_ICON[3], label: t('mood.digestion3') },
 	]);
 	let MOOD = $derived([
-		{ level: 1 as MoodLevel, emoji: '😞', label: t('mood.mood1') },
-		{ level: 2 as MoodLevel, emoji: '🙂', label: t('mood.mood2') },
-		{ level: 3 as MoodLevel, emoji: '😄', label: t('mood.mood3') },
+		{ level: 1 as MoodLevel, icon: MOOD_MOOD_ICON[1], label: t('mood.mood1') },
+		{ level: 2 as MoodLevel, icon: MOOD_MOOD_ICON[2], label: t('mood.mood2') },
+		{ level: 3 as MoodLevel, icon: MOOD_MOOD_ICON[3], label: t('mood.mood3') },
 	]);
 
 	const hasAny = $derived(energy !== null || digestion !== null || mood !== null);
@@ -107,7 +109,7 @@
 						aria-pressed={energy === opt.level}
 						onclick={() => energy = energy === opt.level ? null : opt.level}
 					>
-						<span class="opt-emoji">{opt.emoji}</span>
+						<span class="opt-emoji"><Icon name={opt.icon} /></span>
 						<span class="opt-label">{opt.label}</span>
 					</button>
 				{/each}
@@ -125,7 +127,7 @@
 						aria-pressed={digestion === opt.level}
 						onclick={() => digestion = digestion === opt.level ? null : opt.level}
 					>
-						<span class="opt-emoji">{opt.emoji}</span>
+						<span class="opt-emoji"><Icon name={opt.icon} /></span>
 						<span class="opt-label">{opt.label}</span>
 					</button>
 				{/each}
@@ -143,7 +145,7 @@
 						aria-pressed={mood === opt.level}
 						onclick={() => mood = mood === opt.level ? null : opt.level}
 					>
-						<span class="opt-emoji">{opt.emoji}</span>
+						<span class="opt-emoji"><Icon name={opt.icon} /></span>
 						<span class="opt-label">{opt.label}</span>
 					</button>
 				{/each}

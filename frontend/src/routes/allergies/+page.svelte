@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -8,22 +10,22 @@
 	if (!auth.isLoggedIn) goto('/login');
 
 	// La etiqueta sale de allergenLabel() y la nota de allergenNote.*; aquí solo
-	// van la clave (que viaja a la API) y el emoji.
+	// van la clave (que viaja a la API) y el icono.
 	const ALLERGENS = [
-		{ key: 'gluten',          emoji: '🌾' },
-		{ key: 'milk',            emoji: '🥛' },
-		{ key: 'eggs',            emoji: '🥚' },
-		{ key: 'peanuts',         emoji: '🥜' },
-		{ key: 'nuts',            emoji: '🌰' },
-		{ key: 'soybeans',        emoji: '🫘' },
-		{ key: 'fish',            emoji: '🐟' },
-		{ key: 'crustaceans',     emoji: '🦐' },
-		{ key: 'celery',          emoji: '🥬' },
-		{ key: 'mustard',         emoji: '🌿' },
-		{ key: 'sesame-seeds',    emoji: '🌱' },
-		{ key: 'sulphur-dioxide', emoji: '🍷' },
-		{ key: 'mollusks',        emoji: '🦑' },
-		{ key: 'lupin',           emoji: '🌻' },
+		{ key: 'gluten',          icon: 'grain' },
+		{ key: 'milk',            icon: 'milk' },
+		{ key: 'eggs',            icon: 'egg' },
+		{ key: 'peanuts',         icon: 'nut' },
+		{ key: 'nuts',            icon: 'treeNut' },
+		{ key: 'soybeans',        icon: 'bean' },
+		{ key: 'fish',            icon: 'fish' },
+		{ key: 'crustaceans',     icon: 'shrimp' },
+		{ key: 'celery',          icon: 'leaf' },
+		{ key: 'mustard',         icon: 'flower2' },
+		{ key: 'sesame-seeds',    icon: 'sprout' },
+		{ key: 'sulphur-dioxide', icon: 'wine' },
+		{ key: 'mollusks',        icon: 'shell' },
+		{ key: 'lupin',           icon: 'flower' },
 	] as const;
 
 	const NOTED = new Set(['gluten', 'milk', 'nuts', 'crustaceans', 'sulphur-dioxide']);
@@ -101,7 +103,7 @@
 
 	<!-- Info banner -->
 	<div class="banner">
-		<div class="banner-icon">⚠️</div>
+		<div class="banner-icon"><Icon name="warning" /></div>
 		<div class="banner-text">
 			<div class="banner-title">{t('allergies.autoDetect')}</div>
 			<div class="banner-sub">{t('allergies.autoDetectSub')}</div>
@@ -117,13 +119,13 @@
 				class:on
 				onclick={() => toggle(a.key)}
 			>
-				<div class="chip-icon" class:on>{a.emoji}</div>
+				<div class="chip-icon" class:on><Icon name={a.icon} /></div>
 				<div class="chip-texts">
 					<div class="chip-label">{allergenLabel(a.key)}</div>
 					{#if allergenNote(a.key)}<div class="chip-note">{allergenNote(a.key)}</div>{/if}
 				</div>
 				<div class="chip-check" class:on>
-					{#if on}✓{/if}
+					{#if on}<Icon name="check" strokeWidth={3} />{/if}
 				</div>
 			</button>
 		{/each}
@@ -142,7 +144,7 @@
 	</button>
 
 	<p class="disclaimer">
-		⚠️ Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
+		<Icon name="warning" /> Sistema orientativo basado en los ingredientes de Open Food Facts. Verifica siempre el etiquetado del producto.
 	</p>
 </div>
 

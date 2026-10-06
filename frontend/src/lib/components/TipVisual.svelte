@@ -6,6 +6,7 @@
   Es decorativo (aria-hidden): el texto del tip dice lo mismo.
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import type { TipId } from '$lib/stores/tips.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
@@ -108,7 +109,7 @@
 
 	{:else if id === 'recipe_sharing'}
 		<div class="row">
-			<span class="thumb">🥣</span>
+			<span class="thumb"><Icon name="breakfast" /></span>
 			<span class="row-main">
 				<span class="row-name">{t('tipv.recipeName')}</span>
 				<span class="row-sub">223 kcal · P8 C35 G4</span>
@@ -167,7 +168,7 @@
 			{#each [80, 72, 66, 'cheat', 90, null, null] as s, i}
 				<div class="day {s === 'cheat' ? 'cheat' : tone(s as number | null)}">
 					<span class="dl">{dow[i]}</span>
-					<span class="ds">{s === 'cheat' ? '🍕' : (s ?? '—')}</span>
+					<span class="ds">{#if s === 'cheat'}<Icon name="cheat" />{:else}{s ?? '—'}{/if}</span>
 				</div>
 			{/each}
 		</div>

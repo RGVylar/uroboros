@@ -29,6 +29,9 @@
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
 	import DayImpact from '$lib/components/DayImpact.svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import { productIcon } from '$lib/foodIcons';
+	import type { IconName } from '$lib/icons';
 	import RecipeAmount from '$lib/components/RecipeAmount.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
@@ -63,11 +66,11 @@
 	let recFocus = $state<'kcal' | 'protein' | 'carbs' | 'fat'>('kcal');
 
 	const recFocusOptions = [
-		{ value: 'kcal',    label: t('add.recKcal') },
-		{ value: 'protein', label: t('add.recProtein') },
-		{ value: 'carbs',   label: t('add.recCarbs') },
-		{ value: 'fat',     label: t('add.recFat') },
-	] as const;
+		{ value: 'kcal',    label: t('add.recKcal'),    icon: 'streak' },
+		{ value: 'protein', label: t('add.recProtein'), icon: 'meat' },
+		{ value: 'carbs',   label: t('add.recCarbs'),   icon: 'grain' },
+		{ value: 'fat',     label: t('add.recFat'),     icon: 'oil' },
+	] as const satisfies readonly { value: string; label: string; icon: IconName }[];
 
 	const recFocusSubtitle: Record<typeof recFocus, string> = {
 		kcal:    t('add.recSubKcal'),
@@ -916,21 +919,6 @@
 		return h;
 	}
 
-	function productGlyph(name: string): string {
-		const n = name.toLowerCase();
-		if (/avena|cereal|arroz|pan|pasta/.test(n)) return '🌾';
-		if (/pollo|pavo/.test(n)) return '🍗';
-		if (/leche|yogur|queso/.test(n)) return '🥛';
-		if (/huevo/.test(n)) return '🥚';
-		if (/manzana|plátano|fruta/.test(n)) return '🍎';
-		if (/jamón|ibérico|cerdo/.test(n)) return '🥩';
-		if (/aceite|oliva/.test(n)) return '🫒';
-		if (/cerveza/.test(n)) return '🍺';
-		if (/barra|tierna/.test(n)) return '🍞';
-		if (/kebab/.test(n)) return '🌯';
-		if (/atún/.test(n)) return '🐟';
-		return '🍽';
-	}
 
 	const QUICK_GRAMS = [50, 100, 150, 200, 250];
 	const QUICK_UNITS = [1, 2, 3, 4, 5];
@@ -1119,7 +1107,7 @@
 				class:share-badge-icon-also={shareMode === 'also'}
 				class:share-badge-icon-only={shareMode === 'only'}
 			>
-				{#if shareMode === null}👤{:else if shareMode === 'also'}👥{:else}<span style="font-size:0.625rem;">👤→</span>{/if}
+				{#if shareMode === null}<Icon name="user" />{:else if shareMode === 'also'}<Icon name="users" />{:else}<Icon name="forPartner" />{/if}
 			</div>
 			<div style="flex:1; min-width:0; text-align:left;">
 				{#if shareMode === null}
@@ -1144,11 +1132,11 @@
 							: 'rgba(255,255,255,0.12)'};
 				"></div>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
-					onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}>👤</button>
+					onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}><Icon name="user" /></button>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
-					onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}>👥</button>
+					onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}><Icon name="users" /></button>
 				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
-					onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}>👤→</button>
+					onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}><Icon name="forPartner" /></button>
 			</div>
 		</div>
 	{/if}
@@ -1164,7 +1152,7 @@
 	<!-- Allergy warning -->
 	{#if allergenWarnings.mine.length > 0 || allergenWarnings.partner.length > 0}
 		<div class="allergy-banner">
-			<div class="allergy-banner-icon">⚠️</div>
+			<div class="allergy-banner-icon"><Icon name="warning" /></div>
 			<div class="allergy-banner-body">
 				<div class="allergy-banner-title">{t('add.allergenDetected')}</div>
 				{#if allergenWarnings.mine.length > 0}
@@ -1190,7 +1178,7 @@
 	<!-- Aviso: la persona para la que registro ya tiene comida en este meal_type hoy -->
 	{#if shareMode !== null && mealConflict?.hasEntries && partner}
 		<div class="meal-conflict-banner">
-			<div class="meal-conflict-icon">🍽️</div>
+			<div class="meal-conflict-icon"><Icon name="meal" /></div>
 			<div class="meal-conflict-body">
 				<div class="meal-conflict-title">{t('add.conflictBanner', { name: partner.name, meal: mealLabel(mealType).toLowerCase() })}</div>
 				<div class="meal-conflict-detail">
@@ -1209,7 +1197,7 @@
 		{#if saving}
 			Guardando...
 		{:else if shareMode === 'also'}
-			Registrar · 👥
+			Registrar <Icon name="users" />
 		{:else if shareMode === 'only'}
 			Registrar solo para {partner?.name}
 		{:else}
@@ -1402,7 +1390,7 @@
 						Escanear otro
 					</button>
 					<button onclick={() => { barcodeNotFound = false; barcode = ''; showManual = true; }} class="filter-chip" style="flex:1;">
-						✏️ Crear manual
+						<Icon name="edit" /> Crear manual
 					</button>
 				</div>
 			</div>
@@ -1430,7 +1418,7 @@
 				onclick={stopWebScan}
 				style="position:absolute; top:0.5rem; right:0.5rem; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;"
 				aria-label={t('add.scanStop')}
-			>✕</button>
+			><Icon name="close" /></button>
 		</div>
 	{/if}
 
@@ -1439,7 +1427,7 @@
 		{@const totalKcal = quickRecipe.ingredients.reduce((s, i) => s + (i.product?.calories_per_100g ?? 0) * i.grams / 100, 0)}
 		<div class="glass-card" style="margin-bottom:0.875rem;">
 			<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.875rem;">
-				<div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;">🍳</div>
+				<div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;"><Icon name="cook" /></div>
 				<div style="flex:1; min-width:0;">
 					<div style="font-weight:700; font-size:0.9375rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{quickRecipe.name}</div>
 					<div style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:0.1rem;">
@@ -1450,7 +1438,7 @@
 					onclick={() => { quickRecipe = null; }}
 					aria-label="Cerrar"
 					style="width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.5); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.8rem;"
-				>✕</button>
+				><Icon name="close" /></button>
 			</div>
 			<div style="display:flex; gap:0.5rem;">
 				<button
@@ -1466,12 +1454,12 @@
 
 	<!-- Quick filter chips -->
 	<div style="display:flex; gap:0.5rem; margin-bottom:1.125rem; flex-wrap:wrap;">
-		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}>{t('add.tabSuggestions')}</button>
-		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}>{t('add.tabRecent')}{#if frequentFromCache}<span class="chip-offline-dot" title={t('add.offlineSaved')}>·</span>{/if}</button>
-		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}>{t('add.tabFavorites')}</button>
-		<button onclick={() => { activeFilter = 'recipes'; loadRecipesTab(); }}    class="filter-chip" class:filter-chip-active={activeFilter === 'recipes'}>{t('add.tabRecipes')}</button>
-		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}>{t('add.tabInventory')}</button>
-		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip">{t('add.tabManual')}</button>
+		<button onclick={() => { activeFilter = 'suggestions'; }} class="filter-chip" class:filter-chip-active={activeFilter === 'suggestions'}><Icon name="quick" /> {t('add.tabSuggestions')}</button>
+		<button onclick={() => { activeFilter = 'recent'; }}      class="filter-chip" class:filter-chip-active={activeFilter === 'recent'}><Icon name="recent" /> {t('add.tabRecent')}{#if frequentFromCache}<span class="chip-offline-dot" title={t('add.offlineSaved')}>·</span>{/if}</button>
+		<button onclick={() => { activeFilter = 'favorites'; }}   class="filter-chip" class:filter-chip-active={activeFilter === 'favorites'}><Icon name="star" /> {t('add.tabFavorites')}</button>
+		<button onclick={() => { activeFilter = 'recipes'; loadRecipesTab(); }}    class="filter-chip" class:filter-chip-active={activeFilter === 'recipes'}><Icon name="cook" /> {t('add.tabRecipes')}</button>
+		<button onclick={() => { activeFilter = 'inventory'; loadInventoryTab(); }} class="filter-chip" class:filter-chip-active={activeFilter === 'inventory'}><Icon name="inventory" /> {t('add.tabInventory')}</button>
+		<button onclick={() => { activeFilter = 'manual'; showManual = true; }} class="filter-chip"><Icon name="edit" /> {t('add.tabManual')}</button>
 	</div>
 
 	<!-- Results section (when query) -->
@@ -1483,7 +1471,7 @@
 		{:else if searched && results.length === 0}
 			<div class="loading-row" style="color:rgba(255,255,255,0.35);">
 				<div>Sin resultados para «{query}»</div>
-				<button onclick={() => { showManual = true; }} class="filter-chip" style="margin-top:0.625rem;">{t('add.createManual')}</button>
+				<button onclick={() => { showManual = true; }} class="filter-chip" style="margin-top:0.625rem;"><Icon name="edit" /> {t('add.createManual')}</button>
 			</div>
 		{:else if results.length > 0}
 			<div class="section-header">
@@ -1499,7 +1487,7 @@
 					>
 						<div class="product-avatar" style="
 							background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));
-						">{productGlyph(product.name)}</div>
+						"><Icon name={productIcon(product.name)} /></div>
 						<div style="flex:1; min-width:0; text-align:left;">
 							<div class="product-name">{product.name}</div>
 							<div class="product-brand">{brandLabel(product)}</div>
@@ -1531,7 +1519,7 @@
 						onclick={() => setRecFocus(opt.value)}
 						aria-pressed={recFocus === opt.value}
 						style="padding:0.3rem 0.7rem; border-radius:99px; font-size:0.6875rem; font-weight:{recFocus === opt.value ? '700' : '400'}; border:1px solid {recFocus === opt.value ? 'oklch(80% 0.17 165 / 0.6)' : 'rgba(255,255,255,0.1)'}; background:{recFocus === opt.value ? 'oklch(75% 0.18 165 / 0.15)' : 'rgba(255,255,255,0.04)'}; color:{recFocus === opt.value ? 'oklch(85% 0.17 165)' : 'rgba(255,255,255,0.55)'}; box-shadow:none; cursor:pointer; font-family:inherit; transition:all 0.15s;">
-						{opt.label}
+						<Icon name={opt.icon} /> {opt.label}
 					</button>
 				{/each}
 			</div>
@@ -1547,7 +1535,7 @@
 				<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
 					{#each recommendations as rec (rec.product.id)}
 						<button class="product-row" onclick={() => selectProduct(rec.product)}>
-							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(rec.product.name)} / 0.35), oklch(60% 0.12 {hashHue(rec.product.name)} / 0.15));">{productGlyph(rec.product.name)}</div>
+							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(rec.product.name)} / 0.35), oklch(60% 0.12 {hashHue(rec.product.name)} / 0.15));"><Icon name={productIcon(rec.product.name)} /></div>
 							<div style="flex:1; min-width:0; text-align:left;">
 								<div class="product-name">{rec.product.name}</div>
 								<div class="product-brand">{recReason(rec)}</div>
@@ -1566,7 +1554,7 @@
 				</div>
 			{:else}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
-					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⚡</div>
+					<div style="font-size:1.5rem; margin-bottom:0.5rem;"><Icon name="quick" /></div>
 					<div>{t('add.recsEmpty')}</div>
 					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.recsEmptySub')}</div>
 				</div>
@@ -1577,7 +1565,7 @@
 		{#if activeFilter === 'favorites'}
 			{#if favorites.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">
-					<div style="font-size:1.5rem; margin-bottom:0.5rem;">⭐</div>
+					<div style="font-size:1.5rem; margin-bottom:0.5rem;"><Icon name="star" /></div>
 					<div>{t('add.favEmpty')}</div>
 					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.favEmptySub')}</div>
 				</div>
@@ -1592,7 +1580,7 @@
 					{#each favorites as product (product.id)}
 						<div class="fav-row-wrap">
 							<button class="product-row" onclick={() => selectProduct(product)}>
-								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));"><Icon name={productIcon(product.name)} /></div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{product.name}</div>
 									<div class="product-brand">{brandLabel(product)}</div>
@@ -1607,7 +1595,7 @@
 								onclick={() => toggleFavorite(product.id)}
 								aria-label={t('add.favRemove')}
 								disabled={favoriteToggling}
-							>★</button>
+							><Icon name="star" fill="currentColor" /></button>
 						</div>
 					{/each}
 				</div>
@@ -1620,7 +1608,7 @@
 				<div class="loading-row">{t('add.loadingRecipes')}</div>
 			{:else if allRecipes.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
-					<div style="font-size:2rem; margin-bottom:0.375rem;">🍳</div>
+					<div style="font-size:2rem; margin-bottom:0.375rem;"><Icon name="cook" /></div>
 					<div>{t('add.recipesEmpty')}</div>
 					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.recipesEmptySub')}</div>
 				</div>
@@ -1635,7 +1623,7 @@
 					{#each allRecipes as recipe (recipe.id)}
 						{@const totalKcal = recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
 						<button class="product-row" onclick={() => logRecipe(recipe)} disabled={saving}>
-							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
+							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));"><Icon name="cook" /></div>
 							<div style="flex:1; min-width:0; text-align:left;">
 								<div class="product-name">{recipe.name}</div>
 								<div class="product-brand">{recipe.ingredients.length} ingredientes · {Math.round(weightOf(recipe))} g</div>
@@ -1656,7 +1644,7 @@
 				<div class="loading-row">{t('add.loadingInventory')}</div>
 			{:else if inventoryItems.length === 0}
 				<div class="loading-row" style="color:rgba(255,255,255,0.35); text-align:center; padding:1.5rem 0;">
-					<div style="font-size:2rem; margin-bottom:0.375rem;">📦</div>
+					<div style="font-size:2rem; margin-bottom:0.375rem;"><Icon name="empty" /></div>
 					<div>{t('add.inventoryEmpty')}</div>
 					<div style="font-size:0.7rem; margin-top:0.25rem; opacity:0.6;">{t('add.inventoryEmptySub')}</div>
 				</div>
@@ -1674,7 +1662,7 @@
 							onclick={() => selectFromInventory(item)}
 						>
 							<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(item.product_name)} / 0.35), oklch(60% 0.12 {hashHue(item.product_name)} / 0.15));">
-								{item.location === 'fridge' ? '❄️' : item.location === 'freezer' ? '🧊' : '🏠'}
+								<Icon name={item.location === 'fridge' ? 'fridge' : item.location === 'freezer' ? 'freezer' : 'home'} />
 							</div>
 							<div style="flex:1; min-width:0; text-align:left;">
 								<div class="product-name">{item.product_name}</div>
@@ -1700,7 +1688,7 @@
 				<div class="loading-row" style="color:rgba(255,255,255,0.35);">{t('add.historyEmpty')}</div>
 			{:else}
 				{#if frequentFromCache}
-					<div class="offline-cache-notice">{t('add.historyOffline')}</div>
+					<div class="offline-cache-notice"><Icon name="offline" /> {t('add.historyOffline')}</div>
 				{/if}
 				<!-- Header con toggle de orden -->
 				<div class="section-header">
@@ -1712,7 +1700,7 @@
 						<button
 							onclick={() => sortOrder = 'frequency'}
 							style="padding:0.25rem 0.625rem; border-radius:99px; border:none; cursor:pointer; font-family:inherit; font-size:0.6875rem; font-weight:700; background:{sortOrder==='frequency' ? 'rgba(255,255,255,0.12)' : 'transparent'}; color:{sortOrder==='frequency' ? '#fff' : 'rgba(255,255,255,0.45)'};">
-							🕒
+							<Icon name="recent" />
 						</button>
 						<button
 							onclick={() => sortOrder = 'alpha'}
@@ -1728,7 +1716,7 @@
 						{#each frequentRecipes as f (f.recipe.id)}
 							{@const totalKcal = f.recipe.ingredients.reduce((sum, ing) => sum + (ing.product?.calories_per_100g ?? 0) * ing.grams / 100, 0)}
 							<button class="product-row" onclick={() => logRecipe(f.recipe)} disabled={saving}>
-								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));">🍳</div>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(75% 0.15 160 / 0.3), oklch(60% 0.15 160 / 0.15));"><Icon name="cook" /></div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{f.recipe.name}</div>
 									<div class="product-brand">{f.recipe.ingredients.length} ingredientes · {Math.round(weightOf(f.recipe))} g</div>
@@ -1748,7 +1736,7 @@
 					<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
 						{#each sortedFrequentProducts as product (product.id)}
 							<button class="product-row" onclick={() => selectProduct(product)}>
-								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+								<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));"><Icon name={productIcon(product.name)} /></div>
 								<div style="flex:1; min-width:0; text-align:left;">
 									<div class="product-name">{product.name}</div>
 									<div class="product-brand">{brandLabel(product)}</div>
@@ -1768,7 +1756,7 @@
 							<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
 								{#each group.products as product (product.id)}
 									<button class="product-row" onclick={() => selectProduct(product)}>
-										<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));">{productGlyph(product.name)}</div>
+										<div class="product-avatar" style="background: linear-gradient(135deg, oklch(78% 0.12 {hashHue(product.name)} / 0.35), oklch(60% 0.12 {hashHue(product.name)} / 0.15));"><Icon name={productIcon(product.name)} /></div>
 										<div style="flex:1; min-width:0; text-align:left;">
 											<div class="product-name">{product.name}</div>
 											<div class="product-brand">{brandLabel(product)}</div>
@@ -1799,7 +1787,7 @@
 		onclick={dismissConsumePrompt}
 	></div>
 	<div class="consume-prompt" role="dialog" aria-modal="true">
-		<div class="consume-prompt-icon">📦</div>
+		<div class="consume-prompt-icon"><Icon name="inventory" /></div>
 		<h2 class="consume-prompt-title">{t('add.consumeFromInventory')}</h2>
 		<p class="consume-prompt-sub">
 			Tienes <strong>{inventoryMatch.product_name}</strong> en tu inventario.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { api } from '$lib/api';
@@ -51,34 +52,34 @@
 <div class="backdrop" onclick={dismiss} role="presentation"></div>
 
 <div class="modal" role="dialog" aria-modal="true" aria-label={t('notifModal.enableAria')}>
-	<div class="modal-icon">🔔</div>
+	<div class="modal-icon"><Icon name="bell" /></div>
 	<h2 class="modal-title">{t('notifModal.title')}</h2>
 	<p class="modal-sub">{t('notifModal.sub')}</p>
 
 	<ul class="feature-list">
 		<li>
-			<span class="feat-emoji">🍳</span>
+			<span class="feat-emoji"><Icon name="breakfast" /></span>
 			<div>
 				<strong>{t('notifModal.meal')}</strong>
 				<span>{t('notifModal.mealSub')}</span>
 			</div>
 		</li>
 		<li>
-			<span class="feat-emoji">🔥</span>
+			<span class="feat-emoji"><Icon name="streak" /></span>
 			<div>
 				<strong>{t('notifModal.streak')}</strong>
 				<span>{t('notifModal.streakSub')}</span>
 			</div>
 		</li>
 		<li>
-			<span class="feat-emoji">🏆</span>
+			<span class="feat-emoji"><Icon name="trophy" /></span>
 			<div>
 				<strong>{t('notifModal.milestones')}</strong>
 				<span>{t('notifModal.milestonesSub')}</span>
 			</div>
 		</li>
 		<li>
-			<span class="feat-emoji">📊</span>
+			<span class="feat-emoji"><Icon name="stats" /></span>
 			<div>
 				<strong>{t('notifModal.summary')}</strong>
 				<span>{t('notifModal.summarySub')}</span>
@@ -102,7 +103,7 @@
 
 	<div class="modal-actions">
 		<button class="btn-activate" onclick={activate} disabled={loading}>
-			{loading ? t('notifModal.enabling') : t('notifModal.enable')}
+			{#if !loading}<Icon name="bell" /> {/if}{loading ? t('notifModal.enabling') : t('notifModal.enable')}
 		</button>
 		<button class="btn-dismiss" onclick={dismiss}>{t('notifModal.notNow')}</button>
 	</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { MEASUREMENT_FIELDS } from '$lib/measurements';
@@ -172,7 +173,7 @@
 
 <!-- Page header -->
 <div class="trk-header">
-	<button class="trk-back" aria-label={t('screenHeader.back')} onclick={() => goto('/settings')}>←</button>
+	<button class="trk-back" aria-label={t('screenHeader.back')} onclick={() => goto('/settings')}><Icon name="back" /></button>
 	<div style="flex:1; min-width:0;">
 		<h1 class="trk-title">{t('meas.title')}</h1>
 		<div class="trk-sub">{t('meas.subtitle')}</div>
@@ -357,7 +358,7 @@
 					{/each}
 				</div>
 			</div>
-			<button class="del-btn" onclick={() => deleteLog(row.id)} aria-label={t('meas.deleteAria')}>✕</button>
+			<button class="del-btn" onclick={() => deleteLog(row.id)} aria-label={t('meas.deleteAria')}><Icon name="close" /></button>
 		</div>
 	{/each}
 </div>

@@ -1,10 +1,11 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { modules } from '$lib/stores/modules.svelte';
 	import { api } from '$lib/api';
 	import type { DaySummary, Goals, MoodEntry } from '$lib/types';
-	import { MOOD_WORST_EMOJI } from '$lib/types';
+	import { MOOD_WORST_ICON } from '$lib/types';
 	import { MealHeader } from '$lib/components';
 	import PaywallCard from '$lib/components/uro/PaywallCard.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
@@ -458,7 +459,7 @@
 				text-align:center;
 			"
 		>
-			{locked ? t('history.lockedDays') : t('history.daysN', { count: days })}
+			{#if locked}<Icon name="lock" /> {/if}{locked ? t('history.lockedDays') : t('history.daysN', { count: days })}
 		</button>
 	{/each}
 </div>
@@ -582,7 +583,7 @@
 						onclick={copyDayToClipboard}
 						aria-label={t('history.copyDayAria')}
 						style="background:none; border:none; box-shadow:none; padding:0; font-size:0.75rem; color:oklch(85% 0.17 160); cursor:pointer; font-family:inherit; font-weight:600;"
-					>📋 {t('history.copy')}</button>
+					><Icon name="copy" /> {t('history.copy')}</button>
 				{/if}
 				<a href="/" onclick={() => { localStorage.setItem('diaryDate', selectedDay ?? ''); }} style="font-size:0.75rem; color:oklch(85% 0.17 160);">{t('history.seeDiary')}</a>
 			</div>
@@ -633,7 +634,7 @@
 			{/each}
 		{:else}
 			<div style="text-align:center; padding:2rem 0; color:rgba(255,255,255,0.4); font-size:0.85rem;">
-				<div style="font-size:2rem; margin-bottom:0.5rem;">📅</div>
+				<div style="font-size:2rem; margin-bottom:0.5rem; color:var(--text-faint);"><Icon name="history" strokeWidth={1.5} /></div>
 				{t('history.noEntriesDay')}
 			</div>
 		{/if}
@@ -685,13 +686,13 @@
 								<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
 							{/if}
 							{#if tookCreatine}
-								<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;">💊</span>
+								<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;"><Icon name="supplements" /></span>
 							{/if}
 							{#if didExercise}
-								<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;">💪</span>
+								<span style="position:absolute; top:1px; left:2px; font-size:0.55rem; line-height:1;"><Icon name="exercise" /></span>
 							{/if}
 							{#if moodLevel != null}
-								<span style="position:absolute; bottom:1px; right:2px; font-size:0.55rem; line-height:1;">{MOOD_WORST_EMOJI[moodLevel]}</span>
+								<span style="position:absolute; bottom:1px; right:2px; font-size:0.55rem; line-height:1;"><Icon name={MOOD_WORST_ICON[moodLevel]} /></span>
 							{/if}
 						</button>
 					{/if}
@@ -708,9 +709,9 @@
 				{lbl}
 			</span>
 		{/each}
-		{#if suppEnabled}<span>{t('history.legendSupplements')}</span>{/if}
-		<span>{t('history.legendExercise')}</span>
-		{#if moodEnabled}<span>{t('history.legendMood')}</span>{/if}
+		{#if suppEnabled}<span><Icon name="supplements" /> {t('history.legendSupplements')}</span>{/if}
+		<span><Icon name="exercise" /> {t('history.legendExercise')}</span>
+		{#if moodEnabled}<span><Icon name="mood" /> {t('history.legendMood')}</span>{/if}
 	</div>
 
 	{#if subscription.is_premium}

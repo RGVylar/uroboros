@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../Icon.svelte';
 	import { t, tc } from '$lib/i18n/index.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 
@@ -9,7 +10,7 @@
 
 {#if visible}
 	<div class="banner">
-		<span class="emoji">⏳</span>
+		<span class="emoji"><Icon name="trial" /></span>
 		<span class="text">
 			{#if days === 0}
 				{t('trial.endsToday')}

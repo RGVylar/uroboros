@@ -4,7 +4,7 @@
 
   Uso:
     <EmptyState
-      icon="🥣"
+      icon="meal"
       title="Sin registros"
       description="Añade tu primera comida del día"
       actionLabel="Añadir comida"
@@ -12,8 +12,11 @@
     />
 -->
 <script lang="ts">
+	import Icon from './Icon.svelte';
+	import type { IconName } from '$lib/icons';
+
 	interface Props {
-		icon?: string;
+		icon?: IconName;
 		title: string;
 		description?: string;
 		actionLabel?: string;
@@ -21,7 +24,7 @@
 		onAction?: () => void;
 	}
 	let {
-		icon = '',
+		icon,
 		title,
 		description,
 		actionLabel,
@@ -31,7 +34,7 @@
 </script>
 
 <div class="empty">
-	{#if icon}<div class="icon" aria-hidden="true">{icon}</div>{/if}
+	{#if icon}<div class="icon"><Icon name={icon} size="1em" strokeWidth={1.5} /></div>{/if}
 	<div class="title">{title}</div>
 	{#if description}<div class="desc">{description}</div>{/if}
 	{#if actionLabel}
@@ -52,8 +55,7 @@
 	.icon {
 		font-size: 2.5rem;
 		margin-bottom: 0.5rem;
-		filter: grayscale(0.2);
-		opacity: 0.8;
+		color: var(--text-faint);
 	}
 	.title {
 		font-size: 1rem;

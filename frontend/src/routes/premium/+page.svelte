@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
@@ -8,15 +10,15 @@
 	// NOT here yet: Google Play rejects apps that show prices with a buy button
 	// that doesn't complete a purchase. Billing (Play Billing / RevenueCat) will
 	// be wired up in a later version — until then this is a "coming soon" page.
-	let premiumFeatures = $derived([
-		{ emoji: '📈', text: t('premium.feat1') },
-		{ emoji: '💪', text: t('premium.feat2') },
-		{ emoji: '📏', text: t('premium.feat3') },
-		{ emoji: '🛒', text: t('premium.feat4') },
-		{ emoji: '📖', text: t('premium.feat5') },
-		{ emoji: '🔥', text: t('premium.feat6') },
-		{ emoji: '📤', text: t('premium.feat7') },
-		{ emoji: '♾️', text: t('premium.feat8') },
+	let premiumFeatures = $derived<{ icon: IconName; text: string }[]>([
+		{ icon: 'trend', text: t('premium.feat1') },
+		{ icon: 'exercise', text: t('premium.feat2') },
+		{ icon: 'measurements', text: t('premium.feat3') },
+		{ icon: 'shopping', text: t('premium.feat4') },
+		{ icon: 'recipes', text: t('premium.feat5') },
+		{ icon: 'streak', text: t('premium.feat6') },
+		{ icon: 'share', text: t('premium.feat7') },
+		{ icon: 'unlimited', text: t('premium.feat8') },
 	]);
 </script>
 
@@ -31,7 +33,7 @@
 
 	<!-- Header -->
 	<div class="hero">
-		<div class="crown">👑</div>
+		<div class="crown"><Icon name="premium" /></div>
 		<h1>uroboros <span class="premium-label">Premium</span></h1>
 		<p class="sub">{t('premium.tagline')}</p>
 	</div>
@@ -39,14 +41,14 @@
 	{#if subscription.is_premium}
 		<!-- Grandfathered / premium users already have everything -->
 		<div class="status-box ok">
-			<div class="status-title">{t('premium.haveAccess')}</div>
-			<div class="status-sub">{subscription.launch_access ? t('premium.launchAccessSub') : t('premium.haveAccessSub')}</div>
+			<div class="status-title"><Icon name="success" /> {t('premium.haveAccess')}</div>
+			<div class="status-sub">{subscription.launch_access ? t('premium.launchAccessSub') : t('premium.haveAccessSub')}{#if !subscription.launch_access} <Icon name="partner" fill="currentColor" />{/if}</div>
 		</div>
 
 		<div class="features">
 			{#each premiumFeatures as f}
 				<div class="feature-row">
-					<span class="feature-emoji">{f.emoji}</span>
+					<span class="feature-emoji"><Icon name={f.icon} /></span>
 					<span class="feature-text">{f.text}</span>
 				</div>
 			{/each}
@@ -54,16 +56,16 @@
 	{:else}
 		<!-- Free users: teaser of what's coming -->
 		<div class="status-box soon">
-			<div class="status-title">{t('premium.soon')}</div>
+			<div class="status-title"><Icon name="sparkles" /> {t('premium.soon')}</div>
 			<div class="status-sub">{t('premium.soonSub')}</div>
 		</div>
 
 		<div class="features">
 			{#each premiumFeatures as f}
 				<div class="feature-row locked">
-					<span class="feature-emoji">{f.emoji}</span>
+					<span class="feature-emoji"><Icon name={f.icon} /></span>
 					<span class="feature-text">{f.text}</span>
-					<span class="lock">🔒</span>
+					<span class="lock"><Icon name="lock" /></span>
 				</div>
 			{/each}
 		</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InventoryLocation } from '$lib/types';
 
@@ -10,10 +12,10 @@
 
 	let { location = $bindable('pantry'), size = 'md', label }: Props = $props();
 
-	let OPTIONS: { value: InventoryLocation; label: string; emoji: string }[] = $derived([
-		{ value: 'pantry',   label: t('location.pantry'),   emoji: '🏠' },
-		{ value: 'fridge',   label: t('location.fridge'),   emoji: '❄️' },
-		{ value: 'freezer',  label: t('location.freezer'),  emoji: '🧊' },
+	let OPTIONS: { value: InventoryLocation; label: string; icon: IconName }[] = $derived([
+		{ value: 'pantry',   label: t('location.pantry'),   icon: 'home' },
+		{ value: 'fridge',   label: t('location.fridge'),   icon: 'fridge' },
+		{ value: 'freezer',  label: t('location.freezer'),  icon: 'freezer' },
 	]);
 </script>
 
@@ -30,7 +32,7 @@
 				onclick={() => (location = opt.value)}
 				aria-label={t('location.aria', { label: opt.label })}
 			>
-				<span class="loc-emoji">{opt.emoji}</span>
+				<span class="loc-emoji"><Icon name={opt.icon} /></span>
 				<span>{opt.label}</span>
 			</button>
 		{/each}

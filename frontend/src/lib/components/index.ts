@@ -17,3 +17,4 @@ export { default as DuelBoard } from './DuelBoard.svelte';
 export { default as RecipeAmount } from './RecipeAmount.svelte';
 export { default as RecipeCardEditor } from './RecipeCardEditor.svelte';
 export { default as BugReportModal } from './BugReportModal.svelte';
+export { default as Icon } from './Icon.svelte';

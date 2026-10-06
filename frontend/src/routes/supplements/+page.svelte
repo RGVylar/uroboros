@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -103,7 +104,7 @@
 
 	<!-- Master toggle -->
 	<div class="master">
-		<div class="master-icon" class:on={enabled}>💊</div>
+		<div class="master-icon" class:on={enabled}><Icon name="supplements" /></div>
 		<div class="master-text">
 			<div class="master-title">{t('supp.showInDiary')}</div>
 			<div class="master-sub">{t('supp.showInDiarySub')}</div>
@@ -120,12 +121,12 @@
 				{#each supplements as s (s.id)}
 					<GlassCard padding={14}>
 						<div class="row-head">
-							<div class="row-icon">💊</div>
+							<div class="row-icon"><Icon name="supplements" /></div>
 							<div class="row-texts">
 								<div class="row-name">{s.name}</div>
 								<div class="row-sub">{dayLabel(s.days_of_week)}</div>
 							</div>
-							<button class="row-remove" onclick={() => remove(s.id)} aria-label={t('supp.deleteAria')}>✕</button>
+							<button class="row-remove" onclick={() => remove(s.id)} aria-label={t('supp.deleteAria')}><Icon name="close" /></button>
 						</div>
 						<div class="days">
 							{#each DAY_LABELS as l, d}
@@ -138,7 +139,7 @@
 			</div>
 		{:else}
 			<div class="empty">
-				<div class="empty-icon">💊</div>
+				<div class="empty-icon"><Icon name="supplements" strokeWidth={1.5} /></div>
 				<div class="empty-title">{t('supp.empty')}</div>
 				<div class="empty-sub">{t('supp.emptySub')}</div>
 			</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	// Alias: el bucle de abajo ya usa `t` para cada toast.
 	import { t as tr } from '$lib/i18n/index.svelte';
@@ -9,10 +10,10 @@
 		{#each toast.toasts as t (t.id)}
 			<div class="toast toast--{t.type}" role="alert">
 				<span class="toast-icon">
-					{#if t.type === 'error'}✕{:else if t.type === 'success'}✓{:else}i{/if}
+					<Icon name={t.type === 'error' ? 'close' : t.type === 'success' ? 'check' : 'info'} strokeWidth={3} />
 				</span>
 				<span class="toast-msg">{t.message}</span>
-				<button class="toast-close" onclick={() => toast.remove(t.id)} aria-label={tr('common.close')}>×</button>
+				<button class="toast-close" onclick={() => toast.remove(t.id)} aria-label={tr('common.close')}><Icon name="close" /></button>
 			</div>
 		{/each}
 	</div>

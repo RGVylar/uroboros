@@ -6,30 +6,29 @@ import { MEDIA_BASE } from '$lib/api';
 
 export interface AvatarOption {
 	id: string;
-	emoji: string;
 }
 
 // El id es lo que se guarda en la BD y nombra el fichero de imagen: no se
 // traduce nunca. El nombre visible sale de avatarLabel() del módulo i18n.
 export const AVATARS: AvatarOption[] = [
-	{ id: 'aguacate', emoji: '🥑' },
-	{ id: 'sushi', emoji: '🍣' },
-	{ id: 'fresa', emoji: '🍓' },
-	{ id: 'taco', emoji: '🌮' },
-	{ id: 'brocoli', emoji: '🥦' },
-	{ id: 'huevo', emoji: '🍳' },
-	{ id: 'ramen', emoji: '🍜' },
-	{ id: 'sandia', emoji: '🍉' },
-	{ id: 'cafe', emoji: '☕' },
-	{ id: 'pizza', emoji: '🍕' },
-	{ id: 'pepinillo', emoji: '🥒' },
-	{ id: 'donut', emoji: '🍩' },
-	{ id: 'pulpo', emoji: '🐙' },
-	{ id: 'tostada', emoji: '🍞' },
-	{ id: 'lata', emoji: '🥫' },
-	{ id: 'chile', emoji: '🌶️' },
-	{ id: 'gelatina', emoji: '🧠' },
-	{ id: 'queso', emoji: '🧀' },
+	{ id: 'aguacate' },
+	{ id: 'sushi' },
+	{ id: 'fresa' },
+	{ id: 'taco' },
+	{ id: 'brocoli' },
+	{ id: 'huevo' },
+	{ id: 'ramen' },
+	{ id: 'sandia' },
+	{ id: 'cafe' },
+	{ id: 'pizza' },
+	{ id: 'pepinillo' },
+	{ id: 'donut' },
+	{ id: 'pulpo' },
+	{ id: 'tostada' },
+	{ id: 'lata' },
+	{ id: 'chile' },
+	{ id: 'gelatina' },
+	{ id: 'queso' },
 ];
 
 const AVATAR_IDS = new Set(AVATARS.map((a) => a.id));

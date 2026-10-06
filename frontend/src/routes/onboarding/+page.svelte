@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
+	import type { IconName } from '$lib/icons';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { api } from '$lib/api';
@@ -24,9 +26,9 @@
 	let saving = $state(false);
 
 	let objectives = $derived([
-		{ key: 'lose'     as const, emoji: '🔥', label: t('onb.objLose'),     sub: t('onb.objLoseSub'),     kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
-		{ key: 'maintain' as const, emoji: '⚖️', label: t('onb.objMaintain'), sub: t('onb.objMaintainSub'), kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hue: 165 },
-		{ key: 'gain'     as const, emoji: '💪', label: t('onb.objGain'),     sub: t('onb.objGainSub'),     kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hue: 220 },
+		{ key: 'lose'     as const, icon: 'trendDown' as IconName, label: t('onb.objLose'),     sub: t('onb.objLoseSub'),     kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
+		{ key: 'maintain' as const, icon: 'weight' as IconName, label: t('onb.objMaintain'), sub: t('onb.objMaintainSub'), kcalDelta:    0, pPct: 0.30, cPct: 0.40, fPct: 0.30, hue: 165 },
+		{ key: 'gain'     as const, icon: 'exercise' as IconName, label: t('onb.objGain'),     sub: t('onb.objGainSub'),     kcalDelta: +300, pPct: 0.30, cPct: 0.45, fPct: 0.25, hue: 220 },
 	]);
 
 	let activities = $derived([
@@ -140,12 +142,12 @@
 						style:--hue={o.hue}
 						onclick={() => objective = o.key}
 					>
-						<div class="opt-icon">{o.emoji}</div>
+						<div class="opt-icon"><Icon name={o.icon} /></div>
 						<div class="opt-texts">
 							<div class="opt-label">{o.label}</div>
 							<div class="opt-sub">{o.sub}</div>
 						</div>
-						<div class="opt-check">{active ? '✓' : ''}</div>
+						<div class="opt-check">{#if active}<Icon name="check" strokeWidth={3} />{/if}</div>
 					</button>
 				{/each}
 			</div>
@@ -156,10 +158,10 @@
 			<p class="sub">{t('onb.aboutYouSub')}</p>
 
 			<div class="sex-grid">
-				{#each [{ k: 'male' as const, l: t('onb.male'), e: '♂' }, { k: 'female' as const, l: t('onb.female'), e: '♀' }] as s}
+				{#each [{ k: 'male' as const, l: t('onb.male'), e: 'male' as const }, { k: 'female' as const, l: t('onb.female'), e: 'female' as const }] as s}
 					{@const a = bodySex === s.k}
 					<button class="sex-card" class:active={a} onclick={() => bodySex = s.k}>
-						<span class="sex-glyph">{s.e}</span>
+						<span class="sex-glyph"><Icon name={s.e} /></span>
 						<span class="sex-label">{s.l}</span>
 					</button>
 				{/each}
@@ -190,7 +192,7 @@
 
 			<GlassCard padding={20}>
 				<div class="summary">
-					<div class="summary-pill">{objMeta.emoji} {objMeta.label}</div>
+					<div class="summary-pill"><Icon name={objMeta.icon} /> {objMeta.label}</div>
 					<div class="summary-kcal">{calculated.kcal}</div>
 					<div class="summary-tdee">{t('onb.kcalDay', { tdee: calculated.tdee })}</div>
 				</div>
@@ -226,7 +228,7 @@
 		<!-- Step 6: Listo -->
 		{:else if step === 6}
 			<div class="center">
-				<div class="check-big">✓</div>
+				<div class="check-big"><Icon name="check" strokeWidth={3} /></div>
 				<h1 class="serif">{t('onb.doneTitle')}</h1>
 				<p class="sub">{t('onb.doneSub')}</p>
 			</div>

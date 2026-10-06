@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import { goto } from '$app/navigation';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 
@@ -80,7 +81,7 @@
 		<h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.75rem;">4. Aviso médico importante</h2>
 		<div style="background:oklch(75% 0.18 30 / 0.1); border:1px solid oklch(75% 0.18 30 / 0.25); border-radius:12px; padding:1rem; margin-bottom:0.75rem;">
 			<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.85); font-weight:600;">
-				⚠️ {appName} <strong>NO es un servicio médico</strong>.
+				<Icon name="warning" /> {appName} <strong>NO es un servicio médico</strong>.
 			</p>
 		</div>
 		<p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
