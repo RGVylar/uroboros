@@ -46,10 +46,14 @@
 	// cuando los pasos ocupan ese hueco.
 	const SUPP_COL = 'padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;';
 	const SUPP_ROW = 'padding:0.6rem 0.85rem; display:flex; flex-direction:row; align-items:center; gap:0.75rem; text-align:left;';
-	// La tarjeta sale si hay algo que enseñar, o si hoy está conectado y aún
-	// no ha llegado la primera lectura ("—").
+	// En la APK de Android manda el interruptor de Ajustes: desactivado, la
+	// tarjeta desaparece aunque queden pasos guardados. Activado, sale aunque
+	// aún no haya lectura ("—"). Donde no se pueden leer pasos (web, iPhone)
+	// sale solo si hay datos subidos desde un Android.
 	let showSteps = $derived(
-		steps !== null || stepsWeek.some((v) => v !== null) || (health.enabled && isToday),
+		health.supported
+			? health.enabled
+			: steps !== null || stepsWeek.some((v) => v !== null),
 	);
 	// Altura de cada barra (0..1) contra el máximo entre el objetivo y el mejor
 	// día: así la línea del objetivo se queda dentro de la tarjeta.
