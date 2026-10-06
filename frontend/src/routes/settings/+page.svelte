@@ -9,6 +9,8 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
 	import { modules } from '$lib/stores/modules.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
+	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { APP_VERSION, UPDATE_URL, isNewerVersion } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
 	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
@@ -267,6 +269,7 @@
 		savingMacroMode = true;
 		try {
 			goals = await api.put<Goals>('/goals', { ...goals, macro_adjust_mode: mode });
+			if (mode !== 'off') tips.request('macro_adjust');
 		} catch {
 			toast.error(t('settings.errSaveConfig'));
 		} finally {
@@ -411,7 +414,7 @@
 			<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
 				<div class="icon-box">⚡</div>
 				<div class="row-content">
-					<div class="row-label">{t('settings.macroAdjust')}</div>
+					<div class="row-label">{t('settings.macroAdjust')}<InfoTip id="macro_adjust" /></div>
 					<div class="row-detail">{t('settings.macroAdjustDetail')}</div>
 				</div>
 			</div>
@@ -494,7 +497,7 @@
 		<div class="settings-row" style="cursor:default;">
 			<div class="icon-box medal-{percentile?.medal ?? 0}">{percentile?.medal ? MEDALS[percentile.medal - 1] : '🏅'}</div>
 			<div class="row-content">
-				<div class="row-label">{t('settings.consistency')}{#if percentile?.in_ranking && percentile.active_users > 1}<span class="rank-chip medal-{percentile.medal ?? 0}">{#if showRank}{ordinal(percentile.rank ?? 1)}<span class="of">{t('settings.consistencyOfTotal', { total: percentile.active_users })}</span>{:else}{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}{/if}</span>{/if}</div>
+				<div class="row-label">{t('settings.consistency')}<InfoTip id="consistency" />{#if percentile?.in_ranking && percentile.active_users > 1}<span class="rank-chip medal-{percentile.medal ?? 0}">{#if showRank}{ordinal(percentile.rank ?? 1)}<span class="of">{t('settings.consistencyOfTotal', { total: percentile.active_users })}</span>{:else}{t('settings.consistencyTop', { pct: percentile.top_percent ?? 0 })}{/if}</span>{/if}</div>
 				<div class="row-detail">
 					{#if percentile?.in_ranking}
 						{#if percentile.active_users > 1}

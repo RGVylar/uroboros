@@ -12,6 +12,12 @@
 	import { fmtQty } from '$lib/drink';
 	import { dayScore, HIT_SCORE } from '$lib/goals';
 	import { t, fmtDate, fmtTime as fmtTimeI18n, fmtNumber, monthNames, weekdayInitials, weekdayShort } from '$lib/i18n/index.svelte';
+	import { onMount } from 'svelte';
+	import InfoTip from '$lib/components/InfoTip.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
+
+	// La adherencia no es "días cumplidos": puntúa cada día y se salta los vacíos.
+	onMount(() => tips.request('adherence'));
 
 	function download(url: string, filename: string) {
 		const token = auth.token;
@@ -420,7 +426,7 @@
 	</div>
 	<!-- Adherencia -->
 	<div class="glass-card">
-		<div class="stat-eyebrow">{t('history.adherence')}</div>
+		<div class="stat-eyebrow">{t('history.adherence')}<InfoTip id="adherence" /></div>
 		<div style="display:flex; align-items:baseline; gap:0.25rem; margin-top:0.5rem;">
 			<div style="font-size:1.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em;">{adherencePct ?? '—'}</div>
 			{#if adherencePct !== null}<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>{/if}

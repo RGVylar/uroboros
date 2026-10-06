@@ -11,6 +11,7 @@
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { tips, type TipId } from '$lib/stores/tips.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -36,12 +37,17 @@
 	];
 
 	let busy = $state<ModuleKey | null>(null);
+	const TIPS_ON_ENABLE = ['module.inventory', 'module.cheat_days', 'module.mood'] as const;
 
 	async function toggle(key: ModuleKey) {
 		if (busy) return;
 		busy = key;
 		try {
-			await modules.set(key, !modules.on(key));
+			const on = !modules.on(key);
+			await modules.set(key, on);
+			// Al encenderlo es cuando importa saber cómo funciona.
+			const tip = `module.${key}`;
+			if (on && (TIPS_ON_ENABLE as readonly string[]).includes(tip)) tips.request(tip as TipId);
 		} catch {
 			toast.error(t('settings.errSaveConfig'));
 		} finally {

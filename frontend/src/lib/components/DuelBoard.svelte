@@ -12,7 +12,10 @@
   Datos: recibe un `DuelData` (hoy de ejemplo, ver $lib/duel-example).
 -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Avatar from './Avatar.svelte';
+	import InfoTip from './InfoTip.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
 	import type { DuelData, DuelDay, DuelDayDetail, DuelSide } from '$lib/duel-example';
 	import { t, fmtDate } from '$lib/i18n/index.svelte';
 
@@ -21,6 +24,9 @@
 		compact?: boolean;
 	}
 	let { duel, compact = false }: Props = $props();
+
+	// La vista completa es donde se juega: ahí se explica cómo puntúa.
+	onMount(() => { if (!compact) tips.request('duel'); });
 
 	const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 	const DAY_GLYPH: Record<DuelDay, string> = {
@@ -122,7 +128,7 @@
 <div class="board" class:compact>
 	<div class="scorecard">
 		<div class="season">
-			<div class="season-title">⚔️ {weekLabel}</div>
+			<div class="season-title">⚔️ {weekLabel}{#if !compact}<InfoTip id="duel" />{/if}</div>
 			<div class="season-phase">{duel.phase}</div>
 		</div>
 		{@render scoreRow(duel.me, meLeads)}

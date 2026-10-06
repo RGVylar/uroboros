@@ -1363,6 +1363,30 @@ export const es = {
 	'modules.cheat_days': 'Cheat days',
 	'modules.cheat_days.desc': 'Días libres que no cuentan como fallo, con tope semanal',
 	'modules.foot': 'Apagar un módulo solo lo esconde: tus datos se quedan y vuelven al encenderlo.',
+
+	// ── tips (explicaciones a tiempo) ──
+	'tips.ok': 'Entendido',
+	'tips.infoAria': 'Qué es: {topic}',
+	'tips.duel.title': 'Cómo puntúa el duelo',
+	'tips.duel.body': 'Cada día vale de 0 a 100: hasta 70 por acercarte a tus calorías (completos a ±100 kcal, nada a ±500; pasarse y quedarse corto cuentan igual) y hasta 30 por llegar a tu proteína.\nCada uno compite contra sus propios objetivos, así que es justo aunque comáis distinto. Los cheat days no cuentan ni a favor ni en contra.\nToca un día para ver de dónde salen sus puntos.',
+	'tips.circles.title': 'Pareja o amigo',
+	'tips.circles.body': 'La pareja es una sola persona: podéis compartir despensa y lista de la compra, ver el día del otro y apuntaros comida si os dais permiso.\nLos amigos ven las recetas que compartas con ellos y pueden retarte al duelo semanal.\nTu diario no lo ve nadie a quien no hayas dado permiso.',
+	'tips.recipe_sharing.title': 'Para quién es cada receta',
+	'tips.recipe_sharing.body': 'Cada receta tiene su círculo: 🔒 solo tú, 💚 tu pareja o 🔗 tus amigos. Toca el icono para cambiarlo.\nQuien ve una receta tuya puede copiarla a su colección y ajustarla a su gusto.',
+	'tips.adherence.title': 'Qué es la adherencia',
+	'tips.adherence.body': 'Cada día registrado puntúa de 0 a 100, igual que en el duelo: 70 por las calorías y 30 por la proteína. La adherencia es la media, y un día cuenta como cumplido desde 50.\nLos días en blanco se quedan fuera: no registrar no es ni un fallo ni un acierto.',
+	'tips.consistency.title': 'Tu constancia',
+	'tips.consistency.body': 'Tu puesto de la semana entre todas las personas que registran, con la misma puntuación del duelo.\nEs anónimo: nadie ve tu nombre, ni tú el de nadie. Las medallas de tu perfil salen de aquí.',
+	'tips.macro_adjust.title': 'Ajuste por ejercicio',
+	'tips.macro_adjust.body': 'Cuando registras ejercicio, las calorías quemadas se suman a tu objetivo de ese día.\nProporcional: suben las calorías y los tres macros en la misma proporción.\nRendimiento: todo lo quemado va a carbohidratos; la proteína y la grasa se quedan igual.',
+	'tips.partner_day.title': 'El día de tu pareja',
+	'tips.partner_day.body': 'Este chip resume lo que lleva hoy tu pareja. Tócalo y sus comidas aparecen entre las tuyas, en su color.\nCon el + de cada plato suyo te lo apuntas tú también. Sus calorías nunca se suman a las tuyas.',
+	'tips.module.inventory.title': 'Cómo funciona la despensa',
+	'tips.module.inventory.body': 'Apunta lo que tienes en casa y cuánto. Al registrar una comida puedes gastarla de la despensa y se descuenta sola.\nEn la lista de la compra, lo que marcas como comprado entra en la despensa.\nSi tienes pareja y los dos lo activáis, despensa y lista son una sola para los dos.',
+	'tips.module.cheat_days.title': 'Cómo funcionan los cheat days',
+	'tips.module.cheat_days.body': 'Un cheat day es un día libre: no cuenta como fallo en el duelo ni en tu adherencia, y no rompe la racha.\nTienen un tope semanal (de lunes a domingo); por defecto uno. Puedes cambiarlo en Ajustes.',
+	'tips.module.mood.title': 'Cómo te sientes',
+	'tips.module.mood.body': 'Una tarjeta en el diario para apuntar en segundos tu energía, digestión y humor.\nEn el calendario del historial verás cada día marcado con cómo te sentiste.',
 };
 
 export type Dict = typeof es;

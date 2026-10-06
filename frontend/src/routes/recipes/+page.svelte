@@ -6,6 +6,12 @@
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
 	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
+	import { onMount } from 'svelte';
+	import InfoTip from '$lib/components/InfoTip.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
+
+	// Para quién es cada receta (🔒 💚 🔗) no se adivina mirando el icono.
+	onMount(() => tips.request('recipe_sharing'));
 	import { Modal, RecipeAmount, RecipeCardEditor } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
@@ -517,7 +523,7 @@
 <!-- Header -->
 <div class="page-header">
 	<div style="flex:1;">
-		<h1 class="uro-title">{t('recipes.title')}</h1>
+		<h1 class="uro-title">{t('recipes.title')}<InfoTip id="recipe_sharing" /></h1>
 		<div class="header-eyebrow" style="margin-top:0.25rem;">{t('recipes.eyebrow')}</div>
 	</div>
 	<button

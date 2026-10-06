@@ -21,6 +21,8 @@
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
+	import Explainer from '$lib/components/Explainer.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
 	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
 	import { t, i18n } from '$lib/i18n/index.svelte';
 
@@ -90,6 +92,9 @@
 	// the last version we dismissed (getSeen), and the user's opt-out flag.
 	let changelogNotes = $state<ReleaseNote[]>([]);
 	let showChangelog = $state(false);
+	// Las explicaciones esperan a saber si hay aviso de novedades, y a que se cierre.
+	let changelogChecked = $state(false);
+	$effect(() => tips.setBlocked(!changelogChecked || showChangelog));
 	let updateInfo = $state<UpdateInfo | null>(null);
 	let updateDismissed = $state(false);
 	$effect(() => {
@@ -102,7 +107,8 @@
 					showChangelog = res.news.length > 0;
 					updateInfo = res.update;
 				})
-				.catch(() => {});
+				.catch(() => {})
+				.finally(() => { changelogChecked = true; });
 		});
 	});
 
@@ -268,6 +274,7 @@
 
 <!-- Nav móvil (pill flotante) — oculta en escritorio vía CSS -->
 <Toast />
+<Explainer />
 
 {#if showChangelog}
 	<ChangelogModal notes={changelogNotes} onclose={() => showChangelog = false} />

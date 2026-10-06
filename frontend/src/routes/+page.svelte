@@ -3,6 +3,7 @@
 	import { untrack } from 'svelte';
 	import { health } from '$lib/stores/health.svelte';
 	import { modules } from '$lib/stores/modules.svelte';
+	import { tips } from '$lib/stores/tips.svelte';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -344,6 +345,8 @@
 		const day = today;
 		try {
 			partnerSummary = await api.get<DaySummary>(`/diary/day?day=${day}&user_id=${partner.id}`);
+			// La primera vez que sale el chip de la pareja, qué es y qué no hace.
+			tips.request('partner_day');
 		} catch {
 			partnerSummary = null;
 		}
