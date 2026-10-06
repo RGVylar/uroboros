@@ -23,8 +23,10 @@ class UserOut(BaseModel):
     # Features sin terminar visibles para este usuario. El frontend las usa solo
     # para enseñar u ocultar; la puerta de verdad está en el backend (deps.py).
     feature_flags: list[str] = []
+    # Explicaciones (tips) que ya ha cerrado; ver POST /users/me/tips/{id}/seen.
+    seen_tips: list[str] = []
 
-    @field_validator("feature_flags", mode="before")
+    @field_validator("feature_flags", "seen_tips", mode="before")
     @classmethod
     def _none_is_empty(cls, v: object) -> object:
         # En la BD la columna es nullable (null = ninguna, y así las filas

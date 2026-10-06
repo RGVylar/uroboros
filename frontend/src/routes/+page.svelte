@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import { health } from '$lib/stores/health.svelte';
+	import { modules } from '$lib/stores/modules.svelte';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
@@ -82,7 +83,8 @@
 	let showSupplModal = $state(false);
 	let newSuppName = $state('');
 	let addingSuppName = $state(false);
-	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
+	let suppEnabled = $derived(modules.on('supplements'));
+	let waterEnabled = $derived(modules.on('water'));
 	let lastWaterMl = $state(250); // tracks last addWater amount for offline undo
 
 	function sumTotals(entries: DiaryEntry[]): DayTotals {
@@ -156,7 +158,7 @@
 	let cheatDay: CheatDayToday | null = $state(null);
 	let togglingCheatDay = $state(false);
 	let moodEntry: MoodEntry | null = $state(null);
-	let moodEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
+	let moodEnabled = $derived(modules.on('mood'));
 
 	// Edit state
 	let editingEntry: DiaryEntry | null = $state(null);
@@ -288,7 +290,7 @@
 				goals?.cheat_days_enabled && isToday
 					? api.get<CheatDayToday>('/cheat-days/today').catch(() => null)
 					: Promise.resolve(null),
-				typeof localStorage !== 'undefined' && localStorage.getItem('mood_enabled') === 'true'
+				modules.on('mood')
 					? api.get<MoodEntry | null>(`/mood/day?day=${today}`).catch(() => null)
 					: Promise.resolve(null),
 			]);
@@ -877,8 +879,11 @@
 			</div>
 
 
-			<!-- Agua + pasos; sin pasos, agua + suplementos como siempre -->
-			<div style="display:grid; grid-template-columns:{showSteps || (isToday && suppCount > 0) ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
+			<!-- Agua + pasos; sin pasos, agua + suplementos como siempre. Con el
+			     agua apagada, lo que quede ocupa la fila entera. -->
+			{#if waterEnabled || showSteps || (isToday && suppEnabled)}
+			<div style="display:grid; grid-template-columns:{waterEnabled && (showSteps || (isToday && suppCount > 0)) ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
+				{#if waterEnabled}
 				<div class="card" style="padding:0.85rem;">
 					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
 						<span style="font-size:0.95rem;">💧</span>
@@ -902,6 +907,7 @@
 							disabled={!water || water.total_ml <= 0}>↩</button>
 					</div>
 				</div>
+				{/if}
 				{#if showSteps}
 					<div class="card steps-card" role="img" aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
 						<div style="display:flex; align-items:center; gap:0.4rem;">
@@ -928,6 +934,7 @@
 					{@render suppCard(false)}
 				{/if}
 			</div>
+			{/if}
 			{#if showSteps && isToday && suppEnabled}
 				<div style="margin-bottom:0.75rem;">{@render suppCard(true)}</div>
 			{/if}

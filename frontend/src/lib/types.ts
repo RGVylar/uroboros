@@ -9,6 +9,8 @@ export interface User {
 	/** Features sin terminar visibles para este usuario. Solo sirve para enseñar
 	 *  u ocultar: la puerta de verdad la pone el backend. */
 	feature_flags?: string[];
+	/** Explicaciones (tips) que ya ha cerrado. */
+	seen_tips?: string[];
 }
 
 /** OCR en crudo de un ticket. Las coordenadas van en píxeles de la imagen ya

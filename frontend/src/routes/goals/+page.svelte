@@ -18,7 +18,6 @@
 	let fat = $state(65);
 	let water_ml = $state(2000);
 	let steps_goal = $state(8000);
-	let track_creatine = $state(false);
 	let saved = $state(false);
 	let loading = $state(true);
 
@@ -115,7 +114,6 @@
 				fat = g.fat;
 				water_ml = g.water_ml;
 				steps_goal = g.steps_goal ?? 8000;
-				track_creatine = g.track_creatine ?? false;
 			})
 			.catch(() => {})
 			.finally(() => loading = false);
@@ -127,7 +125,7 @@
 			carbs = cGrams;
 			fat = fGrams;
 		}
-		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, steps_goal, track_creatine });
+		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, steps_goal });
 		if (isOnboarding) {
 			goto('/');
 		} else {

@@ -8,6 +8,7 @@
 	import { diagnoseNativeNotifications, type NotifDiag } from '$lib/services/nativeNotifications';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import { modules } from '$lib/stores/modules.svelte';
 	import { APP_VERSION, UPDATE_URL, isNewerVersion } from '$lib/changelog';
 	import type { Goals, User } from '$lib/types';
 	import { t, tc, i18n, setLocale, mealLabel, ordinal, LOCALE_NAMES, type Locale } from '$lib/i18n/index.svelte';
@@ -192,10 +193,6 @@
 	}
 
 	let goals: Goals | null = $state(null);
-	let savingCreatine = $state(false);
-	let savingCheatDays = $state(false);
-	let savingInventory = $state(false);
-	let moodEnabled = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
 	let showBugReport = $state(false);
 	// La pantalla de la que venía: casi siempre es donde vio el problema, y
 	// /settings no le dice nada a nadie.
@@ -251,30 +248,6 @@
 	loadGoals();
 	loadAllergyCount();
 
-	async function toggleCreatine() {
-		if (!goals) return;
-		savingCreatine = true;
-		try {
-			goals = await api.put<Goals>('/goals', { ...goals, track_creatine: !goals.track_creatine });
-		} catch {
-			toast.error(t('settings.errSaveConfig'));
-		} finally {
-			savingCreatine = false;
-		}
-	}
-
-	async function toggleCheatDays() {
-		if (!goals) return;
-		savingCheatDays = true;
-		try {
-			goals = await api.put<Goals>('/goals', { ...goals, cheat_days_enabled: !goals.cheat_days_enabled });
-		} catch {
-			toast.error(t('settings.errSaveConfig'));
-		} finally {
-			savingCheatDays = false;
-		}
-	}
-
 	let savingCheatLimit = $state(false);
 	async function setCheatDaysPerWeek(n: number) {
 		if (!goals || goals.cheat_days_per_week === n) return;
@@ -285,23 +258,6 @@
 			toast.error(t('settings.errSaveConfig'));
 		} finally {
 			savingCheatLimit = false;
-		}
-	}
-
-	function toggleMood() {
-		moodEnabled = !moodEnabled;
-		localStorage.setItem('mood_enabled', moodEnabled ? 'true' : 'false');
-	}
-
-	async function toggleInventory() {
-		savingInventory = true;
-		try {
-			const base = goals ?? { kcal: 2000, protein: 150, carbs: 250, fat: 65, water_ml: 2000, track_creatine: false, cheat_days_enabled: false, cheat_days_per_week: 1, inventory_enabled: false, macro_adjust_mode: 'off' as const };
-			goals = await api.put<Goals>('/goals', { ...base, inventory_enabled: !base.inventory_enabled });
-		} catch {
-			toast.error(t('settings.errSaveConfig'));
-		} finally {
-			savingInventory = false;
 		}
 	}
 
@@ -393,44 +349,38 @@
 			<span class="chevron">›</span>
 		</button>
 		<div class="row-divider"></div>
-		<!-- Suplementos -->
-		<button class="settings-row" onclick={() => goto('/supplements')}>
-			<div class="icon-box">💊</div>
+		<!-- Módulos: qué partes de la app se ven -->
+		<button class="settings-row" onclick={() => goto('/modules')}>
+			<div class="icon-box">🧩</div>
 			<div class="row-content">
-				<div class="row-label">{t('settings.supplements')}</div>
-				<div class="row-detail">{t('settings.supplementsDetail')}</div>
+				<div class="row-label">{t('settings.modules')}</div>
+				<div class="row-detail">{t('settings.modulesDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
 		</button>
-		<div class="row-divider"></div>
-		<!-- Cheat day -->
-		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">🍕</div>
-			<div class="row-content">
-				<div class="row-label">{t('settings.cheatDays')}</div>
-				<div class="row-detail">{goals?.cheat_days_enabled ? t('settings.active') : subscription.is_premium ? t('settings.inactive') : t('settings.premiumOnly')}</div>
-			</div>
-			{#if !subscription.is_premium && !goals?.cheat_days_enabled}
-				<!-- El servidor rechaza activarlo sin Premium (PUT /goals → 402) -->
-				<button class="pro-badge-row" onclick={() => goto('/premium')} style="border:none; cursor:pointer; font-family:inherit;">PRO</button>
-			{:else if goals}
-				<button
-					onclick={toggleCheatDays}
-					disabled={savingCheatDays}
-					class="toggle-btn"
-					aria-label={t('settings.cheatDays')}
-					aria-pressed={goals.cheat_days_enabled}
-					style="background:{goals.cheat_days_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals.cheat_days_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
-				>
-					<span class="toggle-knob" style="left:{goals.cheat_days_enabled ? '18px' : '2px'};"></span>
-				</button>
-			{/if}
-		</div>
+		{#if modules.on('supplements')}
+			<div class="row-divider"></div>
+			<button class="settings-row" onclick={() => goto('/supplements')}>
+				<div class="icon-box">💊</div>
+				<div class="row-content">
+					<div class="row-label">{t('settings.supplements')}</div>
+					<div class="row-detail">{t('settings.supplementsDetail')}</div>
+				</div>
+				<span class="chevron">›</span>
+			</button>
+		{/if}
 		{#if goals?.cheat_days_enabled}
+			<div class="row-divider"></div>
 			<!-- Tope semanal: 1 es lo que casi todo el mundo entiende por cheat day;
-			     7 es "sin límite", porque la semana no da para más. -->
-			<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.5rem; padding-top:0;">
-				<div style="font-size:0.72rem; color:var(--text-muted); padding-left:2.75rem;">{t('settings.cheatDaysPerWeek')}</div>
+			     7 es "sin límite", porque la semana no da para más. El interruptor
+			     está en Módulos. -->
+			<div class="settings-row" style="cursor:default; flex-direction:column; align-items:flex-start; gap:0.5rem;">
+				<div style="display:flex; align-items:center; gap:0.75rem; width:100%;">
+					<div class="icon-box">🍕</div>
+					<div class="row-content">
+						<div class="row-label">{t('settings.cheatDaysPerWeek')}</div>
+					</div>
+				</div>
 				<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.375rem; width:100%; padding-left:2.75rem;">
 					{#each [1, 2, 3, 7] as n}
 						{@const on = goals.cheat_days_per_week === n}
@@ -623,6 +573,7 @@
 <div style="margin-bottom:1.125rem;">
 	<div class="group-label">{t('settings.group.data')}</div>
 	<div class="settings-group">
+		{#if modules.on('weight')}
 		<button class="settings-row" onclick={() => goto('/weight')}>
 			<div class="icon-box">⚖️</div>
 			<div class="row-content">
@@ -632,6 +583,8 @@
 			<span class="chevron">›</span>
 		</button>
 		<div class="row-divider"></div>
+		{/if}
+		{#if modules.on('measurements')}
 		<button class="settings-row" onclick={() => goto('/measurements')}>
 			<div class="icon-box">📏</div>
 			<div class="row-content">
@@ -641,6 +594,8 @@
 			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
 		<div class="row-divider"></div>
+		{/if}
+		{#if modules.on('exercise')}
 		<button class="settings-row" onclick={() => goto('/exercises')}>
 			<div class="icon-box">💪</div>
 			<div class="row-content">
@@ -650,45 +605,9 @@
 			{#if !subscription.is_premium}<span class="pro-badge-row">PRO</span>{:else}<span class="chevron">›</span>{/if}
 		</button>
 		<div class="row-divider"></div>
-		<!-- Estado del día toggle -->
-		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">🫥</div>
-			<div class="row-content">
-				<div class="row-label">{t('settings.mood')}</div>
-				<div class="row-detail">{moodEnabled ? t('settings.moodVisible') : t('settings.moodHidden')}{t('settings.moodDetail')}</div>
-			</div>
-			<button
-				onclick={toggleMood}
-				class="toggle-btn"
-				aria-label={t('settings.mood')}
-				aria-pressed={moodEnabled}
-				style="background:{moodEnabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{moodEnabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
-			>
-				<span class="toggle-knob" style="left:{moodEnabled ? '18px' : '2px'};"></span>
-			</button>
-		</div>
-		<div class="row-divider"></div>
-
-		<!-- Inventario toggle + nav -->
-		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">🏠</div>
-			<div class="row-content">
-				<div class="row-label">{t('settings.inventory')}</div>
-				<div class="row-detail">{goals?.inventory_enabled ? t('settings.active') : t('settings.inactive')}</div>
-			</div>
-			<button
-				onclick={toggleInventory}
-				disabled={savingInventory}
-				class="toggle-btn"
-				aria-label={t('settings.inventory')}
-				aria-pressed={goals?.inventory_enabled ?? false}
-				style="background:{goals?.inventory_enabled ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border-color:{goals?.inventory_enabled ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'};"
-			>
-				<span class="toggle-knob" style="left:{goals?.inventory_enabled ? '18px' : '2px'};"></span>
-			</button>
-		</div>
-		{#if goals?.inventory_enabled}
-			<div class="row-divider"></div>
+		{/if}
+		<!-- Despensa y lista de la compra: el interruptor está en Módulos -->
+		{#if modules.on('inventory')}
 			<button class="settings-row" onclick={() => goto('/inventory')}>
 				<div class="icon-box">📦</div>
 				<div class="row-content">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { modules } from '$lib/stores/modules.svelte';
 	import { api } from '$lib/api';
 	import type { DaySummary, Goals, MoodEntry } from '$lib/types';
 	import { MOOD_WORST_EMOJI } from '$lib/types';
@@ -115,8 +116,8 @@
 	let loadingMonth = $state(false);
 	let supplementDates: Set<string> = $state(new Set());
 	let exerciseDates: Set<string> = $state(new Set());
-	let suppEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('supplements_enabled') !== 'false' : true);
-	let moodEnabled = $derived(typeof localStorage !== 'undefined' ? localStorage.getItem('mood_enabled') === 'true' : false);
+	let suppEnabled = $derived(modules.on('supplements'));
+	let moodEnabled = $derived(modules.on('mood'));
 	let moodDates: Map<string, number> = $state(new Map());
 
 	// Goals (for reference line)

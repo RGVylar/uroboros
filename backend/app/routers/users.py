@@ -17,6 +17,7 @@ from app.services.avatar_photo_service import (
 )
 from app.services.telegram_alerts import send_avatar_photo_alert
 from app.services.invite_service import ensure_invite_code
+from app.services.modules import get_modules, set_modules
 from app.invite_codes import format_code
 from app.deps import get_current_user
 from app.models import User
@@ -189,6 +190,75 @@ def update_changelog_subscription(
     user.changelog_opt_out = payload.opt_out
     db.commit()
     db.refresh(user)
+    return user
+
+
+class ModulesOut(BaseModel):
+    water: bool
+    weight: bool
+    exercise: bool
+    measurements: bool
+    supplements: bool
+    mood: bool
+    creatine: bool
+    cheat_days: bool
+    inventory: bool
+
+
+class ModulesUpdate(BaseModel):
+    """Solo lo que cambia; lo que no llega se queda como estaba."""
+    water: bool | None = None
+    weight: bool | None = None
+    exercise: bool | None = None
+    measurements: bool | None = None
+    supplements: bool | None = None
+    mood: bool | None = None
+    creatine: bool | None = None
+    cheat_days: bool | None = None
+    inventory: bool | None = None
+
+
+@router.get("/me/modules", response_model=ModulesOut)
+def get_my_modules(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    return get_modules(db, user)
+
+
+@router.patch("/me/modules", response_model=ModulesOut)
+def update_my_modules(
+    payload: ModulesUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    changes = payload.model_dump(exclude_none=True)
+    # Misma regla que PUT /goals: solo se bloquea *encender* los cheat days sin
+    # Premium; apagarlos, o dejarlos como estaban, siempre se puede.
+    if changes.get("cheat_days") and not user.is_premium_or_trial:
+        if not get_modules(db, user)["cheat_days"]:
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, "premium_required")
+    return set_modules(db, user, changes)
+
+
+TIP_ID_MAX = 64
+
+
+@router.post("/me/tips/{tip_id}/seen", response_model=UserOut)
+def mark_tip_seen(
+    tip_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Marca una explicación como cerrada para no volver a enseñarla."""
+    if not tip_id or len(tip_id) > TIP_ID_MAX:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Bad tip id")
+    seen = list(user.seen_tips or [])
+    if tip_id not in seen:
+        # Lista nueva: SQLAlchemy no ve los cambios dentro de una columna JSON.
+        user.seen_tips = [*seen, tip_id]
+        db.commit()
+        db.refresh(user)
     return user
 
 

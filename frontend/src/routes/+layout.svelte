@@ -1,6 +1,6 @@
 <!--
   Layout con sidebar en escritorio (≥900px) y bottom-nav pill en móvil.
-  - Sidebar: 8 ítems (incluye Ejercicios, Peso, Medidas, Amigos).
+  - Sidebar: hasta 8 ítems; Ejercicios, Peso y Medidas se van si su módulo está apagado.
   - Nav móvil: 4 ítems + FAB verde centrado.
   - Sin cambios de lógica, stores ni rutas.
 -->
@@ -17,6 +17,7 @@
 	import { pushStore, isNativeApp } from '$lib/stores/push.svelte';
 	import { health } from '$lib/stores/health.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import { modules, type ModuleKey } from '$lib/stores/modules.svelte';
 	import { page } from '$app/state';
 	import Toast from '$lib/components/Toast.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
@@ -61,6 +62,7 @@
 				pendingFriends.start();
 				pushStore.init();
 				subscription.load();
+				modules.load();
 				// The user copy in localStorage is only written at login, so it goes
 				// stale when it changes on another device (picking an avatar on the
 				// phone wouldn't show up on the desktop). Refresh it from the server;
@@ -130,16 +132,18 @@
 	]);
 
 	// Escritorio: todos los ítems en el sidebar (con emoji como icono)
-	let sidebarNav = $derived([
+	// Los que llevan `module` desaparecen si el usuario lo ha apagado.
+	let sidebarNav = $derived(([
 		{ href: '/', label: t('nav.diary'), icon: '📋' },
 		{ href: '/history', label: t('nav.history'), icon: '📅', pro: true },
 		{ href: '/recipes', label: t('nav.recipes'), icon: '📖' },
-		{ href: '/exercises', label: t('nav.exercises'), icon: '💪', pro: true },
-		{ href: '/weight', label: t('nav.weight'), icon: '⚖️' },
-		{ href: '/measurements', label: t('nav.measurements'), icon: '📏', pro: true },
+		{ href: '/exercises', label: t('nav.exercises'), icon: '💪', pro: true, module: 'exercise' },
+		{ href: '/weight', label: t('nav.weight'), icon: '⚖️', module: 'weight' },
+		{ href: '/measurements', label: t('nav.measurements'), icon: '📏', pro: true, module: 'measurements' },
 		{ href: '/friends', label: t('nav.friends'), icon: '👥' },
 		{ href: '/settings', label: t('nav.settings'), icon: '⚙️' },
-	]);
+	] as { href: string; label: string; icon: string; pro?: boolean; module?: ModuleKey }[])
+		.filter((item) => !item.module || modules.on(item.module)));
 
 	function isActive(href: string): boolean {
 		const p = page.url.pathname;

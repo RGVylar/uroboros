@@ -65,6 +65,11 @@ class User(Base):
     # Null = ninguna, que es lo normal. Es un permiso, no un rol: quien prueba
     # algo a medias no tiene por qué ser administrador (ver 0051 y deps.py).
     feature_flags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Módulos que el usuario ha encendido o apagado, p.ej. {"mood": true}. Lo
+    # que no está toma el valor por defecto (services/modules.py). Ver 0075.
+    modules: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Explicaciones ya cerradas (ids de tips.*). Null = ninguna.
+    seen_tips: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     def has_flag(self, flag: str) -> bool:
         return flag in (self.feature_flags or [])

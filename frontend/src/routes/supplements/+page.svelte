@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { modules } from '$lib/stores/modules.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { type UserSupplement } from '$lib/types';
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import ScreenHeader from '$lib/components/uro/ScreenHeader.svelte';
@@ -11,17 +13,11 @@
 	let DAY_LABELS = $derived(weekdayInitials());
 	if (!auth.isLoggedIn) goto('/login');
 
-	const LS_KEY = 'supplements_enabled';
-
 	let supplements: UserSupplement[] = $state([]);
 	let newName = $state('');
 	let newDays: number[] | null = $state(null); // null = todos los días
 	let adding = $state(false);
-	let enabled = $state(true);
-
-	$effect(() => {
-		enabled = localStorage.getItem(LS_KEY) !== 'false';
-	});
+	let enabled = $derived(modules.on('supplements'));
 
 	async function load() {
 		supplements = await api.get<UserSupplement[]>('/supplements').catch(() => []);
@@ -30,8 +26,7 @@
 	load();
 
 	function toggleEnabled() {
-		enabled = !enabled;
-		localStorage.setItem(LS_KEY, String(enabled));
+		modules.set('supplements', !enabled).catch(() => toast.error(t('settings.errSaveConfig')));
 	}
 
 	function toggleNewDay(d: number) {
