@@ -7,7 +7,7 @@
 	import { page } from '$app/state';
 	import { Modal, Avatar, QrCode } from '$lib/components';
 	import { t } from '$lib/i18n/index.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 
@@ -77,6 +77,18 @@
 			addCode = incoming.toUpperCase();
 			showAddForm = true;
 			loadMyCode();
+		}
+	});
+
+	// Desde "Invitar pareja" del onboarding: el formulario abierto y en Pareja,
+	// que es a lo que venía.
+	$effect(() => {
+		if (page.url.searchParams.get('invite') === 'partner') {
+			untrack(() => {
+				showAddForm = true;
+				addKind = 'partner';
+				loadMyCode();
+			});
 		}
 	});
 

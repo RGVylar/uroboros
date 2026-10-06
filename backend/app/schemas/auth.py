@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -25,6 +27,8 @@ class UserOut(BaseModel):
     feature_flags: list[str] = []
     # Explicaciones (tips) que ya ha cerrado; ver POST /users/me/tips/{id}/seen.
     seen_tips: list[str] = []
+    # Para lo que no tiene sentido el primer día (p. ej. "Igual que ayer").
+    created_at: datetime | None = None
 
     @field_validator("feature_flags", "seen_tips", mode="before")
     @classmethod

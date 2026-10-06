@@ -23,7 +23,7 @@
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import Explainer from '$lib/components/Explainer.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
-	import { APP_VERSION, UPDATE_URL, getSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
+	import { APP_VERSION, UPDATE_URL, getSeen, markSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
 	import { t, i18n } from '$lib/i18n/index.svelte';
 
 	let { children } = $props();
@@ -100,7 +100,12 @@
 	$effect(() => {
 		if (!auth.isLoggedIn) return;
 		untrack(() => {
-			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(getSeen())}&lang=${i18n.locale}`;
+			// Sin versión vista (instalación nueva o móvil nuevo) no hay "novedades":
+			// para quien acaba de llegar todo es nuevo, y el servidor devolvería el
+			// historial entero encima del onboarding. Se marca la actual y listo.
+			const seen = getSeen();
+			if (!seen) markSeen(APP_VERSION);
+			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(seen || APP_VERSION)}&lang=${i18n.locale}`;
 			api.get<ChangelogResponse>(`/release-notes?${q}`)
 				.then((res) => {
 					changelogNotes = res.news;

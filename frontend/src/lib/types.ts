@@ -11,6 +11,7 @@ export interface User {
 	feature_flags?: string[];
 	/** Explicaciones (tips) que ya ha cerrado. */
 	seen_tips?: string[];
+	created_at?: string;
 }
 
 /** OCR en crudo de un ticket. Las coordenadas van en píxeles de la imagen ya

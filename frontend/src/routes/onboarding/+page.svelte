@@ -63,7 +63,9 @@
 	// Saltar sale sin tocar los objetivos: solo "Entrar a uroboros" (o invitar pareja) guarda el plan.
 	function skip() { goto('/'); }
 
-	async function finish() {
+	// `dest`: a dónde ir después de guardar. "Invitar pareja" pasa /friends; antes
+	// navegaba por su cuenta y este goto('/') la pisaba, dejándote en el Diario.
+	async function finish(dest = '/') {
 		saving = true;
 		try {
 			await api.put('/goals', {
@@ -79,7 +81,7 @@
 		} finally {
 			saving = false;
 		}
-		goto('/');
+		goto(dest);
 	}
 </script>
 
@@ -107,7 +109,7 @@
 		<!-- Step 0: Welcome -->
 		{#if step === 0}
 			<div class="center">
-				<div class="logo">U</div>
+				<img src="/logo-192.png" alt="" class="logo" />
 				<h1 class="serif big">{t('onb.welcomeTo')} <em>uroboros</em></h1>
 				<p class="sub">{t('onb.welcomeSub')}</p>
 			</div>
@@ -141,7 +143,7 @@
 			<p class="sub">{t('onb.aboutYouSub')}</p>
 
 			<div class="sex-grid">
-				{#each [{ k: 'male' as const, l: 'Hombre', e: '♂' }, { k: 'female' as const, l: 'Mujer', e: '♀' }] as s}
+				{#each [{ k: 'male' as const, l: t('onb.male'), e: '♂' }, { k: 'female' as const, l: t('onb.female'), e: '♀' }] as s}
 					{@const a = bodySex === s.k}
 					<button class="sex-card" class:active={a} onclick={() => bodySex = s.k}>
 						<span class="sex-glyph">{s.e}</span>
@@ -152,7 +154,7 @@
 
 			<Slider label={t('onb.weight')} bind:value={bodyWeight} min={40} max={150} unit="kg"/>
 			<Slider label={t('onb.height')} bind:value={bodyHeight} min={140} max={210} unit="cm"/>
-			<Slider label={t('onb.age')} bind:value={bodyAge} min={14} max={90} unit="años"/>
+			<Slider label={t('onb.age')} bind:value={bodyAge} min={14} max={90} unit={t('onb.years')}/>
 
 		<!-- Step 3: Actividad -->
 		{:else if step === 3}
@@ -162,7 +164,6 @@
 				{#each activities as a}
 					{@const active = bodyActivity === a.key}
 					<button class="act-card" class:active onclick={() => bodyActivity = a.key}>
-						<div class="act-factor">×{a.factor}</div>
 						<div class="act-label">{a.label}</div>
 						<div class="act-sub">{a.sub}</div>
 					</button>
@@ -178,15 +179,15 @@
 				<div class="summary">
 					<div class="summary-pill">{objMeta.emoji} {objMeta.label}</div>
 					<div class="summary-kcal">{calculated.kcal}</div>
-					<div class="summary-tdee">kcal/día · TDEE {calculated.tdee}</div>
+					<div class="summary-tdee">{t('onb.kcalDay', { tdee: calculated.tdee })}</div>
 				</div>
 			</GlassCard>
 
 			<div class="macro-grid">
 				{#each [
 					{ l:t('onb.protein'), v: calculated.protein, hue: 220 },
-					{ l:'Carbs',    v: calculated.carbs,   hue: 275 },
-					{ l:'Grasa',    v: calculated.fat,     hue: 355 },
+					{ l:t('onb.carbs'), v: calculated.carbs, hue: 275 },
+					{ l:t('onb.fat'),   v: calculated.fat,   hue: 355 },
 				] as m}
 					<div class="macro-card" style:--hue={m.hue}>
 						<div class="macro-label">{m.l}</div>
@@ -205,7 +206,7 @@
 				</div>
 				<h1 class="serif">{t('onb.partnerQ')}</h1>
 				<p class="sub">{t('onb.partnerSub')}</p>
-				<button class="ghost-btn" onclick={() => { finish(); goto('/friends'); }}>{t('onb.invitePartner')}</button>
+				<button class="ghost-btn" onclick={() => finish('/friends?invite=partner')} disabled={saving}>{t('onb.invitePartner')}</button>
 				<div class="hint">{t('onb.partnerLater')}</div>
 			</div>
 
@@ -290,18 +291,16 @@
 		color: rgba(255,255,255,0.6);
 		line-height: 1.5;
 		max-width: 320px;
-		margin: 0 auto 18px;
+		margin: 0 0 18px;
 	}
-	.center .sub { margin-bottom: 18px; }
+	.center .sub { margin: 0 auto 18px; }
 
 	/* Welcome logo */
 	.logo {
-		width: 88px; height: 88px; border-radius: 24px;
+		width: 96px; height: 96px;
 		margin: 0 auto 22px;
-		background: linear-gradient(135deg, oklch(82% 0.18 160), oklch(62% 0.2 210));
-		display: flex; align-items: center; justify-content: center;
-		font-weight: 800; color: #041010; font-size: 44px; letter-spacing: -2px;
-		box-shadow: 0 18px 50px oklch(75% 0.2 190 / 0.45);
+		display: block;
+		filter: drop-shadow(0 8px 24px oklch(75% 0.2 190 / 0.5));
 	}
 
 	/* Objective cards */
@@ -371,7 +370,6 @@
 		background: linear-gradient(135deg, oklch(72% 0.16 165 / 0.22), rgba(255,255,255,0.04));
 		border-color: oklch(75% 0.18 165 / 0.5);
 	}
-	.act-factor { font-size: 11px; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 4px; }
 	.act-label { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
 	.act-sub { font-size: 10px; color: rgba(255,255,255,0.5); }
 

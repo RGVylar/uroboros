@@ -35,6 +35,8 @@
 
 	let today = $state(new Date().toISOString().slice(0, 10));
 	let isToday = $derived(today === new Date().toISOString().slice(0, 10));
+	// El día que se crea la cuenta no hay "ayer" que copiar.
+	let isFirstDay = $derived(auth.user?.created_at?.slice(0, 10) === new Date().toISOString().slice(0, 10));
 	let summary: DaySummary | null = $state(null);
 	let goals = $state<Goals | null>(null);
 	let water: WaterDay | null = $state(null);
@@ -1045,7 +1047,7 @@
 							<span class="pc-state">{showPartner ? t('diary.hide') : t('diary.show')}</span>
 						</button>
 					{/if}
-					{#if isToday && summary.entries.length > 0}
+					{#if isToday && !isFirstDay && summary.entries.length > 0}
 						<button
 							class="btn-secondary"
 							onclick={copyFromYesterday}
@@ -1065,7 +1067,7 @@
 					actionLabel={isToday ? t('diary.addFood') : undefined}
 					actionHref={isToday ? `/add?date=${today}` : undefined}
 				/>
-				{#if isToday}
+				{#if isToday && !isFirstDay}
 					<button
 						class="btn-secondary"
 						onclick={copyFromYesterday}
