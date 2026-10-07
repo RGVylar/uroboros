@@ -30,7 +30,6 @@
 				{ key: 'measurements', icon: 'measurements' },
 				{ key: 'exercise', icon: 'exercise' },
 				{ key: 'supplements', icon: 'supplements' },
-				{ key: 'creatine', icon: 'creatine' },
 				{ key: 'mood', icon: 'mood' },
 			],
 		},

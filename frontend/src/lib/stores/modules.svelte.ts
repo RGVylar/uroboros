@@ -10,7 +10,6 @@ export type ModuleKey =
 	| 'measurements'
 	| 'supplements'
 	| 'mood'
-	| 'creatine'
 	| 'cheat_days'
 	| 'inventory';
 
@@ -24,7 +23,6 @@ const DEFAULTS: Modules = {
 	measurements: true,
 	supplements: true,
 	mood: false,
-	creatine: false,
 	cheat_days: false,
 	inventory: false,
 };

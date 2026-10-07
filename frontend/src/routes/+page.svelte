@@ -15,7 +15,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { productUnitOf, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
-	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CreatineToday, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
+	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_ICON } from '$lib/types';
 	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
@@ -81,8 +81,6 @@
 	let fromCache = $state(false);
 	let copyingYesterday = $state(false);
 	let copyingMealType: string | null = $state(null);
-	let creatine: CreatineToday | null = $state(null);
-	let togglingCreatine = $state(false);
 	let supplements: SupplementToday[] = $state([]);
 	let showSupplModal = $state(false);
 	let newSuppName = $state('');
@@ -225,7 +223,7 @@
 	// goals/frequent/frequentRecipes/users/streak don't depend on which day is
 	// being browsed — fetched once on mount instead of on every day change.
 	// Kept as a promise so loadDay() can wait on it the first time (goals
-	// decides whether creatine/cheat-day extras are fetched below).
+	// decides whether cheat-day extras are fetched below).
 	let staticLoaded: Promise<void> | null = null;
 	async function loadStatic() {
 		const [g, f, fr, u, st] = await Promise.all([
@@ -288,16 +286,13 @@
 
 			// goals may still be in flight on the very first load (loadStatic
 			// runs in parallel, not before) — wait for it just this once so the
-			// creatine/cheat-day decision below isn't made on a stale `null`.
+			// cheat-day decision below isn't made on a stale `null`.
 			if (!goals && staticLoaded) await staticLoaded.catch(() => {});
 
-			// H5: these 4 only depend on goals (already resolved above) and
-			// localStorage, so they run as one parallel batch instead of 4
+			// H5: these 3 only depend on goals (already resolved above) and
+			// localStorage, so they run as one parallel batch instead of 3
 			// sequential awaits.
-			const [c, sup, cd, mood] = await Promise.all([
-				goals?.track_creatine && isToday
-					? api.get<CreatineToday>('/creatine/today').catch(() => null)
-					: Promise.resolve(null),
+			const [sup, cd, mood] = await Promise.all([
 				isToday
 					? api.get<SupplementToday[]>('/supplements/today').catch(() => [])
 					: Promise.resolve([]),
@@ -308,7 +303,6 @@
 					? api.get<MoodEntry | null>(`/mood/day?day=${today}`).catch(() => null)
 					: Promise.resolve(null),
 			]);
-			creatine = c;
 			supplements = sup;
 			cheatDay = cd;
 			moodEntry = mood;
@@ -669,32 +663,6 @@
 			toast.error(t('diary.errCopyYesterday'));
 		} finally {
 			copyingMealType = null;
-		}
-	}
-
-	async function toggleCreatine() {
-		if (togglingCreatine) return;
-		togglingCreatine = true;
-		try {
-			if (connectivity.isOffline) {
-				if (creatine?.taken) {
-					syncQueue.enqueue({ method: 'DELETE', path: '/creatine/today', label: 'Creatina — desmarcar', toggleKey: `creatine:${today}` });
-					creatine = { ...creatine!, taken: false };
-				} else {
-					syncQueue.enqueue({ method: 'POST', path: '/creatine/log', body: {}, label: 'Creatina ✓', toggleKey: `creatine:${today}` });
-					creatine = { taken: true, logged_date: today };
-				}
-				return;
-			}
-			if (creatine?.taken) {
-				creatine = await api.del<CreatineToday>('/creatine/today');
-			} else {
-				creatine = await api.post<CreatineToday>('/creatine/log', {});
-			}
-		} catch {
-			toast.error(t('diary.errCreatine'));
-		} finally {
-			togglingCreatine = false;
 		}
 	}
 

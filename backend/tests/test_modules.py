@@ -22,14 +22,21 @@ def test_partial_patch_keeps_the_rest(client, make_user):
 
 
 def test_goal_modules_write_to_goals(client, make_user):
-    """Creatina e inventario viven en user_goals: el diario y /add los leen ahí."""
+    """El inventario vive en user_goals: el diario y /add lo leen ahí."""
     ana = make_user("Ana")
     client.put(f"{API}/goals", json={**BASE, "kcal": 1800}, headers=auth(ana))
-    m = client.patch(f"{API}/users/me/modules", json={"inventory": True, "creatine": True}, headers=auth(ana)).json()
-    assert m["inventory"] is True and m["creatine"] is True
+    m = client.patch(f"{API}/users/me/modules", json={"inventory": True}, headers=auth(ana)).json()
+    assert m["inventory"] is True
     g = client.get(f"{API}/goals", headers=auth(ana)).json()
-    assert g["inventory_enabled"] is True and g["track_creatine"] is True
+    assert g["inventory_enabled"] is True
     assert g["kcal"] == 1800  # no pisa los objetivos
+
+
+def test_creatine_is_no_longer_a_module(client, make_user):
+    """Desde la 0080 es un suplemento: las APK viejas la mandan y se ignora."""
+    ana = make_user("Ana")
+    m = client.patch(f"{API}/users/me/modules", json={"creatine": True}, headers=auth(ana)).json()
+    assert m["creatine"] is False
 
 
 def test_goal_module_without_goals_creates_them(client, make_user):

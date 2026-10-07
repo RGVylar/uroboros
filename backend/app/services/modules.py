@@ -4,7 +4,7 @@ Hay dos clases de módulo y el frontend no tiene por qué saberlo:
 
 - **De interfaz** (agua, peso, ánimo…): solo deciden qué se enseña. Viven en
   `users.modules`, que guarda únicamente lo que el usuario ha tocado.
-- **Con efecto en el backend** (creatina, cheat days, inventario): son columnas
+- **Con efecto en el backend** (cheat days, inventario): son columnas
   de `user_goals` que el servidor ya consulta, así que se leen y escriben ahí.
 
 `GET/PATCH /users/me/modules` devuelve y acepta las dos mezcladas.
@@ -26,8 +26,8 @@ UI_MODULES: dict[str, bool] = {
 }
 
 # Módulo → columna de user_goals.
+# La creatina fue módulo hasta la 1.28; ahora es un suplemento más (migración 0080).
 GOAL_MODULES: dict[str, str] = {
-    "creatine": "track_creatine",
     "cheat_days": "cheat_days_enabled",
     "inventory": "inventory_enabled",
 }

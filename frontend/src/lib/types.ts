@@ -216,11 +216,6 @@ export interface CheatDayToday {
 	limit_per_week: number;
 }
 
-export interface CreatineToday {
-	taken: boolean;
-	logged_date: string;
-}
-
 export interface WaterDay {
 	total_ml: number;
 	goal_ml: number;

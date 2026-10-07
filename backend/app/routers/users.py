@@ -200,7 +200,9 @@ class ModulesOut(BaseModel):
     measurements: bool
     supplements: bool
     mood: bool
-    creatine: bool
+    # Ya no es un módulo (es un suplemento); se sigue mandando apagado para
+    # las APK viejas, que esperan la clave.
+    creatine: bool = False
     cheat_days: bool
     inventory: bool
 
@@ -213,7 +215,7 @@ class ModulesUpdate(BaseModel):
     measurements: bool | None = None
     supplements: bool | None = None
     mood: bool | None = None
-    creatine: bool | None = None
+    creatine: bool | None = None  # se acepta y se ignora (APK viejas)
     cheat_days: bool | None = None
     inventory: bool | None = None
 

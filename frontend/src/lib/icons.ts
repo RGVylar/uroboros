@@ -37,7 +37,6 @@ import Egg from '@lucide/svelte/icons/egg';
 import EggFried from '@lucide/svelte/icons/egg-fried';
 import Fish from '@lucide/svelte/icons/fish';
 import Flame from '@lucide/svelte/icons/flame';
-import FlaskConical from '@lucide/svelte/icons/flask-conical';
 import Flower from '@lucide/svelte/icons/flower';
 import Flower2 from '@lucide/svelte/icons/flower-2';
 import Footprints from '@lucide/svelte/icons/footprints';
@@ -182,7 +181,6 @@ export const ICONS = {
 	goals: Target,
 	modules: LayoutGrid,
 	supplements: Pill,
-	creatine: FlaskConical,
 	mood: Smile,
 	water: Droplet,
 	steps: Footprints,

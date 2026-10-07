@@ -674,7 +674,7 @@
 						{@const hasData = cell.date && monthData[cell.date] > 0}
 						{@const isCalSelected = cell.date === selectedDay}
 						{@const isTodayCell = cell.date ? isToday(cell.date) : false}
-						{@const tookCreatine = suppEnabled && cell.date ? supplementDates.has(cell.date) : false}
+						{@const tookSupplement = suppEnabled && cell.date ? supplementDates.has(cell.date) : false}
 						{@const didExercise = cell.date ? exerciseDates.has(cell.date) : false}
 						{@const moodLevel = moodEnabled && cell.date ? moodDates.get(cell.date) : undefined}
 						{@const lockedDay = cell.date ? isLocked(cell.date) : false}
@@ -685,7 +685,7 @@
 							{#if hasData && cell.date}
 								<span style="font-size:0.6rem; color:var(--text-muted); line-height:1;">{Math.round(monthData[cell.date])}k</span>
 							{/if}
-							{#if tookCreatine}
+							{#if tookSupplement}
 								<span style="position:absolute; top:1px; right:2px; font-size:0.55rem; line-height:1;"><Icon name="supplements" /></span>
 							{/if}
 							{#if didExercise}
