@@ -163,6 +163,16 @@
 	let togglingCheatDay = $state(false);
 	let moodEntry: MoodEntry | null = $state(null);
 	let moodEnabled = $derived(modules.on('mood'));
+	// Módulos que se pintan en la rejilla del día, en este orden. Suplementos y
+	// cheat day solo tienen sentido hoy.
+	type ModuleTile = 'water' | 'steps' | 'supp' | 'mood' | 'cheat';
+	let moduleTiles = $derived(([
+		waterEnabled && 'water',
+		showSteps && 'steps',
+		isToday && suppEnabled && 'supp',
+		moodEnabled && 'mood',
+		isToday && goals?.cheat_days_enabled && cheatDay !== null && 'cheat',
+	] as const).filter((x): x is ModuleTile => !!x));
 
 	// Edit state
 	let editingEntry: DiaryEntry | null = $state(null);
@@ -885,119 +895,69 @@
 			</div>
 
 
-			<!-- Agua + pasos; sin pasos, agua + suplementos como siempre. Con el
-			     agua apagada, lo que quede ocupa la fila entera. -->
-			{#if waterEnabled || showSteps || (isToday && suppEnabled)}
-			<div style="display:grid; grid-template-columns:{waterEnabled && (showSteps || (isToday && suppCount > 0)) ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'}; gap:0.6rem; margin-bottom:0.75rem;">
-				{#if waterEnabled}
-				<div class="card" style="padding:0.85rem;">
-					<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
-						<Icon name="water" size="0.95rem" style="color:var(--water)" />
-						<span style="font-size:0.82rem; color:var(--water); font-weight:700;">{t('diary.water')}</span>
-						{#if water}
-							<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
-								{Math.round(water.total_ml)} / {water.goal_ml} ml
-							</span>
-						{/if}
-					</div>
-					{#if water}
-						<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
-							<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
-						</div>
-					{/if}
-					<div style="display:flex; gap:0.35rem;">
-						<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
-						<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
-						<button class="btn-secondary" onclick={removeWater}
-							style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
-							disabled={!water || water.total_ml <= 0}><Icon name="undo" /></button>
-					</div>
-				</div>
-				{/if}
-				{#if showSteps}
-					<div class="card steps-card" role="img" aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
-						<div style="display:flex; align-items:center; gap:0.4rem;">
-							<Icon name="steps" size="0.95rem" style="color:var(--steps)" />
-							<span style="font-size:0.82rem; color:var(--steps); font-weight:700;">{t('diary.steps')}</span>
-						</div>
-						<div class="steps-value">
-							{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
-							<span class="steps-goal">/ {stepsGoal >= 1000 ? `${Math.round(stepsGoal / 100) / 10}k` : stepsGoal}</span>
-						</div>
-						<div class="steps-bars">
-							<div class="steps-goal-line" style="bottom:{(stepsGoal / stepsScale) * 100}%;"></div>
-							{#each stepsWeek as v, i}
-								<div
-									class="steps-bar"
-									class:steps-bar-today={i === 6}
-									class:steps-bar-met={v !== null && v >= stepsGoal}
-									style="height:{v === null ? 0 : Math.max(4, (v / stepsScale) * 100)}%;"
-								></div>
-							{/each}
-						</div>
-					</div>
-				{:else if isToday && suppEnabled}
-					{@render suppCard(false)}
-				{/if}
-			</div>
-			{/if}
-			{#if showSteps && isToday && suppEnabled}
-				<div style="margin-bottom:0.75rem;">{@render suppCard(true)}</div>
-			{/if}
-
-			<!-- Mood chip -->
-			{#if moodEnabled}
-				<a href="/mood?day={today}" class="mood-chip" style="text-decoration:none; display:block; margin-bottom:0.75rem;">
-					<div class="card" style="padding:0.75rem 1rem; display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
-						<div style="width:36px; height:36px; border-radius:12px; flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-							<Icon name={moodEntry?.worst ? MOOD_WORST_ICON[moodEntry.worst] : 'mood'} />
-						</div>
-						<div style="flex:1; min-width:0;">
-							<div style="font-weight:700; font-size:0.85rem; color:#fff;">{t('diary.moodTitle')}</div>
-							<div style="font-size:0.75rem; color:var(--text-muted);">
-								{#if moodEntry?.worst}
-									{#if moodEntry.energy}<Icon name="quick" />{/if}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''}{t('diary.moodEdit')}
-								{:else}
-									{t('diary.moodAsk')}
-								{/if}
-							</div>
-						</div>
-						<div style="font-size:0.75rem; color:var(--text-muted);">›</div>
-					</div>
-				</a>
-			{/if}
-
-			<!-- Cheat day -->
-			{#if isToday && goals?.cheat_days_enabled && cheatDay !== null}
-				<!-- Semana agotada: el botón se apaga antes de que el backend conteste 409. -->
-				{@const cheatDayExhausted = !cheatDay.active && cheatDay.used_this_week >= cheatDay.limit_per_week}
-				<div class="card" style="margin-bottom:0.75rem; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
-					<div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
-						<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
-							<div style="
-								width:36px; height:36px; border-radius:12px; flex-shrink:0;
-								background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
-								border:1px solid oklch(70% 0.18 45 / 0.3);
-								display:flex; align-items:center; justify-content:center;
-								font-size:1.1rem;
-							"><Icon name="cheat" /></div>
-							<div style="min-width:0;">
-								<div style="font-weight:700; font-size:0.88rem;">{t('diary.cheatDay')}</div>
-								<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-									{#if cheatDay.active}<Icon name="streak" /> {/if}{cheatDay.active ? t('diary.cheatDayOn') : cheatDayExhausted ? t('diary.cheatDayExhausted') : t('diary.cheatDayOff')}
-									{#if cheatDay.limit_per_week < 7}
-										· {cheatDay.used_this_week}/{cheatDay.limit_per_week}
+			<!-- Módulos del día en rejilla de dos columnas: van por parejas, en
+			     cuadrado. Si quedan impares, el último ocupa la fila entera y se
+			     pinta en formato fila, así no quedan huecos ni filas medio vacías. -->
+			{#if moduleTiles.length > 0}
+				<div class="module-grid">
+					{#each moduleTiles as tile, i (tile)}
+						{@const wide = moduleTiles.length % 2 === 1 && i === moduleTiles.length - 1}
+						<div class="module-cell" class:module-wide={wide}>
+							{#if tile === 'water'}
+								<div class="card" style="padding:0.85rem;">
+									<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
+										<Icon name="water" size="0.95rem" style="color:var(--water)" />
+										<span style="font-size:0.82rem; color:var(--water); font-weight:700;">{t('diary.water')}</span>
+										{#if water}
+											<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
+												{Math.round(water.total_ml)} / {water.goal_ml} ml
+											</span>
+										{/if}
+									</div>
+									{#if water}
+										<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
+											<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
+										</div>
 									{/if}
+									<div style="display:flex; gap:0.35rem;">
+										<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
+										<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
+										<button class="btn-secondary" onclick={removeWater}
+											style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
+											disabled={!water || water.total_ml <= 0}><Icon name="undo" /></button>
+									</div>
 								</div>
-							</div>
+							{:else if tile === 'steps'}
+								<div class="card steps-card" role="img" aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
+									<div style="display:flex; align-items:center; gap:0.4rem;">
+										<Icon name="steps" size="0.95rem" style="color:var(--steps)" />
+										<span style="font-size:0.82rem; color:var(--steps); font-weight:700;">{t('diary.steps')}</span>
+									</div>
+									<div class="steps-value">
+										{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
+										<span class="steps-goal">/ {stepsGoal >= 1000 ? `${Math.round(stepsGoal / 100) / 10}k` : stepsGoal}</span>
+									</div>
+									<div class="steps-bars">
+										<div class="steps-goal-line" style="bottom:{(stepsGoal / stepsScale) * 100}%;"></div>
+										{#each stepsWeek as v, i}
+											<div
+												class="steps-bar"
+												class:steps-bar-today={i === 6}
+												class:steps-bar-met={v !== null && v >= stepsGoal}
+												style="height:{v === null ? 0 : Math.max(4, (v / stepsScale) * 100)}%;"
+											></div>
+										{/each}
+									</div>
+								</div>
+							{:else if tile === 'supp'}
+								{@render suppCard(wide)}
+							{:else if tile === 'mood'}
+								{@render moodTile(wide)}
+							{:else}
+								{@render cheatTile(wide)}
+							{/if}
 						</div>
-						<button
-							onclick={toggleCheatDay}
-							disabled={togglingCheatDay || cheatDayExhausted}
-							class:btn-secondary={cheatDay.active}
-							style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay || cheatDayExhausted ? '0.5' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
-						>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
-					</div>
+					{/each}
 				</div>
 			{/if}
 
@@ -1518,6 +1478,60 @@
 {/if}
 
 
+{#snippet moodTile(wide: boolean)}
+	<a href="/mood?day={today}" class="mood-chip" style="text-decoration:none; display:grid;">
+		<div class="card" style="{wide ? 'padding:0.75rem 1rem; flex-direction:row; text-align:left; gap:0.75rem;' : 'padding:0.85rem; flex-direction:column; justify-content:center; text-align:center; gap:0.5rem;'} display:flex; align-items:center; cursor:pointer;">
+			<div style="width:{wide ? 36 : 42}px; height:{wide ? 36 : 42}px; border-radius:12px; flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+				<Icon name={moodEntry?.worst ? MOOD_WORST_ICON[moodEntry.worst] : 'mood'} />
+			</div>
+			<div style="{wide ? 'flex:1;' : ''} min-width:0;">
+				<div style="font-weight:700; font-size:0.85rem; color:#fff;">{t('diary.moodTitle')}</div>
+				<div style="font-size:0.72rem; color:var(--text-muted);">
+					{#if moodEntry?.worst}
+						{#if moodEntry.energy}<Icon name="quick" />{/if}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''}{t('diary.moodEdit')}
+					{:else}
+						{t('diary.moodAsk')}
+					{/if}
+				</div>
+			</div>
+			{#if wide}<div style="font-size:0.75rem; color:var(--text-muted);">›</div>{/if}
+		</div>
+	</a>
+{/snippet}
+
+{#snippet cheatTile(wide: boolean)}
+	{#if cheatDay}
+		<!-- Semana agotada: el botón se apaga antes de que el backend conteste 409. -->
+		{@const cheatDayExhausted = !cheatDay.active && cheatDay.used_this_week >= cheatDay.limit_per_week}
+		<div class="card" style="{wide ? 'padding:0.75rem 1rem;' : 'padding:0.85rem;'} display:flex; flex-direction:{wide ? 'row' : 'column'}; align-items:center; justify-content:{wide ? 'space-between' : 'center'}; gap:{wide ? '0.75rem' : '0.5rem'}; text-align:{wide ? 'left' : 'center'}; {cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}">
+			<div style="display:flex; flex-direction:{wide ? 'row' : 'column'}; align-items:center; gap:{wide ? '0.65rem' : '0.5rem'}; min-width:0;">
+				<div style="
+					width:{wide ? 36 : 42}px; height:{wide ? 36 : 42}px; border-radius:12px; flex-shrink:0;
+					background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
+					border:1px solid oklch(70% 0.18 45 / 0.3);
+					display:flex; align-items:center; justify-content:center;
+					font-size:1.1rem; color:oklch(80% 0.18 45);
+				"><Icon name="cheat" /></div>
+				<div style="min-width:0;">
+					<div style="font-weight:700; font-size:0.85rem;">{t('diary.cheatDay')}</div>
+					<div style="font-size:0.72rem; color:var(--text-muted); {wide ? 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' : ''}">
+						{#if cheatDay.active}<Icon name="streak" /> {/if}{cheatDay.active ? t('diary.cheatDayOn') : cheatDayExhausted ? t('diary.cheatDayExhausted') : t('diary.cheatDayOff')}
+						{#if cheatDay.limit_per_week < 7}
+							· {cheatDay.used_this_week}/{cheatDay.limit_per_week}
+						{/if}
+					</div>
+				</div>
+			</div>
+			<button
+				onclick={toggleCheatDay}
+				disabled={togglingCheatDay || cheatDayExhausted}
+				class:btn-secondary={cheatDay.active}
+				style="flex-shrink:0; {wide ? '' : 'width:100%;'} padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; opacity:{togglingCheatDay || cheatDayExhausted ? '0.5' : '1'}; {!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}"
+			>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet suppCard(row: boolean)}
 	{#if suppCount === 1}
 		<!-- Single supplement: tap to toggle directly -->
@@ -1878,6 +1892,15 @@
 	.copy-today-btn:hover { filter: brightness(1.1); }
 	.copy-today-btn:disabled { opacity: 0.6; }
 
+	.module-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 0.6rem;
+		margin-bottom: 0.75rem;
+	}
+	/* Grid de un solo hijo: la tarjeta se estira a la altura de su pareja. */
+	.module-cell { display: grid; min-width: 0; }
+	.module-wide { grid-column: 1 / -1; }
 	.steps-card {
 		padding: 0.85rem;
 		display: flex;
