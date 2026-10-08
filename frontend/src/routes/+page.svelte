@@ -109,6 +109,26 @@
 		return meals;
 	}
 
+	// Lo apuntado sin conexión todavía no tiene id del servidor: se pinta con un
+	// id negativo y este mapa dice qué escritura de la cola es cada uno.
+	let pendingIds = new Map<number, string>();
+
+	/** Añade al día lo que está en la cola esperando a sincronizarse. */
+	function withPending(s: DaySummary): DaySummary {
+		pendingIds = new Map();
+		const extra: DiaryEntry[] = [];
+		syncQueue.items.forEach((w, i) => {
+			if (w.preview?.day !== today) return;
+			const id = -(i + 1);
+			pendingIds.set(id, w.id);
+			extra.push({ ...w.preview.entry, id });
+		});
+		if (extra.length === 0) return s;
+		const entries = [...s.entries.filter(e => e.id > 0), ...extra];
+		const totals = sumTotals(entries);
+		return { ...s, totals, net_calories: totals.calories - (s.calories_burned ?? 0), entries, meals: regroupMeals(entries) };
+	}
+
 	function optimisticDeleteEntry(id: number) {
 		if (!summary) return;
 		const entries = summary.entries.filter(e => e.id !== id);
@@ -267,7 +287,7 @@
 		const cachedSummary0 = cacheGet<DaySummary>(`diary_${today}`);
 		const cachedGoals0 = cacheGet<Goals>('goals');
 		if (cachedSummary0) {
-			summary = cachedSummary0.data;
+			summary = withPending(cachedSummary0.data);
 			if (cachedGoals0 && !goals) goals = cachedGoals0.data;
 			loading = false; // we already have something to show
 		} else {
@@ -276,10 +296,10 @@
 		try {
 			const [s, w] = await Promise.all([
 				api.get<DaySummary>(`/diary/day?day=${today}`),
-				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => null),
+				api.get<WaterDay>(`/water/day?day=${today}`).catch(() => cacheGet<WaterDay>(`water_${today}`)?.data ?? null),
 				loadSteps(),
 			]);
-			summary = s;
+			summary = withPending(s);
 			water = w;
 
 			// goals may still be in flight on the very first load (loadStatic
@@ -317,12 +337,15 @@
 			const cachedSummary = cacheGet<DaySummary>(`diary_${today}`);
 			const cachedGoals = cacheGet<Goals>('goals');
 			if (cachedSummary) {
-				summary = cachedSummary.data;
+				summary = withPending(cachedSummary.data);
 				fromCache = true;
 			}
 			if (cachedGoals && !goals) {
 				goals = cachedGoals.data;
 			}
+			water = cacheGet<WaterDay>(`water_${today}`)?.data ?? null;
+			const supps = cacheGet<{ day: string; list: SupplementToday[] }>('supplements_today')?.data;
+			if (isToday && supps?.day === today) supplements = supps.list;
 		} finally {
 			loading = false;
 		}
@@ -334,6 +357,13 @@
 		if (auth.isLoggedIn && !staticLoaded) staticLoaded = loadStatic();
 	});
 	$effect(() => { today; if (auth.isLoggedIn) loadDay(); });
+	// Agua y suplementos se guardan cada vez que cambian (también los cambios
+	// hechos sin conexión), para enseñarlos si se reabre la app bloqueada.
+	$effect(() => { if (water) cacheSet(`water_${untrack(() => today)}`, water); });
+	$effect(() => { if (isToday && supplements.length > 0) cacheSet('supplements_today', { day: untrack(() => today), list: supplements }); });
+	// Al sincronizar lo apuntado sin conexión, lo que se ve es la versión
+	// optimista: se recarga para enseñar lo que ya tiene el servidor.
+	$effect(() => { if (syncQueue.version > 0) untrack(() => loadDay()); });
 
 	function pct(current: number, goal: number) {
 		if (!goal) return 0;
@@ -449,7 +479,7 @@
 	let deletingPartnerHas = $state(false);
 
 	async function startDelete(entry: DiaryEntry) {
-		if (!partner) {
+		if (!partner || entry.id < 0) {
 			confirmDelete(entry.id, 'mine');
 			return;
 		}
@@ -480,6 +510,13 @@
 		if (partner && mode === 'both') url += `?also_for_user_id=${partner.id}`;
 		else if (partner && mode === 'partner') url += `?only_for_user_id=${partner.id}`;
 		const removesMine = mode !== 'partner';  // "solo para la pareja" conserva la mía
+		const queued = pendingIds.get(id);
+		if (queued) {
+			// Aún no ha llegado al servidor: basta con sacarla de la cola.
+			syncQueue.remove(queued);
+			optimisticDeleteEntry(id);
+			return;
+		}
 		if (connectivity.isOffline) {
 			syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
 			if (removesMine) optimisticDeleteEntry(id);
@@ -491,6 +528,11 @@
 			await api.del(url);
 			if (mode === 'partner') toast.success(`Quitado del diario de ${partner?.name}`);
 		} catch {
+			// Se acaba de caer la conexión (empieza el bloqueo): a la cola.
+			if (connectivity.isOffline) {
+				syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
+				return;
+			}
 			toast.error(t('diary.errDelete'));
 			loadDay();
 		}
@@ -504,7 +546,7 @@
 		partnerEntry = null;
 		sharePartner = false;
 		partnerGrams = entry.grams;
-		if (partner && !connectivity.isOffline) refreshPartnerEntry();
+		if (partner && entry.id > 0 && !connectivity.isOffline) refreshPartnerEntry();
 	}
 
 	// Interruptor "comida compartida": al activarlo, si la pareja aún no lo tiene,
@@ -548,6 +590,23 @@
 		const existing = partnerEntry;
 		// Añadir a la pareja solo si NO lo tenía y activaste el interruptor.
 		const wantAdd = !!(partner && sharePartner && !existing);
+		const queued = pendingIds.get(editId);
+		if (queued) {
+			// Aún no ha llegado al servidor: se corrige la escritura pendiente.
+			const w = syncQueue.items.find(x => x.id === queued);
+			optimisticEditEntry(editId, myGrams, mt);
+			const entry = summary?.entries.find(e => e.id === editId);
+			if (w && entry) {
+				const change = { grams: myGrams, meal_type: mt };
+				syncQueue.update(queued, {
+					...(w.chainedBody ? { chainedBody: { ...w.chainedBody, ...change } } : { body: { ...(w.body as object), ...change } }),
+					preview: { day: w.preview!.day, entry: { ...entry, id: 0 } },
+				});
+			}
+			editingEntry = null;
+			editSaving = false;
+			return;
+		}
 		try {
 			if (connectivity.isOffline) {
 				syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editId}`, body: { grams: myGrams, meal_type: mt }, label: `Editar ${name}` });
@@ -572,6 +631,10 @@
 					}
 				}
 			} catch {
+				if (connectivity.isOffline) {
+					syncQueue.enqueue({ method: 'PATCH', path: `/diary/${editId}`, body: { grams: myGrams, meal_type: mt }, label: `Editar ${name}` });
+					return;
+				}
 				toast.error(t('diary.errSave'));
 				loadDay();
 			}
@@ -590,7 +653,11 @@
 			else water = { total_ml: ml, goal_ml: goals?.water_ml ?? 2000 };
 			return;
 		}
-		water = await api.post<WaterDay>('/water/log', { ml, logged_date: today });
+		try {
+			water = await api.post<WaterDay>('/water/log', { ml, logged_date: today });
+		} catch {
+			if (connectivity.isOffline) return addWater(ml);
+		}
 	}
 
 	async function removeWater() {
@@ -599,7 +666,11 @@
 			if (water) water = { ...water, total_ml: Math.max(0, water.total_ml - lastWaterMl) };
 			return;
 		}
-		water = await api.del<WaterDay>(`/water/log/last?day=${today}`);
+		try {
+			water = await api.del<WaterDay>(`/water/log/last?day=${today}`);
+		} catch {
+			if (connectivity.isOffline) return removeWater();
+		}
 	}
 
 	async function copyFromYesterday() {
@@ -680,7 +751,10 @@
 			} else {
 				supplements = await api.post<SupplementToday[]>(`/supplements/log/${suppId}`, {});
 			}
-		} catch { toast.error(t('diary.errSupplement')); }
+		} catch {
+			if (connectivity.isOffline) return toggleSupp(suppId, taken);
+			toast.error(t('diary.errSupplement'));
+		}
 	}
 
 	async function addSupp() {

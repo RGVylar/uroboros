@@ -80,14 +80,14 @@
 		});
 	});
 
-	// Drain offline write queue when connectivity is restored
-	let wasOffline = false;
+	// Drain offline write queue whenever we're online with something pending —
+	// not only on the offline→online transition: if the app was closed during
+	// the block, it opens already "online" and the queue would sit there until
+	// the next outage.
 	$effect(() => {
-		const isOffline = connectivity.isOffline;
-		if (wasOffline && !isOffline && syncQueue.count > 0) {
-			syncQueue.drain();
+		if (auth.isLoggedIn && !connectivity.isOffline && syncQueue.count > 0) {
+			untrack(() => syncQueue.drain());
 		}
-		wasOffline = isOffline;
 	});
 
 	// Changelog + update nudge — served from the DB, fetched once after login.

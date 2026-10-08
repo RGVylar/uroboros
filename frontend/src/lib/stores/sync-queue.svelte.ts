@@ -4,6 +4,8 @@
  */
 
 import { api } from '$lib/api';
+import type { DiaryEntry } from '$lib/types';
+import { connectivity } from '$lib/stores/connectivity.svelte';
 
 const STORAGE_KEY = 'uro_sync_queue';
 
@@ -24,10 +26,16 @@ export interface PendingWrite {
 	chainedBody?: Record<string, unknown>;
 	/**
 	 * Shared key for a pair of opposite actions (add/undo, mark/unmark). If the
-	 * write at the tail of the queue has the same toggleKey, the two cancel out
-	 * instead of piling up two writes that would sync as a no-op.
+	 * write at the tail of the queue has the same toggleKey and the opposite
+	 * method, the two cancel out instead of piling up two writes that would sync
+	 * as a no-op. Two writes in the same direction (+250 ml twice) both stay.
 	 */
 	toggleKey?: string;
+	/**
+	 * Diary entry as it will look once synced, so the diary can show it while
+	 * it waits. `day` is the diary day it belongs to.
+	 */
+	preview?: { day: string; entry: DiaryEntry };
 }
 
 function load(): PendingWrite[] {
@@ -47,15 +55,19 @@ function persist(queue: PendingWrite[]) {
 
 let _queue = $state<PendingWrite[]>(load());
 let _syncing = $state(false);
+// Sube cada vez que un drain envía algo: las pantallas que pintan datos
+// optimistas lo vigilan para recargar lo que ya dice el servidor.
+let _version = $state(0);
 
 export const syncQueue = {
 	get items(): PendingWrite[] { return _queue; },
 	get count(): number { return _queue.length; },
 	get isSyncing(): boolean { return _syncing; },
+	get version(): number { return _version; },
 
 	enqueue(write: Omit<PendingWrite, 'id' | 'createdAt'>) {
 		const tail = _queue[_queue.length - 1];
-		if (write.toggleKey && tail && tail.toggleKey === write.toggleKey) {
+		if (write.toggleKey && tail && tail.toggleKey === write.toggleKey && tail.method !== write.method) {
 			// This write undoes the one still sitting at the tail — drop both
 			// instead of syncing a no-op pair and inflating the pending count.
 			_queue = _queue.slice(0, -1);
@@ -72,6 +84,12 @@ export const syncQueue = {
 		return entry.id;
 	},
 
+	/** Change a write still waiting (editing an entry logged offline). */
+	update(id: string, patch: Partial<Pick<PendingWrite, 'body' | 'chainedBody' | 'preview'>>) {
+		_queue = _queue.map(w => (w.id === id ? { ...w, ...patch } : w));
+		persist(_queue);
+	},
+
 	remove(id: string) {
 		_queue = _queue.filter(w => w.id !== id);
 		persist(_queue);
@@ -81,6 +99,7 @@ export const syncQueue = {
 		productBody: unknown;
 		diaryBody: Record<string, unknown>;
 		label?: string;
+		preview?: PendingWrite['preview'];
 	}) {
 		const entry: PendingWrite = {
 			id: crypto.randomUUID(),
@@ -91,6 +110,7 @@ export const syncQueue = {
 			chainedBody: opts.diaryBody,
 			createdAt: Date.now(),
 			label: opts.label,
+			preview: opts.preview,
 		};
 		_queue = [..._queue, entry];
 		persist(_queue);
@@ -133,13 +153,21 @@ export const syncQueue = {
 				_queue = _queue.filter(w => w.id !== write.id);
 				persist(_queue);
 				succeeded++;
-			} catch {
-				// Leave in queue — will retry next reconnect
+			} catch (e) {
 				failed++;
+				// Sin red: se queda en la cola y paramos aquí, para no enviar lo de
+				// detrás antes que esto (borrar antes de crear, por ejemplo). Con la
+				// sesión caducada también se guarda: es suya y vale tras volver a entrar.
+				if (connectivity.isOffline || (e instanceof Error && e.message === 'Unauthorized')) break;
+				// El servidor respondió y la rechazó (la entrada ya no existe…):
+				// reintentarla para siempre solo deja el aviso de pendiente colgado.
+				_queue = _queue.filter(w => w.id !== write.id);
+				persist(_queue);
 			}
 		}
 
 		_syncing = false;
+		if (succeeded > 0) _version++;
 		return { succeeded, failed };
 	},
 };

@@ -311,6 +311,7 @@ export const pt: Dict = {
 	'add.loadingHistory': 'A carregar histórico...',
 	'add.historyEmpty': 'Ainda não tens alimentos recentes',
 	'add.historyOffline': 'A mostrar alimentos guardados · sem ligação',
+	'add.searchOffline': 'Sem ligação: a pesquisar nos genéricos e no que já usaste',
 	'add.myFoods': 'Os meus alimentos',
 	'add.byFrequency': 'Por frequência de utilização',
 	'add.consumeFromInventory': 'Consumir do inventário?',

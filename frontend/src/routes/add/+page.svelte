@@ -25,7 +25,7 @@
 		InventoryItem,
 	} from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { t, tc, mealLabel, allergenLabel, fmtDate } from '$lib/i18n/index.svelte';
+	import { t, tc, mealLabel, allergenLabel, fmtDate, i18n } from '$lib/i18n/index.svelte';
 	import ConsumeFoodModal from '$lib/components/ConsumeFoodModal.svelte';
 	import DayImpact from '$lib/components/DayImpact.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -221,6 +221,64 @@
 	let searchOffset = $state(0);
 	let hasMore = $state(false);
 	const PAGE_SIZE = 20;
+	// Resultados sacados de lo guardado en el móvil, no del servidor.
+	let searchOffline = $state(false);
+
+	// ── Búsqueda sin conexión ────────────────────────────────────────────────
+	// Durante los bloqueos del fútbol el servidor no responde: buscamos en el
+	// catálogo de genéricos (guardado aquí) y en lo que el usuario ya ha usado.
+	let genericCatalog: Product[] = $state([]);
+
+	async function loadGenericCatalog() {
+		const key = `generic_foods_${i18n.locale}`;
+		const cached = cacheGet<Product[]>(key);
+		if (cached) genericCatalog = cached.data;
+		// Es fijo: basta con refrescarlo una vez al día.
+		if (cached && !cached.stale) return;
+		try {
+			const list = await api.get<Product[]>('/products/generic');
+			genericCatalog = list;
+			if (list.length > 0) cacheSet(key, list);
+		} catch { /* nos quedamos con la copia, si la hay */ }
+	}
+
+	/** Minúsculas y sin tildes, como el backend: "platano" encuentra "Plátano". */
+	function fold(text: string): string {
+		return text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+	}
+
+	function localSearch(q: string): Product[] {
+		const words = fold(q).split(/\s+/).filter(Boolean);
+		if (words.length === 0) return [];
+		const fq = words.join(' ');
+		// Lo ya usado primero (en orden de uso), luego favoritos y genéricos.
+		const pool = [...frequent.map(f => f.product), ...favorites, ...genericCatalog];
+		const seen = new Set<number>();
+		const hits: { p: Product; score: number; order: number }[] = [];
+		pool.forEach((p, order) => {
+			if (seen.has(p.id)) return;
+			seen.add(p.id);
+			const name = fold(p.name);
+			const nameWords = name.match(/\w+/g) ?? [];
+			// Cada palabra buscada tiene que empezar alguna del nombre (o de la
+			// marca): "pechuga pavo" encuentra "Pechuga de pavo (cruda)".
+			const brandWords = fold(p.brand ?? '').match(/\w+/g) ?? [];
+			const all = [...nameWords, ...brandWords];
+			if (!words.every(w => all.some(nw => nw.startsWith(w)))) return;
+			const score = name === fq ? 100 : name.startsWith(fq) ? 85 : nameWords[0]?.startsWith(words[0]) ? 70 : 50;
+			hits.push({ p, score, order });
+		});
+		hits.sort((a, b) => b.score - a.score || a.order - b.order);
+		return hits.slice(0, 50).map(h => h.p);
+	}
+
+	function searchLocally() {
+		results = localSearch(query);
+		hasMore = false;
+		searched = true;
+		searchOffline = true;
+		error = '';
+	}
 
 	// Búsqueda en vivo: el backend responde en <100ms, así que buscamos
 	// automáticamente con un pequeño debounce en vez de exigir Enter.
@@ -578,7 +636,8 @@
 		frequentFromCache = false;
 		try {
 			const [f, r] = await Promise.all([
-				api.get<FrequentProduct[]>('/products/frequent?limit=15'),
+				// 50 (el máximo): además de la lista, es lo que se puede buscar sin conexión.
+				api.get<FrequentProduct[]>('/products/frequent?limit=50'),
 				api.get<FrequentRecipe[]>('/recipes/frequent?limit=5').catch(() => []),
 			]);
 			frequent = f;
@@ -665,6 +724,7 @@
 		loadFrequent();
 		loadAllergies();
 		loadFavorites();
+		loadGenericCatalog();
 		// Pre-load recipe from URL param
 		if (urlRecipeId) {
 			api.get<FrequentRecipe['recipe']>(`/recipes/${urlRecipeId}`)
@@ -685,6 +745,10 @@
 
 	async function searchByName() {
 		if (!query.trim()) return;
+		if (connectivity.isOffline) {
+			searchLocally();
+			return;
+		}
 		searching = true;
 		error = '';
 		searchOffset = 0;
@@ -693,8 +757,11 @@
 			results = res;
 			hasMore = res.length === PAGE_SIZE;
 			searched = true;
+			searchOffline = false;
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Error';
+			// Se acaba de caer la conexión: a lo guardado.
+			if (connectivity.isOffline) searchLocally();
+			else error = e instanceof Error ? e.message : 'Error';
 		} finally {
 			searching = false;
 		}
@@ -854,6 +921,25 @@
 		};
 		try {
 			if (connectivity.isOffline) {
+				// Cómo se verá en el diario mientras espera a sincronizarse.
+				const f = grams / 100;
+				const preview = {
+					day: selectedDate,
+					entry: {
+						id: 0,
+						user_id: auth.user?.id ?? 0,
+						product_id: selected.id,
+						grams,
+						calories: Math.round(selected.calories_per_100g * f),
+						protein: Math.round(selected.protein_per_100g * f * 10) / 10,
+						carbs: Math.round(selected.carbs_per_100g * f * 10) / 10,
+						fat: Math.round(selected.fat_per_100g * f * 10) / 10,
+						meal_type: mealType,
+						consumed_at: payload.consumed_at,
+						created_at: payload.consumed_at,
+						product: selected,
+					},
+				};
 				if (selected.id === 0) {
 					// Manual product created offline: queue create-product + add-to-diary as a chain
 					syncQueue.enqueueChained({
@@ -864,6 +950,7 @@
 							protein_per_100g: selected.protein_per_100g,
 							carbs_per_100g: selected.carbs_per_100g,
 							fat_per_100g: selected.fat_per_100g,
+							unit: selected.unit,
 						},
 						diaryBody: {
 							grams,
@@ -873,6 +960,7 @@
 							only_for_user_id: shareMode === 'only' ? partner?.id : null,
 						},
 						label: `${selected.name} · ${qty}${unitSuffix(unit)}`,
+						preview,
 					});
 				} else {
 					// Known product — queue diary entry directly
@@ -881,6 +969,7 @@
 						path: '/diary',
 						body: payload,
 						label: `${selected.name} · ${qty}${unitSuffix(unit)}`,
+						preview,
 					});
 					saveLastGrams(selected.id, grams);
 				}
@@ -1464,6 +1553,9 @@
 
 	<!-- Results section (when query) -->
 	{#if query}
+		{#if searched && searchOffline}
+			<div class="offline-cache-notice"><Icon name="offline" /> {t('add.searchOffline')}</div>
+		{/if}
 		{#if searching && results.length === 0}
 			<div class="loading-row">{t('add.searching')}</div>
 		{:else if !searched && results.length === 0}

@@ -91,3 +91,20 @@ def test_word_prefix_not_substring(client, make_user, generics):
     assert "Pechuga de pollo (cruda)" in names
     # A medio escribir también vale.
     assert "Pechuga de pollo (cruda)" in [r["name"] for r in _search(client, user, "pech")]
+
+
+def test_generic_catalogue_for_offline(client, db, make_user, generics):
+    """La app se baja el catálogo entero para buscar sin conexión: todos los
+    genéricos, ninguna marca, en orden de catálogo y en el idioma pedido."""
+    user = make_user("Ana")
+    db.add(Product(name="Pechuga de pavo", brand="ElPozo", barcode="84", calories_per_100g=95,
+                   protein_per_100g=18, carbs_per_100g=1.5, fat_per_100g=1.8,
+                   source=ProductSource.openfoodfacts))
+    db.commit()
+
+    r = client.get(f"{API}/products/generic", headers=auth(user) | {"X-Lang": "en"})
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == len(GENERIC_FOODS)
+    assert all(p["source"] == "generic" for p in rows)
+    assert rows[0]["name"] == GENERIC_FOODS[0][2]

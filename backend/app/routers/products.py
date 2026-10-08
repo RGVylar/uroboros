@@ -59,6 +59,20 @@ def get_frequent_products(
     ]
 
 
+@router.get("/generic", response_model=list[ProductOut])
+def list_generic_products(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[Product]:
+    """El catálogo de genéricos entero, en el orden del catálogo. La app lo
+    guarda para poder buscar "pollo" o "arroz" sin conexión (bloqueos del
+    fútbol). Son unos cientos de filas fijas; el nombre sale en el idioma de
+    la petición."""
+    products = list(db.scalars(select(Product).where(Product.generic_key.is_not(None))))
+    products.sort(key=lambda p: _GENERIC_ORDER.get(p.generic_key, len(_GENERIC_ORDER)))
+    return products
+
+
 @router.get("/barcode/{barcode}", response_model=ProductOut)
 async def get_or_fetch_by_barcode(
     barcode: str,

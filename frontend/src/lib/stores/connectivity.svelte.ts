@@ -10,6 +10,24 @@ const BASE = Capacitor.isNativePlatform()
 let _offline = $state(false);
 let _since: number | null = null;
 let _pinging = false;
+// Mientras no hay conexión, nada más pregunta al servidor (lo nuevo va a la
+// cola), así que sin este sondeo la app no se enteraría de que el bloqueo
+// terminó hasta la próxima pantalla que cargue datos.
+const RETRY_MS = 15_000;
+let _retry: ReturnType<typeof setInterval> | null = null;
+
+function stopRetry() {
+	if (_retry) clearInterval(_retry);
+	_retry = null;
+}
+
+if (typeof document !== 'undefined') {
+	// Al volver a la app (o recuperar red) se comprueba al momento.
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible' && _offline) connectivity.ping();
+	});
+	window.addEventListener('online', () => { if (_offline) connectivity.ping(); });
+}
 
 export const connectivity = {
 	get isOffline() { return _offline; },
@@ -19,6 +37,7 @@ export const connectivity = {
 		if (_offline) {
 			_offline = false;
 			_since = null;
+			stopRetry();
 		}
 	},
 
@@ -27,6 +46,7 @@ export const connectivity = {
 		if (!_offline) {
 			_offline = true;
 			_since = Date.now();
+			if (!_retry) _retry = setInterval(() => connectivity.ping(), RETRY_MS);
 		}
 	},
 

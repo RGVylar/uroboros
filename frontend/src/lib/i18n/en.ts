@@ -309,6 +309,7 @@ export const en: Dict = {
 	'add.loadingHistory': 'Loading history...',
 	'add.historyEmpty': 'No recent foods yet',
 	'add.historyOffline': 'Showing saved foods · offline',
+	'add.searchOffline': 'Offline: searching generic foods and the ones you have used',
 	'add.myFoods': 'My foods',
 	'add.byFrequency': 'By how often you use them',
 	'add.consumeFromInventory': 'Take it from the inventory?',

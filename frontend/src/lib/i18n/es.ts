@@ -312,6 +312,7 @@ export const es = {
 	'add.loadingHistory': 'Cargando historial...',
 	'add.historyEmpty': 'Aún no tienes alimentos recientes',
 	'add.historyOffline': 'Mostrando alimentos guardados · sin conexión',
+	'add.searchOffline': 'Sin conexión: buscando en genéricos y en lo que ya has usado',
 	'add.myFoods': 'Mis alimentos',
 	'add.byFrequency': 'Por frecuencia de uso',
 	'add.consumeFromInventory': '¿Consumir del inventario?',
