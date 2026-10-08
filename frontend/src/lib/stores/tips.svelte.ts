@@ -15,6 +15,8 @@ export const TIP_IDS = [
 	'module.inventory',
 	'module.cheat_days',
 	'module.mood',
+	'weight_trend',
+	'weekly_proposal',
 ] as const;
 export type TipId = (typeof TIP_IDS)[number];
 

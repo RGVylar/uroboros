@@ -21,8 +21,27 @@ class GoalsIn(BaseModel):
     macro_adjust_mode: str = "off"
 
 
+Sex = Literal["male", "female"]
+Activity = Literal["sedentary", "light", "moderate", "active", "very_active"]
+Objective = Literal["lose", "maintain", "gain"]
+
+
+class BodyProfileIn(BaseModel):
+    """Perfil corporal: solo se cambia lo que llega."""
+    sex: Sex | None = None
+    birth_year: int | None = Field(default=None, ge=1900, le=2100)
+    height_cm: float | None = Field(default=None, ge=100, le=250)
+    activity: Activity | None = None
+    objective: Objective | None = None
+
+
 class GoalsOut(GoalsIn):
     user_id: int
+    sex: str | None = None
+    birth_year: int | None = None
+    height_cm: float | None = None
+    activity: str | None = None
+    objective: str | None = None
 
     class Config:
         from_attributes = True

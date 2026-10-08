@@ -31,6 +31,7 @@
 		Avatar,
 	} from '$lib/components';
 	import TrialBanner from '$lib/components/uro/TrialBanner.svelte';
+	import WeeklyProposal from '$lib/components/WeeklyProposal.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -871,6 +872,10 @@
 {:else}
 	<DayNav bind:date={today} {streak} />
 	<TrialBanner />
+	<!-- Revisión semanal de objetivos: necesita pesajes, así que va con el módulo de peso -->
+	{#if isToday && modules.on('weight') && !connectivity.isOffline}
+		<WeeklyProposal onapplied={(g) => { goals = g; cacheSet('goals', g); }} />
+	{/if}
 
 
 	{#if recipeSaveSuccess}

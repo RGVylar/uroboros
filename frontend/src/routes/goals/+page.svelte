@@ -5,7 +5,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Goals } from '$lib/types';
+	import type { Activity, Goals, Objective, WeightLog } from '$lib/types';
 	import { GlassHeader } from '$lib/components';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { t } from '$lib/i18n/index.svelte';
@@ -66,8 +66,10 @@
 	let tdeeHeight = $state(175);
 	let tdeeAge = $state(25);
 	let tdeeSex: 'male' | 'female' = $state('male');
-	let tdeeActivity = $state('moderate');
-	let tdeeObjective = $state('maintain');
+	let tdeeActivity = $state<Activity>('moderate');
+	let tdeeObjective = $state<Objective>('maintain');
+	// Se aplicó la calculadora: al guardar, el perfil va con los objetivos.
+	let profileDirty = false;
 	let tdeeResult: { tdee: number; bmr: number; target: number } | null = $state(null);
 
 	let activityFactors: Record<string, { label: string; factor: number }> = $derived({
@@ -105,6 +107,7 @@
 		cPct = Math.round(obj.cPct * 100);
 		fPct = 100 - pPct - cPct;
 		showTdee = false;
+		profileDirty = true;
 	}
 
 	$effect(() => {
@@ -116,9 +119,19 @@
 				fat = g.fat;
 				water_ml = g.water_ml;
 				steps_goal = g.steps_goal ?? 8000;
+				// La calculadora sale con lo que dijo en el onboarding o la última vez.
+				if (g.sex) tdeeSex = g.sex;
+				if (g.birth_year) tdeeAge = new Date().getFullYear() - g.birth_year;
+				if (g.height_cm) tdeeHeight = g.height_cm;
+				if (g.activity) tdeeActivity = g.activity;
+				if (g.objective) tdeeObjective = g.objective;
 			})
 			.catch(() => {})
 			.finally(() => loading = false);
+		// Y con el último peso apuntado, no con 75 kg.
+		api.get<WeightLog[]>('/weight?limit=1')
+			.then(w => { if (w[0]) tdeeWeight = w[0].weight; })
+			.catch(() => {});
 	});
 
 	async function save() {
@@ -128,6 +141,16 @@
 			fat = fGrams;
 		}
 		await api.put('/goals', { kcal, protein, carbs, fat, water_ml, steps_goal });
+		if (profileDirty) {
+			profileDirty = false;
+			await api.patch('/goals/profile', {
+				sex: tdeeSex,
+				birth_year: new Date().getFullYear() - tdeeAge,
+				height_cm: tdeeHeight,
+				activity: tdeeActivity,
+				objective: tdeeObjective,
+			}).catch(() => {});
+		}
 		if (isOnboarding) {
 			goto('/');
 		} else {
@@ -204,7 +227,7 @@
 					<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">
 						{#each Object.entries(objectives) as [key, obj]}
 							<button
-								onclick={() => { tdeeObjective = key; tdeeResult = null; }}
+								onclick={() => { tdeeObjective = key as Objective; tdeeResult = null; }}
 								style="padding:0.5rem 0.25rem; border-radius:8px; border:1px solid {tdeeObjective === key ? 'var(--primary)' : 'var(--border)'}; background:{tdeeObjective === key ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface)'}; color:var(--text); box-shadow:none; cursor:pointer; font-size:0.78rem; text-align:center; line-height:1.3;">
 								<div style="font-size:1rem;"><Icon name={obj.icon} /></div>
 								{obj.label}

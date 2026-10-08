@@ -25,3 +25,15 @@ class UserGoals(Base):
     # 'off' = fixed goals (default), 'proportional' = scale all macros,
     # 'performance' = keep protein+fat fixed, add extra calories as carbs only
     macro_adjust_mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="off")
+
+    # Perfil corporal del onboarding / calculadora de Objetivos. Nulo = no lo
+    # ha dicho (cuentas anteriores a guardarlo). La propuesta semanal usa el
+    # objetivo; el resto es para rellenar la calculadora la próxima vez.
+    sex: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    activity: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    objective: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Semana ISO ("2026-W41") en la que respondió a la propuesta semanal
+    # (aplicar o ahora no): esa semana ya no se le vuelve a enseñar.
+    adapt_week: Mapped[str] = mapped_column(String(10), nullable=False, server_default="")

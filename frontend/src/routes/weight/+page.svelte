@@ -3,8 +3,10 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { WeightLog } from '$lib/types';
-	import { t, fmtDate } from '$lib/i18n/index.svelte';
+	import InfoTip from '$lib/components/InfoTip.svelte';
+	import type { WeightLog, WeightTrend } from '$lib/types';
+	import { tips } from '$lib/stores/tips.svelte';
+	import { t, fmtDate, i18n } from '$lib/i18n/index.svelte';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -18,9 +20,17 @@
 	// Range selector
 	let range = $state<'7d' | '1m' | '3m' | '1a'>('1m');
 
+	// Tendencia (media móvil del servidor): un punto por día con pesaje.
+	let trend = $state<WeightTrend | null>(null);
+
 	async function load() {
 		weights = await api.get<WeightLog[]>('/weight');
+		trend = await api.get<WeightTrend>('/weight/trend?days=400').catch(() => null);
+		// Con unos cuantos pesajes ya hay tendencia que mirar: se explica una vez.
+		if (weights.length >= 3) tips.request('weight_trend');
 	}
+
+	let trendByDay = $derived(new Map((trend?.points ?? []).map(p => [p.day, p.trend])));
 
 	$effect(() => { load(); });
 
@@ -68,8 +78,12 @@
 		return allChronological.filter(w => new Date(w.logged_at).getTime() >= cutoff);
 	});
 
-	let chartMin = $derived(chartData.length ? Math.min(...chartData.map(w => w.weight)) - 0.5 : 0);
-	let chartMax = $derived(chartData.length ? Math.max(...chartData.map(w => w.weight)) + 0.5 : 100);
+	// La tendencia de cada pesaje del gráfico (por su día UTC, como el servidor).
+	let chartTrend = $derived(chartData.map(w => trendByDay.get(w.logged_at.slice(0, 10)) ?? null));
+
+	let chartValues = $derived([...chartData.map(w => w.weight), ...chartTrend.filter((v): v is number => v !== null)]);
+	let chartMin = $derived(chartValues.length ? Math.min(...chartValues) - 0.5 : 0);
+	let chartMax = $derived(chartValues.length ? Math.max(...chartValues) + 0.5 : 100);
 
 	// Stats
 	let current = $derived(weights.length ? weights[0].weight : null);
@@ -113,6 +127,21 @@
 		}
 		return d;
 	});
+
+	let trendPath = $derived.by(() => {
+		const pts = chartTrend
+			.map((v, i) => (v === null ? null : `${cx(i, chartData.length)},${cy(v)}`))
+			.filter((p): p is string => p !== null);
+		return pts.length >= 2 ? `M ${pts.join(' L ')}` : '';
+	});
+
+	// Ritmo de la tendencia: por debajo de 0,05 kg/semana es "estable".
+	let rate = $derived(trend?.weekly_rate ?? null);
+	let rateText = $derived(
+		rate === null ? null
+			: Math.abs(rate) < 0.05 ? t('weight.trendStable')
+			: t('weight.trendRate', { rate: `${rate > 0 ? '+' : '−'}${Math.abs(rate).toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` })
+	);
 
 	let areaPath = $derived(
 		chartData.length >= 2
@@ -171,7 +200,13 @@
 				</div>
 			</div>
 		{/if}
-		{#if weights.length > 0}
+		{#if trend?.latest_trend != null && weights.length >= 3}
+			<div class="mini-stat">
+				<div class="mini-stat-label">{t('weight.trend')}<InfoTip id="weight_trend" /></div>
+				<div class="mini-stat-val">{trend.latest_trend.toFixed(1)}<span class="mini-stat-unit">kg</span></div>
+				{#if rateText}<div class="mini-stat-sub">{rateText}</div>{/if}
+			</div>
+		{:else if weights.length > 0}
 			<div class="mini-stat">
 				<div class="mini-stat-label">{t('weight.start')}</div>
 				<div class="mini-stat-val">{weights[weights.length - 1].weight.toFixed(1)}<span class="mini-stat-unit">kg</span></div>
@@ -236,6 +271,11 @@
 			<path d={smoothPath} fill="none" stroke="oklch(82% 0.18 160)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 		{/if}
 
+		<!-- Tendencia (discontinua) -->
+		{#if trendPath}
+			<path d={trendPath} fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" stroke-dasharray="4 4" stroke-linecap="round" stroke-linejoin="round"/>
+		{/if}
+
 		<!-- Last point highlight -->
 		{#if chartData.length >= 1}
 			{@const lx = cx(chartData.length - 1, chartData.length)}
@@ -254,6 +294,9 @@
 			</text>
 		{/if}
 	</svg>
+	{#if trendPath}
+		<div class="trend-legend">{t('weight.trendLegend')}</div>
+	{/if}
 	{/if}
 </div>
 {/if}
@@ -434,6 +477,17 @@
 		font-size: 0.625rem;
 		color: rgba(255,255,255,0.4);
 		font-weight: 500;
+	}
+	.mini-stat-sub {
+		font-size: 0.625rem;
+		color: rgba(255,255,255,0.5);
+		margin-top: 0.125rem;
+	}
+	.trend-legend {
+		font-size: 0.6875rem;
+		color: rgba(255,255,255,0.4);
+		margin-top: 0.5rem;
+		line-height: 1.4;
 	}
 
 	/* ── Chart section ── */

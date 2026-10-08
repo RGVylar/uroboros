@@ -83,6 +83,10 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "friendships", "can_add_food_requester", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "users", "avatar_id", "VARCHAR(40)")
                 _sqlite_add_column_if_missing(conn, "user_goals", "macro_adjust_mode", "VARCHAR(20) NOT NULL DEFAULT 'off'")
+                for col, ddl in (("sex", "VARCHAR(8)"), ("birth_year", "INTEGER"), ("height_cm", "FLOAT"),
+                                 ("activity", "VARCHAR(16)"), ("objective", "VARCHAR(16)"),
+                                 ("adapt_week", "VARCHAR(10) NOT NULL DEFAULT ''")):
+                    _sqlite_add_column_if_missing(conn, "user_goals", col, ddl)
                 _sqlite_add_column_if_missing(conn, "users", "changelog_opt_out", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "duel_opt_in_requester", "BOOLEAN NOT NULL DEFAULT 0")
                 _sqlite_add_column_if_missing(conn, "friendships", "duel_opt_in_receiver", "BOOLEAN NOT NULL DEFAULT 0")

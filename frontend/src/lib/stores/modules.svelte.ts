@@ -112,12 +112,19 @@ function createModulesStore() {
 		}
 	}
 
+	/** Varios de golpe (el paso "¿Qué quieres seguir?" del onboarding). */
+	async function setMany(changes: Partial<Modules>) {
+		if (Object.keys(changes).length === 0) return;
+		apply(await api.patch<Modules>('/users/me/modules', changes));
+	}
+
 	return {
 		get all() { return state; },
 		get loaded() { return loaded; },
 		on(key: ModuleKey) { return state[key]; },
 		load,
 		set,
+		setMany,
 	};
 }
 

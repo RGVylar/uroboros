@@ -8,6 +8,7 @@
 	import Aurora from '$lib/components/uro/Aurora.svelte';
 	import GlassCard from '$lib/components/uro/GlassCard.svelte';
 	import Slider from '$lib/components/uro/Slider.svelte';
+	import { modules, type ModuleKey } from '$lib/stores/modules.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	let step = $state(0);
@@ -24,6 +25,20 @@
 	let bodySex: 'male' | 'female' = $state('male');
 	let bodyActivity = $state('moderate');
 	let saving = $state(false);
+
+	// ── Qué quiere seguir (módulos de interfaz) ───────────────────────────
+	const TRACKABLE: { key: ModuleKey; icon: IconName }[] = [
+		{ key: 'water', icon: 'water' },
+		{ key: 'weight', icon: 'weight' },
+		{ key: 'exercise', icon: 'exercise' },
+		{ key: 'measurements', icon: 'measurements' },
+		{ key: 'supplements', icon: 'supplements' },
+		{ key: 'mood', icon: 'mood' },
+	];
+	// Parte de lo que ya tenga (por defecto, o lo que tocó si repite la intro).
+	let tracking = $state<Partial<Record<ModuleKey, boolean>>>(
+		Object.fromEntries(TRACKABLE.map(m => [m.key, modules.on(m.key)]))
+	);
 
 	let objectives = $derived([
 		{ key: 'lose'     as const, icon: 'trendDown' as IconName, label: t('onb.objLose'),     sub: t('onb.objLoseSub'),     kcalDelta: -400, pPct: 0.35, cPct: 0.35, fPct: 0.30, hue:  25 },
@@ -58,14 +73,16 @@
 
 	let objMeta = $derived(objectives.find(o => o.key === objective)!);
 
-	const TOTAL_STEPS = 7;
+	const TOTAL_STEPS = 8;
 
+	// Cada paso empieza arriba: si el anterior era largo, el siguiente salía
+	// desplazado y sin título.
 	async function next() {
-		if (step < TOTAL_STEPS - 1) step++;
+		if (step < TOTAL_STEPS - 1) { step++; window.scrollTo(0, 0); }
 		else await finish();
 	}
 	function back() {
-		if (step > 0) step--;
+		if (step > 0) { step--; window.scrollTo(0, 0); }
 	}
 	// Saltar sale sin tocar los objetivos: solo "Entrar a uroboros" (o invitar pareja) guarda el plan.
 	function skip() { goto('/'); }
@@ -84,6 +101,27 @@
 				water_ml: 2500,
 				track_creatine: false,
 			});
+		} catch {
+			// silently continue
+		}
+		// El perfil se guarda: la revisión semanal de objetivos necesita saber
+		// qué buscas, y la calculadora de Objetivos sale ya rellena.
+		try {
+			await api.patch('/goals/profile', {
+				sex: bodySex,
+				birth_year: new Date().getFullYear() - bodyAge,
+				height_cm: bodyHeight,
+				activity: bodyActivity,
+				objective,
+			});
+		} catch {
+			// silently continue
+		}
+		try {
+			const changes = Object.fromEntries(
+				TRACKABLE.filter(m => tracking[m.key] !== modules.on(m.key)).map(m => [m.key, !!tracking[m.key]])
+			);
+			await modules.setMany(changes);
 		} catch {
 			// silently continue
 		}
@@ -185,8 +223,32 @@
 				{/each}
 			</div>
 
-		<!-- Step 4: Resumen -->
+		<!-- Step 4: Qué quiere seguir -->
 		{:else if step === 4}
+			<h1 class="serif">{t('onb.trackQ')}</h1>
+			<p class="sub">{t('onb.trackSub')}</p>
+			<div class="stack">
+				{#each TRACKABLE as m (m.key)}
+					{@const active = !!tracking[m.key]}
+					<button
+						class="opt-card"
+						class:active
+						style:--hue={165}
+						aria-pressed={active}
+						onclick={() => tracking = { ...tracking, [m.key]: !active }}
+					>
+						<div class="opt-icon"><Icon name={m.icon} /></div>
+						<div class="opt-texts">
+							<div class="opt-label">{t(`modules.${m.key}`)}</div>
+							<div class="opt-sub">{t(`modules.${m.key}.desc`)}</div>
+						</div>
+						<div class="opt-check">{#if active}<Icon name="check" strokeWidth={3} />{/if}</div>
+					</button>
+				{/each}
+			</div>
+
+		<!-- Step 5: Resumen -->
+		{:else if step === 5}
 			<h1 class="serif">{t('onb.planTitle')}</h1>
 			<p class="sub">{review ? t('onb.planSubReview') : t('onb.planSub')}</p>
 
@@ -211,8 +273,8 @@
 				{/each}
 			</div>
 
-		<!-- Step 5: Pareja -->
-		{:else if step === 5}
+		<!-- Step 6: Pareja -->
+		{:else if step === 6}
 			<div class="center">
 				<div class="pair-art">
 					<div class="pair-bubble pair-left">{auth.user?.name?.[0]?.toUpperCase() ?? 'T'}</div>
@@ -225,8 +287,8 @@
 				<div class="hint">{t('onb.partnerLater')}</div>
 			</div>
 
-		<!-- Step 6: Listo -->
-		{:else if step === 6}
+		<!-- Step 7: Listo -->
+		{:else if step === 7}
 			<div class="center">
 				<div class="check-big"><Icon name="check" strokeWidth={3} /></div>
 				<h1 class="serif">{t('onb.doneTitle')}</h1>

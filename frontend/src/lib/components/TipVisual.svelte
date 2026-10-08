@@ -21,6 +21,14 @@
 	const scored = WEEK.filter((s): s is number => s !== null);
 	const avg = Math.round(scored.reduce((a, b) => a + b, 0) / scored.length);
 	const ok = scored.filter((s) => s >= 50).length;
+	// Tendencia del peso: pesajes que bailan y la media que los suaviza.
+	const DAILY = [80.6, 81.3, 80.4, 80.9, 80.1, 80.8, 79.9, 80.5, 79.7, 80.2, 79.5, 79.9];
+	const TREND = DAILY.reduce<number[]>((acc, w, i) => [...acc, i === 0 ? 80.7 : acc[i - 1] + 0.1 * (w - acc[i - 1])], []);
+	function wx(i: number) { return 8 + (i / (DAILY.length - 1)) * 224; }
+	function wy(w: number) { return 8 + ((81.5 - w) / 2.2) * 54; }
+	const dailyPath = 'M ' + DAILY.map((w, i) => `${wx(i)},${wy(w)}`).join(' L ');
+	const trendPath = 'M ' + TREND.map((w, i) => `${wx(i)},${wy(w)}`).join(' L ');
+
 	function tone(s: number | null) {
 		if (s === null) return 'none';
 		return s >= 50 ? 'good' : 'low';
@@ -187,6 +195,24 @@
 				</div>
 			{/each}
 		</div>
+	{:else if id === 'weight_trend'}
+		<svg class="wt" viewBox="0 0 240 70">
+			<path d={dailyPath} class="wt-daily" />
+			{#each DAILY as w, i}<circle cx={wx(i)} cy={wy(w)} r="2" class="wt-dot" />{/each}
+			<path d={trendPath} class="wt-trend" />
+		</svg>
+		<div class="legend">
+			<span><i class="wt-l-daily"></i>{t('tipv.wtDaily')}</span>
+			<span><i class="wt-l-trend"></i>{t('tipv.wtTrend')}</span>
+		</div>
+
+	{:else if id === 'weekly_proposal'}
+		<div class="card wp">
+			<div class="wp-row"><span>{t('tipv.wpAte')}</span><b>2.000 kcal</b></div>
+			<div class="wp-row"><span>{t('tipv.wpScale')}</span><b>−0,5 kg / 7 d</b></div>
+			<div class="wp-row total"><span>{t('tipv.wpReal')}</span><b>≈ 2.550 kcal</b></div>
+		</div>
+		<div class="callout">{t('tipv.wpProposal')}: 2.000 → 2.300 kcal</div>
 	{/if}
 </figure>
 
@@ -222,6 +248,16 @@
 		color: var(--text-muted);
 		margin-bottom: 0.4rem;
 	}
+	.wt { width: 100%; height: 70px; display: block; }
+	.wt-daily { fill: none; stroke: oklch(82% 0.18 160 / 0.45); stroke-width: 1.2; }
+	.wt-dot { fill: oklch(82% 0.18 160); }
+	.wt-trend { fill: none; stroke: #fff; stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; }
+	.wt-l-daily { background: oklch(82% 0.18 160); }
+	.wt-l-trend { background: #fff; }
+	.wp-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: rgba(255, 255, 255, 0.7); padding: 0.15rem 0; }
+	.wp-row b { color: #fff; font-variant-numeric: tabular-nums; }
+	.wp-row.total { border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 0.25rem; padding-top: 0.35rem; }
+	.wp-row.total b { color: oklch(85% 0.12 200); }
 	.foot { font-size: 0.72rem; color: rgba(255, 255, 255, 0.7); text-align: center; }
 	.k { color: var(--cal); }
 	.p { color: oklch(78% 0.14 220); }

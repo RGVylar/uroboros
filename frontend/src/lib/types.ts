@@ -147,6 +147,45 @@ export interface Goals {
 	cheat_days_per_week: number; // 1..7, 7 = sin límite
 	inventory_enabled: boolean;
 	macro_adjust_mode: 'off' | 'proportional' | 'performance';
+	// Perfil corporal (null = no lo ha dicho todavía)
+	sex: 'male' | 'female' | null;
+	birth_year: number | null;
+	height_cm: number | null;
+	activity: Activity | null;
+	objective: Objective | null;
+}
+
+export type Activity = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+export type Objective = 'lose' | 'maintain' | 'gain';
+
+export interface WeightTrend {
+	points: { day: string; weight: number; trend: number }[];
+	/** kg por semana según la tendencia de las últimas dos semanas */
+	weekly_rate: number | null;
+	latest_trend: number | null;
+}
+
+export interface MacroSet {
+	kcal: number;
+	protein: number;
+	carbs: number;
+	fat: number;
+}
+
+export interface GoalProposal {
+	status: 'no_goals' | 'answered' | 'not_enough_data' | 'unreliable' | 'need_objective' | 'on_track' | 'proposal';
+	locked: boolean;
+	week?: string;
+	weighins?: number;
+	logged_days?: number;
+	span_days?: number;
+	needs?: { weighins: number; logged_days: number; span_days: number };
+	avg_intake?: number | null;
+	kg_per_week?: number | null;
+	tdee?: number | null;
+	current?: MacroSet | null;
+	proposed?: MacroSet | null;
+	objective?: Objective | null;
 }
 
 export type InventoryUnit = 'g' | 'ml' | 'unit';
