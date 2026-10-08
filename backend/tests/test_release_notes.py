@@ -102,3 +102,23 @@ def test_latest_is_null_without_notes(client, db, make_user):
     r = client.get(f"{API}/release-notes/latest", headers=auth(ruben))
     assert r.status_code == 200, r.text
     assert r.json() is None
+
+
+def test_release_notes_records_version_and_platform(client, db, make_user):
+    """La llamada de cada arranque deja apuntado qué versión usa cada uno."""
+    user = make_user("Vera")
+    r = client.get(f"{API}/release-notes?current=1.29&seen=1.29&platform=ios", headers=auth(user))
+    assert r.status_code == 200, r.text
+    db.refresh(user)
+    assert (user.app_version, user.platform) == ("1.29", "ios")
+    assert user.last_seen_at is not None
+
+    # Una APK vieja no manda plataforma: se queda la que había.
+    client.get(f"{API}/release-notes?current=1.28&seen=1.28", headers=auth(user))
+    db.refresh(user)
+    assert (user.app_version, user.platform) == ("1.28", "ios")
+
+    # Lo que no es una plataforma conocida se ignora.
+    client.get(f"{API}/release-notes?current=1.29&platform=nevera", headers=auth(user))
+    db.refresh(user)
+    assert user.platform == "ios"

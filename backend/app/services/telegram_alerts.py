@@ -52,6 +52,11 @@ def _mask_email(email: str) -> str:
     return f"{local[:1]}***@{domain}"
 
 
+async def send_stats_summary(text: str) -> None:
+    """El resumen semanal ya viene formateado (services/weekly_stats.py)."""
+    await _send(text)
+
+
 async def send_alert(title: str, body: str) -> None:
     text = f"🔴 *[uroboros]* {title}\n\n{body}\n\n🕐 {_now()}"
     await _send(text)

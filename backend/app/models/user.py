@@ -70,6 +70,11 @@ class User(Base):
     modules: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # Explicaciones ya cerradas (ids de tips.*). Null = ninguna.
     seen_tips: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Lo que la app dijo la última vez que arrancó (GET /release-notes): versión
+    # del frontend, plataforma (android/ios/pwa/web) y cuándo. Ver 0082.
+    app_version: Mapped[str] = mapped_column(String(16), nullable=False, server_default="")
+    platform: Mapped[str] = mapped_column(String(16), nullable=False, server_default="")
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def has_flag(self, flag: str) -> bool:
         return flag in (self.feature_flags or [])

@@ -25,6 +25,7 @@
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import Explainer from '$lib/components/Explainer.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
+	import { platform } from '$lib/services/diagnostics';
 	import { APP_VERSION, UPDATE_URL, getSeen, markSeen, type ChangelogResponse, type ReleaseNote, type UpdateInfo } from '$lib/changelog';
 	import { t, i18n } from '$lib/i18n/index.svelte';
 
@@ -107,7 +108,7 @@
 			// historial entero encima del onboarding. Se marca la actual y listo.
 			const seen = getSeen();
 			if (!seen) markSeen(APP_VERSION);
-			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(seen || APP_VERSION)}&lang=${i18n.locale}`;
+			const q = `current=${encodeURIComponent(APP_VERSION)}&seen=${encodeURIComponent(seen || APP_VERSION)}&lang=${i18n.locale}&platform=${platform()}`;
 			api.get<ChangelogResponse>(`/release-notes?${q}`)
 				.then((res) => {
 					changelogNotes = res.news;

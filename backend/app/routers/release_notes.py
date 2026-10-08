@@ -6,6 +6,8 @@ server means patch notes (and "please update" nudges) can change without a
 frontend deploy — which matters most on Android, where the bundled frontend
 can lag behind the latest release.
 """
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -45,6 +47,7 @@ _VALID_TYPES = {"nuevo", "mejora", "fix"}
 _TYPE_ALIASES = {"arreglo": "fix"}
 
 _LANGS = {"es", "en", "pt"}
+_PLATFORMS = {"android", "ios", "pwa", "web"}
 
 
 def _resolve_text(value: dict | str, lang: str) -> str:
@@ -74,6 +77,7 @@ def get_changelog(
     current: str = "",
     seen: str = "",
     lang: str = "es",
+    platform: str = "",
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ChangelogResponse:
@@ -83,9 +87,21 @@ def get_changelog(
     - `seen`: the last version the user dismissed (from localStorage).
     - `lang`: the app's current UI language (`es`/`en`/`pt`); notes without a
       translation for it fall back to Spanish (see `_resolve_text`).
+    - `platform`: android/ios/pwa/web; only recorded, see below.
     """
     if lang not in _LANGS:
         lang = "es"
+
+    # La app llama aquí cada vez que arranca: es el sitio natural para saber
+    # qué versión usa cada uno. Las APK anteriores a la 1.29 no mandan la
+    # plataforma; entonces se conserva la que hubiera.
+    if current:
+        user.app_version = current.strip()[:16]
+    if platform in _PLATFORMS:
+        user.platform = platform
+    user.last_seen_at = datetime.now(timezone.utc)
+    db.commit()
+
     cur = _parse(current) if current else (10**9,)  # no version → treat as newest
     last_seen = _parse(seen)
 

@@ -325,6 +325,12 @@ def start_scheduler() -> None:
         snapshot_weekly_adherence, "interval", hours=6,
         id="adherence_snapshot", next_run_time=_dt.now(),
     )
+    # Resumen de uso al chat de admin, los lunes a primera hora (hora de España).
+    from app.services.weekly_stats import send_weekly_summary
+    _scheduler.add_job(
+        send_weekly_summary, "cron", day_of_week="mon", hour=9, minute=0,
+        timezone="Europe/Madrid", id="weekly_stats",
+    )
     _scheduler.start()
     logger.info("Notification scheduler started (every 5 min)")
 

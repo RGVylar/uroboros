@@ -30,7 +30,7 @@ function writeLast(kind: DiagKind, outcome: string) {
 	} catch {}
 }
 
-function platform(): string {
+export function platform(): string {
 	const native = Capacitor.getPlatform();
 	if (native !== 'web') return native;
 	return window.matchMedia('(display-mode: standalone)').matches ? 'pwa' : 'web';
