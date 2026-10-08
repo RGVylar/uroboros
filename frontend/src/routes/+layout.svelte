@@ -267,6 +267,7 @@
 				<div class="offline-strip" role="alert" aria-live="assertive">
 					<Icon name="offline" />
 					<span>{t('layout.offline')}</span>
+					<a href="/offline" class="offline-more">{t('layout.offlineMore')}</a>
 				</div>
 			{/if}
 			<div class="container page">
@@ -420,6 +421,13 @@
 		color: oklch(80% 0.05 260);
 		letter-spacing: 0.01em;
 		animation: strip-in 0.25s ease;
+	}
+	.offline-strip .offline-more {
+		margin-left: 0.35rem;
+		color: oklch(88% 0.06 260);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		white-space: nowrap;
 	}
 	@keyframes strip-in {
 		from { opacity: 0; transform: translateY(-6px); }
