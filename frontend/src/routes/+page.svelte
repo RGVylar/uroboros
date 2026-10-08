@@ -16,7 +16,7 @@
 	import { productUnitOf, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
-	import { MEAL_ORDER, MOOD_WORST_ICON } from '$lib/types';
+	import { MEAL_ORDER, MOOD_WORST_ICON, MOOD_ENERGY_ICON, MOOD_DIGESTION_ICON, MOOD_MOOD_ICON } from '$lib/types';
 	import { t, tc, mealLabel, fmtTime as fmtTimeI18n } from '$lib/i18n/index.svelte';
 	import { identityColor, nameHue } from '$lib/avatars';
 
@@ -49,8 +49,6 @@
 	let stepsGoal = $derived(goals?.steps_goal ?? 8000);
 	// Tarjeta de suplementos: en columna junto al agua, o en fila fina debajo
 	// cuando los pasos ocupan ese hueco.
-	const SUPP_COL = 'padding:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.55rem; text-align:center;';
-	const SUPP_ROW = 'padding:0.6rem 0.85rem; display:flex; flex-direction:row; align-items:center; gap:0.75rem; text-align:left;';
 	// En la APK de Android manda el interruptor de Ajustes: desactivado, la
 	// tarjeta desaparece aunque queden pasos guardados. Activado, sale aunque
 	// aún no haya lectura ("—"). Donde no se pueden leer pasos (web, iPhone)
@@ -870,61 +868,7 @@
 				<div class="module-grid">
 					{#each moduleTiles as tile, i (tile)}
 						{@const wide = moduleTiles.length % 2 === 1 && i === moduleTiles.length - 1}
-						<div class="module-cell" class:module-wide={wide}>
-							{#if tile === 'water'}
-								<div class="card" style="padding:0.85rem;">
-									<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">
-										<Icon name="water" size="0.95rem" style="color:var(--water)" />
-										<span style="font-size:0.82rem; color:var(--water); font-weight:700;">{t('diary.water')}</span>
-										{#if water}
-											<span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;">
-												{Math.round(water.total_ml)} / {water.goal_ml} ml
-											</span>
-										{/if}
-									</div>
-									{#if water}
-										<div class="progress-bar" style="height:6px; margin-bottom:0.65rem;">
-											<div class="fill" style="width:{pct(water.total_ml, water.goal_ml)}%; background:var(--water);"></div>
-										</div>
-									{/if}
-									<div style="display:flex; gap:0.35rem;">
-										<button onclick={() => addWater(250)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+250</button>
-										<button onclick={() => addWater(500)} style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;">+500</button>
-										<button class="btn-secondary" onclick={removeWater}
-											style="flex:1; font-size:0.72rem; padding:0.35rem 0.2rem;"
-											disabled={!water || water.total_ml <= 0}><Icon name="undo" /></button>
-									</div>
-								</div>
-							{:else if tile === 'steps'}
-								<div class="card steps-card" role="img" aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
-									<div style="display:flex; align-items:center; gap:0.4rem;">
-										<Icon name="steps" size="0.95rem" style="color:var(--steps)" />
-										<span style="font-size:0.82rem; color:var(--steps); font-weight:700;">{t('diary.steps')}</span>
-									</div>
-									<div class="steps-value">
-										{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
-										<span class="steps-goal">/ {stepsGoal >= 1000 ? `${Math.round(stepsGoal / 100) / 10}k` : stepsGoal}</span>
-									</div>
-									<div class="steps-bars">
-										<div class="steps-goal-line" style="bottom:{(stepsGoal / stepsScale) * 100}%;"></div>
-										{#each stepsWeek as v, i}
-											<div
-												class="steps-bar"
-												class:steps-bar-today={i === 6}
-												class:steps-bar-met={v !== null && v >= stepsGoal}
-												style="height:{v === null ? 0 : Math.max(4, (v / stepsScale) * 100)}%;"
-											></div>
-										{/each}
-									</div>
-								</div>
-							{:else if tile === 'supp'}
-								{#if wide}{@render suppCard(true)}{:else}{@render suppTile()}{/if}
-							{:else if tile === 'mood'}
-								{@render moodTile(wide)}
-							{:else}
-								{@render cheatTile(wide)}
-							{/if}
-						</div>
+						{@render moduleTile(tile, wide)}
 					{/each}
 				</div>
 			{/if}
@@ -1446,182 +1390,138 @@
 {/if}
 
 
-{#snippet moodTile(wide: boolean)}
-	<a href="/mood?day={today}" class="mood-chip" style="text-decoration:none; display:grid;">
-		{#if wide}
-			<div class="card" style="padding:0.75rem 1rem; display:flex; align-items:center; gap:0.75rem; cursor:pointer;">
-				<div style="width:36px; height:36px; border-radius:12px; flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
-					<Icon name={moodEntry?.worst ? MOOD_WORST_ICON[moodEntry.worst] : 'mood'} />
-				</div>
-				<div style="flex:1; min-width:0;">
-					<div style="font-weight:700; font-size:0.85rem; color:#fff;">{t('diary.moodTitle')}</div>
-					<div style="font-size:0.75rem; color:var(--text-muted);">{@render moodLine()}</div>
-				</div>
-				<div style="font-size:0.75rem; color:var(--text-muted);">›</div>
+<!-- Módulos del día, estilo "tinte de color": icono y acción arriba, el dato
+     grande abajo. El agua además se llena desde abajo con una ola. -->
+{#snippet moduleTile(tile: ModuleTile, wide: boolean)}
+	{#if tile === 'water'}
+		{@const wpct = water && water.goal_ml > 0 ? Math.min(1, water.total_ml / water.goal_ml) : 0}
+		<div class="card mt" class:mt-wide={wide} style="--k:var(--water)">
+			<div class="mt-fill" class:mt-full={wpct >= 1} style="height:{wpct * 100}%" aria-hidden="true">
+				{#if wpct > 0 && wpct < 1}{@render wave('mt-w1')}{@render wave('mt-w2')}{/if}
 			</div>
-		{:else}
-			<div class="card tile" style="cursor:pointer;">
-				<div class="tile-head" style="color:oklch(80% 0.13 300)">
-					<Icon name={moodEntry?.worst ? MOOD_WORST_ICON[moodEntry.worst] : 'mood'} size="0.95rem" />
-					<span>{t('diary.moodTitle')}</span>
-					<span class="tile-meta">›</span>
+			<div class="mt-top">
+				<span class="mt-badge"><Icon name="water" /></span>
+				<div class="mt-acts">
+					{#if water && water.total_ml > 0}
+						<button class="mt-act mt-soft mt-mini" onclick={removeWater} aria-label={t('diary.waterUndoAria')}><Icon name="undo" /></button>
+					{/if}
+					<button class="mt-act" onclick={() => addWater(250)} aria-label={t('diary.waterAdd')}><Icon name="add" /></button>
 				</div>
-				<div class="tile-text">{@render moodLine()}</div>
 			</div>
-		{/if}
-	</a>
-{/snippet}
-
-{#snippet moodLine()}
-	{#if moodEntry?.worst}
-		{#if moodEntry.energy}<Icon name="quick" />{/if}{moodEntry.digestion ? t('diary.moodDigestion') : ''}{moodEntry.mood ? t('diary.moodMood') : ''}{t('diary.moodEdit')}
-	{:else}
-		{t('diary.moodAsk')}
-	{/if}
-{/snippet}
-
-{#snippet cheatTile(wide: boolean)}
-	{#if cheatDay}
-		<!-- Semana agotada: el botón se apaga antes de que el backend conteste 409. -->
-		{@const cheatDayExhausted = !cheatDay.active && cheatDay.used_this_week >= cheatDay.limit_per_week}
-		{@const activeStyle = cheatDay.active ? 'border-color:oklch(70% 0.18 45 / 0.6); background:linear-gradient(135deg, oklch(70% 0.18 45 / 0.08), transparent 60%), var(--surface);' : ''}
-		{@const btnStyle = `opacity:${togglingCheatDay || cheatDayExhausted ? '0.5' : '1'}; ${!cheatDay.active ? 'background:oklch(70% 0.18 45 / 0.2); color:oklch(80% 0.18 45); border:1px solid oklch(70% 0.18 45 / 0.4); box-shadow:none;' : ''}`}
-		{@const status = cheatDay.active ? t('diary.cheatDayOn') : cheatDayExhausted ? t('diary.cheatDayExhausted') : t('diary.cheatDayOff')}
-		{#if wide}
-			<div class="card" style="padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; {activeStyle}">
-				<div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
-					<div style="
-						width:36px; height:36px; border-radius:12px; flex-shrink:0;
-						background:linear-gradient(135deg, oklch(70% 0.2 45 / 0.25), oklch(70% 0.2 35 / 0.1));
-						border:1px solid oklch(70% 0.18 45 / 0.3);
-						display:flex; align-items:center; justify-content:center;
-						font-size:1.1rem; color:oklch(80% 0.18 45);
-					"><Icon name="cheat" /></div>
-					<div style="min-width:0;">
-						<div style="font-weight:700; font-size:0.88rem;">{t('diary.cheatDay')}</div>
-						<div style="font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-							{#if cheatDay.active}<Icon name="streak" /> {/if}{status}
-							{#if cheatDay.limit_per_week < 7}· {cheatDay.used_this_week}/{cheatDay.limit_per_week}{/if}
-						</div>
-					</div>
+			<div class="mt-txt">
+				<div class="mt-big">{water ? Math.round(water.total_ml) : 0} <small>/ {water?.goal_ml ?? '—'} ml</small></div>
+				<div class="mt-lbl">{t('diary.water')}</div>
+			</div>
+		</div>
+	{:else if tile === 'steps'}
+		<div class="card mt" class:mt-wide={wide} style="--k:var(--steps)" role="img"
+			aria-label={t('diary.stepsAria', { steps: steps === null ? '—' : steps.toLocaleString(), goal: stepsGoal.toLocaleString() })}>
+			<div class="mt-top"><span class="mt-badge"><Icon name="steps" /></span></div>
+			<div class="mt-txt">
+				<div class="mt-big">
+					{#if steps !== null}{steps.toLocaleString()}{:else}{health.syncing ? '…' : '—'}{/if}
+					<small>/ {stepsGoal >= 1000 ? `${Math.round(stepsGoal / 100) / 10}k` : stepsGoal}</small>
 				</div>
-				<button onclick={toggleCheatDay} disabled={togglingCheatDay || cheatDayExhausted} class:btn-secondary={cheatDay.active}
-					style="flex-shrink:0; padding:0.45rem 1rem; font-size:0.8rem; font-weight:700; {btnStyle}"
-				>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
+				<div class="mt-lbl">{t('diary.steps')}</div>
 			</div>
-		{:else}
-			<div class="card tile" style={activeStyle}>
-				<div class="tile-head" style="color:oklch(80% 0.18 45)">
-					<Icon name="cheat" size="0.95rem" />
-					<span>{t('diary.cheatDay')}</span>
-					{#if cheatDay.limit_per_week < 7}
-						<span class="tile-meta">{cheatDay.used_this_week}/{cheatDay.limit_per_week}</span>
+			<div class="steps-bars">
+				<div class="steps-goal-line" style="bottom:{(stepsGoal / stepsScale) * 100}%;"></div>
+				{#each stepsWeek as v, i}
+					<div
+						class="steps-bar"
+						class:steps-bar-today={i === 6}
+						class:steps-bar-met={v !== null && v >= stepsGoal}
+						style="height:{v === null ? 0 : Math.max(4, (v / stepsScale) * 100)}%;"
+					></div>
+				{/each}
+			</div>
+		</div>
+	{:else if tile === 'supp'}
+		<!-- Con un solo suplemento el botón lo marca al momento; con varios (o
+		     ninguno) abre la lista. Tocar la tarjeta siempre abre la lista. -->
+		{@const single = suppCount === 1 ? supplements[0] : null}
+		<div class="card mt mt-click" class:mt-wide={wide} style="--k:var(--primary)" role="button" tabindex="0"
+			onclick={() => showSupplModal = true}
+			onkeydown={(e) => e.key === 'Enter' && (showSupplModal = true)}>
+			<div class="mt-top">
+				<span class="mt-badge"><Icon name="supplements" /></span>
+				<div class="mt-acts">
+					{#if suppCount === 0}
+						<button class="mt-act mt-soft" onclick={(e) => { e.stopPropagation(); showSupplModal = true; }} aria-label={t('diary.addSupplement')}><Icon name="add" /></button>
+					{:else if single}
+						<button class="mt-act" class:mt-soft={single.taken}
+							onclick={(e) => { e.stopPropagation(); toggleSupp(single.supplement_id, single.taken); }}
+							aria-label={single.taken ? t('diary.suppUncheck') : t('diary.suppCheck')}><Icon name={single.taken ? 'undo' : 'check'} /></button>
+					{:else}
+						<button class="mt-act" class:mt-soft={suppTaken === suppCount}
+							onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
+							aria-label={t('diary.suppManage')}><Icon name="checklist" /></button>
 					{/if}
 				</div>
-				<div class="tile-text">{#if cheatDay.active}<Icon name="streak" /> {/if}{status}</div>
-				<button class="tile-btn" onclick={toggleCheatDay} disabled={togglingCheatDay || cheatDayExhausted} class:btn-secondary={cheatDay.active}
-					style={btnStyle}
-				>{cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}</button>
 			</div>
-		{/if}
-	{/if}
-{/snippet}
-
-{#snippet suppTile()}
-	<div class="card tile">
-		<div class="tile-head" style="color:var(--primary)">
-			<Icon name="supplements" size="0.95rem" />
-			<span>{suppCount === 1 ? supplements[0].name : t('diary.supplements')}</span>
-			{#if suppCount > 1}<span class="tile-meta">{suppTaken} / {suppCount}</span>{/if}
+			<div class="mt-txt">
+				{#if suppCount === 0}
+					<div class="mt-big mt-q">{t('diary.addSupplement')}</div>
+					<div class="mt-lbl">{t('diary.supplements')}</div>
+				{:else}
+					<div class="mt-big">{suppTaken} <small>/ {suppCount}</small></div>
+					<div class="mt-lbl">{single ? single.name : t('diary.supplements')}</div>
+				{/if}
+			</div>
+			{#if suppCount > 0 && !wide}<div class="mt-line" style="width:{pct(suppTaken, suppCount)}%"></div>{/if}
 		</div>
-		{#if suppCount > 1}
-			<div class="progress-bar" style="height:6px;">
-				<div class="fill" style="width:{pct(suppTaken, suppCount)}%; background:var(--primary);"></div>
+	{:else if tile === 'mood'}
+		<a href="/mood?day={today}" class="card mt mt-click" class:mt-wide={wide} style="--k:oklch(80% 0.13 300)">
+			<div class="mt-top">
+				<span class="mt-badge"><Icon name={moodEntry?.worst ? MOOD_WORST_ICON[moodEntry.worst] : 'mood'} /></span>
+				<span class="mt-act mt-soft" aria-hidden="true"><Icon name="chevronRight" /></span>
 			</div>
-		{:else}
-			<div class="tile-text">
-				{#if suppCount === 0}{t('diary.addSupplement')}{:else if supplements[0].taken}{t('diary.suppAllTaken')}{:else}{t('diary.suppTapToMark')}{/if}
+			<div class="mt-txt">
+				{#if moodEntry?.worst}
+					<div class="mt-big mt-icons">
+						{#if moodEntry.energy}<Icon name={MOOD_ENERGY_ICON[moodEntry.energy]} />{/if}
+						{#if moodEntry.digestion}<Icon name={MOOD_DIGESTION_ICON[moodEntry.digestion]} />{/if}
+						{#if moodEntry.mood}<Icon name={MOOD_MOOD_ICON[moodEntry.mood]} />{/if}
+					</div>
+				{:else}
+					<div class="mt-big mt-q">{t('diary.moodAsk')}</div>
+				{/if}
+				<div class="mt-lbl">{t('diary.moodTitle')}</div>
 			</div>
-		{/if}
-		<div class="tile-actions">
-			{#if suppCount === 0}
-				<button class="tile-btn" onclick={() => showSupplModal = true}><Icon name="add" /></button>
-			{:else if suppCount === 1}
-				<button class="tile-btn" class:btn-secondary={supplements[0].taken}
-					onclick={() => toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
-				>{#if supplements[0].taken}{t('diary.suppUndo')}{:else}<Icon name="check" strokeWidth={3} /> {t('diary.suppMark')}{/if}</button>
-				<button class="tile-btn btn-secondary" style="flex:0 0 auto;" onclick={() => showSupplModal = true}
-					aria-label={t('diary.suppManage')}><Icon name="settings" /></button>
-			{:else}
-				<button class="tile-btn" class:btn-secondary={suppTaken === suppCount} onclick={() => showSupplModal = true}
-				>{suppTaken === suppCount ? t('diary.suppAllTaken') : t('diary.suppTapToMark')}</button>
-			{/if}
-		</div>
-	</div>
-{/snippet}
-
-{#snippet suppCard(row: boolean)}
-	{#if suppCount === 1}
-		<!-- Single supplement: tap to toggle directly -->
-		<div class="card" role="button" tabindex="0"
-			onclick={() => toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
-			onkeydown={(e) => e.key === 'Enter' && toggleSupp(supplements[0].supplement_id, supplements[0].taken)}
-			style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer;
-			{supplements[0].taken ? 'background:linear-gradient(135deg, var(--primary) -20%, var(--surface) 70%); border-color: var(--primary);' : ''}">
-			<div style="
-				width:42px; height:42px; border-radius:50%;
-				background:{supplements[0].taken ? 'linear-gradient(135deg, var(--primary), var(--primary-dim))' : 'transparent'};
-				border:{supplements[0].taken ? 'none' : '1.5px dashed rgba(255,255,255,0.25)'};
-				display:flex; align-items:center; justify-content:center;
-				font-size:1.05rem; font-weight:800; color:var(--primary-ink);
-				transition: background 0.25s;
-			">{#if supplements[0].taken}<Icon name="check" strokeWidth={3} />{/if}</div>
-			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{supplements[0].name}</div>
-			<!-- Dos acciones = dos controles separados (antes era un único target confuso) -->
-			<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; font-weight:600; color:var(--text-muted);">
-				<span role="button" tabindex="0"
-					onclick={(e) => { e.stopPropagation(); toggleSupp(supplements[0].supplement_id, supplements[0].taken); }}
-					onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), toggleSupp(supplements[0].supplement_id, supplements[0].taken))}
-					style="cursor:pointer; padding:0.2rem 0.1rem;">
-					{supplements[0].taken ? t('diary.suppUndo') : t('diary.suppMark')}
-				</span>
-				<span aria-hidden="true">·</span>
-				<span role="button" tabindex="0"
-					onclick={(e) => { e.stopPropagation(); showSupplModal = true; }}
-					onkeydown={(e) => e.key === 'Enter' && (e.stopPropagation(), showSupplModal = true)}
-					style="cursor:pointer; padding:0.2rem 0.1rem;">
-					{t('diary.suppManage')}
-				</span>
-			</div>
-		</div>
-	{:else if suppCount > 1}
-		<!-- Multiple supplements: tap opens modal with ring -->
-		<button class="card" onclick={() => showSupplModal = true} style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer; border:none; width:100%;">
-			<div style="position:relative; width:42px; height:42px;">
-				<svg viewBox="0 0 42 42" style="width:42px; height:42px; transform:rotate(-90deg);">
-					<circle cx="21" cy="21" r="17" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
-					<circle cx="21" cy="21" r="17" fill="none"
-						stroke="{suppTaken === suppCount ? 'var(--primary)' : 'oklch(75% 0.18 160)'}"
-						stroke-width="4"
-						stroke-dasharray="{Math.round(2 * 3.14159 * 17)}"
-						stroke-dashoffset="{Math.round(2 * 3.14159 * 17 * (1 - suppTaken / suppCount))}"
-						stroke-linecap="round"/>
-				</svg>
-				<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:{suppTaken === suppCount ? 'var(--primary)' : '#fff'};">
-					{suppTaken}/{suppCount}
+		</a>
+	{:else if cheatDay}
+		<!-- Semana agotada: el botón se apaga antes de que el backend conteste 409. -->
+		{@const exhausted = !cheatDay.active && cheatDay.used_this_week >= cheatDay.limit_per_week}
+		{@const status = cheatDay.active ? t('diary.cheatDayOn') : exhausted ? t('diary.cheatDayExhausted') : t('diary.cheatDayOff')}
+		{@const limited = cheatDay.limit_per_week < 7}
+		<div class="card mt" class:mt-wide={wide} class:mt-on={cheatDay.active} style="--k:oklch(80% 0.18 45)">
+			<div class="mt-top">
+				<span class="mt-badge"><Icon name="cheat" /></span>
+				<div class="mt-acts">
+					<button class="mt-act" class:mt-soft={!cheatDay.active} onclick={toggleCheatDay}
+						disabled={togglingCheatDay || exhausted}
+						aria-label={cheatDay.active ? t('diary.cheatDayCancel') : t('diary.cheatDayActivate')}
+					><Icon name={cheatDay.active ? 'close' : 'power'} /></button>
 				</div>
 			</div>
-			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{t('diary.supplements')}</div>
-			<div style="font-size:0.7rem; color:var(--text-muted);">{suppTaken === suppCount ? t('diary.suppAllTaken') : t('diary.suppTapToMark')}</div>
-		</button>
-	{:else}
-		<!-- No supplements yet -->
-		<button class="card" onclick={() => showSupplModal = true} style="{row ? SUPP_ROW : SUPP_COL} cursor:pointer; border:none; width:100%;">
-			<div style="width:42px; height:42px; border-radius:50%; border:1.5px dashed rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary);">＋</div>
-			<div style="font-weight:700; font-size:0.82rem; color:#fff;{row ? ' flex:1; min-width:0;' : ''}">{t('diary.supplements')}</div>
-			<div style="font-size:0.7rem; color:var(--text-muted);">{t('diary.addSupplement')}</div>
-		</button>
+			<div class="mt-txt">
+				{#if limited}
+					<div class="mt-big">{cheatDay.used_this_week} <small>/ {cheatDay.limit_per_week} {t('diary.cheatDayThisWeek')}</small></div>
+				{:else}
+					<div class="mt-big mt-q">{t('diary.cheatDay')}</div>
+				{/if}
+				<div class="mt-lbl">
+					{#if cheatDay.active}<Icon name="streak" /> {/if}{limited && !cheatDay.active && !exhausted ? t('diary.cheatDay') : status}
+				</div>
+			</div>
+		</div>
 	{/if}
+{/snippet}
+
+{#snippet wave(cls: string)}
+	<svg class="mt-wave {cls}" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true">
+		<path d="M0 6 Q12.5 0 25 6 T50 6 T75 6 T100 6 T125 6 T150 6 T175 6 T200 6 V12 H0Z" />
+	</svg>
 {/snippet}
 
 <style>
@@ -1920,45 +1820,130 @@
 	.copy-today-btn:hover { filter: brightness(1.1); }
 	.copy-today-btn:disabled { opacity: 0.6; }
 
-	/* Cuadrado de módulo, con la forma del de agua: cabecera arriba, acción abajo. */
-	.tile {
-		padding: 0.85rem;
+	/* ── Módulos del día (estilo "tinte de color") ── */
+	.mt {
+		position: relative;
+		overflow: hidden;
+		isolation: isolate;
+		padding: 0.95rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.15rem;
 		min-width: 0;
+		min-height: 132px;
+		color: inherit;
+		text-decoration: none;
+		border-color: color-mix(in oklch, var(--k) 26%, transparent);
+		background:
+			radial-gradient(120% 90% at 100% 0%, color-mix(in oklch, var(--k) 15%, transparent), transparent 60%),
+			var(--surface);
 	}
-	.tile-head {
+	.mt-click { cursor: pointer; }
+	.mt-on { border-color: color-mix(in oklch, var(--k) 60%, transparent); }
+	.mt-top { display: flex; align-items: center; gap: 0.4rem; margin-bottom: auto; }
+	.mt-badge {
+		width: 34px;
+		height: 34px;
+		border-radius: 11px;
+		margin-right: auto;
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.82rem;
-		font-weight: 700;
-		min-width: 0;
+		justify-content: center;
+		font-size: 1.05rem;
+		color: var(--k);
+		background: color-mix(in oklch, var(--k) 20%, transparent);
 	}
-	.tile-head > span:not(.tile-meta) {
+	.mt-acts { display: flex; align-items: center; gap: 0.4rem; }
+	.mt-act {
+		width: 34px;
+		height: 34px;
+		padding: 0;
+		border-radius: 50%;
+		border: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1rem;
+		color: var(--primary-ink);
+		background: var(--k);
+		box-shadow: 0 4px 14px color-mix(in oklch, var(--k) 35%, transparent);
+		transition: transform 0.12s;
+	}
+	.mt-act:active { transform: scale(0.9); }
+	.mt-act:disabled { opacity: 0.45; }
+	.mt-soft {
+		color: var(--k);
+		background: color-mix(in oklch, var(--k) 16%, transparent);
+		border: 1px solid color-mix(in oklch, var(--k) 32%, transparent);
+		box-shadow: none;
+	}
+	.mt-mini { width: 28px; height: 28px; font-size: 0.85rem; }
+	.mt-txt { position: relative; min-width: 0; }
+	.mt-big {
+		margin-top: 0.9rem;
+		font-size: 1.45rem;
+		font-weight: 800;
+		line-height: 1.05;
+		letter-spacing: -0.02em;
+		font-variant-numeric: tabular-nums;
+		color: var(--text);
+	}
+	.mt-big small { font-size: 0.75rem; font-weight: 500; letter-spacing: 0; color: var(--text-muted); }
+	.mt-q { font-size: 1rem; letter-spacing: 0; line-height: 1.2; }
+	.mt-icons { display: flex; gap: 0.35rem; font-size: 1.25rem; color: var(--k); }
+	.mt-lbl {
+		font-size: 0.72rem;
+		color: var(--text-muted);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.tile-meta {
-		margin-left: auto;
-		font-size: 0.72rem;
-		font-weight: 400;
-		color: var(--text-muted);
-		flex-shrink: 0;
+	.mt-line {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		height: 3px;
+		border-radius: 0 3px 3px 0;
+		background: var(--k);
+		transition: width 0.5s;
 	}
-	.tile-text {
-		font-size: 0.72rem;
-		color: var(--text-muted);
-		line-height: 1.35;
+	.mt .steps-bars { margin-top: 0.4rem; padding-top: 0; }
+	/* La fila ancha (el módulo que sobra cuando son impares). */
+	.mt-wide {
+		grid-column: 1 / -1;
+		min-height: 0;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.8rem;
+		background:
+			radial-gradient(70% 140% at 100% 50%, color-mix(in oklch, var(--k) 15%, transparent), transparent 60%),
+			var(--surface);
 	}
-	.tile-actions { display: flex; gap: 0.35rem; margin-top: auto; }
-	.tile-btn {
-		flex: 1;
-		margin-top: auto;
-		font-size: 0.72rem;
-		padding: 0.35rem 0.5rem;
+	.mt-wide .mt-top { display: contents; }
+	.mt-wide .mt-badge { margin: 0; }
+	.mt-wide .mt-txt { flex: 1; }
+	.mt-wide .mt-big { margin: 0; font-size: 1.2rem; }
+	.mt-wide .mt-acts, .mt-wide .mt-top > .mt-act { order: 9; }
+	.mt-wide .steps-bars { order: 8; width: 120px; flex: 0 0 120px; margin: 0; }
+	/* Agua: se llena desde abajo y la superficie hace una ola suave. */
+	.mt-fill {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: -1;
+		background: linear-gradient(180deg, color-mix(in oklch, var(--k) 36%, transparent), color-mix(in oklch, var(--k) 20%, transparent));
+		transition: height 0.9s cubic-bezier(0.3, 1.3, 0.5, 1);
+	}
+	.mt-full { box-shadow: inset 0 0 24px color-mix(in oklch, var(--k) 40%, transparent); }
+	.mt-wave { position: absolute; left: 0; bottom: 100%; width: 200%; height: 12px; display: block; }
+	.mt-wave path { fill: color-mix(in oklch, var(--k) 36%, transparent); }
+	.mt-w1 { animation: mt-wave 4s linear infinite; }
+	.mt-w2 { animation: mt-wave 6.5s linear infinite reverse; opacity: 0.5; bottom: calc(100% - 2px); }
+	@keyframes mt-wave { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+	@media (prefers-reduced-motion: reduce) {
+		.mt-w1, .mt-w2 { animation: none; }
+		.mt-fill { transition: none; }
 	}
 	.module-grid {
 		display: grid;
@@ -1967,25 +1952,6 @@
 		margin-bottom: 0.75rem;
 	}
 	/* Grid de un solo hijo: la tarjeta se estira a la altura de su pareja. */
-	.module-cell { display: grid; min-width: 0; }
-	.module-wide { grid-column: 1 / -1; }
-	.steps-card {
-		padding: 0.85rem;
-		display: flex;
-		flex-direction: column;
-	}
-	.steps-value {
-		margin-top: 0.35rem;
-		font-size: 1rem;
-		font-weight: 800;
-		font-variant-numeric: tabular-nums;
-		color: var(--text);
-	}
-	.steps-goal {
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: var(--text-muted);
-	}
 	/* La semana: 7 barras, la última es el día que se mira. */
 	.steps-bars {
 		position: relative;

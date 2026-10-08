@@ -102,6 +102,9 @@ import Wheat from '@lucide/svelte/icons/wheat';
 import WifiOff from '@lucide/svelte/icons/wifi-off';
 import Wine from '@lucide/svelte/icons/wine';
 import X from '@lucide/svelte/icons/x';
+import ChevronRight from '@lucide/svelte/icons/chevron-right';
+import Power from '@lucide/svelte/icons/power';
+import ListChecks from '@lucide/svelte/icons/list-checks';
 import BicepsFlexed from '@lucide/svelte/icons/biceps-flexed';
 import Activity from '@lucide/svelte/icons/activity';
 import Volleyball from '@lucide/svelte/icons/volleyball';
@@ -258,7 +261,10 @@ export const ICONS = {
 	dance: Music,
 	sport: Volleyball,
 	run: Activity,
-	strength: BicepsFlexed
+	strength: BicepsFlexed,
+	checklist: ListChecks,
+	power: Power,
+	chevronRight: ChevronRight
 } satisfies Record<string, Component<any>>;
 
 export type IconName = keyof typeof ICONS;
