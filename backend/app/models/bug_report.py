@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -31,7 +31,7 @@ class BugReport(Base):
     locale: Mapped[str] = mapped_column(String(8), nullable=False, server_default="")
     route: Mapped[str] = mapped_column(String(128), nullable=False, server_default="")
     had_screenshot: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
-    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
