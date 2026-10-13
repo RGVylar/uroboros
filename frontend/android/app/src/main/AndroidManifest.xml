@@ -27,6 +27,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="uroboros" />
             </intent-filter>
+
+            <!-- App Links: las recetas compartidas (https://comida.mugrelore.com/r/<código>)
+                 abren la app en vez del navegador. autoVerify contrasta con
+                 /.well-known/assetlinks.json del dominio; sin él, Android las
+                 sigue mandando al navegador. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="comida.mugrelore.com" android:pathPrefix="/r/" />
+            </intent-filter>
         </activity>
 
         <!-- ── Widgets de pantalla de inicio ── -->

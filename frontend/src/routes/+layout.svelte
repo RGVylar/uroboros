@@ -31,11 +31,18 @@
 
 	let { children } = $props();
 
-	// ── Deep links desde los widgets de Android ──────────────────────────────
+	// ── Enlaces que abren la app (widgets y App Links) ───────────────────────
 	// uroboros://add        -> pantalla de añadir
 	// uroboros://add?scan=1 -> añadir con el escáner QR/barras abierto de golpe
 	// Navegamos con el router de la SPA (goto) para no recargar la webview.
-	function openWidgetTarget(url: string | undefined | null) {
+	// https://comida.mugrelore.com/r/<código> (App Link de una receta compartida)
+	// -> guardarla, igual que el botón de la página web.
+	function openAppLink(url: string | undefined | null) {
+		const recipe = url?.match(/^https:\/\/comida\.mugrelore\.com\/r\/([^/?#]+)/);
+		if (recipe) {
+			goto(`/recipes?importar=${encodeURIComponent(recipe[1])}`);
+			return;
+		}
 		if (!url || !url.startsWith('uroboros://')) return;
 		const rest = url.slice('uroboros://'.length); // "add?scan=1"
 		const qIdx = rest.indexOf('?');
@@ -48,10 +55,10 @@
 		if (!isNativeApp) return;
 		const { App } = await import('@capacitor/app');
 		// App ya abierta (MainActivity es singleTask -> onNewIntent)
-		App.addListener('appUrlOpen', (data) => openWidgetTarget(data?.url));
+		App.addListener('appUrlOpen', (data) => openAppLink(data?.url));
 		// Arranque en frío: la URL con la que el widget lanzó la app
 		const launch = await App.getLaunchUrl();
-		openWidgetTarget(launch?.url);
+		openAppLink(launch?.url);
 		// Pasos de Health Connect: al volver a primer plano (resume() se limita solo).
 		App.addListener('resume', () => { if (auth.isLoggedIn) health.resume(); });
 	});
