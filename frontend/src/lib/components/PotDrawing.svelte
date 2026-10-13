@@ -66,7 +66,8 @@
 		</g>
 	</g>
 	<path d={BODY} fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5" />
-	<rect x="12" y="30" width="96" height="6" rx="3" fill="rgba(255,255,255,0.3)" />
+	<!-- Opaco: semitransparente, el caldo lleno se transparentaba y parecía encima. -->
+	<rect x="12" y="30" width="96" height="6" rx="3" fill="oklch(52% 0.012 165)" />
 </svg>
 
 <style>
