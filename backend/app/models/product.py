@@ -37,6 +37,10 @@ class Product(Base):
     # 1 unidad ≡ 100 g internos, el mismo factor por defecto de
     # unit_conversions, así el diario y la despensa no cambian de cálculo.
     unit: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # Lo que trae un envase y una ración, en la unidad de arriba (g o ml). Solo
+    # lo rellena Open Food Facts; sirven de atajo al elegir la cantidad.
+    package_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    serving_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     ingredients_text: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     allergens: Mapped[list | None] = mapped_column(JSON, nullable=True)  # ["milk", "gluten", ...]

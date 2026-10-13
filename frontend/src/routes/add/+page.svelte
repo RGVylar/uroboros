@@ -8,7 +8,7 @@
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
 	import { cacheSet, cacheGet } from '$lib/cache';
-	import { productUnitOf, perLabel, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
+	import { productUnitOf, perLabel, unitSuffix, gramsToQty, qtyToGrams, isDrink, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import { nameHue } from '$lib/avatars';
 	import type {
@@ -294,9 +294,9 @@
 		searchDebounce = setTimeout(searchByName, 350);
 	}
 
-	function getLastGrams(productId: number): number {
+	function getLastGrams(productId: number): number | null {
 		const stored = localStorage.getItem(`last_grams_${productId}`);
-		return stored ? parseInt(stored) : 100;
+		return stored ? parseInt(stored) : null;
 	}
 
 	function saveLastGrams(productId: number, g: number) {
@@ -512,7 +512,10 @@
 
 	function selectProduct(product: Product) {
 		selected = product;
-		qty = gramsToQty(getLastGrams(product.id), productUnitOf(product));
+		// Lo último que apuntaste; si es la primera vez, una ración de OFF.
+		const u = productUnitOf(product);
+		const first = u !== 'unit' && product.serving_qty ? Math.round(product.serving_qty) : 100;
+		qty = gramsToQty(getLastGrams(product.id) ?? first, u);
 	}
 
 	async function loadAllergies() {
@@ -531,6 +534,12 @@
 	let manualCarbs = $state(0);
 	let manualFat = $state(0);
 	let manualUnit: ProductUnit = $state('g');
+	// Mientras no se toque el selector, la unidad sigue al nombre: "Zumo de
+	// naranja" pasa a ml solo. Tocarlo a mano manda.
+	let manualUnitTouched = $state(false);
+	$effect(() => {
+		if (!manualUnitTouched) manualUnit = isDrink({ name: manualName, brand: manualBrand }) ? 'ml' : 'g';
+	});
 
 	// Active chip filter
 	let activeFilter = $state<'suggestions' | 'recent' | 'favorites' | 'recipes' | 'inventory' | 'manual'>('suggestions');
@@ -1012,6 +1021,18 @@
 	const QUICK_GRAMS = [50, 100, 150, 200, 250];
 	const QUICK_UNITS = [1, 2, 3, 4, 5];
 
+	// Atajos de OFF: una ración y el envase entero ("Envase · 330ml"). La ración
+	// se omite si coincide con el envase o es la de 100 que ya tienen los chips.
+	let measureChips = $derived.by(() => {
+		if (!selected || unit === 'unit') return [];
+		const pkg = selected.package_qty ? Math.round(selected.package_qty) : null;
+		const srv = selected.serving_qty ? Math.round(selected.serving_qty) : null;
+		const out: { key: 'add.serving' | 'add.package'; qty: number }[] = [];
+		if (srv && srv !== pkg && srv !== 100) out.push({ key: 'add.serving', qty: srv });
+		if (pkg) out.push({ key: 'add.package', qty: pkg });
+		return out;
+	});
+
 	const MACRO_CELLS = [
 		{ label: 'Prot', key: 'protein_per_100g' as const, hue: 220 },
 		{ label: 'Carb', key: 'carbs_per_100g' as const, hue: 275 },
@@ -1148,6 +1169,17 @@
 				<span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">{unitSuffix(unit).trim()}</span>
 			</div>
 		</div>
+		{#if measureChips.length}
+			<div style="display:flex; gap:0.375rem; margin-bottom:0.375rem;">
+				{#each measureChips as c (c.key)}
+					<button
+						onclick={() => (qty = c.qty)}
+						class="gram-chip"
+						class:gram-chip-active={qty === c.qty}
+					>{t(c.key)} · {c.qty}{unitSuffix(unit)}</button>
+				{/each}
+			</div>
+		{/if}
 		<div style="display:flex; gap:0.375rem;">
 			{#each unit === 'unit' ? QUICK_UNITS : QUICK_GRAMS as g}
 				<button
@@ -1394,7 +1426,7 @@
 				{#each ['g', 'ml', 'unit'] as const as u}
 					<button
 						type="button"
-						onclick={() => (manualUnit = u)}
+						onclick={() => { manualUnit = u; manualUnitTouched = true; }}
 						class="gram-chip"
 						class:gram-chip-active={manualUnit === u}
 						aria-pressed={manualUnit === u}

@@ -12,7 +12,10 @@ class OFFNotFound(Exception):
 
 
 class OFFProduct:
-    __slots__ = ("barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients_text", "allergens")
+    __slots__ = (
+        "barcode", "name", "brand", "kcal", "protein", "carbs", "fat", "ingredients_text", "allergens",
+        "unit", "package_qty", "serving_qty",
+    )
 
     def __init__(
         self,
@@ -25,6 +28,9 @@ class OFFProduct:
         fat: float,
         ingredients_text: str | None = None,
         allergens: list[str] | None = None,
+        unit: str | None = None,
+        package_qty: float | None = None,
+        serving_qty: float | None = None,
     ) -> None:
         self.barcode = barcode
         self.name = name
@@ -35,6 +41,9 @@ class OFFProduct:
         self.fat = fat
         self.ingredients_text = ingredients_text or ""
         self.allergens = allergens or []
+        self.unit = unit
+        self.package_qty = package_qty
+        self.serving_qty = serving_qty
 
 
 _ALLERGEN_SKIP = {"none", "unknown", ""}
@@ -58,6 +67,40 @@ def _parse_allergens(allergens_tags: object) -> list[str]:
             result.append(key)
             seen.add(key)
     return result
+
+
+# Unidad del envase según OFF. product_quantity ya viene normalizado a g o ml
+# ("1 L" → 1000 ml), así que solo hay dos unidades de llegada.
+_LIQUID_UNITS = {"ml", "cl", "dl", "l"}
+_SOLID_UNITS = {"g", "kg", "mg"}
+
+
+def parse_measure(p: dict) -> tuple[str | None, float | None, float | None]:
+    """(unidad, envase, ración) de una ficha de OFF, en g o ml. Sin dato fiable,
+    None: la app seguirá adivinando la unidad por el nombre.
+
+    La unidad sale del envase (330 ml); si no la trae, de la ración y, en
+    último caso, de la categoría de bebidas. Con un envase en gramos manda el
+    envase: el café molido está en "bebidas" pero se pesa."""
+    pu = str(p.get("product_quantity_unit") or "").strip().lower()
+    su = str(p.get("serving_quantity_unit") or "").strip().lower()
+    unit = None
+    for u in (pu, su):
+        if u in _LIQUID_UNITS:
+            unit = "ml"
+            break
+        if u in _SOLID_UNITS:
+            unit = "g"
+            break
+    if unit is None and "en:beverages" in (p.get("categories_tags") or []):
+        unit = "ml"
+
+    def _qty(x: object) -> float | None:
+        v = _f(x)
+        # Fuera de rango es basura de la ficha (envases de 0 g o de 50 kg).
+        return round(v, 1) if 0 < v <= 5000 else None
+
+    return unit, _qty(p.get("product_quantity")), _qty(p.get("serving_quantity"))
 
 
 def _f(x: object) -> float:
@@ -97,6 +140,11 @@ def macro_kcal(protein: float, carbs: float, fat: float) -> float:
     return 4 * protein + 4 * carbs + 9 * fat
 
 
+OFF_FIELDS = (
+    "code,product_name,brands,nutriments,ingredients_text,allergens_tags,"
+    "product_quantity,product_quantity_unit,serving_quantity,serving_quantity_unit,categories_tags"
+)
+
 HEADERS = {
     "User-Agent": "Uroboros/0.2 (self-hosted macro tracker; https://github.com/RGVylar/uroboros)"
 }
@@ -112,7 +160,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
             "action": "process",
             "json": 1,
             "page_size": limit,
-            "fields": "code,product_name,brands,nutriments,ingredients_text,allergens_tags",
+            "fields": OFF_FIELDS,
         })
     if r.status_code != 200:
         return []
@@ -126,6 +174,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
             # en la búsqueda solo sale como ruido a 0 kcal.
             if not name or not has_nutrition(n):
                 continue
+            unit, package_qty, serving_qty = parse_measure(p)
             products.append(OFFProduct(
                 barcode=p.get("code") or "",
                 name=name,
@@ -136,6 +185,9 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
                 fat=_f(n.get("fat_100g")),
                 ingredients_text=p.get("ingredients_text") or "",
                 allergens=_parse_allergens(p.get("allergens_tags")),
+                unit=unit,
+                package_qty=package_qty,
+                serving_qty=serving_qty,
             ))
         except (KeyError, TypeError):
             continue
@@ -145,7 +197,7 @@ async def search_by_name(query: str, limit: int = 20) -> list[OFFProduct]:
 async def fetch_by_barcode(barcode: str) -> OFFProduct:
     url = f"{settings.off_base_url}/api/v2/product/{barcode}.json"
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=HEADERS, params={"fields": "code,product_name,brands,nutriments,ingredients_text,allergens_tags"})
+        r = await client.get(url, headers=HEADERS, params={"fields": OFF_FIELDS})
     if r.status_code != 200:
         raise OFFNotFound(barcode)
     data = r.json()
@@ -154,6 +206,7 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
     p = data["product"]
     n = p.get("nutriments", {}) or {}
     name = p.get("product_name") or "Unknown"
+    unit, package_qty, serving_qty = parse_measure(p)
     return OFFProduct(
         barcode=p.get("code") or barcode,
         name=name.strip() or "Unknown",
@@ -164,4 +217,7 @@ async def fetch_by_barcode(barcode: str) -> OFFProduct:
         fat=_f(n.get("fat_100g")),
         ingredients_text=p.get("ingredients_text") or "",
         allergens=_parse_allergens(p.get("allergens_tags")),
+        unit=unit,
+        package_qty=package_qty,
+        serving_qty=serving_qty,
     )

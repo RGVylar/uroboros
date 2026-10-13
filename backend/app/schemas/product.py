@@ -44,6 +44,8 @@ class ProductOut(ProductBase):
     created_at: datetime
     ingredients_text: str | None = None
     allergens: list[str] | None = None
+    package_qty: float | None = None
+    serving_qty: float | None = None
 
     class Config:
         from_attributes = True

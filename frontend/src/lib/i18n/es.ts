@@ -324,6 +324,8 @@ export const es = {
 	'add.editProduct': 'Editar producto',
 	'add.editProductTitle': 'Corregir datos del producto',
 	'add.quantity': 'Cantidad',
+	'add.serving': 'Ración',
+	'add.package': 'Envase',
 	'add.meal': 'Comida',
 	'add.date': 'Fecha',
 	'add.shareNone': 'Sin compartir',

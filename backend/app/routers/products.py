@@ -12,7 +12,7 @@ from app.deps import get_current_user
 from app.models import Product, User
 from app.models.product import ProductSource
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, RecommendedProduct, FrequentProduct
-from app.services.openfoodfacts import OFFNotFound, fetch_by_barcode, search_by_name
+from app.services.openfoodfacts import OFFNotFound, OFFProduct, fetch_by_barcode, search_by_name
 from app.services.recommendations import get_recommendations, get_frequently_used_products, FrequentlyUsedProduct
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -73,6 +73,28 @@ def list_generic_products(
     return products
 
 
+def _fill_measure(product: Product, off: OFFProduct) -> bool:
+    """Rellena unidad, envase y ración desde OFF en un producto ya guardado.
+    Solo huecos: una unidad que alguien puso a mano no se pisa. Devuelve si
+    cambió algo."""
+    changed = False
+    if product.unit is None and off.unit:
+        product.unit = off.unit
+        changed = True
+    if product.package_qty is None and off.package_qty:
+        product.package_qty = off.package_qty
+        changed = True
+    if product.serving_qty is None and off.serving_qty:
+        product.serving_qty = off.serving_qty
+        changed = True
+    return changed
+
+
+def _lacks_measure(p: Product) -> bool:
+    # Guardado antes de que se pidieran estos campos a OFF.
+    return p.unit is None and p.package_qty is None and p.serving_qty is None
+
+
 @router.get("/barcode/{barcode}", response_model=ProductOut)
 async def get_or_fetch_by_barcode(
     barcode: str,
@@ -83,14 +105,19 @@ async def get_or_fetch_by_barcode(
     Open Food Facts and persist."""
     existing = db.scalar(select(Product).where(Product.barcode == barcode))
     if existing:
-        # Lazy-refresh allergens for old cached products that predate the allergens column
-        if existing.allergens is None and existing.source == ProductSource.openfoodfacts:
+        # Lazy-refresh de fichas guardadas antes de pedir alérgenos o medidas a OFF
+        if existing.source == ProductSource.openfoodfacts and (
+            existing.allergens is None or _lacks_measure(existing)
+        ):
             try:
                 off = await fetch_by_barcode(barcode)
-                if off.allergens:
+                changed = _fill_measure(existing, off)
+                if existing.allergens is None and off.allergens:
                     existing.allergens = off.allergens
                     if off.ingredients_text and not existing.ingredients_text:
                         existing.ingredients_text = off.ingredients_text
+                    changed = True
+                if changed:
                     db.commit()
                     db.refresh(existing)
             except Exception:
@@ -110,6 +137,9 @@ async def get_or_fetch_by_barcode(
         protein_per_100g=off.protein,
         carbs_per_100g=off.carbs,
         fat_per_100g=off.fat,
+        unit=off.unit,
+        package_qty=off.package_qty,
+        serving_qty=off.serving_qty,
         ingredients_text=off.ingredients_text or None,
         allergens=off.allergens or None,
         source=ProductSource.openfoodfacts,
@@ -281,9 +311,15 @@ async def search_products(
     # Merge OFF results, deduplicating by barcode
     new_off: list[Product] = []
     existing_off: list[Product] = []
+    local_by_barcode = {p.barcode: p for p in local_all if p.barcode}
+    refreshed = False
     for off in off_results:
         if off.barcode and off.barcode in local_barcodes:
-            continue  # already represented in local
+            # already represented in local; de paso, rellena sus medidas
+            lp = local_by_barcode[off.barcode]
+            if lp.source == ProductSource.openfoodfacts and _fill_measure(lp, off):
+                refreshed = True
+            continue
         if off.barcode:
             existing = db.scalar(select(Product).where(Product.barcode == off.barcode))
             if existing:
@@ -292,6 +328,8 @@ async def search_products(
                     existing.allergens = off.allergens
                     if off.ingredients_text and not existing.ingredients_text:
                         existing.ingredients_text = off.ingredients_text
+                if existing.source == ProductSource.openfoodfacts:
+                    _fill_measure(existing, off)
                 if existing.id not in local_ids:
                     existing_off.append(existing)
                 continue
@@ -303,6 +341,9 @@ async def search_products(
             protein_per_100g=off.protein,
             carbs_per_100g=off.carbs,
             fat_per_100g=off.fat,
+            unit=off.unit,
+            package_qty=off.package_qty,
+            serving_qty=off.serving_qty,
             ingredients_text=off.ingredients_text or None,
             allergens=off.allergens or None,
             source=ProductSource.openfoodfacts,
@@ -310,7 +351,7 @@ async def search_products(
         db.add(p)
         new_off.append(p)
 
-    if new_off or existing_off:
+    if new_off or existing_off or refreshed:
         db.commit()
         for p in new_off:
             db.refresh(p)

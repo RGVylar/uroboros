@@ -321,6 +321,8 @@ export const en: Dict = {
 	'add.editProduct': 'Edit product',
 	'add.editProductTitle': 'Correct the product data',
 	'add.quantity': 'Amount',
+	'add.serving': 'Serving',
+	'add.package': 'Pack',
 	'add.meal': 'Meal',
 	'add.date': 'Date',
 	'add.shareNone': "Don't share",

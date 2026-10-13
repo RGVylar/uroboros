@@ -323,6 +323,8 @@ export const pt: Dict = {
 	'add.editProduct': 'Editar produto',
 	'add.editProductTitle': 'Corrigir os dados do produto',
 	'add.quantity': 'Quantidade',
+	'add.serving': 'Dose',
+	'add.package': 'Embalagem',
 	'add.meal': 'Refeição',
 	'add.date': 'Data',
 	'add.shareNone': 'Não partilhar',
