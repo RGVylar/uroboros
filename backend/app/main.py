@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.limiter import client_ip, limiter
 from app.routers import (
     auth, cheat_days, creatine, diagnostics, diary, downloads, duel, exercises, exercise_sessions,
-    export, favorites, feedback, friends, goals, inventory, measurements, mood, products,
+    export, favorites, feedback, friends, goals, inventory, measurements, mood, pots, products,
     push, receipts, recipes, release_notes, shopping_list, steps, supplements, telegram, users, water, weight, allergies,
 )
 from app.services.avatar_photo_service import media_root
@@ -103,6 +103,7 @@ app.include_router(measurements.router, prefix=api_prefix)
 app.include_router(water.router, prefix=api_prefix)
 app.include_router(steps.router, prefix=api_prefix)
 app.include_router(recipes.router, prefix=api_prefix)
+app.include_router(pots.router, prefix=api_prefix)
 app.include_router(friends.router, prefix=api_prefix)
 app.include_router(creatine.router, prefix=api_prefix)
 app.include_router(cheat_days.router, prefix=api_prefix)

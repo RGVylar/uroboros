@@ -3,7 +3,7 @@
 	import { productUnitOf, unitSuffix, gramsToQty, qtyToGrams, fmtQty } from '$lib/drink';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType } from '$lib/types';
+	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType, Pot, User } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
 	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
@@ -15,6 +15,9 @@
 	import type { IconName } from '$lib/icons';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { subscription } from '$lib/stores/subscription.svelte';
+	import PotCard from '$lib/components/PotCard.svelte';
+	import PotForm from '$lib/components/PotForm.svelte';
+	import { potPeople } from '$lib/pots';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -82,16 +85,17 @@
 
 	// ── Carga ────────────────────────────────────────────────────────────────
 	async function load() {
-		[recipes, sharedRecipes] = await Promise.all([
+		[recipes, sharedRecipes, pots] = await Promise.all([
 			api.get<Recipe[]>('/recipes'),
 			api.get<SharedRecipe[]>('/recipes/shared').catch(() => []),
+			api.get<Pot[]>('/pots').catch(() => []),
 		]);
 		// Lo de los círculos habla del icono de cada receta: sin recetas no hay
 		// icono que tocar, así que espera a la primera.
 		if (recipes.length > 0 || sharedRecipes.length > 0) tips.request('recipe_sharing');
 		// Load partner + allergies
 		try {
-			const users = await api.get<Array<{ id: number; name: string }>>('/users');
+			const users = await api.get<User[]>('/users');
 			partner = users.find(u => u.id !== auth.user?.id) || null;
 		} catch {
 			partner = null;
@@ -295,7 +299,21 @@
 	}
 	type ShareMode = null | 'also' | 'only';
 	let shareMode: ShareMode = $state(null);
-	let partner: { id: number; name: string } | null = $state(null);
+	let partner = $state<User | null>(null);
+
+	// ── Ollas ────────────────────────────────────────────────────────────────
+	// Viven encima de la biblioteca: lo cocinado para varios días. Se apunta de
+	// ellas desde Añadir (?olla=ID), que tiene la pantalla de registrar.
+	let pots = $state<Pot[]>([]);
+	let showPotForm = $state(false);
+	let potFromRecipe = $state<Recipe | null>(null);
+	const people = $derived(potPeople(auth.user, partner));
+
+	function makePot(recipe: Recipe | null) {
+		potFromRecipe = recipe;
+		showPotForm = true;
+		if (recipe) window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
 
 	// ── Allergies ──────────────────────────────────────────────────────────────
 	type AllergyInfo = { id: number; ingredient: string };
@@ -546,6 +564,29 @@
 		{#if !subscription.is_premium && recipes.length >= FREE_RECIPE_LIMIT}<Icon name="lock" /> {recipes.length}/{FREE_RECIPE_LIMIT}{:else}{t('recipes.newShort')}{/if}
 	</button>
 </div>
+
+<!-- Ollas en marcha -->
+<div class="section-eyebrow pot-head">
+	<span>{t('pot.section')}</span>
+	{#if !showPotForm}<button class="pot-make" onclick={() => makePot(null)}>{t('pot.make')}</button>{/if}
+</div>
+{#if showPotForm}
+	<PotForm
+		{partner}
+		{recipes}
+		fromRecipe={potFromRecipe}
+		oncreated={(p) => { pots = [p, ...pots]; showPotForm = false; potFromRecipe = null; }}
+		oncancel={() => { showPotForm = false; potFromRecipe = null; }}
+	/>
+{/if}
+{#each pots as p (p.id)}
+	<PotCard pot={p} {people} onclick={() => goto(`/add?olla=${p.id}`)} />
+{/each}
+{#if !pots.length && !showPotForm}
+	<div class="pot-empty">{t('pot.empty')}</div>
+{:else}
+	<div style="height:0.75rem;"></div>
+{/if}
 
 {#if recipes.length > 0 || sharedRecipes.length > 0}
 <!-- Stats strip -->
@@ -799,6 +840,7 @@
 			</div>
 			<div style="display:flex; gap:0.375rem;">
 				<button onclick={() => logRecipe(recipe)} class="action-btn action-btn-primary" style="flex:1;">{t('recipes.log')}</button>
+				<button class="icon-btn" onclick={() => makePot(recipe)} title={t('pot.makeFromRecipe')} aria-label={t('pot.makeFromRecipe')}><Icon name="pot" /></button>
 				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}><Icon name="share" /></button>
 				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}><Icon name="recipes" /></button>
 				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')} aria-label={t('recipes.editTitle')}><Icon name="edit" /></button>
@@ -903,6 +945,7 @@
 		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:1rem;">
+			<button class="action-btn action-btn-ghost" style="flex:1;" onclick={() => { const target = r; viewingRecipe = null; makePot(target); }}><Icon name="pot" /> {t('pot.makeFromRecipe')}</button>
 			<button class="action-btn action-btn-ghost" style="flex:1;" onclick={() => shareRecipe(r)}><Icon name="share" /> {t('recipes.share')}</button>
 			<button class="action-btn action-btn-primary" style="flex:1;" onclick={() => { const target = r; viewingRecipe = null; logRecipe(target); }}>{t('recipes.log')}</button>
 		</div>
@@ -1118,6 +1161,15 @@
 		color: rgba(255,255,255,0.45);
 		text-transform: uppercase;
 		font-weight: 600;
+	}
+	.pot-head { display: flex; justify-content: space-between; align-items: center; padding: 0 0.25rem 0.5rem; }
+	.pot-make {
+		font-family: inherit; font-size: 0.75rem; font-weight: 700; color: oklch(85% 0.17 160);
+		background: none; border: none; box-shadow: none; padding: 0.25rem 0; text-transform: none; letter-spacing: 0;
+	}
+	.pot-empty {
+		font-size: 0.8125rem; color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 1rem;
+		padding: 0.875rem; border: 1px dashed rgba(255,255,255,0.12); border-radius: 16px;
 	}
 	.btn-new {
 		padding: 0.625rem 0.875rem;

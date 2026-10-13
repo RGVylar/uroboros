@@ -11,6 +11,10 @@
 	import { productUnitOf, perLabel, unitSuffix, gramsToQty, qtyToGrams, isDrink, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import { nameHue } from '$lib/avatars';
+	import PotCard from '$lib/components/PotCard.svelte';
+	import ShareSelector from '$lib/components/ShareSelector.svelte';
+	import { fmtServings, potEatenBy, potPeople, servingsLabel } from '$lib/pots';
+	import type { Pot, ShareMode } from '$lib/types';
 	import type {
 		Product,
 		User,
@@ -311,7 +315,6 @@
 	const perOf = (u: ProductUnit) => (u === 'unit' ? '/ud' : `/100${u}`);
 	let grams = $derived(qtyToGrams(qty, unit));
 	// null = solo yo | 'also' = los dos | 'only' = solo pareja
-	type ShareMode = null | 'also' | 'only';
 	let shareMode: ShareMode = $state(null);
 	let mealType: MealType = $state(guessMealType());
 
@@ -327,6 +330,116 @@
 	let error = $state('');
 	let showManual = $state(false);
 	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
+
+	// ── Ollas ───────────────────────────────────────────────────────────────────
+	// Se abren con ?olla=ID (desde Recetas) o tocando su tarjeta. Una ración es
+	// 1/servings de la olla; los gramos solo si alguien la pesó ya cocinada.
+	let pots: Pot[] = $state([]);
+	const potParam = Number($page.url.searchParams.get('olla')) || null;
+	let potId = $state<number | null>(potParam);
+	let pot = $derived(pots.find((p) => p.id === potId) ?? null);
+	let people = $derived(potPeople(auth.user, partner));
+	let potQty = $state(1); // raciones; -1 = lo que queda
+	let potMode = $state<'serv' | 'g'>('serv');
+	let potGrams = $state(300);
+	let potError = $state('');
+	let potGPerServ = $derived(pot?.cooked_weight ? pot.cooked_weight / pot.servings : null);
+	let potEaters = $derived(shareMode === 'also' ? 2 : 1);
+	// Raciones por persona de lo que se va a apuntar.
+	let potServEach = $derived.by(() => {
+		if (!pot) return 0;
+		const each = potQty === -1 ? pot.remaining / potEaters
+			: potMode === 'g' && potGPerServ ? potGrams / potGPerServ
+			: potQty;
+		return Math.min(each, pot.remaining / potEaters);
+	});
+	let potTake = $derived(potServEach * potEaters);
+	const potServ = (k: 'calories' | 'protein' | 'carbs' | 'fat') =>
+		pot ? Math.round((pot[k] / pot.servings) * potServEach) : 0;
+
+	// Editar y pesar después
+	let potEditing = $state(false);
+	let potEditName = $state('');
+	let potEditServings = $state(4);
+	let potGross = $state<number | null>(null);
+	let potTare = $state<number | null>(null);
+	let potNet = $derived(potGross ? Math.max(0, potGross - (potTare ?? 0)) : null);
+	// Si ya se ha comido algo, lo pesado es lo que queda: el total se escala.
+	let potWeighTotal = $derived(pot && potNet && pot.remaining > 0 ? (potNet * pot.servings) / pot.remaining : null);
+	let potRawWarn = $derived(!!pot && !!potWeighTotal && potWeighTotal < pot.raw_weight * 1.08 && potWeighTotal > pot.raw_weight * 0.92);
+
+	async function loadPots() {
+		if (connectivity.isOffline) return;
+		pots = await api.get<Pot[]>('/pots').catch(() => []);
+	}
+
+	function openPot(p: Pot) {
+		potId = p.id;
+		potQty = 1;
+		potMode = 'serv';
+		potError = '';
+		potEditing = false;
+	}
+
+	function startPotEdit() {
+		if (!pot) return;
+		potEditName = pot.name;
+		potEditServings = pot.servings;
+		potGross = null;
+		potTare = null;
+		potEditing = !potEditing;
+	}
+
+	function replacePot(updated: Pot) {
+		pots = pots.map((p) => (p.id === updated.id ? updated : p));
+	}
+
+	async function savePotEdit(clearWeight = false) {
+		if (!pot) return;
+		try {
+			replacePot(await api.patch<Pot>(`/pots/${pot.id}`, {
+				name: potEditName.trim() || pot.name,
+				servings: potEditServings,
+				...(clearWeight ? { clear_weight: true } : potNet ? { weight_now: potNet } : {}),
+			}));
+			potEditing = false;
+		} catch (e: unknown) {
+			potError = e instanceof Error ? e.message : 'Error';
+		}
+	}
+
+	async function finishPot() {
+		if (!pot || !confirm(t('pot.finishConfirm'))) return;
+		await api.post(`/pots/${pot.id}/finish`, {});
+		pots = pots.filter((p) => p.id !== potId);
+		potId = null;
+	}
+
+	async function logFromPot() {
+		if (!pot) return;
+		if (connectivity.isOffline) {
+			potError = t('pot.errOffline');
+			return;
+		}
+		saving = true;
+		potError = '';
+		try {
+			await api.post<Pot>(`/pots/${pot.id}/log`, {
+				...(potQty === -1 ? { rest: true }
+					: potMode === 'g' && potGPerServ ? { grams: potGrams }
+					: { servings: potQty }),
+				meal_type: mealType,
+				consumed_at: consumedAt(selectedDate),
+				also_for_user_id: shareMode === 'also' ? partner?.id : null,
+				only_for_user_id: shareMode === 'only' ? partner?.id : null,
+			});
+			goto('/');
+		} catch (e: unknown) {
+			potError = e instanceof Error ? e.message : 'Error';
+		} finally {
+			saving = false;
+		}
+	}
 
 	// ── Editar producto ─────────────────────────────────────────────────────────
 	let showEdit = $state(false);
@@ -724,6 +837,7 @@
 	// loadRecommendations() lo convertía en dependencia y cada cambio de chip
 	// re-disparaba todas estas llamadas (y duplicaba la de recomendaciones).
 	onMount(() => {
+		loadPots();
 		api.get<User[]>('/users').then(u => {
 			users = u;
 			const p = u.find(x => x.id !== auth.user?.id);
@@ -1069,10 +1183,194 @@
 	})());
 </script>
 
+{#if pot && !showManual && !showEdit}
+	<!-- Olla: misma pantalla que un producto, en raciones (o gramos si está pesada) -->
+	<div class="add-header">
+		<button class="glass-btn" onclick={() => (potId = null)} aria-label={t('add.back')}>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+				<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<div style="flex:1; min-width:0;">
+			<div class="header-eyebrow">{t('pot.eyebrow')}</div>
+			<div class="header-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{pot.name}</div>
+		</div>
+		<button class="glass-btn" onclick={startPotEdit} aria-label={t('pot.edit')} title={t('pot.edit')}><Icon name="edit" /></button>
+	</div>
+
+	{#if potEditing}
+		<div class="glass-card" style="margin-bottom:0.875rem; border-color:oklch(75% 0.18 160 / 0.35);">
+			<div class="section-eyebrow" style="margin-bottom:0.625rem;">{t('pot.edit')}</div>
+			<label class="pot-label" for="pe-name">{t('pot.name')}</label>
+			<input id="pe-name" class="field-input pot-input" bind:value={potEditName} />
+			<label class="pot-label" for="pe-serv">{t('pot.servingsApprox', { n: potEditServings })}</label>
+			<input id="pe-serv" type="range" min="1" max="20" step="1" bind:value={potEditServings} style="width:100%; margin-bottom:0.875rem;" />
+
+			<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+				<Icon name="weight" />
+				<span style="font-size:0.8125rem; font-weight:700;">{t('pot.weigh')}</span>
+				<span style="font-size:0.6875rem; color:rgba(255,255,255,0.45);">· {t('pot.optional')}</span>
+				{#if pot.cooked_weight}<span style="margin-left:auto; font-size:0.75rem; color:oklch(85% 0.17 160);">{t('pot.weighNow', { g: Math.round(pot.cooked_weight) })}</span>{/if}
+			</div>
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; align-items:end;">
+				<div>
+					<label class="pot-label" for="pe-gross">{pot.remaining < pot.servings ? t('pot.weighLeft') : t('pot.weighFull')}</label>
+					<input id="pe-gross" class="field-input pot-input" type="number" inputmode="numeric" min="0" bind:value={potGross} />
+				</div>
+				<div>
+					<label class="pot-label" for="pe-tare">{t('pot.weighEmpty')}</label>
+					<input id="pe-tare" class="field-input pot-input" type="number" inputmode="numeric" min="0" bind:value={potTare} />
+				</div>
+			</div>
+			<div class="pot-hint">{t('pot.weighTareHint')}</div>
+			{#if pot.remaining < pot.servings}
+				<div class="pot-hint">{t('pot.weighLaterHint', { n: servingsLabel(pot.servings - pot.remaining) })}</div>
+			{/if}
+			{#if potNet && potWeighTotal}
+				<div class="pot-weigh-result">
+					<span>{t('pot.weighFood', { g: Math.round(potNet) })}</span>
+					<span style="color:oklch(85% 0.17 160);">{t('pot.perServingG', { g: Math.round(potWeighTotal / potEditServings) })}</span>
+				</div>
+				{#if potRawWarn}<div class="pot-hint" style="color:oklch(82% 0.15 75);">{t('pot.weighRawWarn')}</div>{/if}
+			{/if}
+			<button class="btn-submit" style="margin-top:0.75rem;" onclick={() => savePotEdit()}>{t('common.save')}</button>
+			{#if pot.cooked_weight}
+				<button class="filter-chip" style="width:100%; justify-content:center; margin-top:0.5rem;" onclick={() => savePotEdit(true)}>{t('pot.removeWeight')}</button>
+			{/if}
+		</div>
+	{/if}
+
+	<div class="glass-card" style="margin-bottom:0.875rem;">
+		<div class="section-eyebrow" style="margin-bottom:0.625rem;">
+			{t('pot.forAmount', { amount: potMode === 'g' && potGPerServ && potQty !== -1 ? `${potGrams} g` : servingsLabel(potServEach) })}
+		</div>
+		<div style="display:flex; align-items:baseline; gap:0.4rem; margin-bottom:0.875rem;">
+			<span class="big-kcal">{potServ('calories')}</span>
+			<span style="font-size:0.875rem; color:rgba(255,255,255,0.5); font-weight:500;">kcal</span>
+		</div>
+		<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem;">
+			{#each MACRO_CELLS as m}
+				<div class="macro-cell" style="background: oklch(72% 0.18 {m.hue} / 0.1); border: 1px solid oklch(72% 0.18 {m.hue} / 0.2);">
+					<div class="macro-cell-label" style="color: oklch(80% 0.15 {m.hue});">{m.label}</div>
+					<div class="macro-cell-val">{potServ(m.key.replace('_per_100g', '') as 'protein' | 'carbs' | 'fat')}<span class="macro-cell-unit">g</span></div>
+				</div>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Cómo va la olla: lleno = lo que queda; rayado = lo que vas a sacar -->
+	{@const mine = potEatenBy(pot, people.meId)}
+	{@const theirs = people.partnerId ? potEatenBy(pot, people.partnerId) : 0}
+	{@const pct = (n: number) => `${(n / pot.servings) * 100}%`}
+	<div class="glass-card" style="margin-bottom:0.875rem;">
+		<div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; margin-bottom:0.625rem;">
+			<span class="section-eyebrow">{t('pot.howItGoes')}</span>
+			<span style="font-size:0.75rem; color:rgba(255,255,255,0.6); text-align:right;">
+				{t('pot.leftOf', { left: fmtServings(pot.remaining), total: fmtServings(pot.servings) })}{potGPerServ ? ` · ≈ ${Math.round(pot.remaining * potGPerServ)} g` : ''}
+			</span>
+		</div>
+		<div class="pot-bar">
+			<div style="width:{pct(pot.remaining - potTake)}; background:linear-gradient(90deg, oklch(82% 0.18 160), oklch(70% 0.2 170));"></div>
+			{#if shareMode !== 'only'}<div style="width:{pct(potServEach)}; background:repeating-linear-gradient(135deg, {people.meColor} 0 4px, transparent 4px 8px);"></div>{/if}
+			{#if shareMode !== null}<div style="width:{pct(potServEach)}; background:repeating-linear-gradient(135deg, {people.partnerColor} 0 4px, transparent 4px 8px);"></div>{/if}
+			<div style="width:{pct(mine)}; background:{people.meColor}; opacity:0.5;"></div>
+			{#if theirs}<div style="width:{pct(theirs)}; background:{people.partnerColor}; opacity:0.5;"></div>{/if}
+		</div>
+		<div class="pot-hint" style="margin-bottom:0.5rem;">{t('pot.after', { n: servingsLabel(pot.remaining - potTake) })}</div>
+		{#if pot.days.length}
+			<div class="section-eyebrow" style="margin:0.25rem 0 0.25rem;">{t('pot.days')}</div>
+			{#each [...new Set(pot.days.map((d) => d.day))] as day}
+				<div style="display:flex; justify-content:space-between; font-size:0.75rem; padding:0.15rem 0; color:rgba(255,255,255,0.6);">
+					<span>{new Date(day + 'T12:00:00').toLocaleDateString(i18n.locale, { weekday: 'short', day: 'numeric' })}</span>
+					<span>
+						{#each pot.days.filter((d) => d.day === day) as d, i}
+							{i ? ' · ' : ''}<span style="color:{d.user_id === people.meId ? people.meColor : people.partnerColor};">{d.user_id === people.meId ? t('pot.you') : (people.partnerName ?? '')} {fmtServings(d.servings)}</span>
+						{/each}
+					</span>
+				</div>
+			{/each}
+		{/if}
+	</div>
+
+	<div class="glass-card" style="margin-bottom:0.875rem;">
+		<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+			<span style="font-size:0.8125rem; font-weight:700;">{t('add.quantity')}</span>
+			{#if potGPerServ}
+				<div class="pot-mode-toggle">
+					<button class="pot-mode" class:pot-mode-on={potMode === 'serv'} onclick={() => { potMode = 'serv'; if (potQty !== -1) potQty = 1; }}>{t('pot.modeServings')}</button>
+					<button class="pot-mode" class:pot-mode-on={potMode === 'g'} onclick={() => { potMode = 'g'; if (potQty !== -1) { potQty = 0; potGrams = Math.round(potGPerServ ?? 300); } }}>{t('pot.modeGrams')}</button>
+				</div>
+			{:else}
+				<span style="font-size:0.9375rem; font-weight:700;">{servingsLabel(potServEach)}</span>
+			{/if}
+		</div>
+		{#if potMode === 'g' && potGPerServ}
+			<div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:0.625rem;">
+				<div style="display:flex; align-items:baseline; gap:0.25rem;">
+					<input type="number" bind:value={potGrams} oninput={() => (potQty = 0)} min="1" step="10" class="grams-input" />
+					<span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">g</span>
+				</div>
+				<span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">≈ {servingsLabel(potServEach)}</span>
+			</div>
+			<div style="display:flex; gap:0.375rem;">
+				{#each [200, 300, 400] as g}
+					<button onclick={() => { potGrams = g; potQty = 0; }} class="gram-chip" class:gram-chip-active={potQty !== -1 && potGrams === g}>{g}</button>
+				{/each}
+				<button onclick={() => (potQty = -1)} class="gram-chip" class:gram-chip-active={potQty === -1} style="flex:1.8;">{t('pot.rest')}</button>
+			</div>
+		{:else}
+			{#if potGPerServ}
+				<div style="text-align:right; font-size:0.8125rem; font-weight:700; margin:-0.375rem 0 0.5rem;">
+					{servingsLabel(potServEach)} <span style="font-weight:500; color:rgba(255,255,255,0.5);">· ≈ {Math.round(potServEach * potGPerServ)} g</span>
+				</div>
+			{/if}
+			<div style="display:flex; gap:0.375rem;">
+				{#each [0.5, 1, 1.5, 2] as q}
+					<button onclick={() => (potQty = q)} class="gram-chip" class:gram-chip-active={potQty === q}>{fmtServings(q)}</button>
+				{/each}
+				<button onclick={() => (potQty = -1)} class="gram-chip" class:gram-chip-active={potQty === -1} style="flex:1.8;">{t('pot.rest')}</button>
+			</div>
+		{/if}
+	</div>
+
+	<div style="margin-bottom:0.875rem;">
+		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.meal')}</div>
+		<div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.375rem;">
+			{#each MEAL_ORDER as mt}
+				<button onclick={() => (mealType = mt)} class="meal-chip" class:meal-chip-active={mealType === mt}>{mealLabel(mt)}</button>
+			{/each}
+		</div>
+	</div>
+
+	<div style="margin-bottom:0.875rem;">
+		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.date')}</div>
+		<input type="date" bind:value={selectedDate} max={new Date().toISOString().slice(0, 10)} class="date-input" />
+	</div>
+
+	{#if partner && pot.partner_id}
+		<ShareSelector
+			bind:mode={shareMode}
+			partnerName={partner.name}
+			subNone={t('pot.subMine', { amount: servingsLabel(potServEach) })}
+			subAlso={t('pot.subEach', { amount: servingsLabel(potServEach) })}
+			subOnly={t('pot.subOnly')}
+			style="margin-bottom:1rem;"
+		/>
+	{/if}
+
+	{#if potError}<p class="add-error">{potError}</p>{/if}
+
+	<button class="btn-submit" onclick={logFromPot} disabled={saving || pot.remaining <= 0}>
+		{saving ? t('add.adding') : t('pot.register')}
+	</button>
+	<button class="filter-chip" style="width:100%; justify-content:center; margin-top:0.625rem;" onclick={finishPot} title={t('pot.finishSub')}>
+		<Icon name="check" /> {t('pot.finish')}
+	</button>
+
 <!-- ═══════════════════════════════════════════════════════
      DETAIL VIEW — producto seleccionado
 ═══════════════════════════════════════════════════════ -->
-{#if selected && !showManual && !showEdit}
+{:else if selected && !showManual && !showEdit}
 	<!-- Header -->
 	<div class="add-header">
 		<button class="glass-btn" onclick={() => (selected = null)} aria-label={t('add.back')}>
@@ -1181,7 +1479,7 @@
 			</div>
 		{/if}
 		<div style="display:flex; gap:0.375rem;">
-			{#each unit === 'unit' ? QUICK_UNITS : QUICK_GRAMS as g}
+			{#each unit === 'unit' ? QUICK_UNITS : QUICK_GRAMS.filter((g) => !measureChips.some((c) => c.qty === g)) as g}
 				<button
 					onclick={() => (qty = g)}
 					class="gram-chip"
@@ -1218,48 +1516,7 @@
 
 	<!-- Partner share (3 estados) -->
 	{#if users.length > 1 && partner}
-		<div
-			class="share-card"
-			class:share-card-also={shareMode === 'also'}
-			class:share-card-only={shareMode === 'only'}
-			style="margin-bottom:1rem;"
-		>
-			<div class="share-badge-icon"
-				class:share-badge-icon-also={shareMode === 'also'}
-				class:share-badge-icon-only={shareMode === 'only'}
-			>
-				{#if shareMode === null}<Icon name="user" />{:else if shareMode === 'also'}<Icon name="users" />{:else}<Icon name="forPartner" />{/if}
-			</div>
-			<div style="flex:1; min-width:0; text-align:left;">
-				{#if shareMode === null}
-					<div style="font-size:0.8125rem; font-weight:700; color:rgba(255,255,255,0.5);">{t('add.shareNone')}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.35); margin-top:0.125rem;">{t('add.shareNoneSub')}</div>
-				{:else if shareMode === 'also'}
-					<div style="font-size:0.8125rem; font-weight:700;">También para {partner.name}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareBothSub')}</div>
-				{:else}
-					<div style="font-size:0.8125rem; font-weight:700; color:oklch(80% 0.18 45);">Solo para {partner.name}</div>
-					<div style="font-size:0.6875rem; color:rgba(255,255,255,0.55); margin-top:0.125rem;">{t('add.shareOnlyPartnerSub')}</div>
-				{/if}
-			</div>
-			<!-- Segmented pill con sliding thumb -->
-			<div class="seg-pill">
-				<div class="seg-pill-thumb" style="
-					left: {shareMode === null ? '3px' : shareMode === 'also' ? '33px' : '63px'};
-					background: {shareMode === 'only'
-						? 'linear-gradient(135deg, oklch(85% 0.18 45), oklch(68% 0.22 40))'
-						: shareMode === 'also'
-							? 'linear-gradient(135deg, oklch(82% 0.18 160), oklch(68% 0.2 170))'
-							: 'rgba(255,255,255,0.12)'};
-				"></div>
-				<button class="seg-pill-btn" class:seg-pill-active={shareMode === null}
-					onclick={() => shareMode = null} aria-label={t('add.shareOnlyMe')}><Icon name="user" /></button>
-				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'also'}
-					onclick={() => shareMode = 'also'} aria-label={t('add.shareBoth')}><Icon name="users" /></button>
-				<button class="seg-pill-btn" class:seg-pill-active={shareMode === 'only'}
-					onclick={() => shareMode = 'only'} aria-label={t('add.shareOnlyPartner', { name: partner.name })}><Icon name="forPartner" /></button>
-			</div>
-		</div>
+		<ShareSelector bind:mode={shareMode} partnerName={partner.name} style="margin-bottom:1rem;" />
 	{/if}
 
 	<!-- No allergen info notice -->
@@ -1571,6 +1828,15 @@
 				</button>
 			</div>
 		</div>
+	{/if}
+
+	<!-- Ollas en marcha: arriba mientras quede algo -->
+	{#if pots.length && !query}
+		<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('pot.section')}</div>
+		{#each pots as p (p.id)}
+			<PotCard pot={p} {people} onclick={() => openPot(p)} />
+		{/each}
+		<div style="height:0.625rem;"></div>
 	{/if}
 
 	<!-- Quick filter chips -->
@@ -2393,89 +2659,16 @@
 	.date-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
 	.date-input::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
 
-	/* ── Partner share card ── */
-	.share-card {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		width: 100%;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.09);
-		border-radius: 20px;
-		padding: 0.875rem;
-		transition: background 0.25s, border-color 0.25s;
-	}
-	.share-card-also {
-		background: oklch(75% 0.18 165 / 0.08);
-		border-color: oklch(80% 0.17 165 / 0.3);
-	}
-	.share-card-only {
-		background: oklch(65% 0.2 45 / 0.08);
-		border-color: oklch(70% 0.2 45 / 0.3);
-	}
-	.share-badge-icon {
-		width: 40px;
-		height: 40px;
-		border-radius: 12px;
-		background: rgba(255,255,255,0.06);
-		border: 1px solid rgba(255,255,255,0.08);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 1.125rem;
-		flex-shrink: 0;
-		transition: background 0.25s, border-color 0.25s;
-	}
-	.share-badge-icon-also {
-		background: oklch(75% 0.18 165 / 0.18);
-		border-color: oklch(80% 0.17 165 / 0.4);
-	}
-	.share-badge-icon-only {
-		background: oklch(65% 0.2 45 / 0.18);
-		border-color: oklch(70% 0.2 45 / 0.4);
-	}
-
-	/* ── Segmented pill con sliding thumb ── */
-	.seg-pill {
-		position: relative;
-		display: flex;
-		background: rgba(255,255,255,0.06);
-		border: 1px solid rgba(255,255,255,0.1);
-		border-radius: 99px;
-		padding: 3px;
-		gap: 2px;
-		flex-shrink: 0;
-	}
-	.seg-pill-thumb {
-		position: absolute;
-		top: 3px;
-		width: 28px;
-		height: 28px;
-		border-radius: 99px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-		transition: left 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.22s ease;
-		pointer-events: none;
-		z-index: 1;
-	}
-	.seg-pill-btn {
-		width: 28px;
-		height: 28px;
-		border-radius: 99px;
-		border: none;
-		background: transparent;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		position: relative;
-		z-index: 2;
-		opacity: 0.3;
-		transition: opacity 0.18s;
-		padding: 0;
-		line-height: 1;
-	}
-	.seg-pill-active { opacity: 1; }
+	/* ── Olla ── */
+	.pot-label { display: block; font-size: 0.625rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 0.25rem; }
+	.pot-input { width: 100%; margin-bottom: 0.625rem; }
+	.pot-hint { font-size: 0.6875rem; color: rgba(255,255,255,0.45); margin-bottom: 0.375rem; }
+	.pot-weigh-result { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 10px; background: oklch(75% 0.15 160 / 0.1); font-size: 0.8125rem; margin-top: 0.25rem; }
+	.pot-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,0.08); margin-bottom: 0.375rem; }
+	.pot-bar > div { transition: width 0.25s; }
+	.pot-mode-toggle { display: flex; gap: 0.25rem; background: rgba(255,255,255,0.05); border-radius: 99px; padding: 3px; }
+	.pot-mode { border: none; background: none; color: rgba(255,255,255,0.55); font-family: inherit; font-size: 0.6875rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 99px; cursor: pointer; }
+	.pot-mode-on { background: oklch(75% 0.18 160 / 0.25); color: oklch(88% 0.15 160); }
 
 	/* ── Manual form ── */
 	.manual-field { display: flex; flex-direction: column; gap: 0.25rem; }

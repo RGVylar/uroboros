@@ -94,6 +94,32 @@ export interface Product {
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+// Para quién se registra: solo yo (null), también la pareja, o solo la pareja.
+export type ShareMode = null | 'also' | 'only';
+
+// Olla: se cocina una vez y se come en varios días. Raciones siempre; gramos
+// solo si alguien la pesó ya cocinada (cooked_weight).
+export interface Pot {
+	id: number;
+	name: string;
+	owner_id: number;
+	partner_id: number | null;
+	servings: number;
+	cooked_weight: number | null;
+	raw_weight: number;
+	created_at: string;
+	finished_at: string | null;
+	// Macros de la olla entera.
+	calories: number;
+	protein: number;
+	carbs: number;
+	fat: number;
+	ingredients: { id: number; product_id: number; name: string; grams: number }[];
+	eaten: { user_id: number; servings: number }[];
+	days: { day: string; user_id: number; servings: number }[];
+	remaining: number;
+}
+
 // Las etiquetas viven en el diccionario i18n: usa mealLabel() de $lib/i18n.
 export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 

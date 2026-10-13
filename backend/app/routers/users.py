@@ -2,7 +2,7 @@ from fastapi import (
     APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, Response, UploadFile, status,
 )
 from pydantic import BaseModel
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.avatars import AVATAR_IDS, IDENTITY_HUES
@@ -32,6 +32,7 @@ from app.models.goals import UserGoals
 from app.models.inventory import InventoryItem, ShoppingListItem
 from app.models.password_reset import PasswordResetToken
 from app.models.recipe import Recipe, RecipeIngredient
+from app.models.pot import Pot, PotIngredient
 from app.models.supplement import UserSupplement, SupplementLog
 from app.models.water import WaterLog
 from app.models.steps import DailySteps
@@ -395,6 +396,15 @@ def delete_account(
     if recipe_ids:
         db.execute(delete(RecipeIngredient).where(RecipeIngredient.recipe_id.in_(recipe_ids)))
     db.execute(delete(Recipe).where(Recipe.owner_id == uid))
+
+    # Ollas: las suyas se van (lo que su pareja apuntó de ellas se queda en el
+    # diario de la pareja, sin olla); en las de la pareja deja de estar.
+    pot_ids = db.scalars(select(Pot.id).where(Pot.owner_id == uid)).all()
+    if pot_ids:
+        db.execute(update(DiaryEntry).where(DiaryEntry.pot_id.in_(pot_ids)).values(pot_id=None))
+        db.execute(delete(PotIngredient).where(PotIngredient.pot_id.in_(pot_ids)))
+        db.execute(delete(Pot).where(Pot.id.in_(pot_ids)))
+    db.execute(update(Pot).where(Pot.partner_id == uid).values(partner_id=None))
 
     # Amistades
     db.execute(delete(Friendship).where(

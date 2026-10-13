@@ -46,6 +46,12 @@ class DiaryEntry(Base):
         ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
+    # Ración sacada de una olla. Lo que queda en la olla se calcula con estas
+    # entradas: borrarla devuelve su parte.
+    pot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("pots.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     product: Mapped["Product"] = relationship(lazy="joined")  # noqa: F821
 
     __table_args__ = (

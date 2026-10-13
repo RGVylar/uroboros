@@ -2,6 +2,7 @@ from app.models.user import User
 from app.models.product import Product, ProductSource
 from app.models.diary import DiaryEntry
 from app.models.recipe import Recipe, RecipeIngredient
+from app.models.pot import Pot, PotIngredient
 from app.models.weight import WeightLog
 from app.models.body_measurement import BodyMeasurementLog
 from app.models.goals import UserGoals
@@ -38,6 +39,8 @@ __all__ = [
     "ProductSource",
     "DiaryEntry",
     "Recipe",
+    "Pot",
+    "PotIngredient",
     "RecipeIngredient",
     "WeightLog",
     "BodyMeasurementLog",
