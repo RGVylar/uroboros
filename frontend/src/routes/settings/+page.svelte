@@ -294,6 +294,20 @@
 
 	// Diagnóstico (solo APK): comprueba pasos y recordatorios en este móvil y lo
 	// manda al Telegram de admin aunque no haya cambiado.
+	let resettingTips = $state(false);
+	async function resetTips() {
+		if (resettingTips) return;
+		resettingTips = true;
+		try {
+			await tips.reset();
+			toast.success(t('settings.resetTipsDone'));
+		} catch {
+			toast.error(t('settings.errSaveConfig'));
+		} finally {
+			resettingTips = false;
+		}
+	}
+
 	let diagBusy = $state(false);
 	let notifDiag = $state<NotifDiag | null>(null);
 	let diagError = $state('');
@@ -968,6 +982,14 @@
 				<div class="row-detail">{t('settings.onboardingDetail')}</div>
 			</div>
 			<span class="chevron">›</span>
+		</button>
+		<div class="row-divider"></div>
+		<button class="settings-row" onclick={resetTips} disabled={resettingTips}>
+			<div class="icon-box"><Icon name="info" /></div>
+			<div class="row-content">
+				<div class="row-label">{t('settings.resetTips')}</div>
+				<div class="row-detail">{t('settings.resetTipsDetail')}</div>
+			</div>
 		</button>
 	</div>
 </div>

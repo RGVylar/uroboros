@@ -265,6 +265,18 @@ def mark_tip_seen(
     return user
 
 
+@router.delete("/me/tips", response_model=UserOut)
+def reset_tips(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Olvida las explicaciones cerradas: vuelven a salir la próxima vez."""
+    user.seen_tips = []
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @router.get("", response_model=list[UserOut])
 def list_users(
     db: Session = Depends(get_db),

@@ -79,6 +79,13 @@ function createTipsStore() {
 			setTimeout(next, 400);
 		},
 
+		/** Botón de Ajustes: todas vuelven a salir la próxima vez que hagan falta. */
+		async reset() {
+			const u = await api.del<User>('/users/me/tips');
+			shownThisSession.clear();
+			auth.updateUser({ seen_tips: u.seen_tips });
+		},
+
 		setBlocked(value: boolean) {
 			blocked = value;
 			if (!value) setTimeout(next, 400);

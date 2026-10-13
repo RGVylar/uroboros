@@ -73,3 +73,11 @@ def test_tips_seen_once(client, make_user):
     client.post(f"{API}/users/me/tips/duel/seen", headers=auth(ana))
     u = client.post(f"{API}/users/me/tips/duel/seen", headers=auth(ana)).json()
     assert u["seen_tips"] == ["duel"]
+
+
+def test_reset_tips(client, make_user):
+    ana = make_user("Ana")
+    client.post(f"{API}/users/me/tips/duel/seen", headers=auth(ana))
+    u = client.delete(f"{API}/users/me/tips", headers=auth(ana)).json()
+    assert u["seen_tips"] == []
+    assert client.get(f"{API}/auth/me", headers=auth(ana)).json()["seen_tips"] == []
