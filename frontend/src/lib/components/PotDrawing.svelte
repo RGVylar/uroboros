@@ -18,6 +18,7 @@
 
 	const uid = Math.random().toString(36).slice(2, 8);
 	const BODY = 'M18 34 h84 v44 a18 18 0 0 1 -18 18 h-48 a18 18 0 0 1 -18 -18 z';
+	const WAVE = 'M-60 4 q15 -6 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 v120 h-180 z';
 	// Interior útil, en coordenadas del viewBox.
 	const TOP = 34;
 	const H = 62;
@@ -47,10 +48,20 @@
 	<path d="M8 42 h10 M102 42 h10" stroke="rgba(255,255,255,0.35)" stroke-width="6" stroke-linecap="round" />
 	<path d={BODY} fill="rgba(255,255,255,0.06)" />
 	<g clip-path="url(#b-{uid})">
-		<g class="level" style="transform: translateY({level}px);">
-			<path class="wave" d="M-60 4 q15 -6 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 v120 h-180 z" fill="url(#s-{uid})" />
+		<!-- Las tres olas se mueven juntas: el caldo, lo que te llevas (rayado,
+		     misma ola) y, tapándolo por abajo, el caldo que quedará. Así el
+		     rayado sigue la superficie arriba y acaba en ola abajo. -->
+		<g class="wave">
+			<g class="level" style="transform: translateY({level}px);">
+				<path d={WAVE} fill="url(#s-{uid})" />
+			</g>
 			{#if takeH > 0}
-				<rect x="0" y="3" width="120" height={takeH} fill="url(#t-{uid})" opacity="0.9" />
+				<g class="level" style="transform: translateY({level}px);">
+					<path d={WAVE} fill="url(#t-{uid})" opacity="0.9" />
+				</g>
+				<g class="level" style="transform: translateY({level + takeH}px);">
+					<path d={WAVE} fill="url(#s-{uid})" />
+				</g>
 			{/if}
 		</g>
 	</g>
