@@ -87,7 +87,7 @@ COPY = {
         "ingredients": "Ingredientes", "howto": "Cómo se hace", "prep": "Preparación", "cook": "Cocción",
         "min": "min", "kcal": "kcal", "p": "prot.", "c": "carbos", "f": "grasa",
         "save": "Guardar en mi Uroboros", "no_app": "¿Aún no usas Uroboros? Conócelo",
-        "og_desc_serv": "{kcal} kcal · P{p} por ración · {n} raciones", "og_desc": "{kcal} kcal · P{p} · {ings} ingredientes",
+        "og_desc_serv": "{kcal} kcal · P{p} por ración · {n} raciones", "og_desc": "{kcal} kcal · P{p} · {ings}", "ing_one": "1 ingrediente", "ing_many": "{n} ingredientes",
         "not_found_t": "Esta receta ya no está compartida", "not_found": "Quien la compartió ha retirado el enlace.",
     },
     "en": {
@@ -95,7 +95,7 @@ COPY = {
         "ingredients": "Ingredients", "howto": "How to make it", "prep": "Prep", "cook": "Cook",
         "min": "min", "kcal": "kcal", "p": "protein", "c": "carbs", "f": "fat",
         "save": "Save to my Uroboros", "no_app": "Not using Uroboros yet? Take a look",
-        "og_desc_serv": "{kcal} kcal · P{p} per serving · {n} servings", "og_desc": "{kcal} kcal · P{p} · {ings} ingredients",
+        "og_desc_serv": "{kcal} kcal · P{p} per serving · {n} servings", "og_desc": "{kcal} kcal · P{p} · {ings}", "ing_one": "1 ingredient", "ing_many": "{n} ingredients",
         "not_found_t": "This recipe is no longer shared", "not_found": "Whoever shared it has removed the link.",
     },
     "pt": {
@@ -103,7 +103,7 @@ COPY = {
         "ingredients": "Ingredientes", "howto": "Como se faz", "prep": "Preparação", "cook": "Cozedura",
         "min": "min", "kcal": "kcal", "p": "prot.", "c": "hidratos", "f": "gordura",
         "save": "Guardar no meu Uroboros", "no_app": "Ainda não usas o Uroboros? Conhece-o",
-        "og_desc_serv": "{kcal} kcal · P{p} por dose · {n} doses", "og_desc": "{kcal} kcal · P{p} · {ings} ingredientes",
+        "og_desc_serv": "{kcal} kcal · P{p} por dose · {n} doses", "og_desc": "{kcal} kcal · P{p} · {ings}", "ing_one": "1 ingrediente", "ing_many": "{n} ingredientes",
         "not_found_t": "Esta receita já não está partilhada", "not_found": "Quem a partilhou retirou a ligação.",
     },
 }
@@ -259,7 +259,9 @@ def render_page(recipe: Recipe, owner_name: str, lang: str, canonical: str) -> s
         og_desc = t["og_desc_serv"].format(kcal=per["kcal"], p=per["p"], n=servings)
     else:
         servings_block = ""
-        og_desc = t["og_desc"].format(kcal=per["kcal"], p=per["p"], ings=len(recipe.ingredients))
+        n = len(recipe.ingredients)
+        ings = t["ing_one"] if n == 1 else t["ing_many"].format(n=n)
+        og_desc = t["og_desc"].format(kcal=per["kcal"], p=per["p"], ings=ings)
 
     values = {
         "lang": lang, "app": APP_URL, "canonical": escape(canonical), "title": title,

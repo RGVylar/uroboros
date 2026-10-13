@@ -111,3 +111,12 @@ def test_copy_of_unknown_code_is_404(client, make_user):
     marta = make_user("Marta")
     r = client.post(f"{API}/recipes/public/nopenope/copy", headers=auth(marta))
     assert r.status_code == 404
+
+
+def test_card_says_one_ingredient_in_singular(client, db, make_user):
+    ruben = make_user("Ruben")
+    p = _product(db, "Pure", 48)
+    recipe = _recipe(client, ruben, p.id, servings=None)
+    code = _link(client, ruben, recipe["id"])
+    html = client.get(f"/r/{code}?lang=es").text
+    assert "· 1 ingrediente\"" in html
