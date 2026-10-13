@@ -328,6 +328,8 @@ export interface Recipe {
 	servings: number | null;
 	prep_minutes: number | null;
 	cook_minutes: number | null;
+	/** Enlace público /r/<código>; null = sin enlace. */
+	public_code?: string | null;
 	ingredients: RecipeIngredient[];
 }
 

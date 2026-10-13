@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy import func as sqlfunc, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -7,9 +8,15 @@ from app.deps import get_current_user, require_premium
 from app.models import DiaryEntry, Friendship, FriendshipStatus, Recipe, RecipeIngredient, User
 from app.models.friendship import FriendshipKind
 from app.models.recipe import RecipeScope
+from app.routers.downloads import _pick_language
 from app.schemas.misc import FrequentRecipeOut, RecipeIn, RecipeOut, ShareScopeIn, SharedRecipeOut
+from app.services import recipe_share
+from app.services.request_lang import set_request_lang
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
+
+# /r/<código>: la página pública de una receta. Sin el prefijo /api, como /unete.
+page_router = APIRouter(tags=["recipes"])
 
 
 def _load_recipe(db: Session, recipe_id: int) -> Recipe:
@@ -253,6 +260,100 @@ def copy_recipe(
     db.add(clone)
     db.commit()
     return _load_recipe(db, clone.id)
+
+
+# ── Enlace público (/r/<código>) ─────────────────────────────────────────────
+@router.post("/{recipe_id}/public-link", response_model=RecipeOut)
+def create_public_link(
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Recipe:
+    """Da a la receta su enlace para compartir fuera de la app (o devuelve el
+    que ya tenía: compartirla dos veces no debe romper el primer enlace)."""
+    recipe = _load_recipe(db, recipe_id)
+    if not recipe or recipe.owner_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    if not recipe.public_code:
+        while True:
+            code = recipe_share.new_code()
+            if not db.scalar(select(Recipe.id).where(Recipe.public_code == code)):
+                break
+        recipe.public_code = code
+        db.commit()
+    return recipe
+
+
+@router.delete("/{recipe_id}/public-link", response_model=RecipeOut)
+def delete_public_link(
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Recipe:
+    recipe = _load_recipe(db, recipe_id)
+    if not recipe or recipe.owner_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    recipe.public_code = None
+    db.commit()
+    return recipe
+
+
+@router.post("/public/{code}/copy", response_model=RecipeOut, status_code=status.HTTP_201_CREATED)
+def copy_public_recipe(
+    code: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Recipe:
+    """"Guardar en mi Uroboros" desde la página pública. Si es mía no la duplica."""
+    source_id = db.scalar(select(Recipe.id).where(Recipe.public_code == code))
+    source = _load_recipe(db, source_id) if source_id else None
+    if not source:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Recipe not found")
+    if source.owner_id == user.id:
+        return source
+    clone = Recipe(
+        name=source.name,
+        owner_id=user.id,
+        share_scope=RecipeScope.none,
+        total_weight=source.total_weight,
+        steps=list(source.steps),
+        servings=source.servings,
+        prep_minutes=source.prep_minutes,
+        cook_minutes=source.cook_minutes,
+        ingredients=[
+            RecipeIngredient(product_id=ing.product_id, grams=ing.grams)
+            for ing in source.ingredients
+        ],
+    )
+    db.add(clone)
+    db.commit()
+    return _load_recipe(db, clone.id)
+
+
+@page_router.get("/r/{code}", response_class=HTMLResponse)
+def public_recipe_page(
+    code: str,
+    accept_language: str | None = Header(default=None),
+    lang: str | None = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    """La receta para quien no está en la app: tarjeta Open Graph, raciones
+    ajustables y botón para guardarla. El idioma, como en /unete: ?lang= (lo
+    pone quien comparte, porque los crawlers no mandan Accept-Language)."""
+    resolved = _pick_language(accept_language, lang)
+    # Los genéricos traen su nombre traducido según el idioma de la petición.
+    set_request_lang(resolved)
+    source_id = db.scalar(select(Recipe.id).where(Recipe.public_code == code))
+    recipe = _load_recipe(db, source_id) if source_id else None
+    if not recipe:
+        return HTMLResponse(recipe_share.render_not_found(resolved), status_code=404)
+    owner = db.get(User, recipe.owner_id)
+    canonical = f"{recipe_share.APP_URL}/r/{code}" + (f"?lang={resolved}" if lang else "")
+    # Poco rato de caché: si quien la compartió la edita, se ve enseguida.
+    return HTMLResponse(
+        recipe_share.render_page(recipe, owner.name if owner else "", resolved, canonical),
+        headers={"Cache-Control": "public, max-age=300", "Vary": "Accept-Language"},
+    )
 
 
 # ── PUT /recipes/{id} ────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import type { User } from '$lib/types';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { auth, PENDING_IMPORT_KEY } from '$lib/stores/auth.svelte';
 	import { pendingFriends } from '$lib/stores/friends.svelte';
 	import { connectivity } from '$lib/stores/connectivity.svelte';
 	import { syncQueue } from '$lib/stores/sync-queue.svelte';
@@ -74,6 +74,12 @@
 				// on failure we keep the cached copy so offline still works.
 				api.get<User>('/auth/me').then((u) => auth.updateUser(u)).catch(() => {});
 				health.resume();
+				// Venía de "Guardar en mi Uroboros" sin sesión: ahora sí se guarda.
+				const pendingImport = localStorage.getItem(PENDING_IMPORT_KEY);
+				if (pendingImport) {
+					localStorage.removeItem(PENDING_IMPORT_KEY);
+					goto(`/recipes?importar=${encodeURIComponent(pendingImport)}`);
+				}
 			} else {
 				pendingFriends.stop();
 			}

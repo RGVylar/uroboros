@@ -46,6 +46,10 @@ class Recipe(Base):
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
     prep_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cook_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Enlace público (/r/<código>) para compartirla fuera de la app. Nulo = no
+    # tiene: se crea al compartirla por primera vez y se puede retirar. Es
+    # aparte de share_scope, que habla de los círculos dentro de la app.
+    public_code: Mapped[str | None] = mapped_column(String(16), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

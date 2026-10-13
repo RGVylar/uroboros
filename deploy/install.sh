@@ -199,6 +199,13 @@ cat > /etc/caddy/Caddyfile << EOF
 		reverse_proxy 127.0.0.1:$BACKEND_PORT
 	}
 
+	# Recetas compartidas fuera de la app (/r/<código>): también las pinta el
+	# backend, para que WhatsApp y compañía vean la tarjeta Open Graph.
+	@receta path /r/*
+	handle @receta {
+		reverse_proxy 127.0.0.1:$BACKEND_PORT
+	}
+
 	# Static SvelteKit build
 	handle {
 		root * $APP_DIR/frontend/build

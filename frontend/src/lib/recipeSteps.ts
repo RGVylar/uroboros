@@ -36,10 +36,27 @@ export function stepParts(step: string, ingredients: Ing[]): StepPart[] {
 	return parts;
 }
 
+/**
+ * "Aceite De Oliva Virgen Extra" → "Aceite de oliva virgen extra": los nombres
+ * de Open Food Facts llegan a menudo en Title Case. Las siglas (SOS) se quedan.
+ * Igual que clean_name en backend/app/services/recipe_share.py.
+ */
+export function cleanName(name: string): string {
+	return name
+		.split(' ')
+		.map((w, i) => (i > 0 && w.length > 1 && w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase() && w[0] !== w[0].toLowerCase() ? w.toLowerCase() : w))
+		.join(' ');
+}
+
+// "Arroz SOS" → "arroz SOS": en mitad de una frase, sin romper las siglas.
+function lowerFirst(s: string): string {
+	return s && s[1] !== s[1]?.toUpperCase() ? s[0].toLocaleLowerCase() + s.slice(1) : s;
+}
+
 /** El paso para compartir como texto: "la cebolla (150 g)". */
 export function stepPlain(step: string, ingredients: Ing[]): string {
 	return stepParts(step, ingredients)
-		.map((p) => (p.kind === 'text' ? p.text : `${p.name.toLocaleLowerCase()} (${p.qty})`))
+		.map((p) => (p.kind === 'text' ? p.text : `${lowerFirst(cleanName(p.name))} (${p.qty})`))
 		.join('');
 }
 

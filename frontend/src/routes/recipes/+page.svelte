@@ -5,7 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Recipe, RecipeScope, SharedRecipe, Product, DiaryEntry, MealType, Pot, User } from '$lib/types';
 	import { MEAL_ORDER } from '$lib/types';
-	import { t, tc, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
+	import { t, tc, i18n, mealLabel, allergenLabel } from '$lib/i18n/index.svelte';
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import { tips } from '$lib/stores/tips.svelte';
 
@@ -18,9 +18,18 @@
 	import PotCard from '$lib/components/PotCard.svelte';
 	import PotForm from '$lib/components/PotForm.svelte';
 	import { potPeople } from '$lib/pots';
-	import { stepParts, stepPlain } from '$lib/recipeSteps';
+	import { PENDING_IMPORT_KEY } from '$lib/stores/auth.svelte';
+	import { stepParts, stepPlain, cleanName } from '$lib/recipeSteps';
 
-	if (!auth.isLoggedIn) goto('/login');
+	const PUBLIC_URL = 'https://comida.mugrelore.com';
+
+	// Quien llega desde una receta compartida sin sesión: se apunta el código y,
+	// al entrar, el layout lo trae de vuelta aquí para guardarla.
+	if (!auth.isLoggedIn) {
+		const importar = new URLSearchParams(location.search).get('importar');
+		if (importar) localStorage.setItem(PENDING_IMPORT_KEY, importar);
+		goto('/login');
+	}
 
 	const FREE_RECIPE_LIMIT = 5;
 
@@ -98,6 +107,8 @@
 		const ollaId = Number(new URLSearchParams(location.search).get('olla'));
 		const ollaRecipe = ollaId ? recipes.find(r => r.id === ollaId) : undefined;
 		if (ollaRecipe) makePot(ollaRecipe);
+		const importar = new URLSearchParams(location.search).get('importar');
+		if (importar) await importShared(importar);
 		// Load partner + allergies
 		try {
 			const users = await api.get<User[]>('/users');
@@ -496,30 +507,57 @@
 		return `${m.cal} kcal · P${m.p}g · C${m.c}g · G${m.f}g`;
 	}
 
-	/** La receta como texto plano para mandarla por WhatsApp, notas, etc. */
-	function recipeText(recipe: Recipe): string {
+	/**
+	 * La receta como texto plano para mandarla por WhatsApp, notas, etc. Lo que
+	 * más le importa a quien cuenta macros (lo de una ración) va arriba; si hay
+	 * enlace público, cierra con él para guardarla en un toque.
+	 */
+	function recipeText(recipe: Recipe, url?: string | null): string {
 		const rule = '─'.repeat(Math.min(recipe.name.length + 4, 28));
-		const macros = totalMacros(recipe.ingredients.map(i => ({ product: i.product, grams: i.grams })));
+		const whole = totalMacros(recipe.ingredients.map(i => ({ product: i.product, grams: i.grams })));
+		const perServing = recipe.servings && recipe.servings > 1
+			? scaledMacros(recipe, recipe.weight / recipe.servings)
+			: null;
 		const meta = metaParts(recipe);
 		const lines = [`${recipeGlyph(recipe.name)} ${recipe.name}`];
 		if (meta.length) lines.push(meta.join(' · '));
+		lines.push(perServing
+			? `${t('recipes.perServing')}: ${macroText(perServing)}`
+			: `${t('recipes.wholeMacros')}: ${macroText(whole)}`);
 		lines.push(rule, t('recipes.ingredients').toLocaleUpperCase());
-		lines.push(...recipe.ingredients.map(i => `• ${i.product.name} – ${fmtQty(i.grams, i.product)}`));
+		lines.push(...recipe.ingredients.map(i => `• ${cleanName(i.product.name)} – ${fmtQty(i.grams, i.product)}`));
 		if (recipe.steps.length) {
 			lines.push('', t('recipes.howTo').toLocaleUpperCase());
 			lines.push(...recipe.steps.map((step, i) => `${i + 1}. ${stepPlain(step, recipe.ingredients)}`));
 		}
-		lines.push(rule, `${t('recipes.wholeMacros')}: ${macroText(macros)}`);
-		if (recipe.servings && recipe.servings > 1) {
-			lines.push(`${t('recipes.perServing')}: ${macroText(scaledMacros(recipe, recipe.weight / recipe.servings))}`);
-		}
+		lines.push(rule);
+		if (perServing) lines.push(`${t('recipes.wholeMacros')}: ${macroText(whole)}`);
+		if (url) lines.push(t('recipes.shareLinkLine'), url);
 		return lines.join('\n');
+	}
+
+	// Las mías salen con enlace público (/r/<código>): quien la recibe la ve
+	// bonita y la guarda en un toque. Las de amigos no son mías para publicar,
+	// así que van solo como texto. Sin conexión, también solo texto.
+	async function publicUrl(recipe: Recipe): Promise<string | null> {
+		if (recipe.owner_id !== auth.user?.id) return null;
+		try {
+			if (!recipe.public_code) {
+				const updated = await api.post<Recipe>(`/recipes/${recipe.id}/public-link`, {});
+				recipe.public_code = updated.public_code;
+				const own = recipes.find(r => r.id === recipe.id);
+				if (own) own.public_code = updated.public_code;
+			}
+			return recipe.public_code ? `${PUBLIC_URL}/r/${recipe.public_code}?lang=${i18n.locale}` : null;
+		} catch {
+			return null;
+		}
 	}
 
 	// En el móvil abre la hoja de compartir del sistema; donde no la hay
 	// (o falla), cae al portapapeles como antes.
 	async function shareRecipe(recipe: Recipe) {
-		const text = recipeText(recipe);
+		const text = recipeText(recipe, await publicUrl(recipe));
 		if (navigator.share) {
 			try {
 				await navigator.share({ title: recipe.name, text });
@@ -534,6 +572,32 @@
 		} catch {
 			toast.error(t('recipes.errCopy'));
 		}
+	}
+
+	// Retirar el enlace: la página /r/<código> pasa a decir que ya no está.
+	async function removePublicLink(recipe: Recipe) {
+		try {
+			await api.del(`/recipes/${recipe.id}/public-link`);
+			recipe.public_code = null;
+			const own = recipes.find(r => r.id === recipe.id);
+			if (own) own.public_code = null;
+			toast.success(t('recipes.linkRemoved'));
+		} catch (e: unknown) {
+			toast.error(e instanceof Error ? e.message : 'Error');
+		}
+	}
+
+	// ── Guardar una receta que llegó por enlace (/recipes?importar=<código>) ──
+	async function importShared(code: string) {
+		try {
+			const copy = await api.post<Recipe>(`/recipes/public/${encodeURIComponent(code)}/copy`, {});
+			if (!recipes.some(r => r.id === copy.id)) recipes = [copy, ...recipes];
+			toast.success(t('recipes.imported', { name: copy.name }));
+			viewingRecipe = copy;
+		} catch {
+			toast.error(t('recipes.importFailed'));
+		}
+		history.replaceState(history.state, '', '/recipes');
 	}
 
 	// ── Ver receta ────────────────────────────────────────────────────────────
@@ -947,6 +1011,13 @@
 			{#if isMine}
 				<button class="action-btn action-btn-ghost" style="width:100%;" onclick={() => { const target = r; viewingRecipe = null; startEdit(target, true); }}>{t('recipes.addSteps')}</button>
 			{/if}
+		{/if}
+
+		{#if isMine && r.public_code}
+			<div class="public-link">
+				<Icon name="share" /> <span>{t('recipes.publicLink')}</span>
+				<button type="button" onclick={() => removePublicLink(r)}>{t('recipes.removeLink')}</button>
+			</div>
 		{/if}
 
 		<div style="display:flex; gap:0.5rem; margin-top:1rem;">
@@ -1453,6 +1524,24 @@
 		display: flex;
 		gap: 0.65rem;
 		align-items: flex-start;
+	}
+	.public-link {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 1rem;
+		font-size: 0.75rem;
+		color: var(--text-muted);
+	}
+	.public-link span { flex: 1; }
+	.public-link button {
+		background: none;
+		border: none;
+		padding: 0;
+		font-family: inherit;
+		font-size: 0.75rem;
+		color: oklch(75% 0.17 25);
+		cursor: pointer;
 	}
 	.ing-chip {
 		display: inline-flex;

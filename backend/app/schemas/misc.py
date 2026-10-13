@@ -173,6 +173,7 @@ class RecipeOut(BaseModel):
     servings: int | None = None
     prep_minutes: int | None = None
     cook_minutes: int | None = None
+    public_code: str | None = None
     ingredients: list[RecipeIngredientOut]
 
     class Config:

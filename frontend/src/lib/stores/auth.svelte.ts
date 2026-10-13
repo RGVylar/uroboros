@@ -50,3 +50,7 @@ function createAuth() {
 }
 
 export const auth = createAuth();
+
+/** Código de una receta compartida (/r/<código>) que alguien quiso guardar sin
+ * haber iniciado sesión: lo deja recipes/+page y lo recoge el layout al entrar. */
+export const PENDING_IMPORT_KEY = 'uro_pending_import';

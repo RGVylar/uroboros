@@ -54,6 +54,13 @@
 		reverse_proxy 127.0.0.1:__BACKEND_PORT__
 	}
 
+	# Recetas compartidas fuera de la app (/r/<código>): también las pinta el
+	# backend, para que WhatsApp y compañía vean la tarjeta Open Graph.
+	@receta path /r/*
+	handle @receta {
+		reverse_proxy 127.0.0.1:__BACKEND_PORT__
+	}
+
 	# Static SvelteKit build (adapter-static output)
 	handle {
 		root * __APP_DIR__/frontend/build
