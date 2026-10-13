@@ -12,6 +12,7 @@
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import { nameHue } from '$lib/avatars';
 	import PotCard from '$lib/components/PotCard.svelte';
+	import PotDrawing from '$lib/components/PotDrawing.svelte';
 	import ShareSelector from '$lib/components/ShareSelector.svelte';
 	import { fmtServings, potEatenBy, potPeople, servingsLabel } from '$lib/pots';
 	import type { Pot, ShareMode } from '$lib/types';
@@ -1258,27 +1259,33 @@
 		</div>
 	</div>
 
-	<!-- Cómo va la olla: lleno = lo que queda; rayado = lo que vas a sacar -->
+	<!-- Cómo va la olla: el caldo es lo que queda; rayado, lo que vas a sacar -->
 	{@const mine = potEatenBy(pot, people.meId)}
 	{@const theirs = people.partnerId ? potEatenBy(pot, people.partnerId) : 0}
-	{@const pct = (n: number) => `${(n / pot.servings) * 100}%`}
 	<div class="glass-card" style="margin-bottom:0.875rem;">
-		<div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; margin-bottom:0.625rem;">
-			<span class="section-eyebrow">{t('pot.howItGoes')}</span>
-			<span style="font-size:0.75rem; color:rgba(255,255,255,0.6); text-align:right;">
-				{t('pot.leftOf', { left: fmtServings(pot.remaining), total: fmtServings(pot.servings) })}{potGPerServ ? ` · ≈ ${Math.round(pot.remaining * potGPerServ)} g` : ''}
-			</span>
+		<div class="section-eyebrow" style="margin-bottom:0.5rem;">{t('pot.howItGoes')}</div>
+		<div style="display:flex; align-items:center; gap:1rem;">
+			<PotDrawing
+				left={pot.remaining / pot.servings}
+				take={potTake / pot.servings}
+				takeColors={shareMode === 'also' ? [people.meColor, people.partnerColor] : [shareMode === 'only' ? people.partnerColor : people.meColor]}
+				size={128}
+				label={t('pot.leftOf', { left: fmtServings(pot.remaining), total: fmtServings(pot.servings) })}
+			/>
+			<div style="flex:1; min-width:0;">
+				<div class="pot-big">{fmtServings(pot.remaining)}<span>&nbsp;/ {servingsLabel(pot.servings)}</span></div>
+				{#if potGPerServ}<div class="pot-hint" style="margin:0;">≈ {Math.round(pot.remaining * potGPerServ)} g</div>{/if}
+				<div class="pot-hint" style="margin:0.25rem 0 0.375rem;">{t('pot.after', { n: servingsLabel(pot.remaining - potTake) })}</div>
+				{#if mine || theirs}
+					<div style="display:flex; gap:0.75rem; font-size:0.6875rem; font-weight:600;">
+						<span style="color:{people.meColor}">● {t('pot.you')} {fmtServings(mine)}</span>
+						{#if people.partnerName}<span style="color:{people.partnerColor}">● {people.partnerName} {fmtServings(theirs)}</span>{/if}
+					</div>
+				{/if}
+			</div>
 		</div>
-		<div class="pot-bar">
-			<div style="width:{pct(pot.remaining - potTake)}; background:linear-gradient(90deg, oklch(82% 0.18 160), oklch(70% 0.2 170));"></div>
-			{#if shareMode !== 'only'}<div style="width:{pct(potServEach)}; background:repeating-linear-gradient(135deg, {people.meColor} 0 4px, transparent 4px 8px);"></div>{/if}
-			{#if shareMode !== null}<div style="width:{pct(potServEach)}; background:repeating-linear-gradient(135deg, {people.partnerColor} 0 4px, transparent 4px 8px);"></div>{/if}
-			<div style="width:{pct(mine)}; background:{people.meColor}; opacity:0.5;"></div>
-			{#if theirs}<div style="width:{pct(theirs)}; background:{people.partnerColor}; opacity:0.5;"></div>{/if}
-		</div>
-		<div class="pot-hint" style="margin-bottom:0.5rem;">{t('pot.after', { n: servingsLabel(pot.remaining - potTake) })}</div>
 		{#if pot.days.length}
-			<div class="section-eyebrow" style="margin:0.25rem 0 0.25rem;">{t('pot.days')}</div>
+			<div class="section-eyebrow" style="margin:0.75rem 0 0.25rem;">{t('pot.days')}</div>
 			{#each [...new Set(pot.days.map((d) => d.day))] as day}
 				<div style="display:flex; justify-content:space-between; font-size:0.75rem; padding:0.15rem 0; color:rgba(255,255,255,0.6);">
 					<span>{new Date(day + 'T12:00:00').toLocaleDateString(i18n.locale, { weekday: 'short', day: 'numeric' })}</span>
@@ -2664,8 +2671,8 @@
 	.pot-input { width: 100%; margin-bottom: 0.625rem; }
 	.pot-hint { font-size: 0.6875rem; color: rgba(255,255,255,0.45); margin-bottom: 0.375rem; }
 	.pot-weigh-result { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 10px; background: oklch(75% 0.15 160 / 0.1); font-size: 0.8125rem; margin-top: 0.25rem; }
-	.pot-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,0.08); margin-bottom: 0.375rem; }
-	.pot-bar > div { transition: width 0.25s; }
+	.pot-big { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
+	.pot-big span { font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0; }
 	.pot-mode-toggle { display: flex; gap: 0.25rem; background: rgba(255,255,255,0.05); border-radius: 99px; padding: 3px; }
 	.pot-mode { border: none; background: none; color: rgba(255,255,255,0.55); font-family: inherit; font-size: 0.6875rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 99px; cursor: pointer; }
 	.pot-mode-on { background: oklch(75% 0.18 160 / 0.25); color: oklch(88% 0.15 160); }
