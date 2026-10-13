@@ -1,5 +1,7 @@
-// La receta como imagen vertical (1080×1920) para historias de Instagram y
-// estados de WhatsApp. Se pinta en un canvas en el propio móvil: no hace falta
+// La receta como imagen 4:5 (1080×1350): cabe entera en la miniatura del chat
+// de WhatsApp (que recorta lo que pase de ~2:3; con 9:16 se perdían arriba y
+// abajo), es la proporción de los posts de Instagram y en historias se ve con
+// margen. Se pinta en un canvas en el propio móvil: no hace falta
 // servidor y sale con las fuentes y colores de la app. Si la receta tiene
 // enlace público, lleva un QR que abre la página /r/<código>.
 import qrcode from 'qrcode-generator';
@@ -19,8 +21,8 @@ export type CardData = {
 };
 
 const W = 1080;
-const H = 1920;
-const PAD = 96;
+const H = 1350;
+const PAD = 72;
 const SERIF = "'Instrument Serif', Georgia, serif";
 const SANS = "Geist, -apple-system, 'Segoe UI', Roboto, sans-serif";
 
@@ -93,7 +95,7 @@ export async function recipeCardBlob(d: CardData): Promise<Blob> {
 	for (const [x, y, r, color] of [
 		[150, 120, 900, 'rgba(40, 150, 120, 0.30)'],
 		[1000, 380, 800, 'rgba(120, 70, 190, 0.20)'],
-		[540, 2050, 1100, 'rgba(30, 110, 150, 0.22)'],
+		[540, 1500, 900, 'rgba(30, 110, 150, 0.22)'],
 	] as const) {
 		const g = ctx.createRadialGradient(x, y, 0, x, y, r);
 		g.addColorStop(0, color);
@@ -102,36 +104,44 @@ export async function recipeCardBlob(d: CardData): Promise<Blob> {
 		ctx.fillRect(0, 0, W, H);
 	}
 
-	let y = 170;
-	if (logo) ctx.drawImage(logo, PAD, y - 70, 110, 110);
-	y += 130;
+	// Cabecera: logo y marca
+	if (logo) ctx.drawImage(logo, PAD, 52, 68, 68);
+	ctx.font = `48px ${SERIF}`;
+	ctx.fillStyle = 'rgba(238,241,245,0.85)';
+	ctx.fillText('Uroboros', PAD + (logo ? 88 : 0), 102);
 
-	// Título
+	// Con muchos ingredientes la cabecera se compacta para dejarles sitio.
+	const compact = d.ingredients.length > 6;
+
+	// Título (dos líneas, o una si va compacta) y raciones/tiempo
+	let y = 120;
 	ctx.fillStyle = '#eef1f5';
-	ctx.font = `112px ${SERIF}`;
+	ctx.font = `${compact ? 80 : 92}px ${SERIF}`;
 	ctx.textBaseline = 'alphabetic';
-	for (const line of wrap(ctx, d.name, W - PAD * 2)) {
-		y += 110;
+	for (const line of wrap(ctx, d.name, W - PAD * 2, compact ? 1 : 2)) {
+		y += compact ? 86 : 96;
 		ctx.fillText(line, PAD, y);
 	}
-	y += 64;
-	ctx.font = `500 40px ${SANS}`;
-	ctx.fillStyle = 'rgba(255,255,255,0.55)';
-	ctx.fillText(d.meta, PAD, y);
+	if (d.meta) {
+		y += 54;
+		ctx.font = `500 34px ${SANS}`;
+		ctx.fillStyle = 'rgba(255,255,255,0.55)';
+		ctx.fillText(d.meta, PAD, y);
+	}
 
 	// Calorías en grande y macros en sus colores
-	y += 230;
-	ctx.font = `800 190px ${SANS}`;
+	y += compact ? 128 : 150;
+	ctx.font = `800 ${compact ? 116 : 140}px ${SANS}`;
 	ctx.fillStyle = '#ffb36b';
 	ctx.fillText(String(d.kcal), PAD, y);
 	const kw = ctx.measureText(String(d.kcal)).width;
-	ctx.font = `500 44px ${SANS}`;
+	ctx.font = `500 38px ${SANS}`;
 	ctx.fillStyle = 'rgba(255,255,255,0.55)';
-	ctx.fillText(d.macroNote, PAD + kw + 24, y);
+	ctx.fillText(d.macroNote, PAD + kw + 22, y);
 
-	y += 100;
+	y += compact ? 64 : 74;
 	let x = PAD;
-	ctx.font = `700 54px ${SANS}`;
+	ctx.font = `700 46px ${SANS}`;
 	for (const [label, value, color] of [
 		['P', d.p, '#6fb8ff'],
 		['C', d.c, '#b4a0ff'],
@@ -140,11 +150,10 @@ export async function recipeCardBlob(d: CardData): Promise<Blob> {
 		ctx.fillStyle = color;
 		const text = `${label} ${value}g`;
 		ctx.fillText(text, x, y);
-		x += ctx.measureText(text).width + 56;
+		x += ctx.measureText(text).width + 48;
 	}
 
-	// Ingredientes: los que quepan antes del pie
-	y += 90;
+	y += 46;
 	ctx.strokeStyle = 'rgba(255,255,255,0.12)';
 	ctx.lineWidth = 2;
 	ctx.beginPath();
@@ -152,39 +161,50 @@ export async function recipeCardBlob(d: CardData): Promise<Blob> {
 	ctx.lineTo(W - PAD, y);
 	ctx.stroke();
 
-	const footerTop = H - 380;
-	const rowH = 76;
-	const fit = Math.max(1, Math.floor((footerTop - y - 40) / rowH));
-	const shown = d.ingredients.length > fit ? d.ingredients.slice(0, fit - 1) : d.ingredients;
-	ctx.font = `500 44px ${SANS}`;
-	for (const ing of shown) {
-		y += rowH;
+	// Ingredientes: se encogen para que quepan todos; si aun así no, pasan a
+	// dos columnas, y solo con muchísimos se corta con "+N más".
+	const qrSize = d.url ? 190 : 0;
+	const bottom = H - PAD - (d.url ? qrSize + 28 : 0);
+	const area = bottom - y - 10;
+	const MIN_ROW = 41;
+	const MAX_ROW = 78;
+	const n = d.ingredients.length;
+	const rowsFit = Math.max(1, Math.floor(area / MIN_ROW));
+	const cols = n > rowsFit ? 2 : 1;
+	const capacity = rowsFit * cols;
+	const shown = n > capacity ? d.ingredients.slice(0, capacity - 1) : d.ingredients;
+	const items = shown.length < n ? [...shown, { name: d.moreLabel(n - shown.length), qty: '' }] : shown;
+	const rows = Math.ceil(items.length / cols);
+	const rowH = Math.min(MAX_ROW, Math.max(MIN_ROW, area / Math.max(rows, 1)));
+	const gap = 48;
+	const colW = (W - PAD * 2 - gap * (cols - 1)) / cols;
+	ctx.font = `500 ${Math.round(Math.min(rowH * 0.62, cols === 2 ? 28 : 46))}px ${SANS}`;
+	items.forEach((ing, i) => {
+		const col = Math.floor(i / rows);
+		const left = PAD + col * (colW + gap);
+		const base = y + (i % rows + 1) * rowH - rowH * 0.22;
+		if (!ing.qty) {
+			ctx.fillStyle = 'rgba(255,255,255,0.45)';
+			ctx.fillText(ing.name, left, base);
+			return;
+		}
 		ctx.fillStyle = '#8ff0c4';
 		ctx.textAlign = 'right';
-		ctx.fillText(ing.qty, W - PAD, y);
+		ctx.fillText(ing.qty, left + colW, base);
 		const qw = ctx.measureText(ing.qty).width;
 		ctx.textAlign = 'left';
 		ctx.fillStyle = '#d6dedb';
-		ctx.fillText(ellipsize(ctx, ing.name, W - PAD * 2 - qw - 40), PAD, y);
-	}
-	if (shown.length < d.ingredients.length) {
-		y += rowH;
-		ctx.fillStyle = 'rgba(255,255,255,0.45)';
-		ctx.fillText(d.moreLabel(d.ingredients.length - shown.length), PAD, y);
-	}
+		ctx.fillText(ellipsize(ctx, ing.name, colW - qw - 24), left, base);
+	});
 
-	// Pie: marca y, si hay enlace, el QR
-	const qrSize = 250;
-	const footY = H - PAD - qrSize;
-	ctx.font = `64px ${SERIF}`;
-	ctx.fillStyle = '#eef1f5';
-	ctx.fillText('Uroboros', PAD, footY + 120);
+	// Pie: si hay enlace, el QR y para qué sirve
 	if (d.url) {
-		ctx.font = `500 36px ${SANS}`;
+		const qy = H - PAD - qrSize;
+		ctx.font = `500 32px ${SANS}`;
 		ctx.fillStyle = 'rgba(255,255,255,0.55)';
-		for (const [i, line] of wrap(ctx, d.scanLabel, W - PAD * 2 - qrSize - 60, 2).entries())
-			ctx.fillText(line, PAD, footY + 190 + i * 46);
-		drawQr(ctx, d.url, W - PAD - qrSize, footY, qrSize);
+		const lines = wrap(ctx, d.scanLabel, W - PAD * 2 - qrSize - 48, 2);
+		lines.forEach((line, i) => ctx.fillText(line, PAD, qy + qrSize - 14 - (lines.length - 1 - i) * 42));
+		drawQr(ctx, d.url, W - PAD - qrSize, qy, qrSize);
 	}
 
 	return new Promise((resolve, reject) =>
