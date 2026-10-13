@@ -20,6 +20,7 @@
 	import { potPeople } from '$lib/pots';
 	import { PENDING_IMPORT_KEY } from '$lib/stores/auth.svelte';
 	import { stepParts, stepPlain, cleanName } from '$lib/recipeSteps';
+	import { recipeCardBlob } from '$lib/recipeCard';
 
 	const PUBLIC_URL = 'https://comida.mugrelore.com';
 
@@ -574,6 +575,54 @@
 		}
 	}
 
+	// La receta como imagen para historias (opción "Compartir como imagen").
+	// Donde se pueden compartir ficheros (iPhone, Chrome en Android) abre la
+	// hoja de compartir; si no, se descarga el PNG.
+	let makingImage = $state(false);
+	async function shareImage(recipe: Recipe) {
+		makingImage = true;
+		try {
+			const servings = recipe.servings && recipe.servings > 1 ? recipe.servings : null;
+			const m = servings
+				? scaledMacros(recipe, recipe.weight / servings)
+				: totalMacros(recipe.ingredients.map(i => ({ product: i.product, grams: i.grams })));
+			const minutes = (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
+			const meta = [
+				servings ? tc('recipes.servingsCount', servings) : null,
+				minutes ? fmtMinutes(minutes) : null,
+			].filter(Boolean).join(' · ');
+			const blob = await recipeCardBlob({
+				name: recipe.name,
+				meta,
+				kcal: m.cal, p: m.p, c: m.c, f: m.f,
+				macroNote: servings ? t('recipes.cardPerServing') : t('recipes.cardWhole'),
+				ingredients: recipe.ingredients.map(i => ({ name: cleanName(i.product.name), qty: fmtQty(i.grams, i.product) })),
+				moreLabel: (n) => t('recipes.cardMore', { n }),
+				url: await publicUrl(recipe),
+				scanLabel: t('recipes.cardScan'),
+			});
+			const file = new File([blob], `${recipe.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.png`, { type: 'image/png' });
+			if (navigator.canShare?.({ files: [file] })) {
+				try {
+					await navigator.share({ files: [file], title: recipe.name });
+				} catch (e) {
+					if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
+				}
+				return;
+			}
+			const a = document.createElement('a');
+			a.href = URL.createObjectURL(file);
+			a.download = file.name;
+			a.click();
+			setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+			toast.success(t('recipes.cardSaved'));
+		} catch {
+			toast.error(t('recipes.cardError'));
+		} finally {
+			makingImage = false;
+		}
+	}
+
 	// Retirar el enlace: la página /r/<código> pasa a decir que ya no está.
 	async function removePublicLink(recipe: Recipe) {
 		try {
@@ -1012,6 +1061,10 @@
 				<button class="action-btn action-btn-ghost" style="width:100%;" onclick={() => { const target = r; viewingRecipe = null; startEdit(target, true); }}>{t('recipes.addSteps')}</button>
 			{/if}
 		{/if}
+
+		<button class="action-btn action-btn-ghost" style="width:100%; margin-top:1rem;" onclick={() => shareImage(r)} disabled={makingImage}>
+			<Icon name="image" /> {makingImage ? t('recipes.cardMaking') : t('recipes.shareImage')}
+		</button>
 
 		{#if isMine && r.public_code}
 			<div class="public-link">

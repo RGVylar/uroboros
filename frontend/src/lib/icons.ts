@@ -28,6 +28,7 @@ import Compass from '@lucide/svelte/icons/compass';
 import CookingPot from '@lucide/svelte/icons/cooking-pot';
 import Croissant from '@lucide/svelte/icons/croissant';
 import Crown from '@lucide/svelte/icons/crown';
+import ImageIcon from '@lucide/svelte/icons/image';
 import CupSoda from '@lucide/svelte/icons/cup-soda';
 import Droplet from '@lucide/svelte/icons/droplet';
 import Droplets from '@lucide/svelte/icons/droplets';
@@ -142,6 +143,7 @@ export const ICONS = {
 	export: Upload,
 	link: Link,
 	camera: Camera,
+	image: ImageIcon,
 	scan: ScanBarcode,
 	search: Search,
 	star: Star,
