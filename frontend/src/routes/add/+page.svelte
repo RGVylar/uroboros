@@ -2231,6 +2231,25 @@
 				bind:overrides={portionOverrides}
 			/>
 		</div>
+		<div style="margin-bottom:0.875rem;">
+			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.meal')}</div>
+			<div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.375rem;">
+				{#each MEAL_ORDER as mt}
+					<button onclick={() => (mealType = mt)} class="meal-chip" class:meal-chip-active={mealType === mt}>{mealLabel(mt)}</button>
+				{/each}
+			</div>
+		</div>
+		<div style="margin-bottom:0.875rem;">
+			<div class="section-eyebrow" style="padding:0 0.25rem 0.5rem;">{t('add.date')}</div>
+			<input type="date" bind:value={selectedDate} max={new Date().toISOString().slice(0, 10)} class="date-input" />
+		</div>
+		{#if partner}
+			<ShareSelector bind:mode={shareMode} partnerName={partner.name} style="margin-bottom:1rem;" />
+		{/if}
+		<!-- Si es para varios días, mejor como olla: se abre ya rellena en Recetas -->
+		<button class="filter-chip" style="width:100%; justify-content:center; margin-bottom:0.75rem;" onclick={() => goto(`/recipes?olla=${portionRecipe!.id}`)}>
+			<Icon name="pot" /> {t('pot.makeFromRecipe')}
+		</button>
 		{#if error}<p class="error" style="margin-bottom:0.75rem;">{error}</p>{/if}
 		<div style="display:flex; flex-direction:column; gap:0.5rem;">
 			<button class="btn-submit" onclick={confirmLogRecipe} disabled={saving || portionEmpty || (portionGrams !== null && !(portionGrams > 0))}>

@@ -93,6 +93,10 @@
 		// Lo de los círculos habla del icono de cada receta: sin recetas no hay
 		// icono que tocar, así que espera a la primera.
 		if (recipes.length > 0 || sharedRecipes.length > 0) tips.request('recipe_sharing');
+		// Desde el "¿Cuánto?" de Añadir: /recipes?olla=ID abre la olla con esa receta.
+		const ollaId = Number(new URLSearchParams(location.search).get('olla'));
+		const ollaRecipe = ollaId ? recipes.find(r => r.id === ollaId) : undefined;
+		if (ollaRecipe) makePot(ollaRecipe);
 		// Load partner + allergies
 		try {
 			const users = await api.get<User[]>('/users');
