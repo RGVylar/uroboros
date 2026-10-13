@@ -18,6 +18,7 @@
 	import PotCard from '$lib/components/PotCard.svelte';
 	import PotForm from '$lib/components/PotForm.svelte';
 	import { potPeople } from '$lib/pots';
+	import { stepParts, stepPlain } from '$lib/recipeSteps';
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -506,7 +507,7 @@
 		lines.push(...recipe.ingredients.map(i => `• ${i.product.name} – ${fmtQty(i.grams, i.product)}`));
 		if (recipe.steps.length) {
 			lines.push('', t('recipes.howTo').toLocaleUpperCase());
-			lines.push(...recipe.steps.map((step, i) => `${i + 1}. ${step}`));
+			lines.push(...recipe.steps.map((step, i) => `${i + 1}. ${stepPlain(step, recipe.ingredients)}`));
 		}
 		lines.push(rule, `${t('recipes.wholeMacros')}: ${macroText(macros)}`);
 		if (recipe.servings && recipe.servings > 1) {
@@ -704,7 +705,7 @@
 
 		<details class="card-details">
 			<summary>{t('recipes.howToOptional')}</summary>
-			<RecipeCardEditor idPrefix="r" bind:steps={card.steps} bind:servings={card.servings} bind:prepMinutes={card.prepMinutes} bind:cookMinutes={card.cookMinutes} />
+			<RecipeCardEditor idPrefix="r" {ingredients} bind:steps={card.steps} bind:servings={card.servings} bind:prepMinutes={card.prepMinutes} bind:cookMinutes={card.cookMinutes} />
 		</details>
 
 		{#if error}<p class="error">{error}</p>{/if}
@@ -806,7 +807,7 @@
 
 			<details class="card-details" open={editCardOpen}>
 				<summary>{t('recipes.howToOptional')}</summary>
-				<RecipeCardEditor idPrefix="edit" bind:steps={editCard.steps} bind:servings={editCard.servings} bind:prepMinutes={editCard.prepMinutes} bind:cookMinutes={editCard.cookMinutes} />
+				<RecipeCardEditor idPrefix="edit" ingredients={editIngredients} bind:steps={editCard.steps} bind:servings={editCard.servings} bind:prepMinutes={editCard.prepMinutes} bind:cookMinutes={editCard.cookMinutes} />
 			</details>
 
 			{#if editError}<p class="error">{editError}</p>{/if}
@@ -938,7 +939,7 @@
 		{#if r.steps.length}
 			<ol class="view-steps">
 				{#each r.steps as step, i}
-					<li><span class="view-num">{i + 1}</span><p>{step}</p></li>
+					<li><span class="view-num">{i + 1}</span><p>{#each stepParts(step, r.ingredients) as part}{#if part.kind === 'text'}{part.text}{:else}<span class="ing-chip">{part.name}<b>{part.qty}</b></span>{/if}{/each}</p></li>
 				{/each}
 			</ol>
 		{:else}
@@ -1452,6 +1453,22 @@
 		display: flex;
 		gap: 0.65rem;
 		align-items: flex-start;
+	}
+	.ing-chip {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.3rem;
+		padding: 0 0.45rem;
+		border-radius: 999px;
+		background: oklch(75% 0.18 160 / 0.14);
+		color: oklch(88% 0.12 160);
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.ing-chip b {
+		font-weight: 500;
+		color: oklch(80% 0.1 160 / 0.8);
+		font-size: 0.9em;
 	}
 	.view-steps p {
 		margin: 0;

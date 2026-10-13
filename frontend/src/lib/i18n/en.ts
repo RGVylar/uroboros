@@ -1092,6 +1092,7 @@ export const en: Dict = {
 	'recipes.stepRemove': 'Remove step',
 	'recipes.addStep': '＋ Add step',
 	'recipes.stepsHint': 'Optional. You can paste a whole recipe: each line becomes a step.',
+	'recipes.mentionHint': 'Type @ to mention an ingredient: it shows up with its amount.',
 	'recipes.howTo': 'How to make it',
 	'recipes.howToOptional': 'How to make it (optional)',
 	'recipes.view': 'View recipe',

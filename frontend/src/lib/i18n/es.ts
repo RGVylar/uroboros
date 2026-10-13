@@ -1095,6 +1095,7 @@ export const es = {
 	'recipes.stepRemove': 'Quitar paso',
 	'recipes.addStep': '＋ Añadir paso',
 	'recipes.stepsHint': 'Opcional. Puedes pegar una receta entera: cada línea será un paso.',
+	'recipes.mentionHint': 'Escribe @ para nombrar un ingrediente: se verá con su cantidad.',
 	'recipes.howTo': 'Cómo se hace',
 	'recipes.howToOptional': 'Cómo se hace (opcional)',
 	'recipes.view': 'Ver receta',
