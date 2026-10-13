@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.uroboros.app",
+      "sha256_cert_fingerprints": [
+        "8C:7D:52:76:AB:75:C6:87:50:EB:F9:11:94:05:BD:AB:F2:E8:6D:01:8A:6C:66:5B:07:32:E2:A7:4A:11:E0:C0"
+      ]
+    }
+  }
+]
