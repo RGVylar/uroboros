@@ -87,7 +87,7 @@ export const en: Dict = {
 
 	// ── errores de red (api.ts) ──
 	'net.offline': "Can't reach the server",
-	'net.badFormat': 'Check that the email and password are in the right format',
+	'net.badFormat': "Some of the data isn't in a valid format: check it",
 
 	// ── contornos corporales (la clave viaja a la API, no se traduce) ──
 	'measure.neck': 'Neck',

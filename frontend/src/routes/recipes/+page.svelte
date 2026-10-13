@@ -69,12 +69,16 @@
 	const emptyCard = (): CardDraft => ({ steps: [], servings: null, prepMinutes: null, cookMinutes: null });
 	let card = $state<CardDraft>(emptyCard());
 
+	// Raciones y minutos van enteros al backend: un "0.5" tecleado a mano
+	// (el input deja escribirlo pese al step) acababa en un 422.
+	const wholeOrNull = (n: number | null) => (n == null || !Number.isFinite(n) ? null : Math.max(0, Math.round(n)));
+
 	function cardPayload(c: CardDraft) {
 		return {
 			steps: c.steps.map(s => s.trim()).filter(Boolean),
-			servings: c.servings || null,
-			prep_minutes: c.prepMinutes ?? null,
-			cook_minutes: c.cookMinutes ?? null,
+			servings: wholeOrNull(c.servings) || null,
+			prep_minutes: wholeOrNull(c.prepMinutes),
+			cook_minutes: wholeOrNull(c.cookMinutes),
 		};
 	}
 

@@ -88,7 +88,7 @@ export const es = {
 
 	// ── errores de red (api.ts) ──
 	'net.offline': 'Sin conexión con el servidor',
-	'net.badFormat': 'Comprueba que el email y la contraseña tienen el formato correcto',
+	'net.badFormat': 'Hay algún dato con un formato que no vale: revísalo',
 
 	// ── contornos corporales (la clave viaja a la API, no se traduce) ──
 	'measure.neck': 'Cuello',
