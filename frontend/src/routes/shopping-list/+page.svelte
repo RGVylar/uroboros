@@ -212,7 +212,7 @@
 
 	function qtyLabel(item: ShoppingListItem): string {
 		if (!item.quantity_g) return '';
-		const u = item.unit === 'unit' ? (item.quantity_g === 1 ? 'ud' : 'uds') : (item.unit ?? 'g');
+		const u = item.unit === 'unit' ? ` ${t('unit.short')}` : (item.unit ?? 'g');
 		return ` · ${item.quantity_g}${u}`;
 	}
 
@@ -355,7 +355,7 @@
 {:else}
 	<!-- Pending items -->
 	{#if pending.length > 0}
-		<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.5rem;">Por comprar · {pending.length}</div>
+		<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.5rem;">{t('shopping.toBuy', { count: pending.length })}</div>
 		<div class="glass-card" style="padding:0.375rem; margin-bottom:0.875rem;">
 			{#each pending as item, i (item.id)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < pending.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
@@ -366,7 +366,7 @@
 							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.1rem;">{item.product_brand ?? ''}{qtyLabel(item)}</div>
 						{/if}
 						{#if item.source === 'recipe'}
-							<span style="font-size:0.5625rem; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); border-radius:4px; padding:0.1rem 0.375rem;">receta</span>
+							<span style="font-size:0.5625rem; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); border-radius:4px; padding:0.1rem 0.375rem;">{t('shopping.recipeTag')}</span>
 						{/if}
 					</div>
 					<button onclick={() => deleteItem(item.id)} style="color:rgba(255,255,255,0.4); background:none; border:none; font-size:0.875rem; cursor:pointer; padding:0.25rem; flex-shrink:0;"><Icon name="close" /></button>
@@ -383,7 +383,7 @@
 
 	<!-- Checked items -->
 	{#if checked.length > 0}
-		<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.5rem;">En el carro · {checked.length}</div>
+		<div style="font-size:0.6875rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:700; margin:0 0.25rem 0.5rem;">{t('shopping.inCart', { count: checked.length })}</div>
 		<div class="glass-card" style="padding:0.375rem; opacity:0.7;">
 			{#each checked as item, i (item.id)}
 				<div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 0.875rem; border-bottom:{i < checked.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
@@ -391,7 +391,7 @@
 					<div style="flex:1; min-width:0;">
 						<div style="font-weight:600; font-size:0.8125rem; color:rgba(255,255,255,0.6); text-decoration:line-through; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{item.product_name ?? '—'}</div>
 						{#if item.quantity_g}
-							<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">{item.quantity_g}g → inventario</div>
+							<div style="font-size:0.625rem; color:rgba(255,255,255,0.35);">{t('shopping.toPantry', { qty: qtyLabel(item).replace(' · ', '') })}</div>
 						{/if}
 					</div>
 					<button onclick={() => deleteItem(item.id)} style="color:rgba(255,255,255,0.3); background:none; border:none; font-size:0.875rem; cursor:pointer; padding:0.25rem; flex-shrink:0;"><Icon name="close" /></button>

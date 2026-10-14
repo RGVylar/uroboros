@@ -168,6 +168,9 @@
 	// that wasn't offered is rejected by the API.
 	async function accept(id: number, as?: FriendshipKind) {
 		await api.patch(`/friends/${id}`, as ? { status: 'accepted', kind: as } : { status: 'accepted' });
+		// A la lista: ahí están los interruptores de lo que acabas de aceptar.
+		// Antes se quedaba en Solicitudes, ya vacía.
+		activeTab = 'lista';
 		load();
 	}
 
@@ -202,6 +205,11 @@
 			: { can_add_food_requester: !f.can_add_food_requester };
 		await api.patch(`/friends/${f.id}`, patch);
 		load();
+	}
+
+	function theirCanAddFlag(f: Friendship): boolean {
+		// Si la otra persona me deja apuntar en SU diario
+		return f.receiver.id === auth.user?.id ? f.can_add_food_requester : f.can_add_food;
 	}
 
 	function myCanAddFlag(f: Friendship): boolean {
@@ -497,6 +505,9 @@
 							<div style="font-size:0.625rem; color:rgba(255,255,255,0.4); margin-top:0.125rem;">
 								{myCanAddFlag(f) ? t('friends.canAddOn', { name: partnerName(f) }) : t('friends.canAddOff')}
 							</div>
+							{#if !theirCanAddFlag(f)}
+								<div style="font-size:0.625rem; color:oklch(85% 0.15 160); margin-top:0.25rem;">{t('friends.theyMustAllow', { name: partnerName(f) })}</div>
+							{/if}
 						</div>
 						<button onclick={() => togglePermission(f)} role="switch" aria-checked={myCanAddFlag(f)} aria-label={t('friends.allowDiaryAria', { name: partnerName(f) })} style="width:40px; height:24px; border-radius:99px; cursor:pointer; background:{myCanAddFlag(f) ? 'oklch(75% 0.18 165 / 0.35)' : 'rgba(255,255,255,0.08)'}; border:1px solid {myCanAddFlag(f) ? 'oklch(80% 0.17 165 / 0.5)' : 'rgba(255,255,255,0.1)'}; position:relative; flex-shrink:0; transition:background 0.2s; padding:0;">
 							<div style="position:absolute; top:2px; left:{myCanAddFlag(f) ? '18px' : '2px'}; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg, #fff, oklch(85% 0.1 165)); box-shadow:0 2px 5px rgba(0,0,0,0.3); transition:left 0.2s;"></div>

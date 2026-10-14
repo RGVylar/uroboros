@@ -136,6 +136,8 @@ export interface DiaryEntry {
 	consumed_at: string;
 	created_at: string;
 	product: Product | null;
+	recipe_id?: number | null;
+	recipe_name?: string | null;
 }
 
 export interface MealSection {

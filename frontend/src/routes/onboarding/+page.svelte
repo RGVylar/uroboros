@@ -34,6 +34,9 @@
 		{ key: 'measurements', icon: 'measurements' },
 		{ key: 'supplements', icon: 'supplements' },
 		{ key: 'mood', icon: 'mood' },
+		// La pantalla de pareja la vende ("despensa y lista en común"), pero venía
+		// apagada y no se ofrecía aquí: no había forma de encontrarla.
+		{ key: 'inventory', icon: 'home' },
 	];
 	// Parte de lo que ya tenga (por defecto, o lo que tocó si repite la intro).
 	let tracking = $state<Partial<Record<ModuleKey, boolean>>>(

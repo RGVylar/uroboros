@@ -53,6 +53,13 @@ class DiaryEntry(Base):
     )
 
     product: Mapped["Product"] = relationship(lazy="joined")  # noqa: F821
+    # Solo para el nombre: el diario agrupa bajo "Pollo con arroz" lo que se
+    # registró como receta, en vez de dejar sus ingredientes sueltos.
+    recipe: Mapped["Recipe | None"] = relationship(lazy="selectin")  # noqa: F821
+
+    @property
+    def recipe_name(self) -> str | None:
+        return self.recipe.name if self.recipe is not None else None
 
     __table_args__ = (
         Index("ix_diary_entries_user_consumed", "user_id", "consumed_at"),

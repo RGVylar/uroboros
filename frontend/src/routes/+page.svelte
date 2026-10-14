@@ -13,7 +13,7 @@
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { productUnitOf, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
+	import { productUnitOf, perLabel, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
 	import { MEAL_ORDER, MOOD_WORST_ICON, MOOD_ENERGY_ICON, MOOD_DIGESTION_ICON, MOOD_MOOD_ICON } from '$lib/types';
@@ -87,6 +87,22 @@
 	let suppEnabled = $derived(modules.on('supplements'));
 	let waterEnabled = $derived(modules.on('water'));
 	let lastWaterMl = $state(250); // tracks last addWater amount for offline undo
+
+	// Una receta registrada son varias entradas (una por ingrediente) con el
+	// mismo recipe_id y la misma hora. Encima de la primera se pinta su nombre;
+	// sin esto "Pollo con arroz" se veía como pollo y arroz sueltos.
+	function recipeRunStart(
+		items: { entry: DiaryEntry; mine: boolean }[], i: number
+	): { name: string; kcal: number } | null {
+		const e = items[i].entry;
+		if (!e.recipe_id || !e.recipe_name) return null;
+		const same = (x: { entry: DiaryEntry; mine: boolean } | undefined) =>
+			!!x && x.mine && x.entry.recipe_id === e.recipe_id && x.entry.consumed_at === e.consumed_at;
+		if (same(items[i - 1])) return null;
+		let kcal = 0;
+		for (let j = i; j < items.length && same(items[j]); j++) kcal += items[j].entry.calories;
+		return { name: e.recipe_name, kcal };
+	}
 
 	function sumTotals(entries: DiaryEntry[]): DayTotals {
 		return {
@@ -357,7 +373,10 @@
 	$effect(() => {
 		if (auth.isLoggedIn && !staticLoaded) staticLoaded = loadStatic();
 	});
-	$effect(() => { today; if (auth.isLoggedIn) loadDay(); });
+	// untrack: loadDay lee `goals` (y la cola) antes de su primer await; sin él,
+	// cada vez que llegaban los objetivos se relanzaba y el día, el agua, los
+	// pasos, los suplementos y el ánimo se pedían tres veces al abrir.
+	$effect(() => { today; if (auth.isLoggedIn) untrack(() => loadDay()); });
 	// Agua y suplementos se guardan cada vez que cambian (también los cambios
 	// hechos sin conexión), para enseñarlos si se reabre la app bloqueada.
 	$effect(() => { if (water) cacheSet(`water_${untrack(() => today)}`, water); });
@@ -479,9 +498,23 @@
 	// Solo si la tiene ofrecemos "Solo para la pareja" en el menú de borrar.
 	let deletingPartnerHas = $state(false);
 
-	async function startDelete(entry: DiaryEntry) {
+	// Borrar algo que vino de una receta: solo ese ingrediente o la receta entera
+	// (todas sus entradas de ese registro: mismo recipe_id y misma hora).
+	let deleteWholeRecipe = $state(false);
+	function recipeRunOf(entry: DiaryEntry): DiaryEntry[] {
+		if (!entry.recipe_id || !summary) return [entry];
+		return summary.entries.filter(e => e.recipe_id === entry.recipe_id && e.consumed_at === entry.consumed_at);
+	}
+	let deletingRun = $derived(deletingEntry ? recipeRunOf(deletingEntry) : []);
+	let deletingIsRecipe = $derived(deletingRun.length > 1);
+
+	async function startDelete(entry: DiaryEntry, wholeRecipe = false) {
+		deleteWholeRecipe = wholeRecipe;
+		const isRecipe = recipeRunOf(entry).length > 1;
 		if (!partner || entry.id < 0) {
-			confirmDelete(entry.id, 'mine');
+			// Sin pareja solo hay que preguntar si es parte de una receta.
+			if (isRecipe) { deletingPartnerHas = false; deletingEntry = entry; }
+			else confirmDelete(entry.id, 'mine');
 			return;
 		}
 		if (connectivity.isOffline) {
@@ -494,18 +527,30 @@
 			const res = await api.get<{ entry_id: number | null }>(
 				`/diary/partner-entry?user_id=${partner.id}&product_id=${entry.product_id}&day=${today}&meal_type=${entry.meal_type}`
 			);
-			if (res.entry_id != null) {
-				deletingPartnerHas = true;
-				deletingEntry = entry;          // hay copia → preguntar de quién
+			deletingPartnerHas = res.entry_id != null;
+			if (deletingPartnerHas || isRecipe) {
+				deletingEntry = entry;          // hay copia o es receta → preguntar
 			} else {
-				confirmDelete(entry.id, 'mine'); // solo es tuya → borrar directo
+				confirmDelete(entry.id, 'mine'); // solo es tuya y suelta → borrar directo
 			}
 		} catch {
-			confirmDelete(entry.id, 'mine');
+			if (isRecipe) { deletingPartnerHas = false; deletingEntry = entry; }
+			else confirmDelete(entry.id, 'mine');
 		}
 	}
 
-	async function confirmDelete(id: number, mode: 'both' | 'mine' | 'partner') {
+	// Aplica la opción del modal al ingrediente o a toda la receta.
+	async function confirmDeleteChoice(mode: 'both' | 'mine' | 'partner') {
+		if (!deletingEntry) return;
+		const ids = deleteWholeRecipe ? deletingRun.map(e => e.id) : [deletingEntry.id];
+		deletingEntry = null;
+		await Promise.all(ids.map(id => confirmDelete(id, mode, true)));
+		if (mode === 'partner') toast.success(t('diary.removedFromPartner', { name: partner?.name ?? '' }));
+		// Su diario también ha cambiado: sin esto seguía enseñando lo borrado.
+		if (mode !== 'mine') loadPartnerDay();
+	}
+
+	async function confirmDelete(id: number, mode: 'both' | 'mine' | 'partner', quiet = false) {
 		deletingEntry = null;
 		let url = `/diary/${id}`;
 		if (partner && mode === 'both') url += `?also_for_user_id=${partner.id}`;
@@ -527,7 +572,7 @@
 		if (removesMine) optimisticDeleteEntry(id);
 		try {
 			await api.del(url);
-			if (mode === 'partner') toast.success(`Quitado del diario de ${partner?.name}`);
+			if (mode === 'partner' && !quiet) toast.success(t('diary.removedFromPartner', { name: partner?.name ?? '' }));
 		} catch {
 			// Se acaba de caer la conexión (empieza el bloqueo): a la cola.
 			if (connectivity.isOffline) {
@@ -626,9 +671,13 @@
 						// Ya la tiene: actualizar SOLO sus gramos y solo si los cambiaste.
 						if (pGrams !== existing.grams) {
 							await api.patch(`/diary/${existing.entry_id}`, { grams: pGrams });
+							// Su copia ha cambiado: sin recargar, "Demo 2 200g" y su total
+							// seguían con lo de antes hasta refrescar la página.
+							loadPartnerDay();
 						}
 					} else if (wantAdd) {
 						await api.post('/diary', { product_id: productId, grams: pGrams, consumed_at: consumedAt, meal_type: mt, only_for_user_id: partner.id });
+						loadPartnerDay();
 					}
 				}
 			} catch {
@@ -1072,7 +1121,7 @@
 													<div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">{t('diary.usedMasc', { count: freq.count, times: tc('diary.time', freq.count) })}</div>
 												</div>
 												<div style="text-align:right; margin-left:0.5rem; white-space:nowrap;">
-													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal/100g</div>
+													<div style="font-size:0.85rem; color:var(--cal); font-weight:600;">{freq.product.calories_per_100g} kcal{perLabel(freq.product)}</div>
 												</div>
 											</div>
 										</div>
@@ -1140,7 +1189,11 @@
 							{#if showPartner && meal.partnerKcal > 0}
 								<div class="partner-meal-line" style="--phue:{partnerHue};">{partner?.name}: {Math.round(meal.partnerKcal)} kcal</div>
 							{/if}
-							{#each meal.items as it (it.mine ? 'm' + it.entry.id : 'p' + it.entry.id)}
+							{#each meal.items as it, i (it.mine ? 'm' + it.entry.id : 'p' + it.entry.id)}
+								{@const run = it.mine ? recipeRunStart(meal.items, i) : null}
+								{#if run}
+									<div class="recipe-run"><Icon name="cook" /><span class="recipe-run-name">{run.name}</span><span class="recipe-run-kcal">{Math.round(run.kcal)} kcal</span><button class="recipe-run-del" onclick={() => startDelete(it.entry, true)} aria-label={t('diary.deleteRecipeAria', { name: run.name })} title={t('diary.deleteRecipeAria', { name: run.name })}><Icon name="close" /></button></div>
+								{/if}
 								{#if it.mine}
 									{@render entryCard(it.entry, it.shared)}
 								{:else}
@@ -1309,28 +1362,43 @@
 	<Modal
 		onClose={() => deletingEntry = null}
 		title={t('diary.deleteEntry')}
-		subtitle="{deletingEntry.product?.name} — {fmtQty(deletingEntry.grams, deletingEntry.product)}"
+		subtitle={deleteWholeRecipe && deletingIsRecipe
+			? `${deletingEntry.recipe_name} — ${tc('diary.ingredientsCount', deletingRun.length)}`
+			: `${deletingEntry.product?.name} — ${fmtQty(deletingEntry.grams, deletingEntry.product)}`}
 	>
+		{#if deletingIsRecipe}
+			<!-- Viene de una receta: ¿solo este ingrediente o la receta entera? -->
+			<div class="del-scope" role="radiogroup" aria-label={t('diary.deleteScope')}>
+				<button role="radio" aria-checked={!deleteWholeRecipe} class:active={!deleteWholeRecipe} onclick={() => (deleteWholeRecipe = false)}>
+					{t('diary.deleteOnlyItem', { name: deletingEntry.product?.name ?? '' })}
+				</button>
+				<button role="radio" aria-checked={deleteWholeRecipe} class:active={deleteWholeRecipe} onclick={() => (deleteWholeRecipe = true)}>
+					<Icon name="cook" /> {t('diary.deleteWholeRecipe', { name: deletingEntry.recipe_name ?? '' })}
+				</button>
+			</div>
+		{/if}
 		<div class="del-q">
 			{deletingPartnerHas
 				? t('diary.deleteAskPartner', { name: partner?.name ?? '' })
 				: t('diary.deleteAsk')}
 		</div>
 		<div class="del-cards">
-			<button class="del-card danger" onclick={() => confirmDelete(deletingEntry!.id, 'both')}>
+			{#if partner}
+			<button class="del-card danger" onclick={() => confirmDeleteChoice('both')}>
 				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} size={34} /></div>
 				<div class="del-txt"><div class="del-t">{t('diary.deleteBoth')}</div><div class="del-s">{t('diary.deleteBothSub')}</div></div>
 				<div class="del-chev">›</div>
 			</button>
-			<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'mine')}>
+			{/if}
+			<button class="del-card" class:danger={!partner} onclick={() => confirmDeleteChoice('mine')}>
 				<div class="del-avs"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} size={34} /></div>
-				<div class="del-txt"><div class="del-t">{t('diary.deleteMine')}</div><div class="del-s">{deletingPartnerHas ? `${partner?.name} lo conserva` : 'Se borra de tu diario'}</div></div>
+				<div class="del-txt"><div class="del-t">{t('diary.deleteMine')}</div><div class="del-s">{deletingPartnerHas ? t('diary.partnerKeepsIt', { name: partner?.name ?? '' }) : t('diary.deletedFromYours')}</div></div>
 				<div class="del-chev">›</div>
 			</button>
 			{#if deletingPartnerHas}
-				<button class="del-card" onclick={() => confirmDelete(deletingEntry!.id, 'partner')}>
+				<button class="del-card" onclick={() => confirmDeleteChoice('partner')}>
 					<div class="del-avs"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} size={34} /></div>
-					<div class="del-txt"><div class="del-t">Solo para {partner?.name}</div><div class="del-s">{t('diary.deleteMineSub')}</div></div>
+					<div class="del-txt"><div class="del-t">{t('diary.deleteOnlyPartner', { name: partner?.name ?? '' })}</div><div class="del-s">{t('diary.deleteMineSub')}</div></div>
 					<div class="del-chev">›</div>
 				</button>
 			{/if}
@@ -1421,7 +1489,7 @@
 						<span class="shared-av"><Avatar name={auth.user?.name ?? t('diary.you')} avatarId={auth.user?.avatar_id} avatarPhoto={auth.user?.avatar_photo} identityHue={myHue} size={16} /></span>
 						<span class="shared-av"><Avatar name={partner?.name ?? ''} avatarId={partner?.avatar_id} avatarPhoto={partner?.avatar_photo} identityHue={partnerHue} size={16} /></span>
 					</span>
-					<span class="shared-txt">Los dos · tú {fmtQty(entry.grams, entry.product)} · {partner?.name} {fmtQty(shared.grams, shared.product)}</span>
+					<span class="shared-txt">{t('diary.sharedBoth', { mine: fmtQty(entry.grams, entry.product), name: partner?.name ?? '', theirs: fmtQty(shared.grams, shared.product) })}</span>
 				</div>
 			{/if}
 		</div>
@@ -1642,6 +1710,64 @@
 	.pc-state { margin-left: auto; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 	.partner-chip.on .pc-state { color: oklch(78% 0.15 var(--phue)); }
 
+	.recipe-run {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		margin: 0.5rem 0.25rem 0.25rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		color: rgba(255,255,255,0.6);
+	}
+	.recipe-run-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.recipe-run-kcal { font-weight: 600; color: rgba(255,255,255,0.45); }
+	.recipe-run-del {
+		box-shadow: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		border-radius: 50%;
+		border: 1px solid oklch(65% 0.18 25 / 0.3);
+		background: oklch(60% 0.16 25 / 0.08);
+		color: oklch(80% 0.14 25);
+		font-size: 0.7rem;
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+	.del-scope {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.375rem;
+		margin-bottom: 0.875rem;
+	}
+	.del-scope button {
+		box-shadow: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		padding: 0.55rem 0.5rem;
+		border-radius: 12px;
+		border: 1px solid rgba(255,255,255,0.1);
+		background: rgba(255,255,255,0.04);
+		color: rgba(255,255,255,0.6);
+		font-family: inherit;
+		font-size: 0.75rem;
+		font-weight: 700;
+		cursor: pointer;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.del-scope button.active {
+		border-color: oklch(75% 0.18 165 / 0.5);
+		background: oklch(75% 0.18 165 / 0.12);
+		color: oklch(88% 0.14 165);
+	}
 	.partner-meal-line {
 		font-size: 0.7rem;
 		font-weight: 600;

@@ -282,10 +282,21 @@ def log_recipe(
                 )
             overrides[o.ingredient_id] = o.grams
 
+    partner_factor = factor
+    if payload.partner_grams is not None:
+        if payload.ingredients is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Use partner_grams or ingredients, not both"
+            )
+        if recipe.weight <= 0:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Recipe has no weight")
+        partner_factor = payload.partner_grams / recipe.weight
+
     entries: list[DiaryEntry] = []
     for uid in user_ids:
+        f = factor if uid == user.id else partner_factor
         for ing in recipe.ingredients:
-            grams = overrides.get(ing.id, ing.grams * factor)
+            grams = overrides.get(ing.id, ing.grams * f)
             if grams <= 0:
                 continue
             product = db.get(Product, ing.product_id)

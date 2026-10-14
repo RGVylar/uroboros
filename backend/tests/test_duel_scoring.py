@@ -94,3 +94,15 @@ def test_nothing_counted_yet_gives_no_pct():
     w = _week({}, {}, today_idx=0)
     assert w.pct is None and w.counted == 0
     assert w.states[0] == "today" and w.scores == [None] * 7
+
+
+def test_days_before_signup_do_not_count():
+    """Quien se apunta un miércoles no arrastra lunes y martes como ceros."""
+    ws = date(2026, 9, 14)  # lunes
+    kcal = {ws + timedelta(days=2): 2000}
+    prot = {ws + timedelta(days=2): 160}
+    w = _week_result(ws, ws + timedelta(days=3), kcal, prot, {}, set(), 2000, 160, "off",
+                     since=ws + timedelta(days=2))
+    assert w.counted == 1
+    assert w.pct == 100
+    assert w.states[:2] == ["empty", "empty"]

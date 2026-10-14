@@ -6,7 +6,9 @@
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import type { WeightLog, WeightTrend } from '$lib/types';
 	import { tips } from '$lib/stores/tips.svelte';
-	import { t, fmtDate, i18n } from '$lib/i18n/index.svelte';
+	import { t, fmtDate, fmtNumber, i18n } from '$lib/i18n/index.svelte';
+	// "68,0" en español y portugués; con toFixed salía "68.0" en todos.
+	const kg1 = (n: number) => fmtNumber(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 	if (!auth.isLoggedIn) goto('/login');
 
@@ -172,11 +174,11 @@
 	</div>
 
 	<div style="display:flex; align-items:flex-end; gap:0.875rem; margin-bottom:{sinceLast !== null ? '0.375rem' : '1.125rem'};">
-		<div class="big-weight">{current.toFixed(1)}</div>
+		<div class="big-weight">{kg1(current)}</div>
 		{#if sinceLast !== null}
 			<div style="padding-bottom:0.75rem;">
 				<div class="delta-badge" class:delta-down={sinceLast < 0} class:delta-up={sinceLast > 0}>
-					{sinceLast < 0 ? '↓' : '↑'} {Math.abs(sinceLast).toFixed(1)} kg
+					{sinceLast < 0 ? '↓' : '↑'} {kg1(Math.abs(sinceLast))} kg
 				</div>
 			</div>
 		{/if}
@@ -196,20 +198,20 @@
 			<div class="mini-stat">
 				<div class="mini-stat-label">{t('weight.totalChange')}</div>
 				<div class="mini-stat-val" style="color:{change < 0 ? 'oklch(85% 0.17 160)' : 'oklch(75% 0.18 30)'};">
-					{change < 0 ? '' : '+'}{change.toFixed(1)}<span class="mini-stat-unit">kg</span>
+					{change < 0 ? '' : '+'}{kg1(change)}<span class="mini-stat-unit">kg</span>
 				</div>
 			</div>
 		{/if}
 		{#if trend?.latest_trend != null && weights.length >= 3}
 			<div class="mini-stat">
 				<div class="mini-stat-label">{t('weight.trend')}<InfoTip id="weight_trend" /></div>
-				<div class="mini-stat-val">{trend.latest_trend.toFixed(1)}<span class="mini-stat-unit">kg</span></div>
+				<div class="mini-stat-val">{kg1(trend.latest_trend)}<span class="mini-stat-unit">kg</span></div>
 				{#if rateText}<div class="mini-stat-sub">{rateText}</div>{/if}
 			</div>
 		{:else if weights.length > 0}
 			<div class="mini-stat">
 				<div class="mini-stat-label">{t('weight.start')}</div>
-				<div class="mini-stat-val">{weights[weights.length - 1].weight.toFixed(1)}<span class="mini-stat-unit">kg</span></div>
+				<div class="mini-stat-val">{kg1(weights[weights.length - 1].weight)}<span class="mini-stat-unit">kg</span></div>
 			</div>
 		{/if}
 	</div>
@@ -309,13 +311,13 @@
 		<div class="entry-row" style="border-bottom:{i < Math.min(weights.length, 8) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
 			<div class="entry-icon"><Icon name="weight" /></div>
 			<div style="flex:1;">
-				<div class="entry-val">{w.weight.toFixed(1)} kg</div>
+				<div class="entry-val">{kg1(w.weight)} kg</div>
 				<div class="entry-date">{fmt(w.logged_at)}</div>
 			</div>
 			{#if confirmingDelete === w.id}
 				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>{t('weight.deleteAsk')}</button>
 			{:else}
-				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: w.weight.toFixed(1) })}><Icon name="close" /></button>
+				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: kg1(w.weight) })}><Icon name="close" /></button>
 			{/if}
 		</div>
 	{/each}
@@ -335,7 +337,7 @@
 			<div class="modal-stepper">
 				<button class="stepper-btn" onclick={() => (newWeightValue = Math.max(0, +(newWeightValue - 0.1).toFixed(1)))}>−</button>
 				<div style="text-align:center;">
-					<div class="big-weight">{newWeightValue.toFixed(1)}</div>
+					<div class="big-weight">{kg1(newWeightValue)}</div>
 					<div style="font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.25rem;">kg</div>
 				</div>
 				<button class="stepper-btn" onclick={() => (newWeightValue = +(newWeightValue + 0.1).toFixed(1))}>+</button>

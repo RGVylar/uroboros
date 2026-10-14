@@ -150,6 +150,25 @@ def test_only_for_partner_logs_in_their_diary_not_mine(client, db, make_user):
     assert sorted(e["user_id"] for e in entries) == sorted([ruben.id, pilar.id])
 
 
+def test_a_dish_for_two_is_split_not_doubled(client, db, make_user):
+    """Toda la receta 'para los dos' apuntaba el plato entero a cada uno."""
+    ruben, pilar = make_user("Ruben"), make_user("Pilar")
+    fid = _befriend(client, ruben, pilar, kind="partner")
+    client.patch(f"{API}/friends/{fid}", json={"can_add_food": True}, headers=auth(pilar))
+    pollo = _product(db, "Pollo", 120)
+    recipe = _recipe(client, ruben, [{"product_id": pollo.id, "grams": 400}])
+
+    entries = _log(client, ruben, recipe["id"], grams=250,
+                   also_for_user_id=pilar.id, partner_grams=150)
+    by_user = {e["user_id"]: e for e in entries}
+    assert by_user[ruben.id]["grams"] == 250
+    assert by_user[pilar.id]["grams"] == 150
+
+    # Sin partner_grams, la pareja lleva lo mismo que yo (como antes).
+    entries = _log(client, ruben, recipe["id"], grams=200, also_for_user_id=pilar.id)
+    assert [e["grams"] for e in entries] == [200, 200]
+
+
 def test_zero_grams_is_rejected(client, db, make_user):
     ruben = make_user("Ruben")
     pollo = _product(db, "Pollo", 120)

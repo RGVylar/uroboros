@@ -433,7 +433,11 @@
 			{#if adherencePct !== null}<div style="font-size:0.625rem; color:rgba(255,255,255,0.4);">%</div>{/if}
 		</div>
 		<div class="stat-foot">
-			{adherencePct === null ? t('history.noData') : t('history.adherenceDays', { done: adherenceDays, total: scoredDays.length })}
+			{adherencePct !== null
+				? t('history.adherenceDays', { done: adherenceDays, total: scoredDays.length })
+				: loggedDays.some(d => isToday(d.date))
+					? t('history.todayPending')
+					: t('history.noData')}
 		</div>
 	</div>
 </div>

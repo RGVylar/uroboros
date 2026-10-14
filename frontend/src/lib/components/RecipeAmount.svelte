@@ -26,9 +26,36 @@
 		grams: number | null;
 		/** Gramos internos por ingrediente (id → g) cuando se ajusta a mano; null = sin ajustar. */
 		overrides: Record<number, number> | null;
+		/** Nombre de la pareja cuando se registra "para los dos": el plato se reparte. */
+		partnerName?: string | null;
+		/** Ración de la pareja en gramos del plato hecho (solo al repartir). */
+		partnerGrams?: number | null;
 	}
 
-	let { ingredients, weight, grams = $bindable(null), overrides = $bindable(null) }: Props = $props();
+	let {
+		ingredients, weight, grams = $bindable(null), overrides = $bindable(null),
+		partnerName = null, partnerGrams = $bindable(null),
+	}: Props = $props();
+
+	// "Para los dos": un plato hecho para dos se reparte a medias. Antes "toda
+	// la receta" se apuntaba entera a cada uno y contaba el doble.
+	let split = $derived(!!partnerName);
+	const half = () => Math.round(weight / 2);
+	function splitHalves() {
+		overrides = null;
+		grams = half();
+		partnerGrams = half();
+	}
+	$effect(() => {
+		if (split) {
+			if (grams === null && overrides === null) splitHalves();
+		} else if (partnerGrams !== null) {
+			// Deja de ser para los dos: vuelve a "toda la receta".
+			partnerGrams = null;
+			grams = null;
+		}
+	});
+	let partnerSummary = $derived(scaled(partnerGrams ?? grams ?? weight));
 
 	// Escalado uniforme (toda la receta o ración): cada ingrediente por k.
 	function scaled(g: number) {
@@ -77,6 +104,27 @@
 	}
 </script>
 
+{#if split && !overrides}
+	<button
+		type="button"
+		class="chip split-chip"
+		class:active={grams === half() && partnerGrams === half()}
+		onclick={splitHalves}>
+		{t('recipes.splitHalves', { g: Math.round(weight) })}
+	</button>
+	<div class="split-row">
+		<label class="split-field">
+			<span class="split-who">{t('recipes.splitMe')}</span>
+			<input type="number" min="1" step="1" inputmode="numeric" bind:value={grams} class="portion-input" />
+			<span class="adjust-unit">g</span>
+		</label>
+		<label class="split-field">
+			<span class="split-who">{partnerName}</span>
+			<input type="number" min="1" step="1" inputmode="numeric" bind:value={partnerGrams} class="portion-input" />
+			<span class="adjust-unit">g</span>
+		</label>
+	</div>
+{:else}
 <div class="amount-row">
 	<button
 		type="button"
@@ -96,6 +144,7 @@
 		class="portion-input"
 	/>
 </div>
+{/if}
 <button
 	type="button"
 	class="chip adjust-chip"
@@ -105,7 +154,7 @@
 </button>
 
 {#if overrides}
-	<div class="adjust-hint">{t('recipes.adjustHint')}</div>
+	<div class="adjust-hint">{split ? t('recipes.adjustHintBoth') : t('recipes.adjustHint')}</div>
 	<div class="adjust-list">
 		{#each ingredients as i (i.id)}
 			{@const u = unitOf(i)}
@@ -131,6 +180,26 @@
 	</div>
 {/if}
 
+{#if split && !overrides}
+	<div class="amount-summary">
+		{t('recipes.splitMe')}: {t('recipes.portionSummary', {
+			grams: Math.round(summary.grams),
+			kcal: Math.round(summary.cal),
+			p: Math.round(summary.p),
+			c: Math.round(summary.c),
+			f: Math.round(summary.f),
+		})}
+	</div>
+	<div class="amount-summary">
+		{partnerName}: {t('recipes.portionSummary', {
+			grams: Math.round(partnerSummary.grams),
+			kcal: Math.round(partnerSummary.cal),
+			p: Math.round(partnerSummary.p),
+			c: Math.round(partnerSummary.c),
+			f: Math.round(partnerSummary.f),
+		})}
+	</div>
+{:else}
 <div class="amount-summary">
 	{t('recipes.portionSummary', {
 		grams: Math.round(summary.grams),
@@ -140,6 +209,7 @@
 		f: Math.round(summary.f),
 	})}
 </div>
+{/if}
 
 <style>
 	.amount-row {
@@ -221,6 +291,34 @@
 	}
 	.adjust-input:focus { border-color: oklch(75% 0.18 165 / 0.5); }
 	.adjust-unit { font-size: 0.7rem; color: rgba(255,255,255,0.5); width: 1.4rem; }
+	.split-chip {
+		width: 100%;
+		justify-content: center;
+		font-size: 0.78rem;
+		margin-bottom: 0.5rem;
+	}
+	.split-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	.split-field {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		min-width: 0;
+	}
+	.split-who {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: rgba(255,255,255,0.7);
+		max-width: 4.5rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.split-field .portion-input { padding: 0.5rem 0.625rem; text-align: right; }
 	.amount-summary {
 		font-size: 0.75rem;
 		color: rgba(255,255,255,0.55);

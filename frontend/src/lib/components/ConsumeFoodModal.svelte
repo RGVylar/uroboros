@@ -27,6 +27,8 @@
 
 	let quantity = $state(initialQuantity ?? Math.min(1, item.quantity_base));
 	let unit = $state<InventoryUnit>(initialUnit ?? item.unit);
+	// 'unit' es el valor interno; en pantalla salía tal cual ("12 unit").
+	const unitLabel = $derived(item.unit === 'unit' ? t('unit.short') : item.unit);
 	let notes = $state('');
 	let saving = $state(false);
 	let error = $state('');
@@ -48,7 +50,7 @@
 			onconsumed?.(updated);
 			onclose();
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'No se pudo consumir del inventario';
+			error = e instanceof Error ? e.message : t('consume.err');
 		} finally {
 			saving = false;
 		}
@@ -69,7 +71,7 @@
 	<div class="stock-info">
 		<div class="stock-label">{t('consume.currentStock')}</div>
 		<div class="stock-value">
-			{item.quantity_base.toLocaleString()} <span class="stock-unit">{item.unit}</span>
+			{item.quantity_base.toLocaleString()} <span class="stock-unit">{unitLabel}</span>
 		</div>
 	</div>
 
@@ -86,7 +88,7 @@
 	</div>
 
 	<div class="field-group">
-		<UnitSelector bind:unit label="Unidad" size="sm" />
+		<UnitSelector bind:unit label={t('inventory.unit')} size="sm" />
 	</div>
 
 	<div class="field-group">
@@ -102,7 +104,7 @@
 
 	{#if unit === item.unit}
 		<div class="preview">
-			{t('consume.remaining')} <strong>{remaining.toLocaleString()} {item.unit}</strong>
+			{t('consume.remaining')} <strong>{remaining.toLocaleString()} {unitLabel}</strong>
 		</div>
 	{/if}
 

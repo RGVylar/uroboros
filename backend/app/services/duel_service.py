@@ -36,6 +36,7 @@ from app.models.cheat_day import CheatDayLog
 from app.models.diary import DiaryEntry
 from app.models.exercise import ExerciseSession
 from app.models.goals import UserGoals
+from app.models.user import User
 
 KCAL_WEIGHT = 70             # points the calorie part is worth
 PROTEIN_WEIGHT = 30          # points the protein part is worth
@@ -181,6 +182,7 @@ def _week_result(
     goal_kcal: float | None,
     goal_protein: float | None,
     mode: str,
+    since: date | None = None,
 ) -> WeekResult:
     states: list[str] = []
     scores: list[int | None] = []
@@ -197,6 +199,13 @@ def _week_result(
             continue
         if d == today:
             states.append("today")
+            scores.append(None)
+            details.append(None)
+            continue
+        if since is not None and d < since:
+            # Antes de existir la cuenta: no es un día sin registrar. Contarlo
+            # como 0 dejaba a quien se apunta un miércoles el último de la semana.
+            states.append("empty")
             scores.append(None)
             details.append(None)
             continue
@@ -239,13 +248,19 @@ def _user_goal(db: Session, user_id: int) -> tuple[float | None, float | None, s
     return goals.kcal, goals.protein, goals.macro_adjust_mode or "off"
 
 
+def _signup_date(db: Session, user_id: int) -> date | None:
+    created = db.scalar(select(User.created_at).where(User.id == user_id))
+    return created.date() if created else None
+
+
 def current_week(db: Session, user_id: int, today: date) -> WeekResult:
     """Adherence for just the week in progress — the cheap form the
     percentile snapshot job runs per user."""
     goal_kcal, goal_protein, mode = _user_goal(db, user_id)
     ws = week_start_for(today)
     data = _gather(db, user_id, ws, ws + timedelta(days=6))
-    return _week_result(ws, today, *data, goal_kcal, goal_protein, mode)
+    return _week_result(ws, today, *data, goal_kcal, goal_protein, mode,
+                        since=_signup_date(db, user_id))
 
 
 def user_weeks(db: Session, user_id: int, today: date) -> tuple[WeekResult, list[WeekResult]]:
@@ -257,8 +272,10 @@ def user_weeks(db: Session, user_id: int, today: date) -> tuple[WeekResult, list
     oldest_start = current_start - timedelta(weeks=HISTORY_WEEKS)
     data = _gather(db, user_id, oldest_start, current_start + timedelta(days=6))
 
+    since = _signup_date(db, user_id)
+
     def result_for(ws: date) -> WeekResult:
-        return _week_result(ws, today, *data, goal_kcal, goal_protein, mode)
+        return _week_result(ws, today, *data, goal_kcal, goal_protein, mode, since=since)
 
     current = result_for(current_start)
     past = [result_for(current_start - timedelta(weeks=n)) for n in range(1, HISTORY_WEEKS + 1)]

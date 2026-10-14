@@ -233,3 +233,7 @@ class DiaryRecipeCreate(BaseModel):
     ingredients: list[DiaryRecipeIngredientIn] | None = None
     also_for_user_id: int | None = None
     only_for_user_id: int | None = None
+    # Con also_for_user_id: la ración de la pareja, que puede no ser la mía. Un
+    # plato hecho para dos se reparte; sin esto, "toda la receta" se apuntaba
+    # entera a cada uno y contaba el doble. Nulo = la misma que la mía.
+    partner_grams: float | None = Field(default=None, gt=0)

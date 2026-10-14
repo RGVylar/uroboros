@@ -15,7 +15,7 @@
 	import PotDrawing from '$lib/components/PotDrawing.svelte';
 	import ShareSelector from '$lib/components/ShareSelector.svelte';
 	import { fmtServings, potEatenBy, potPeople, servingsLabel } from '$lib/pots';
-	import type { Pot, ShareMode } from '$lib/types';
+	import type { Friendship, Pot, ShareMode } from '$lib/types';
 	import type {
 		Product,
 		User,
@@ -313,7 +313,7 @@
 	// son los gramos internos que entiende el backend (1 ud = 100 g).
 	let qty = $state(100);
 	let unit: ProductUnit = $derived(selected ? productUnitOf(selected) : 'g');
-	const perOf = (u: ProductUnit) => (u === 'unit' ? '/ud' : `/100${u}`);
+	const perOf = (u: ProductUnit) => (u === 'unit' ? `/${t('unit.short')}` : `/100${u}`);
 	let grams = $derived(qtyToGrams(qty, unit));
 	// null = solo yo | 'also' = los dos | 'only' = solo pareja
 	let shareMode: ShareMode = $state(null);
@@ -331,6 +331,18 @@
 	let error = $state('');
 	let showManual = $state(false);
 	let partner = $derived(users.find((u) => u.id !== auth.user?.id) ?? null);
+	// Hay pareja pero aún no te deja apuntar en su diario: sin este aviso el
+	// selector "para los dos" simplemente no salía y no había forma de saber por qué.
+	let lockedPartner = $state<string | null>(null);
+	async function loadLockedPartner() {
+		try {
+			const fs = await api.get<Friendship[]>('/friends');
+			const f = fs.find(x => x.status === 'accepted' && x.kind === 'partner');
+			if (f) lockedPartner = (f.requester.id === auth.user?.id ? f.receiver : f.requester).name;
+		} catch {
+			// sin aviso: es solo una pista
+		}
+	}
 
 	// ── Ollas ───────────────────────────────────────────────────────────────────
 	// Se abren con ?olla=ID (desde Recetas) o tocando su tarjeta. Una ración es
@@ -786,6 +798,7 @@
 	let portionGrams: number | null = $state(null);
 	// Gramos por ingrediente (id → g) cuando se retoca a mano; null = sin ajustar.
 	let portionOverrides = $state<Record<number, number> | null>(null);
+	let portionPartnerGrams = $state<number | null>(null);
 	let portionEmpty = $derived(
 		portionOverrides !== null && Object.values(portionOverrides).every(g => g <= 0)
 	);
@@ -800,6 +813,7 @@
 		portionRecipe = recipe;
 		portionGrams = null;
 		portionOverrides = null;
+		portionPartnerGrams = null;
 	}
 
 	async function confirmLogRecipe() {
@@ -823,7 +837,8 @@
 				meal_type: mealType,
 				consumed_at: consumedAt(selectedDate),
 				also_for_user_id: shareMode === 'also' ? partner?.id : null,
-			only_for_user_id: shareMode === 'only' ? partner?.id : null,
+				only_for_user_id: shareMode === 'only' ? partner?.id : null,
+				partner_grams: shareMode === 'also' && !portionOverrides ? portionPartnerGrams || null : null,
 			});
 			portionRecipe = null;
 			goto('/');
@@ -843,6 +858,7 @@
 			users = u;
 			const p = u.find(x => x.id !== auth.user?.id);
 			if (p) loadPartnerAllergies(p.id);
+			else loadLockedPartner();
 		}).catch(() => {});
 		loadRecommendations();
 		loadFrequent();
@@ -1524,12 +1540,14 @@
 	<!-- Partner share (3 estados) -->
 	{#if users.length > 1 && partner}
 		<ShareSelector bind:mode={shareMode} partnerName={partner.name} style="margin-bottom:1rem;" />
+	{:else if lockedPartner}
+		<div class="share-locked"><Icon name="users" /><span>{t('add.shareLocked', { name: lockedPartner })}</span></div>
 	{/if}
 
 	<!-- No allergen info notice -->
 	{#if noAllergenInfo}
 		<div class="allergen-unknown-notice">
-			<span style="font-size:1rem; flex-shrink:0;">ℹ️</span>
+			<span style="font-size:1rem; flex-shrink:0; display:inline-flex;"><Icon name="info" /></span>
 			<span>{t('add.noAllergenInfo')}</span>
 		</div>
 	{/if}
@@ -2229,6 +2247,8 @@
 				weight={weightOf(portionRecipe)}
 				bind:grams={portionGrams}
 				bind:overrides={portionOverrides}
+				partnerName={shareMode === 'also' ? partner?.name : null}
+				bind:partnerGrams={portionPartnerGrams}
 			/>
 		</div>
 		<div style="margin-bottom:0.875rem;">
@@ -2245,6 +2265,8 @@
 		</div>
 		{#if partner}
 			<ShareSelector bind:mode={shareMode} partnerName={partner.name} style="margin-bottom:1rem;" />
+		{:else if lockedPartner}
+			<div class="share-locked"><Icon name="users" /><span>{t('add.shareLocked', { name: lockedPartner })}</span></div>
 		{/if}
 		<!-- Si es para varios días, mejor como olla: se abre ya rellena en Recetas -->
 		<button class="filter-chip" style="width:100%; justify-content:center; margin-bottom:0.75rem;" onclick={() => goto(`/recipes?olla=${portionRecipe!.id}`)}>
@@ -2820,6 +2842,20 @@
 	.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 	/* ── Consume prompt ── */
+	.share-locked {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+		padding: 0.75rem 0.875rem;
+		border-radius: 14px;
+		background: rgba(255,255,255,0.04);
+		border: 1px dashed rgba(255,255,255,0.14);
+		font-size: 0.75rem;
+		line-height: 1.4;
+		color: rgba(255,255,255,0.6);
+	}
+	.share-locked :global(.uro-icon) { flex-shrink: 0; margin-top: 0.1rem; }
 	.consume-backdrop {
 		position: fixed;
 		inset: 0;

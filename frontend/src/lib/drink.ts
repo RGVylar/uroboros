@@ -1,4 +1,4 @@
-import { t } from '$lib/i18n/index.svelte';
+import { t, fmtNumber } from '$lib/i18n/index.svelte';
 
 // Heurística compartida para decidir si un producto se mide en ml (bebida) o g.
 // Compara palabras completas: con includes(), "aguacate" contenía "agua" y los
@@ -56,11 +56,14 @@ export function qtyToGrams(qty: number, u: ProductUnit): number {
 export function fmtQty(grams: number, p: UnitSource | null | undefined): string {
 	const u = p ? productUnitOf(p) : 'g';
 	const q = gramsToQty(grams, u);
-	return `${Number.isInteger(q) ? q : q.toFixed(1)}${unitSuffix(u)}`;
+	// Una receta en ración reparte los gramos con decimales ("183.3g"): en g y
+	// ml se redondea; en unidades sí importa la media ("1,5 ud").
+	const shown = u === 'unit' ? fmtNumber(q, { maximumFractionDigits: 1 }) : String(Math.round(q));
+	return `${shown}${unitSuffix(u)}`;
 }
 
 /** "/100g", "/100ml" o "/ud": a qué se refieren los macros del producto. */
 export function perLabel(p: UnitSource): string {
 	const u = productUnitOf(p);
-	return u === 'unit' ? '/ud' : `/100${u}`;
+	return u === 'unit' ? `/${t('unit.short')}` : `/100${u}`;
 }

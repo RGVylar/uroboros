@@ -9,10 +9,13 @@
 	import Icon from './Icon.svelte';
 	import type { TipId } from '$lib/stores/tips.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import PotDrawing from './PotDrawing.svelte';
+	import { servingsLabel } from '$lib/pots';
 
 	let { id }: { id: TipId } = $props();
 
 	const PARTNER_HUE = 330;
+	const ME_HUE = 235;
 	let partner = $derived(t('tipv.partnerName'));
 	let dow = $derived(t('tipv.dow').split(','));
 
@@ -161,6 +164,22 @@
 				</div>
 			{/each}
 		</div>
+
+	{:else if id === 'pot'}
+		<!-- La misma tarjeta que "Ollas en marcha": 6 raciones, una cada uno. -->
+		<div class="pot-card">
+			<PotDrawing left={4 / 6} size={64} />
+			<div class="pot-main">
+				<div class="pot-name">{t('tipv.potName')}</div>
+				<div class="pot-left">4<span>&nbsp;/ {servingsLabel(6)}</span></div>
+				<div class="pot-legend">
+					<span style="color:oklch(78% 0.15 {ME_HUE})">● {t('pot.you')} 1</span>
+					<span style="color:oklch(78% 0.15 {PARTNER_HUE})">● {partner} 1</span>
+				</div>
+				<div class="pot-sub">{t('pot.kcalPerServing', { kcal: 340 })}</div>
+			</div>
+		</div>
+		<div class="callout">↑ {t('tipv.potHint', { name: partner })}</div>
 
 	{:else if id === 'module.inventory'}
 		<div class="flow">
@@ -402,6 +421,17 @@
 
 	/* Despensa */
 	.flow { display: flex; align-items: center; gap: 0.25rem; }
+	.pot-card {
+		display: flex; align-items: center; gap: 0.75rem;
+		background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+		border-radius: 16px; padding: 0.625rem 0.75rem;
+	}
+	.pot-main { flex: 1; min-width: 0; }
+	.pot-name { font-size: 0.8125rem; font-weight: 700; }
+	.pot-left { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.03em; }
+	.pot-left span { font-size: 0.6875rem; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0; }
+	.pot-legend { display: flex; gap: 0.625rem; font-size: 0.625rem; font-weight: 600; }
+	.pot-sub { font-size: 0.625rem; color: rgba(255,255,255,0.45); }
 	.step {
 		flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
 		padding: 0.45rem 0.2rem; border-radius: 10px; text-align: center;

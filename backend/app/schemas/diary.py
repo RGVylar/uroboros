@@ -45,6 +45,8 @@ class DiaryEntryOut(BaseModel):
     consumed_at: datetime
     created_at: datetime
     product: ProductOut | None = None
+    recipe_id: int | None = None
+    recipe_name: str | None = None
 
     class Config:
         from_attributes = True

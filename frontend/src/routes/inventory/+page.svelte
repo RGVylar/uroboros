@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
+	import { untrack } from 'svelte';
+	import { perLabel } from '$lib/drink';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -38,6 +40,26 @@
 	let addLocation = $state<InventoryLocation>('pantry');
 	let addPrice = $state<number | ''>('');
 	let saving = $state(false);
+	// Al pasar a "unidad" se quedaba en 100 (¡100 huevos!). Solo se corrige si
+	// sigue el valor por defecto del otro modo; lo que hayas escrito se respeta.
+	let prevAddUnit: InventoryUnit = 'g';
+	$effect(() => {
+		const u = addUnit;
+		untrack(() => {
+			if (u === 'unit' && prevAddUnit !== 'unit' && addQty === 100) addQty = 1;
+			else if (u !== 'unit' && prevAddUnit === 'unit' && addQty === 1) addQty = 100;
+			prevAddUnit = u;
+		});
+	});
+
+	// Búsqueda al escribir, como en Añadir comida (antes solo con Intro).
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		const q = query.trim();
+		clearTimeout(searchTimer);
+		if (q.length < 2 || /^\d{8,}$/.test(q)) return;
+		searchTimer = setTimeout(() => untrack(() => searchProducts()), 300);
+	});
 	let showAddForm = $state(false);
 
 	// Manual product creation
@@ -350,6 +372,9 @@
 {/if}
 
 <!-- ── Search ── -->
+<!-- Mientras se añade, el buscador de filtrar se esconde: había dos buscadores
+     apilados y no se sabía cuál era cuál. -->
+{#if !showAddForm}
 <div style="position:relative; margin-bottom:0.625rem;">
 	<input
 		bind:value={invQuery}
@@ -384,6 +409,7 @@
 		</button>
 	{/each}
 </div>
+{/if}
 
 <!-- ── Add form ── -->
 {#if showAddForm}
@@ -412,13 +438,13 @@
 						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; query = ''; }}
 						style="flex:1; padding:0.5rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;"
 					>
-						Escanear otro
+						{t('inventory.scanAnother')}
 					</button>
 					<button
 						onclick={() => { barcodeNotFound = false; lastScannedBarcode = ''; showManual = true; }}
 						style="flex:1; padding:0.5rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;"
 					>
-						<Icon name="edit" /> Crear manual
+						<Icon name="edit" /> {t('inventory.createManual')}
 					</button>
 				</div>
 			</div>
@@ -430,7 +456,7 @@
 					<button onclick={() => selectProduct(p)} style="width:100%; text-align:left; padding:0.625rem 0.75rem; background:rgba(255,255,255,0.04); border:none; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; font-family:inherit;">
 						<div style="font-weight:600; font-size:0.8125rem; color:#fff;">{p.name}</div>
 						{#if p.brand}<div style="font-size:0.7rem; color:rgba(255,255,255,0.45);">{p.brand}</div>{/if}
-						<div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">{p.calories_per_100g} kcal/100g</div>
+						<div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">{p.calories_per_100g} kcal{perLabel(p)}</div>
 					</button>
 				{/each}
 			</div>
@@ -442,7 +468,7 @@
 			style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;"
 		>
 			<div style="font-weight:700; font-size:0.875rem; color:#fff;">
-				{showManual ? 'Nuevo producto' : selectedProduct ? selectedProduct.name : t('inventory.addToInventory')}
+				{showManual ? t('inventory.newProduct') : selectedProduct ? selectedProduct.name : t('inventory.addToInventory')}
 			</div>
 			{#if !selectedProduct}
 				<button
@@ -539,7 +565,7 @@
 					<div
 						style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:0.125rem;"
 					>
-						{selectedProduct.brand} · {selectedProduct.calories_per_100g} kcal/100g
+						{selectedProduct.brand} · {selectedProduct.calories_per_100g} kcal{perLabel(selectedProduct)}
 					</div>
 				{/if}
 			</div>
@@ -563,7 +589,7 @@
 						for="inv-qty"
 						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
 					>
-						Cantidad ({addUnit === 'unit' ? 'uds' : addUnit})
+						{t('inventory.qty', { unit: addUnit === 'unit' ? t('unit.short') : addUnit })}
 					</label>
 					<input
 						id="inv-qty"
@@ -579,7 +605,7 @@
 						for="inv-price"
 						style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.06em;"
 					>
-						€ / 100g
+						{t('inventory.per100g')}
 						<span style="font-weight:400; text-transform:none;">{t('inventory.optShort')}</span>
 					</label>
 					<input
@@ -682,7 +708,7 @@
 						<div class="form-group" style="margin:0;">
 							<label
 								style="font-size:0.6875rem; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;"
-							>Cantidad ({editUnit === 'unit' ? 'uds' : editUnit})</label>
+							>{t('inventory.qty', { unit: editUnit === 'unit' ? t('unit.short') : editUnit })}</label>
 							<input
 								type="number"
 								bind:value={editQty}

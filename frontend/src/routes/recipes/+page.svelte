@@ -108,6 +108,8 @@
 		// Lo de los círculos habla del icono de cada receta: sin recetas no hay
 		// icono que tocar, así que espera a la primera.
 		if (recipes.length > 0 || sharedRecipes.length > 0) tips.request('recipe_sharing');
+		// La olla no se parece a nada más de la app: se explica en cuanto hay una.
+		if (pots.length > 0) tips.request('pot');
 		// Desde el "¿Cuánto?" de Añadir: /recipes?olla=ID abre la olla con esa receta.
 		const ollaId = Number(new URLSearchParams(location.search).get('olla'));
 		const ollaRecipe = ollaId ? recipes.find(r => r.id === ollaId) : undefined;
@@ -309,6 +311,7 @@
 	let logGrams: number | null = $state(null);
 	// Gramos por ingrediente (id → g) cuando se retoca a mano; null = sin ajustar.
 	let logOverrides = $state<Record<number, number> | null>(null);
+	let logPartnerGrams = $state<number | null>(null);
 
 	// Igual que al añadir un alimento: la hora exacta solo importa hoy (usamos el
 	// instante actual); para días pasados se registra al mediodía por defecto.
@@ -333,6 +336,7 @@
 	function makePot(recipe: Recipe | null) {
 		potFromRecipe = recipe;
 		showPotForm = true;
+		tips.request('pot');
 		if (recipe) window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
@@ -391,6 +395,7 @@
 		logPendingRecipe = recipe;
 		logGrams = null;
 		logOverrides = null;
+		logPartnerGrams = null;
 		shareMode = null;
 	}
 
@@ -416,6 +421,7 @@
 				consumed_at: consumedAt(logDate),
 				also_for_user_id: shareMode === 'also' ? partner?.id : null,
 				only_for_user_id: shareMode === 'only' ? partner?.id : null,
+				partner_grams: shareMode === 'also' && !logOverrides ? logPartnerGrams || null : null,
 			});
 			logPendingRecipe = null;
 			goto('/');
@@ -689,7 +695,7 @@
 
 <!-- Ollas en marcha -->
 <div class="section-eyebrow pot-head">
-	<span>{t('pot.section')}</span>
+	<span>{t('pot.section')}<InfoTip id="pot" /></span>
 	{#if !showPotForm}<button class="pot-make" onclick={() => makePot(null)}>{t('pot.make')}</button>{/if}
 </div>
 {#if showPotForm}
@@ -940,15 +946,18 @@
 		<div class="glass-card recipe-card">
 			<div style="display:flex; gap:0.75rem; margin-bottom:0.75rem;">
 				<!-- Emoji avatar -->
-				<div class="recipe-avatar" style="background:linear-gradient(135deg, oklch(72% 0.16 {hue}), oklch(55% 0.14 {(hue+30) % 360}));">
+				<!-- Tocar la receta también la abre, además del icono del libro. -->
+				<button type="button" class="recipe-avatar recipe-open" onclick={() => (viewingRecipe = recipe)} aria-label={t('recipes.view')} style="background:linear-gradient(135deg, oklch(72% 0.16 {hue}), oklch(55% 0.14 {(hue+30) % 360}));">
 					<Icon name={recipeIcon(recipe.name)} />
-				</div>
+				</button>
 				<div style="flex:1; min-width:0;">
 					<div style="display:flex; align-items:center; gap:0.375rem;">
-						<span class="recipe-name">{recipe.name}</span>
-						{#if recipe.is_shared}
-							<span class="shared-badge" title={SCOPE_LABEL[recipe.share_scope]}><Icon name={SCOPE_ICON[recipe.share_scope]} fill={recipe.share_scope === 'partner' ? 'currentColor' : undefined} /></span>
-						{/if}
+						<button type="button" class="recipe-name recipe-open" onclick={() => (viewingRecipe = recipe)}>{recipe.name}</button>
+						<!-- Quién la ve, con texto: como icono suelto se confundía con
+						     el de compartir. Tocar cambia entre solo tú / pareja / amigos. -->
+						<button type="button" class="scope-chip scope-{recipe.share_scope}" onclick={() => cycleScope(recipe)} title={t('recipes.scopeTitle', { scope: SCOPE_LABEL[recipe.share_scope] })} aria-label={t('recipes.scopeAria', { scope: SCOPE_LABEL[recipe.share_scope] })}>
+							<Icon name={SCOPE_ICON[recipe.share_scope]} fill={recipe.share_scope === 'partner' ? 'currentColor' : undefined} />{SCOPE_LABEL[recipe.share_scope]}
+						</button>
 					</div>
 					<div class="recipe-sub">{recipe.ingredients.length} ing{#if recipe.steps.length} · {tc('recipes.stepsCount', recipe.steps.length)}{/if} · {preview}</div>
 					<div class="recipe-macros">
@@ -966,9 +975,6 @@
 				<button class="icon-btn" onclick={() => shareRecipe(recipe)} title={t('recipes.share')} aria-label={t('recipes.share')}><Icon name="share" /></button>
 				<button class="icon-btn" onclick={() => (viewingRecipe = recipe)} title={t('recipes.view')} aria-label={t('recipes.view')}><Icon name="recipes" /></button>
 				<button class="icon-btn" onclick={() => startEdit(recipe)} title={t('recipes.editTitle')} aria-label={t('recipes.editTitle')}><Icon name="edit" /></button>
-				<button class="icon-btn" onclick={() => cycleScope(recipe)} title={t('recipes.scopeTitle', { scope: SCOPE_LABEL[recipe.share_scope] })} aria-label={t('recipes.scopeAria', { scope: SCOPE_LABEL[recipe.share_scope] })}>
-					<Icon name={SCOPE_ICON[recipe.share_scope]} fill={recipe.share_scope === 'partner' ? 'currentColor' : undefined} />
-				</button>
 				{#if confirmingDelete === recipe.id}
 					<button class="icon-btn icon-btn-danger confirm" onclick={() => deleteRecipe(recipe.id)} title={t('recipes.confirmDelete')}>{t('recipes.deleteAsk')}</button>
 				{:else}
@@ -1108,6 +1114,8 @@
 				weight={logPendingRecipe.weight}
 				bind:grams={logGrams}
 				bind:overrides={logOverrides}
+				partnerName={shareMode === 'also' ? partner?.name : null}
+				bind:partnerGrams={logPartnerGrams}
 			/>
 		</div>
 
@@ -1350,6 +1358,39 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.recipe-open {
+		background: none;
+		border: none;
+		padding: 0;
+		font-family: inherit;
+		cursor: pointer;
+		text-align: left;
+		min-width: 0;
+	}
+	button.recipe-avatar { border: none; cursor: pointer; flex-shrink: 0; padding: 0; }
+	/* Botones que no deben parecerlo: sin el brillo ni el salto del botón global. */
+	.recipe-open, .scope-chip { box-shadow: none; }
+	button.recipe-avatar:hover, .recipe-open:hover, .scope-chip:hover { filter: none; transform: none; }
+	.recipe-open:hover, .scope-chip:hover { box-shadow: none; }
+	button.recipe-avatar:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); }
+	.scope-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		flex-shrink: 0;
+		padding: 0.15rem 0.5rem;
+		border-radius: 99px;
+		border: 1px solid rgba(255,255,255,0.12);
+		background: rgba(255,255,255,0.05);
+		color: rgba(255,255,255,0.6);
+		font-family: inherit;
+		font-size: 0.625rem;
+		font-weight: 700;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.scope-chip.scope-partner { color: oklch(82% 0.13 350); border-color: oklch(70% 0.15 350 / 0.35); }
+	.scope-chip.scope-friends { color: oklch(85% 0.13 165); border-color: oklch(75% 0.15 165 / 0.35); }
 	.recipe-sub {
 		font-size: 0.6875rem;
 		color: rgba(255,255,255,0.45);

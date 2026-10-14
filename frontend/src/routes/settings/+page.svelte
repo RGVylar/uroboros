@@ -881,7 +881,7 @@
 		<div class="row-divider"></div>
 		<!-- Acerca de: versión instalada y, si hay una más nueva, el botón para ir a por ella -->
 		<div class="settings-row" style="cursor:default;">
-			<div class="icon-box">{updateAvailable ? '🆕' : 'ℹ️'}</div>
+			<div class="icon-box"><Icon name={updateAvailable ? 'sparkles' : 'info'} /></div>
 			<div class="row-content">
 				<div class="row-label">{t('settings.about', { version: APP_VERSION })}</div>
 				<div class="row-detail">
