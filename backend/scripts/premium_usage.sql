@@ -113,6 +113,9 @@ WHERE status::text = 'accepted' AND kind::text = 'partner';
 \echo '══════════ POR USUARIO (registros totales; ult = último día en el diario) ══════════'
 -- coh: G = grandfathered, luego subscription_status. d30 = entradas del
 -- diario en 30 días. desp/lista suman lo personal y lo compartido que añadió.
+-- OJO: desp y lista cuentan filas VIVAS; lo consumido o tachado y borrado
+-- desaparece. desp_mov (inventory_logs) es el rastro de uso de la despensa
+-- personal, aunque también se borra en cascada con su artículo.
 SELECT
     u.id,
     u.name,
@@ -126,10 +129,14 @@ SELECT
     (SELECT COUNT(*) FROM cheat_day_logs c WHERE c.user_id = u.id)              AS cheat,
     (SELECT COUNT(*) FROM inventory_items i WHERE i.user_id = u.id)
   + (SELECT COUNT(*) FROM shared_inventory_items s WHERE s.added_by_user_id = u.id) AS desp,
+    (SELECT COUNT(*) FROM inventory_logs il WHERE il.user_id = u.id)            AS desp_mov,
     (SELECT COUNT(*) FROM shopping_list_items l WHERE l.user_id = u.id)
   + (SELECT COUNT(*) FROM shared_shopping_list_items s WHERE s.added_by_user_id = u.id) AS lista,
     (SELECT COUNT(*) FROM recipes r WHERE r.owner_id = u.id)                    AS recet,
     (SELECT COUNT(*) FROM products p WHERE p.edited_by = u.id)                  AS prods,
+    (SELECT COUNT(*) FROM pots o WHERE o.owner_id = u.id OR o.partner_id = u.id) AS ollas,
+    (SELECT COUNT(*) FROM daily_steps st WHERE st.user_id = u.id)               AS pasos,
+    (SELECT COUNT(*) FROM receipt_imports ri WHERE ri.user_id = u.id)           AS tickets,
     COALESCE((SELECT g.macro_adjust_mode::text FROM user_goals g
               WHERE g.user_id = u.id LIMIT 1), '-')                            AS macros
 FROM users u
