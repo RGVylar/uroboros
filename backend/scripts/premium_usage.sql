@@ -110,6 +110,32 @@ SELECT 'parejas aceptadas', COUNT(*) FROM friendships
 WHERE status::text = 'accepted' AND kind::text = 'partner';
 
 \echo ''
+\echo '══════════ POR USUARIO (registros totales; ult = último día en el diario) ══════════'
+-- coh: G = grandfathered, luego subscription_status. d30 = entradas del
+-- diario en 30 días. desp/lista suman lo personal y lo compartido que añadió.
+SELECT
+    u.id,
+    u.name,
+    CASE WHEN u.grandfathered THEN 'G·' ELSE '' END || u.subscription_status AS coh,
+    (SELECT MAX(consumed_at)::date FROM diary_entries d WHERE d.user_id = u.id) AS ult,
+    (SELECT COUNT(*) FROM diary_entries d WHERE d.user_id = u.id
+        AND d.consumed_at >= NOW() - INTERVAL '30 days')                         AS d30,
+    (SELECT COUNT(*) FROM weight_logs w WHERE w.user_id = u.id)                 AS peso,
+    (SELECT COUNT(*) FROM exercise_sessions e WHERE e.user_id = u.id)           AS ejer,
+    (SELECT COUNT(*) FROM body_measurement_logs b WHERE b.user_id = u.id)       AS medid,
+    (SELECT COUNT(*) FROM cheat_day_logs c WHERE c.user_id = u.id)              AS cheat,
+    (SELECT COUNT(*) FROM inventory_items i WHERE i.user_id = u.id)
+  + (SELECT COUNT(*) FROM shared_inventory_items s WHERE s.added_by_user_id = u.id) AS desp,
+    (SELECT COUNT(*) FROM shopping_list_items l WHERE l.user_id = u.id)
+  + (SELECT COUNT(*) FROM shared_shopping_list_items s WHERE s.added_by_user_id = u.id) AS lista,
+    (SELECT COUNT(*) FROM recipes r WHERE r.owner_id = u.id)                    AS recet,
+    (SELECT COUNT(*) FROM products p WHERE p.edited_by = u.id)                  AS prods,
+    COALESCE((SELECT g.macro_adjust_mode::text FROM user_goals g
+              WHERE g.user_id = u.id LIMIT 1), '-')                            AS macros
+FROM users u
+ORDER BY ult DESC NULLS LAST, u.id;
+
+\echo ''
 \echo '══════════ USUARIOS FREE QUE YA CHOCAN CON UN MURO ══════════'
 SELECT
     u.id, u.name, u.created_at::date AS alta,
