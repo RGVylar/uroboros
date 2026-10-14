@@ -40,10 +40,10 @@
 			await api.patch(`/products/${productId}`, {
 				name,
 				brand: brand || null,
-				calories_per_100g: cal,
-				protein_per_100g: prot,
-				carbs_per_100g: carbs,
-				fat_per_100g: fat
+				calories_per_100g: cal ?? 0,
+				protein_per_100g: prot ?? 0,
+				carbs_per_100g: carbs ?? 0,
+				fat_per_100g: fat ?? 0
 			});
 			saved = true;
 			setTimeout(() => goto('/add'), 1000);

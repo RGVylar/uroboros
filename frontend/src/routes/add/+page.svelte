@@ -492,10 +492,11 @@
 			const updated = await api.patch<Product>(`/products/${selected.id}`, {
 				name: editName,
 				brand: editBrand || null,
-				calories_per_100g: editCal,
-				protein_per_100g: editProt,
-				carbs_per_100g: editCarbs,
-				fat_per_100g: editFat,
+				// Un input numérico vaciado deja null: lo tratamos como 0.
+				calories_per_100g: editCal ?? 0,
+				protein_per_100g: editProt ?? 0,
+				carbs_per_100g: editCarbs ?? 0,
+				fat_per_100g: editFat ?? 0,
 				unit: editUnit,
 			});
 			selected = updated;

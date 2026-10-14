@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 ProductUnit = Literal["g", "ml", "unit"]
 
@@ -30,6 +30,15 @@ class ProductUpdate(BaseModel):
     carbs_per_100g: float | None = Field(default=None, ge=0)
     fat_per_100g: float | None = Field(default=None, ge=0)
     unit: ProductUnit | None = None
+
+    @model_validator(mode="after")
+    def _no_null_required(self) -> "ProductUpdate":
+        # Omitir un campo = no tocarlo; mandarlo a null en uno NOT NULL
+        # reventaba con IntegrityError (un input numérico vaciado llega null).
+        for field in ("name", "calories_per_100g", "protein_per_100g", "carbs_per_100g", "fat_per_100g"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
 
 
 class ProductOut(ProductBase):
