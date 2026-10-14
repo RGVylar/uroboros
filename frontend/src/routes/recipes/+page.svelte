@@ -10,7 +10,7 @@
 	import { tips } from '$lib/stores/tips.svelte';
 
 	// Para quién es cada receta (candado, corazón, enlace) no se adivina mirando el icono.
-	import { Modal, RecipeAmount, RecipeCardEditor, Icon } from '$lib/components';
+	import { Modal, RecipeAmount, RecipeCardEditor, Icon, ScanButton } from '$lib/components';
 	import { recipeIcon } from '$lib/foodIcons';
 	import type { IconName } from '$lib/icons';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -773,14 +773,15 @@
 		<!-- Búsqueda por código de barras -->
 		<div class="form-group">
 			<label for="r-barcode">{t('recipes.barcode')}</label>
-			<div style="display:flex; gap:0.5rem; align-items:center;">
+			<div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
 				<input id="r-barcode" value={barcodeQuery}
 					oninput={(e) => onBarcodeInput((e.target as HTMLInputElement).value, false)}
 					placeholder={t('recipes.barcodePlaceholder')}
-					inputmode="numeric" style="flex:1;" />
+					inputmode="numeric" style="flex:1; min-width:0;" />
 				{#if barcodeLoading}
 					<span style="font-size:0.8rem; color:var(--text-muted);">...</span>
 				{/if}
+				<ScanButton onScan={(code) => { barcodeQuery = code; fetchBarcode(code, false); }} />
 			</div>
 			{#if barcodeError}<p class="error" style="margin:0.25rem 0 0;">{barcodeError}</p>{/if}
 		</div>
@@ -908,13 +909,14 @@
 			<!-- Buscar por barcode -->
 			<div class="form-group" style="margin-bottom:0.5rem;">
 				<label for="edit-barcode">{t('recipes.barcode')}</label>
-				<div style="display:flex; gap:0.5rem; align-items:center;">
+				<div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
 					<input id="edit-barcode" value={editBarcodeQuery}
 						oninput={(e) => onBarcodeInput((e.target as HTMLInputElement).value, true)}
-						placeholder={t('recipes.barcodePlaceholderShort')} inputmode="numeric" style="flex:1;" />
+						placeholder={t('recipes.barcodePlaceholderShort')} inputmode="numeric" style="flex:1; min-width:0;" />
 					{#if editBarcodeLoading}
 						<span style="font-size:0.8rem; color:var(--text-muted);">...</span>
 					{/if}
+					<ScanButton onScan={(code) => { editBarcodeQuery = code; fetchBarcode(code, true); }} />
 				</div>
 				{#if editBarcodeError}<p class="error" style="margin:0.25rem 0 0;">{editBarcodeError}</p>{/if}
 			</div>
