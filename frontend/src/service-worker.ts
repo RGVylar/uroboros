@@ -11,7 +11,10 @@ declare const self: ServiceWorkerGlobalScope;
 // bundle de esta versión y el index.html (la SPA sirve el mismo para todo).
 const CACHE = `uro-shell-${version}`;
 const SHELL = '/';
-const ASSETS = [...build, ...files, SHELL];
+// Las capturas de /screens son de la página /beta, no de la app: precacheadas
+// se colaba la respuesta HTML que el navegador tuviera guardada de antes del
+// despliegue y se quedaba ahí toda la versión.
+const ASSETS = [...build, ...files.filter((f) => !f.startsWith('/screens/')), SHELL];
 const ASSET_SET = new Set(ASSETS);
 // Lo que tarda en rendirse la red antes de abrir la copia guardada: un
 // bloqueo a veces no rechaza la conexión, la deja colgada.
@@ -36,10 +39,10 @@ self.addEventListener('fetch', (event) => {
 	const req = event.request;
 	if (req.method !== 'GET') return;
 	const url = new URL(req.url);
-	// La API (y la landing que sirve el backend) van siempre a la red: su
+	// La API (y las páginas que sirve el backend) van siempre a la red: su
 	// modo sin conexión lo llevan api.ts y la cola.
 	if (url.origin !== self.location.origin) return;
-	if (url.pathname.startsWith('/api') || url.pathname.startsWith('/unete')) return;
+	if (url.pathname.startsWith('/api') || url.pathname.startsWith('/unete') || url.pathname.startsWith('/beta')) return;
 
 	if (req.mode === 'navigate') {
 		event.respondWith(navigate(req));
