@@ -83,7 +83,9 @@ _HTML = """<!doctype html>
     width: 34px; height: 34px; flex-shrink: 0; border-radius: 11px; font-size: 1rem;
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
     display: flex; align-items: center; justify-content: center;
+    color: oklch(85% 0.17 160);
   }
+  .req .ico svg { width: 18px; height: 18px; }
   .req span { color: rgba(255,255,255,0.75); line-height: 1.4; }
   .req b { color: #eef1f5; }
 
@@ -156,9 +158,9 @@ _HTML = """<!doctype html>
 _FORM = """
   <div class="card">
     <h2>{L_REQ_T}</h2>
-    <div class="req"><div class="ico">📱</div><span>{L_REQ1}</span></div>
-    <div class="req"><div class="ico">📅</div><span>{L_REQ2}</span></div>
-    <div class="req"><div class="ico">✅</div><span>{L_REQ3}</span></div>
+    <div class="req"><div class="ico">{ICON_PHONE}</div><span>{L_REQ1}</span></div>
+    <div class="req"><div class="ico">{ICON_CALENDAR}</div><span>{L_REQ2}</span></div>
+    <div class="req"><div class="ico">{ICON_CHECK}</div><span>{L_REQ3}</span></div>
   </div>
 
   <form class="card" method="post" action="/beta?lang={L_LANG}">
@@ -302,6 +304,25 @@ _COPY: dict[str, dict[str, str]] = {
 }
 
 
+# Iconos de Lucide, como en toda la app (la SPA los usa vía <Icon>). Aquí no
+# hay Svelte, así que van en línea: copiados de @lucide/svelte del frontend.
+def _lucide(body: str) -> str:
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        f"{body}</svg>"
+    )
+
+
+_ICONS = {
+    "ICON_PHONE": _lucide('<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>'),
+    "ICON_CALENDAR": _lucide(
+        '<path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/>'
+    ),
+    "ICON_CHECK": _lucide('<path d="M20 6 9 17l-5-5"/>'),
+}
+
+
 def _fill(template: str, copy: dict[str, str]) -> str:
     for key, value in copy.items():
         template = template.replace("{" + key + "}", value)
@@ -327,7 +348,7 @@ def _render(lang: str, *, done_email: str | None = None, error: str = "", email:
         .replace("{PITCH}", pitch)
         .replace("{L_EYEBROW}", eyebrow)
     )
-    return _fill(html, copy).replace("{APP}", _APP_URL).replace("{PLAY}", _PLAY_URL)
+    return _fill(_fill(html, copy), _ICONS).replace("{APP}", _APP_URL).replace("{PLAY}", _PLAY_URL)
 
 
 def _lang(accept_language: str | None, lang: str | None) -> str:
