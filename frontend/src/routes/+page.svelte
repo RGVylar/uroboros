@@ -13,6 +13,7 @@
 	import NotifModal from '$lib/components/NotifModal.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { undoable } from '$lib/stores/undo';
 	import { productUnitOf, perLabel, fmtQty, unitSuffix, gramsToQty, qtyToGrams, type ProductUnit } from '$lib/drink';
 	import { adjustGoalsForExercise } from '$lib/goals';
 	import type { DaySummary, Goals, WaterDay, MealType, FrequentProduct, FrequentRecipe, User, DiaryEntry, CheatDayToday, MealSection, DayTotals, SupplementToday, UserSupplement, MoodEntry, StepsDay } from '$lib/types';
@@ -514,7 +515,7 @@
 		if (!partner || entry.id < 0) {
 			// Sin pareja solo hay que preguntar si es parte de una receta.
 			if (isRecipe) { deletingPartnerHas = false; deletingEntry = entry; }
-			else confirmDelete(entry.id, 'mine');
+			else confirmDelete([entry.id], 'mine');
 			return;
 		}
 		if (connectivity.isOffline) {
@@ -531,11 +532,11 @@
 			if (deletingPartnerHas || isRecipe) {
 				deletingEntry = entry;          // hay copia o es receta → preguntar
 			} else {
-				confirmDelete(entry.id, 'mine'); // solo es tuya y suelta → borrar directo
+				confirmDelete([entry.id], 'mine'); // solo es tuya y suelta → borrar directo
 			}
 		} catch {
 			if (isRecipe) { deletingPartnerHas = false; deletingEntry = entry; }
-			else confirmDelete(entry.id, 'mine');
+			else confirmDelete([entry.id], 'mine');
 		}
 	}
 
@@ -543,45 +544,61 @@
 	async function confirmDeleteChoice(mode: 'both' | 'mine' | 'partner') {
 		if (!deletingEntry) return;
 		const ids = deleteWholeRecipe ? deletingRun.map(e => e.id) : [deletingEntry.id];
-		deletingEntry = null;
-		await Promise.all(ids.map(id => confirmDelete(id, mode, true)));
-		if (mode === 'partner') toast.success(t('diary.removedFromPartner', { name: partner?.name ?? '' }));
-		// Su diario también ha cambiado: sin esto seguía enseñando lo borrado.
-		if (mode !== 'mine') loadPartnerDay();
+		await confirmDelete(ids, mode);
 	}
 
-	async function confirmDelete(id: number, mode: 'both' | 'mine' | 'partner', quiet = false) {
+	// Borra una o varias entradas (una receta entera va junta, con un solo
+	// "Deshacer"). Online, la vista cambia al momento pero la petición espera al
+	// plazo del toast; deshacer solo tiene que recargar el día.
+	async function confirmDelete(ids: number[], mode: 'both' | 'mine' | 'partner') {
+		const first = summary?.entries.find(e => e.id === ids[0]) ?? deletingEntry;
 		deletingEntry = null;
-		let url = `/diary/${id}`;
-		if (partner && mode === 'both') url += `?also_for_user_id=${partner.id}`;
-		else if (partner && mode === 'partner') url += `?only_for_user_id=${partner.id}`;
+		const urlFor = (id: number) => {
+			let url = `/diary/${id}`;
+			if (partner && mode === 'both') url += `?also_for_user_id=${partner.id}`;
+			else if (partner && mode === 'partner') url += `?only_for_user_id=${partner.id}`;
+			return url;
+		};
 		const removesMine = mode !== 'partner';  // "solo para la pareja" conserva la mía
-		const queued = pendingIds.get(id);
-		if (queued) {
-			// Aún no ha llegado al servidor: basta con sacarla de la cola.
-			syncQueue.remove(queued);
-			optimisticDeleteEntry(id);
-			return;
+		const online: number[] = [];
+		for (const id of ids) {
+			const queued = pendingIds.get(id);
+			if (queued) {
+				// Aún no ha llegado al servidor: basta con sacarla de la cola.
+				syncQueue.remove(queued);
+				optimisticDeleteEntry(id);
+			} else if (connectivity.isOffline) {
+				syncQueue.enqueue({ method: 'DELETE', path: urlFor(id), label: 'Borrar entrada' });
+				if (removesMine) optimisticDeleteEntry(id);
+			} else {
+				if (removesMine) optimisticDeleteEntry(id);
+				online.push(id);
+			}
 		}
-		if (connectivity.isOffline) {
-			syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
-			if (removesMine) optimisticDeleteEntry(id);
-			return;
-		}
-		// Online: update UI instantly, send request in background, revert on failure
-		if (removesMine) optimisticDeleteEntry(id);
-		try {
-			await api.del(url);
-			if (mode === 'partner' && !quiet) toast.success(t('diary.removedFromPartner', { name: partner?.name ?? '' }));
-		} catch {
-			// Se acaba de caer la conexión (empieza el bloqueo): a la cola.
-			if (connectivity.isOffline) {
-				syncQueue.enqueue({ method: 'DELETE', path: url, label: 'Borrar entrada' });
+		if (online.length === 0) return;
+
+		const commit = async () => {
+			const results = await Promise.allSettled(online.map(id => api.del(urlFor(id))));
+			const failed = online.filter((_, i) => results[i].status === 'rejected');
+			if (failed.length) {
+				// Se acaba de caer la conexión (empieza el bloqueo): a la cola.
+				if (connectivity.isOffline) {
+					for (const id of failed) syncQueue.enqueue({ method: 'DELETE', path: urlFor(id), label: 'Borrar entrada' });
+				} else {
+					toast.error(t('diary.errDelete'));
+					loadDay();
+				}
 				return;
 			}
-			toast.error(t('diary.errDelete'));
-			loadDay();
-		}
+			if (mode === 'partner') toast.success(t('diary.removedFromPartner', { name: partner?.name ?? '' }));
+			// Su diario también ha cambiado: sin esto seguía enseñando lo borrado.
+			if (mode !== 'mine') loadPartnerDay();
+			refreshStreak();
+		};
+		const message = online.length > 1
+			? t('diary.deletedMany', { count: online.length })
+			: t('diary.deleted', { name: first?.product?.name ?? '' });
+		undoable(message, commit, () => { loadDay(); });
 	}
 
 	function startEdit(entry: DiaryEntry) {

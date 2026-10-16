@@ -6,6 +6,7 @@
 	import InfoTip from '$lib/components/InfoTip.svelte';
 	import type { WeightLog, WeightTrend } from '$lib/types';
 	import { tips } from '$lib/stores/tips.svelte';
+	import { undoable } from '$lib/stores/undo';
 	import { t, fmtDate, fmtNumber, i18n } from '$lib/i18n/index.svelte';
 	// "68,0" en español y portugués; con toFixed salía "68.0" en todos.
 	const kg1 = (n: number) => fmtNumber(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -46,22 +47,61 @@
 		load();
 	}
 
-	// Borrado en dos toques: el primer ✕ pide confirmación en la propia fila
-	// (antes un solo toque borraba sin confirmación ni deshacer).
-	let confirmingDelete: number | null = $state(null);
-	let confirmTimer: ReturnType<typeof setTimeout> | undefined;
+	// Borrar = deslizar la fila a la izquierda. Sale de la lista al momento y el
+	// toast ofrece "Deshacer" unos segundos antes de borrarlo de verdad.
+	function deleteWeight(w: WeightLog) {
+		swipeId = null;
+		swipeX = 0;
+		weights = weights.filter(x => x.id !== w.id);
+		undoable(
+			t('weight.deleted', { kg: kg1(w.weight) }),
+			async () => { await api.del(`/weight/${w.id}`); load(); },
+			() => {
+				weights = [...weights, w].sort((a, b) => b.logged_at.localeCompare(a.logged_at));
+			},
+		);
+	}
 
-	async function deleteWeight(id: number) {
-		if (confirmingDelete !== id) {
-			confirmingDelete = id;
-			clearTimeout(confirmTimer);
-			confirmTimer = setTimeout(() => (confirmingDelete = null), 3000);
+	// ── Deslizar para borrar ──
+	// Arrastre corto: deja a la vista el botón "Borrar". Largo: borra al soltar.
+	const REVEAL = 88;
+	let swipeId = $state<number | null>(null);
+	let swipeX = $state(0);
+	let dragging = $state(false);
+	let drag: { id: number; x0: number; y0: number; base: number; width: number; locked: boolean } | null = null;
+
+	function onRowDown(e: PointerEvent, id: number) {
+		const base = swipeId === id ? swipeX : 0;
+		if (swipeId !== id) { swipeId = null; swipeX = 0; }
+		drag = { id, x0: e.clientX, y0: e.clientY, base, width: (e.currentTarget as HTMLElement).offsetWidth, locked: false };
+	}
+	function onRowMove(e: PointerEvent) {
+		if (!drag) return;
+		const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+		if (!drag.locked) {
+			if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }  // es scroll
+			if (Math.abs(dx) < 8) return;
+			drag.locked = true;
+			dragging = true;
+			swipeId = drag.id;
+			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		}
+		swipeX = Math.min(0, drag.base + dx);
+	}
+	function onRowUp() {
+		if (!drag) return;
+		const d = drag;
+		drag = null;
+		if (!d.locked) {
+			// Un toque en una fila abierta la cierra.
+			if (swipeId === d.id && swipeX !== 0) { swipeId = null; swipeX = 0; }
 			return;
 		}
-		clearTimeout(confirmTimer);
-		confirmingDelete = null;
-		await api.del(`/weight/${id}`);
-		load();
+		dragging = false;
+		const w = weights.find(x => x.id === d.id);
+		if (w && swipeX < -d.width * 0.5) deleteWeight(w);
+		else if (swipeX < -REVEAL / 2) swipeX = -REVEAL;
+		else { swipeId = null; swipeX = 0; }
 	}
 
 	function fmt(iso: string) {
@@ -103,39 +143,44 @@
 	);
 	let records = $derived(weights.length);
 
-	// SVG line chart helpers
+	// Gráfico: cada pesaje es un punto suelto y la tendencia es la línea. El eje X
+	// es temporal (no por índice), así los huecos sin pesajes se ven como huecos.
 	const W = 320;
 	const H = 150;
-	const PAD = 20;
+	const PAD_L = 28;   // hueco para las etiquetas de kg
+	const PAD_R = 8;
+	const PAD_T = 10;
+	const PAD_B = 20;
 
-	function cx(i: number, n: number): number {
-		if (n <= 1) return PAD + (W - PAD * 2) / 2;
-		return PAD + (i / (n - 1)) * (W - PAD * 2);
+	let tStart = $derived(chartData.length ? new Date(chartData[0].logged_at).getTime() : 0);
+	let tEnd = $derived(chartData.length ? new Date(chartData[chartData.length - 1].logged_at).getTime() : 1);
+
+	function cx(iso: string): number {
+		const span = tEnd - tStart;
+		if (span <= 0) return PAD_L + (W - PAD_L - PAD_R) / 2;
+		return PAD_L + ((new Date(iso).getTime() - tStart) / span) * (W - PAD_L - PAD_R);
 	}
 	function cy(w: number): number {
 		const ratio = (w - chartMin) / (chartMax - chartMin || 1);
-		return PAD + (1 - ratio) * (H - PAD * 2);
+		return PAD_T + (1 - ratio) * (H - PAD_T - PAD_B);
 	}
 
-	// Smooth quadratic path
-	let smoothPath = $derived.by(() => {
-		if (chartData.length < 2) return '';
-		const pts = chartData.map((w, i) => ({ x: cx(i, chartData.length), y: cy(w.weight) }));
-		let d = `M ${pts[0].x},${pts[0].y}`;
-		for (let i = 1; i < pts.length; i++) {
-			const p0 = pts[i - 1], p1 = pts[i];
-			const mx = (p0.x + p1.x) / 2;
-			d += ` Q ${mx},${p0.y} ${mx},${(p0.y + p1.y) / 2} T ${p1.x},${p1.y}`;
-		}
-		return d;
+	// Marcas del eje Y en números redondos (0,5 / 1 / 2 kg según el rango).
+	let yTicks = $derived.by(() => {
+		const span = chartMax - chartMin;
+		const step = span <= 3 ? 0.5 : span <= 6 ? 1 : 2;
+		const out: number[] = [];
+		for (let v = Math.ceil(chartMin / step) * step; v <= chartMax; v += step) out.push(+v.toFixed(1));
+		return out;
 	});
+	const kgTick = (n: number) => fmtNumber(n, { maximumFractionDigits: 1 });
 
-	let trendPath = $derived.by(() => {
-		const pts = chartTrend
-			.map((v, i) => (v === null ? null : `${cx(i, chartData.length)},${cy(v)}`))
-			.filter((p): p is string => p !== null);
-		return pts.length >= 2 ? `M ${pts.join(' L ')}` : '';
-	});
+	let trendPts = $derived(
+		chartData
+			.map((w, i) => (chartTrend[i] === null ? null : { x: cx(w.logged_at), y: cy(chartTrend[i]!) }))
+			.filter((p): p is { x: number; y: number } => p !== null)
+	);
+	let trendPath = $derived(trendPts.length >= 2 ? `M ${trendPts.map(p => `${p.x},${p.y}`).join(' L ')}` : '');
 
 	// Ritmo de la tendencia: por debajo de 0,05 kg/semana es "estable".
 	let rate = $derived(trend?.weekly_rate ?? null);
@@ -146,8 +191,8 @@
 	);
 
 	let areaPath = $derived(
-		chartData.length >= 2
-			? `${smoothPath} L ${cx(chartData.length - 1, chartData.length)},${H - PAD} L ${cx(0, chartData.length)},${H - PAD} Z`
+		trendPts.length >= 2
+			? `${trendPath} L ${trendPts[trendPts.length - 1].x},${H - PAD_B} L ${trendPts[0].x},${H - PAD_B} Z`
 			: ''
 	);
 </script>
@@ -254,44 +299,43 @@
 			</linearGradient>
 		</defs>
 
-		<!-- Grid lines -->
-		{#each [0.25, 0.5, 0.75] as t}
+		<!-- Rejilla con su valor en kg -->
+		{#each yTicks as v}
 			<line
-				x1={PAD} x2={W - PAD}
-				y1={PAD + t * (H - PAD * 2)} y2={PAD + t * (H - PAD * 2)}
-				stroke="rgba(255,255,255,0.05)" stroke-dasharray="2 4"
+				x1={PAD_L} x2={W - PAD_R} y1={cy(v)} y2={cy(v)}
+				stroke="rgba(255,255,255,0.06)" stroke-dasharray="2 4"
 			/>
+			<text x={PAD_L - 6} y={cy(v) + 3} text-anchor="end" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Geist, sans-serif">{kgTick(v)}</text>
 		{/each}
 
-		<!-- Area fill -->
+		<!-- Área bajo la tendencia -->
 		{#if areaPath}
 			<path d={areaPath} fill="url(#wgt-grad)"/>
 		{/if}
 
-		<!-- Line -->
-		{#if smoothPath}
-			<path d={smoothPath} fill="none" stroke="oklch(82% 0.18 160)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-		{/if}
+		<!-- Pesajes: puntos sueltos -->
+		{#each chartData as w (w.id)}
+			<circle cx={cx(w.logged_at)} cy={cy(w.weight)} r="2.75" fill="#06070a" stroke="oklch(82% 0.18 160 / 0.7)" stroke-width="1.5"/>
+		{/each}
 
-		<!-- Tendencia (discontinua) -->
+		<!-- Tendencia: la línea protagonista -->
 		{#if trendPath}
-			<path d={trendPath} fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" stroke-dasharray="4 4" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d={trendPath} fill="none" stroke="oklch(82% 0.18 160)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 		{/if}
 
-		<!-- Last point highlight -->
-		{#if chartData.length >= 1}
-			{@const lx = cx(chartData.length - 1, chartData.length)}
-			{@const ly = cy(chartData[chartData.length - 1].weight)}
-			<circle cx={lx} cy={ly} r="8" fill="oklch(82% 0.18 160)" opacity="0.25"/>
-			<circle cx={lx} cy={ly} r="4" fill="oklch(82% 0.18 160)" stroke="#06070a" stroke-width="2"/>
+		<!-- Último punto de la tendencia -->
+		{#if trendPts.length >= 1}
+			{@const last = trendPts[trendPts.length - 1]}
+			<circle cx={last.x} cy={last.y} r="8" fill="oklch(82% 0.18 160)" opacity="0.25"/>
+			<circle cx={last.x} cy={last.y} r="4" fill="oklch(82% 0.18 160)" stroke="#06070a" stroke-width="2"/>
 		{/if}
 
-		<!-- Date labels for first and last -->
+		<!-- Fechas del primer y último pesaje -->
 		{#if chartData.length >= 2}
-			<text x={PAD} y={H - 4} text-anchor="start" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Geist, sans-serif">
+			<text x={PAD_L} y={H - 4} text-anchor="start" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Geist, sans-serif">
 				{fmtShort(chartData[0].logged_at)}
 			</text>
-			<text x={W - PAD} y={H - 4} text-anchor="end" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Geist, sans-serif">
+			<text x={W - PAD_R} y={H - 4} text-anchor="end" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Geist, sans-serif">
 				{fmtShort(chartData[chartData.length - 1].logged_at)}
 			</text>
 		{/if}
@@ -306,22 +350,42 @@
 <!-- Recent entries -->
 {#if weights.length > 0}
 <div class="section-eyebrow" style="margin:1.25rem 0.25rem 0.625rem;">{t('weight.recent')}</div>
-<div class="glass-card entry-list">
+<div class="glass-card entry-list" role="list">
 	{#each weights.slice(0, 8) as w, i (w.id)}
-		<div class="entry-row" style="border-bottom:{i < Math.min(weights.length, 8) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
-			<div class="entry-icon"><Icon name="weight" /></div>
-			<div style="flex:1;">
-				<div class="entry-val">{kg1(w.weight)} kg</div>
-				<div class="entry-date">{fmt(w.logged_at)}</div>
+		{@const prev = weights[i + 1]}
+		{@const diff = prev ? Math.round((w.weight - prev.weight) * 10) / 10 : null}
+		<div class="entry-swipe" class:entry-swipe-open={swipeId === w.id} style="border-bottom:{i < Math.min(weights.length, 8) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};">
+			<!-- Detrás de la fila: el botón que deja ver el deslizamiento -->
+			<button
+				class="entry-del"
+				onclick={() => deleteWeight(w)}
+				onfocus={() => { swipeId = w.id; swipeX = -REVEAL; }}
+				aria-label={t('weight.deleteAria', { kg: kg1(w.weight) })}
+			><Icon name="delete" />{t('common.delete')}</button>
+			<div
+				class="entry-row"
+				class:entry-row-anim={!dragging || swipeId !== w.id}
+				style="transform:translateX({swipeId === w.id ? swipeX : 0}px);"
+				onpointerdown={(e) => onRowDown(e, w.id)}
+				onpointermove={onRowMove}
+				onpointerup={onRowUp}
+				onpointercancel={onRowUp}
+				role="listitem"
+			>
+				<div style="flex:1;">
+					<div class="entry-val">{kg1(w.weight)} kg</div>
+					<div class="entry-date">{fmt(w.logged_at)}</div>
+				</div>
+				{#if diff !== null}
+					<div class="entry-diff" class:delta-down={diff < 0} class:delta-up={diff > 0}>
+						{diff > 0 ? '+' : diff < 0 ? '−' : '±'}{kg1(Math.abs(diff))}
+					</div>
+				{/if}
 			</div>
-			{#if confirmingDelete === w.id}
-				<button class="del-btn del-btn-confirm" onclick={() => deleteWeight(w.id)}>{t('weight.deleteAsk')}</button>
-			{:else}
-				<button class="del-btn" onclick={() => deleteWeight(w.id)} aria-label={t('weight.deleteAria', { kg: kg1(w.weight) })}><Icon name="close" /></button>
-			{/if}
 		</div>
 	{/each}
 </div>
+<div class="swipe-hint">{t('weight.swipeHint')}</div>
 {/if}
 
 <!-- Quick-add bottom sheet modal -->
@@ -528,46 +592,59 @@
 		font-weight: 700;
 	}
 	.entry-list { padding: 0.375rem; }
+	.entry-swipe {
+		position: relative;
+		overflow: hidden;
+	}
+	.entry-del {
+		position: absolute;
+		inset: 0 0 0 auto;
+		width: 88px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.125rem;
+		border: none;
+		background: oklch(58% 0.2 25);
+		color: #fff;
+		font: inherit;
+		font-size: 0.625rem;
+		font-weight: 700;
+		cursor: pointer;
+		opacity: 0;
+	}
+	/* El botón solo existe a la vista mientras se desliza (o tiene el foco). */
+	.entry-swipe-open { border-radius: 14px; }
+	.entry-swipe-open .entry-del { opacity: 1; }
 	.entry-row {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
 		padding: 0.75rem 0.875rem;
+		touch-action: pan-y;
+		user-select: none;
+		cursor: grab;
 	}
-	.entry-icon {
-		width: 34px;
-		height: 34px;
-		border-radius: 10px;
-		background: oklch(75% 0.18 160 / 0.12);
-		border: 1px solid oklch(75% 0.18 160 / 0.2);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: oklch(85% 0.17 160);
-		flex-shrink: 0;
-	}
+	/* Opaca al deslizar para tapar el botón de detrás. */
+	.entry-swipe-open .entry-row { background: #16181d; }
+	.entry-row-anim { transition: transform 0.2s ease; }
 	.entry-val { font-size: 0.8125rem; font-weight: 600; }
 	.entry-date { font-size: 0.625rem; color: rgba(255,255,255,0.4); margin-top: 0.125rem; }
-	.del-btn {
-		background: none;
-		border: none;
-		color: rgba(255,255,255,0.3);
-		cursor: pointer;
+	.entry-diff {
 		font-size: 0.75rem;
-		padding: 0.25rem;
-		transition: color 0.15s;
-		font-family: inherit;
+		font-weight: 600;
+		color: rgba(255,255,255,0.45);
+		font-variant-numeric: tabular-nums;
 	}
-	.del-btn:hover { color: oklch(75% 0.2 25); }
-	.del-btn-confirm {
-		color: oklch(75% 0.2 25);
-		font-weight: 700;
-		border: 1px solid oklch(65% 0.22 25 / 0.4);
-		border-radius: 8px;
-		padding: 0.25rem 0.5rem;
-		background: oklch(65% 0.22 25 / 0.12);
+	.entry-diff.delta-down { color: oklch(85% 0.17 160); background: none; }
+	.entry-diff.delta-up { color: oklch(75% 0.18 30); background: none; }
+	.swipe-hint {
+		font-size: 0.625rem;
+		color: rgba(255,255,255,0.35);
+		text-align: center;
+		margin: 0.625rem 0 calc(96px + env(safe-area-inset-bottom));
 	}
 
 	/* ── Modal ── */

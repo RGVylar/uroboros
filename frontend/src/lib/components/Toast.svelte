@@ -13,6 +13,9 @@
 					<Icon name={t.type === 'error' ? 'close' : t.type === 'success' ? 'check' : 'info'} strokeWidth={3} />
 				</span>
 				<span class="toast-msg">{t.message}</span>
+				{#if t.action}
+					<button class="toast-action" onclick={t.action.run}>{t.action.label}</button>
+				{/if}
 				<button class="toast-close" onclick={() => toast.remove(t.id)} aria-label={tr('common.close')}><Icon name="close" /></button>
 			</div>
 		{/each}
@@ -79,6 +82,19 @@
 	.toast-msg {
 		flex: 1;
 		line-height: 1.35;
+	}
+
+	.toast-action {
+		background: none;
+		border: none;
+		color: inherit;
+		font: inherit;
+		font-weight: 700;
+		cursor: pointer;
+		padding: 0.15rem 0.35rem;
+		flex-shrink: 0;
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.toast-close {

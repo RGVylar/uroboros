@@ -29,7 +29,6 @@
 	const TREND = DAILY.reduce<number[]>((acc, w, i) => [...acc, i === 0 ? 80.7 : acc[i - 1] + 0.1 * (w - acc[i - 1])], []);
 	function wx(i: number) { return 8 + (i / (DAILY.length - 1)) * 224; }
 	function wy(w: number) { return 8 + ((81.5 - w) / 2.2) * 54; }
-	const dailyPath = 'M ' + DAILY.map((w, i) => `${wx(i)},${wy(w)}`).join(' L ');
 	const trendPath = 'M ' + TREND.map((w, i) => `${wx(i)},${wy(w)}`).join(' L ');
 
 	function tone(s: number | null) {
@@ -216,8 +215,7 @@
 		</div>
 	{:else if id === 'weight_trend'}
 		<svg class="wt" viewBox="0 0 240 70">
-			<path d={dailyPath} class="wt-daily" />
-			{#each DAILY as w, i}<circle cx={wx(i)} cy={wy(w)} r="2" class="wt-dot" />{/each}
+			{#each DAILY as w, i}<circle cx={wx(i)} cy={wy(w)} r="2.25" class="wt-dot" />{/each}
 			<path d={trendPath} class="wt-trend" />
 		</svg>
 		<div class="legend">
@@ -268,11 +266,10 @@
 		margin-bottom: 0.4rem;
 	}
 	.wt { width: 100%; height: 70px; display: block; }
-	.wt-daily { fill: none; stroke: oklch(82% 0.18 160 / 0.45); stroke-width: 1.2; }
-	.wt-dot { fill: oklch(82% 0.18 160); }
-	.wt-trend { fill: none; stroke: #fff; stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; }
-	.wt-l-daily { background: oklch(82% 0.18 160); }
-	.wt-l-trend { background: #fff; }
+		.wt-dot { fill: #06070a; stroke: oklch(82% 0.18 160 / 0.7); stroke-width: 1.3; }
+	.wt-trend { fill: none; stroke: oklch(82% 0.18 160); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+	.wt-l-daily { background: transparent; border: 1.5px solid oklch(82% 0.18 160 / 0.7); border-radius: 50%; }
+	.wt-l-trend { background: oklch(82% 0.18 160); }
 	.wp-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: rgba(255, 255, 255, 0.7); padding: 0.15rem 0; }
 	.wp-row b { color: #fff; font-variant-numeric: tabular-nums; }
 	.wp-row.total { border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 0.25rem; padding-top: 0.35rem; }
