@@ -30,6 +30,7 @@ from app.models.notification_log import NotificationLog
 from app.models.mood import MoodEntry
 from app.models.release_note import ReleaseNote
 from app.models.bug_report import BugReport
+from app.models.beta_signup import BetaSignup
 from app.models.weekly_adherence import WeeklyAdherence
 from app.models.receipt import ALIAS_KINDS, ANY_STORE, ProductAlias, ReceiptImport
 
@@ -71,6 +72,7 @@ __all__ = [
     "MoodEntry",
     "ReleaseNote",
     "BugReport",
+    "BetaSignup",
     "WeeklyAdherence",
     "ProductAlias",
     "ReceiptImport",

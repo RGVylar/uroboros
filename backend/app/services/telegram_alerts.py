@@ -86,6 +86,18 @@ async def send_new_user_alert(user_id: int, email: str, user_count: int) -> None
     await _send(text)
 
 
+async def send_beta_signup_alert(email: str, pending: int) -> None:
+    """Alguien se ha apuntado en /beta. El email va ofuscado, como el resto:
+    el completo lo saca scripts/beta_signups.sql, ya listo para Play Console."""
+    text = (
+        f"🧪 *[uroboros]* Nuevo tester en /beta\n\n"
+        f"*Email:* `{_mask_email(email)}`\n"
+        f"*Pendientes de añadir en Play:* {pending}\n\n"
+        f"🕐 {_now()}"
+    )
+    await _send(text)
+
+
 async def send_avatar_photo_alert(
     user_id: int, name: str, email: str, image: bytes | None, photo_name: str = ""
 ) -> None:

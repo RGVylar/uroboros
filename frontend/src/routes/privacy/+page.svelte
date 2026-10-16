@@ -94,6 +94,7 @@
 			<li><strong style="color:#fff;">Emails transaccionales</strong> (recuperación de contraseña) — <em>Ejecución del contrato</em> (art. 6.1.b).</li>
 			<li><strong style="color:#fff;">Recomendaciones automatizadas</strong> de alimentos basadas en tus objetivos — <em>Consentimiento</em> (art. 6.1.a) al usar la función. No producen efectos jurídicos ni te afectan significativamente; puedes ignorarlas o desactivarlas.</li>
 			<li><strong style="color:#fff;">Mejora del servicio</strong> — <em>Interés legítimo</em> (art. 6.1.f) en mantener la app funcional y segura.</li>
+			<li><strong style="color:#fff;">Apuntarte a la beta</strong> en la página /beta — <em>Consentimiento</em> (art. 6.1.a): guardamos el email que nos das (y tu nombre, si lo pones) solo para añadirte como tester de la prueba cerrada en Google Play y avisarte. Lo borramos al terminar la beta, o antes si nos lo pides.</li>
 		</ul>
 		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			No usamos tus datos para publicidad, ni los vendemos ni compartimos con terceros. No realizamos perfilado con efectos jurídicos sobre ti.
@@ -128,7 +129,7 @@
 			<li><strong style="color:#fff;">Resend</strong> (resend.com) — tu email, únicamente para enviarte los correos del sistema (recuperación de contraseña).</li>
 			<li><strong style="color:#fff;">Cloudflare</strong> — tu dirección IP y el tráfico cifrado, para el cifrado TLS y la protección frente a ataques. La IP no se almacena.</li>
 			<li><strong style="color:#fff;">Open Food Facts</strong> — solo el código de barras que escaneas, para devolver el producto. No se envía ningún dato tuyo.</li>
-			<li><strong style="color:#fff;">Telegram</strong> — canal privado de avisos al administrador. Recibe un identificador interno y tu email ofuscado (por ejemplo <em>r***@dominio.com</em>) al crear una cuenta; y, solo si subes una foto de perfil o si alguien presenta una denuncia, la imagen y el nombre implicados, para poder moderarlos.</li>
+			<li><strong style="color:#fff;">Telegram</strong> — canal privado de avisos al administrador. Recibe un identificador interno y tu email ofuscado (por ejemplo <em>r***@dominio.com</em>) al crear una cuenta o apuntarte a la beta; y, solo si subes una foto de perfil o si alguien presenta una denuncia, la imagen y el nombre implicados, para poder moderarlos.</li>
 		</ul>
 		<p style="margin:0.75rem 0 0; font-size:0.875rem; color:rgba(255,255,255,0.65);">
 			Telegram tiene servidores fuera del Espacio Económico Europeo, de modo que esos avisos de moderación suponen una <strong style="color:#fff;">transferencia internacional</strong>, amparada en nuestro interés legítimo en mantener el servicio seguro (art. 6.1.f RGPD) y limitada al mínimo imprescindible. El resto de tus datos —diario, métricas, recetas, despensa— no sale de la Unión Europea en ningún caso.

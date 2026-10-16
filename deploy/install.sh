@@ -192,9 +192,9 @@ cat > /etc/caddy/Caddyfile << EOF
 		reverse_proxy 127.0.0.1:$BACKEND_PORT
 	}
 
-	# Landing de invitación: la sirve el backend, no la SPA. Sin este bloque
+	# Landing de invitación y la de la beta (/beta): las sirve el backend, no la SPA. Sin este bloque
 	# cae en el catch-all de abajo y SvelteKit responde con su propio 404.
-	@unete path /unete /unete/*
+	@unete path /unete /unete/* /beta
 	handle @unete {
 		reverse_proxy 127.0.0.1:$BACKEND_PORT
 	}
