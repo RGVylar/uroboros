@@ -212,11 +212,11 @@ _HTML = """<!doctype html>
 _FORM = """
   <section class="a-shots">
   <div class="shots">
-    <figure><img src="{APP}/screens/{L_LANG}/home.webp" alt="{L_SHOT1}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT1}</figcaption></figure>
-    <figure><img src="{APP}/screens/{L_LANG}/add.webp" alt="{L_SHOT2}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT2}</figcaption></figure>
-    <figure><img src="{APP}/screens/{L_LANG}/recipes.webp" alt="{L_SHOT3}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT3}</figcaption></figure>
-    <figure><img src="{APP}/screens/{L_LANG}/inventory.webp" alt="{L_SHOT4}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT4}</figcaption></figure>
-    <figure><img src="{APP}/screens/{L_LANG}/weight.webp" alt="{L_SHOT5}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT5}</figcaption></figure>
+    <figure><img src="{APP}/screens/{L_LANG}/home.webp?v=2" alt="{L_SHOT1}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT1}</figcaption></figure>
+    <figure><img src="{APP}/screens/{L_LANG}/add.webp?v=2" alt="{L_SHOT2}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT2}</figcaption></figure>
+    <figure><img src="{APP}/screens/{L_LANG}/recipes.webp?v=2" alt="{L_SHOT3}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT3}</figcaption></figure>
+    <figure><img src="{APP}/screens/{L_LANG}/inventory.webp?v=2" alt="{L_SHOT4}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT4}</figcaption></figure>
+    <figure><img src="{APP}/screens/{L_LANG}/weight.webp?v=2" alt="{L_SHOT5}" width="540" height="960" loading="lazy"><figcaption>{L_SHOT5}</figcaption></figure>
   </div>
   </section>
 
