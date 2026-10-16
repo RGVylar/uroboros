@@ -7,6 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.data.generic_foods import GENERIC_FOODS
+from app.data.restaurant_foods import RESTAURANT_FOODS
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Product, User
@@ -190,6 +191,8 @@ GENERIC_BOOST = 40
 # A igual relevancia, los genéricos salen en el orden del catálogo, que pone
 # primero lo más habitual (pechuga antes que carne picada) y después las marcas.
 _GENERIC_ORDER = {row[0]: i for i, row in enumerate(GENERIC_FOODS)}
+# Los de cadena, en el orden de su carta (Whopper antes que Doble Whopper).
+_RESTAURANT_ORDER = {row[0]: i for i, row in enumerate(RESTAURANT_FOODS)}
 
 
 def _generic_matches(db: Session, q: str) -> list[tuple[Product, int]]:
@@ -211,6 +214,27 @@ def _generic_matches(db: Session, q: str) -> list[tuple[Product, int]]:
         if not any(_fits(n) for n in names):
             continue
         out.append((p, max(_relevance(n, None, _fold(q)) for n in names) or 40))
+    return out
+
+
+def _restaurant_matches(db: Session, q: str) -> list[tuple[Product, int]]:
+    """Productos de cadena que encajan con la búsqueda. Como los genéricos,
+    palabra a palabra y sin tildes, pero las palabras pueden caer también en la
+    cadena: "barbacoa dominos" encuentra "Pizza Barbacoa, masa Original" de
+    Domino's. La relevancia sale solo de las palabras que caen en el nombre."""
+    words = _fold(q).split()
+    if not words:
+        return []
+    out = []
+    for p in db.scalars(select(Product).where(Product.restaurant_key.is_not(None))):
+        name = _fold(p.name)
+        name_words = re.findall(r"\w+", name)
+        brand_words = re.findall(r"\w+", _fold(p.brand or "").replace("'", ""))
+        in_name = [w for w in words if any(nw.startswith(w) for nw in name_words)]
+        if any(w not in in_name and not any(bw.startswith(w) for bw in brand_words) for w in words):
+            continue
+        rel = (_relevance(name, None, " ".join(in_name)) or 40) if in_name else 15
+        out.append((p, rel))
     return out
 
 
@@ -274,6 +298,7 @@ async def search_products(
         .where(
             or_(Product.name.ilike(f"%{q}%"), Product.brand.ilike(f"%{q}%")),
             Product.generic_key.is_(None),
+            Product.restaurant_key.is_(None),
         )
         .limit(300)
     )
@@ -281,13 +306,19 @@ async def search_products(
     generics = _generic_matches(db, q)
     generic_rel = {p.id: rel + GENERIC_BOOST for p, rel in generics}
     local_all += [p for p, _ in generics]
+    restaurants = _restaurant_matches(db, q)
+    generic_rel.update({p.id: rel for p, rel in restaurants})
+    local_all += [p for p, _ in restaurants]
 
     # Sort by relevance + user history boost, then alphabetically as tiebreaker
     # Boost: up to +30 points for products the user has logged before (capped)
     def _sort_key(p: Product) -> tuple:
         rel = generic_rel.get(p.id) or _relevance(p.name, p.brand, q)
         boost = min(30, user_freq.get(p.id, 0) * 3) if rel > 0 else 0
-        return (-(rel + boost), _GENERIC_ORDER.get(p.generic_key, len(_GENERIC_ORDER)), p.display_name.lower())
+        order = _GENERIC_ORDER.get(p.generic_key)
+        if order is None:
+            order = len(_GENERIC_ORDER) + _RESTAURANT_ORDER.get(p.restaurant_key, len(_RESTAURANT_ORDER))
+        return (-(rel + boost), order, p.display_name.lower())
 
     local_all.sort(key=_sort_key)
     seen: set[tuple] = set()
@@ -423,7 +454,7 @@ def update_product(
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
-    if product.source == ProductSource.generic:
+    if product.source in (ProductSource.generic, ProductSource.restaurant):
         # El catálogo es de todos: editarlo cambiaría el diario de cualquiera.
         raise HTTPException(status.HTTP_403_FORBIDDEN, "generic_read_only")
     data = payload.model_dump(exclude_unset=True)

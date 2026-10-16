@@ -101,6 +101,7 @@ def _get_engine():
                 _sqlite_add_column_if_missing(conn, "products", "name_en", "VARCHAR(255)")
                 _sqlite_add_column_if_missing(conn, "products", "name_pt", "VARCHAR(255)")
                 _sqlite_add_column_if_missing(conn, "products", "generic_key", "VARCHAR(64)")
+                _sqlite_add_column_if_missing(conn, "products", "restaurant_key", "VARCHAR(64)")
                 # Drop legacy column if it exists
                 from sqlalchemy import text as _text
                 cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(friendships)")).fetchall()]
@@ -108,6 +109,8 @@ def _get_engine():
                     conn.execute(_text("ALTER TABLE friendships DROP COLUMN shared_inventory"))
                 from app.services.generic_foods import sync_generic_foods
                 sync_generic_foods(conn)
+                from app.services.restaurant_foods import sync_restaurant_foods
+                sync_restaurant_foods(conn)
                 conn.commit()
 
             # Seed demo data

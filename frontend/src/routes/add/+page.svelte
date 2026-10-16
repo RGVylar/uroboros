@@ -1418,7 +1418,7 @@
 				<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
-		{#if selected.source !== 'generic'}
+		{#if selected.source !== 'generic' && selected.source !== 'restaurant'}
 			<button class="glass-btn" onclick={startEdit} aria-label={t('add.editProduct')} title={t('add.editProductTitle')}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
 					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

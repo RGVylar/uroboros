@@ -13,6 +13,8 @@ class ProductSource(str, enum.Enum):
     edited = "edited"
     # Catálogo propio sin marca (app/data/generic_foods.py). Solo lectura.
     generic = "generic"
+    # Carta de cadenas de comida rápida (app/data/restaurant_foods.py). Solo lectura.
+    restaurant = "restaurant"
 
 
 class Product(Base):
@@ -27,6 +29,8 @@ class Product(Base):
     name_en: Mapped[str | None] = mapped_column(String(255), nullable=True)
     name_pt: Mapped[str | None] = mapped_column(String(255), nullable=True)
     generic_key: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
+    # Clave estable de los productos de cadena, como generic_key para los genéricos.
+    restaurant_key: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
 
     calories_per_100g: Mapped[float] = mapped_column(Float, nullable=False)
     protein_per_100g: Mapped[float] = mapped_column(Float, nullable=False)

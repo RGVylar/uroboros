@@ -84,7 +84,7 @@ export interface Product {
 	// Envase y ración en g o ml, de Open Food Facts. Nulos si no se saben.
 	package_qty?: number | null;
 	serving_qty?: number | null;
-	source: 'openfoodfacts' | 'manual' | 'edited' | 'generic';
+	source: 'openfoodfacts' | 'manual' | 'edited' | 'generic' | 'restaurant';
 	edited_by: number | null;
 	edited_at: string | null;
 	created_at: string;
