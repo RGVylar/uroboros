@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.limiter import limiter
-from app.routers.downloads import _APP_URL, _PLAY_URL, _pick_language
+from app.routers.downloads import ICON_PHONE, _APP_URL, _PLAY_URL, _pick_language, lucide
 from app.services import beta_signup
 from app.services.telegram_alerts import send_beta_signup_alert
 
@@ -304,22 +304,12 @@ _COPY: dict[str, dict[str, str]] = {
 }
 
 
-# Iconos de Lucide, como en toda la app (la SPA los usa vía <Icon>). Aquí no
-# hay Svelte, así que van en línea: copiados de @lucide/svelte del frontend.
-def _lucide(body: str) -> str:
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
-        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-        f"{body}</svg>"
-    )
-
-
 _ICONS = {
-    "ICON_PHONE": _lucide('<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>'),
-    "ICON_CALENDAR": _lucide(
+    "ICON_PHONE": ICON_PHONE,
+    "ICON_CALENDAR": lucide(
         '<path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/>'
     ),
-    "ICON_CHECK": _lucide('<path d="M20 6 9 17l-5-5"/>'),
+    "ICON_CHECK": lucide('<path d="M20 6 9 17l-5-5"/>'),
 }
 
 

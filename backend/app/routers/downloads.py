@@ -32,6 +32,40 @@ def latest_apk() -> RedirectResponse:
     return RedirectResponse(_PLAY_URL, status_code=302)
 
 
+# Iconos de Lucide, como en toda la app (la SPA los usa vía <Icon>). Estas
+# páginas no pasan por Svelte, así que van en línea: copiados de
+# @lucide/svelte del frontend. Nada de emojis en la interfaz.
+def lucide(body: str) -> str:
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        f"{body}</svg>"
+    )
+
+
+ICON_PHONE = lucide('<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>')
+
+_ICONS = {
+    "ICON_UTENSILS": lucide(
+        '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/>'
+        '<path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>'
+    ),
+    "ICON_CHART": lucide(
+        '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>'
+    ),
+    "ICON_CHEF": lucide(
+        '<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0'
+        ' 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>'
+    ),
+    "ICON_SWORDS": lucide(
+        '<path d="m13 19 6-6"/><path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5"/>'
+        '<path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586"/>'
+        '<path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="m5 14 4 4"/><path d="m5 21-2-2"/><path d="M7.5 16.5 4 20"/>'
+    ),
+    "ICON_PHONE": ICON_PHONE,
+}
+
+
 _APP_URL = "https://comida.mugrelore.com"
 
 # The invite message links here instead of straight at Google Play: messaging
@@ -119,7 +153,9 @@ _LANDING_HTML = """<!doctype html>
     width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; font-size: 1.05rem;
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
     display: flex; align-items: center; justify-content: center;
+    color: oklch(85% 0.17 160);
   }
+  .feat .ico svg { width: 18px; height: 18px; }
   .feat b { font-size: 0.88rem; display: block; }
   .feat span { font-size: 0.78rem; color: rgba(255,255,255,0.5); line-height: 1.45; }
   @media (min-width: 900px) {
@@ -141,6 +177,7 @@ _LANDING_HTML = """<!doctype html>
   }
   /* Trust */
   .trust h2 { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .trust h2 svg { width: 16px; height: 16px; color: oklch(85% 0.17 160); }
   .trust p { font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.55; }
   .trust ol { margin: 10px 0 0 2px; list-style: none; counter-reset: step; }
   .trust li {
@@ -210,10 +247,10 @@ _LANDING_HTML = """<!doctype html>
   </div>
 
   <div class="card">
-    <div class="feat"><div class="ico">🍽️</div><div><b>{L_F1_T}</b><span>{L_F1_D}</span></div></div>
-    <div class="feat"><div class="ico">📊</div><div><b>{L_F2_T}</b><span>{L_F2_D}</span></div></div>
-    <div class="feat"><div class="ico">🍳</div><div><b>{L_F3_T}</b><span>{L_F3_D}</span></div></div>
-    <div class="feat"><div class="ico">⚔️</div><div><b>{L_F4_T}</b><span>{L_F4_D}</span></div></div>
+    <div class="feat"><div class="ico">{ICON_UTENSILS}</div><div><b>{L_F1_T}</b><span>{L_F1_D}</span></div></div>
+    <div class="feat"><div class="ico">{ICON_CHART}</div><div><b>{L_F2_T}</b><span>{L_F2_D}</span></div></div>
+    <div class="feat"><div class="ico">{ICON_CHEF}</div><div><b>{L_F3_T}</b><span>{L_F3_D}</span></div></div>
+    <div class="feat"><div class="ico">{ICON_SWORDS}</div><div><b>{L_F4_T}</b><span>{L_F4_D}</span></div></div>
   </div>
   </div>
 
@@ -231,7 +268,7 @@ _LANDING_HTML = """<!doctype html>
   </div>
 
   <div class="card trust" style="margin-top:14px;">
-    <h2>{L_TRUST_T}</h2>
+    <h2>{ICON_PHONE}{L_TRUST_T}</h2>
     <p>{L_TRUST_INTRO}</p>
     <ol>
       <li>{L_STEP1}</li>
@@ -260,7 +297,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
     "es": {
         "L_LANG": "es",
         "L_HL": "es",
-        "L_TITLE": "Únete a uroboros 🐍",
+        "L_TITLE": "Únete a uroboros",
         "L_OG_TITLE": "uroboros — come mejor, en pareja",
         "L_OG_DESC": "La app para llevar la comida con tu pareja: registra una comida para los dos a la vez, compite en constancia y comparte la lista de la compra.",
         "L_TAG": "Come mejor. Juntos.",
@@ -277,7 +314,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_QR_ARIA": "Código QR para abrir la app en Google Play desde el móvil",
         "L_QR_T": "¿Estás en el ordenador?",
         "L_QR_D": "Escanea este código con la cámara del móvil Android y se abrirá la app en Google Play.",
-        "L_TRUST_T": "📲 Cómo empezar",
+        "L_TRUST_T": "Cómo empezar",
         "L_TRUST_INTRO": "En tres pasos estáis registrando juntos:",
         "L_STEP1": "Instala uroboros desde <b>Google Play</b>.",
         "L_STEP2": "Crea tu cuenta, o entra con la que ya tengas.",
@@ -290,7 +327,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
     "en": {
         "L_LANG": "en",
         "L_HL": "en",
-        "L_TITLE": "Join uroboros 🐍",
+        "L_TITLE": "Join uroboros",
         "L_OG_TITLE": "uroboros — eat better, together",
         "L_OG_DESC": "The app for tracking food with your partner: log one meal for both of you at once, compete on consistency and share the shopping list.",
         "L_TAG": "Eat better. Together.",
@@ -307,7 +344,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_QR_ARIA": "QR code to open the app on Google Play from your phone",
         "L_QR_T": "On your computer?",
         "L_QR_D": "Scan this code with your Android phone's camera to open the app on Google Play.",
-        "L_TRUST_T": "📲 Getting started",
+        "L_TRUST_T": "Getting started",
         "L_TRUST_INTRO": "Three steps and you're logging together:",
         "L_STEP1": "Install uroboros from <b>Google Play</b>.",
         "L_STEP2": "Create your account, or sign in with the one you already have.",
@@ -320,7 +357,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
     "pt": {
         "L_LANG": "pt",
         "L_HL": "pt-PT",
-        "L_TITLE": "Junta-te ao uroboros 🐍",
+        "L_TITLE": "Junta-te ao uroboros",
         "L_OG_TITLE": "uroboros — comer melhor, a dois",
         "L_OG_DESC": "A app para gerir a comida com o teu par: regista uma refeição para os dois de uma vez, compete na constância e partilha a lista de compras.",
         "L_TAG": "Comer melhor. Juntos.",
@@ -337,7 +374,7 @@ _LANDING_COPY: dict[str, dict[str, str]] = {
         "L_QR_ARIA": "Código QR para abrir a app no Google Play a partir do telemóvel",
         "L_QR_T": "Estás no computador?",
         "L_QR_D": "Lê este código com a câmara do telemóvel Android e a app abre-se no Google Play.",
-        "L_TRUST_T": "📲 Como começar",
+        "L_TRUST_T": "Como começar",
         "L_TRUST_INTRO": "Em três passos estão a registar juntos:",
         "L_STEP1": "Instala o uroboros a partir do <b>Google Play</b>.",
         "L_STEP2": "Cria a tua conta, ou entra com a que já tens.",
@@ -379,6 +416,8 @@ def _pick_language(accept_language: str | None, lang: str | None = None) -> str:
 
 def _render_landing(lang: str, canonical: str) -> str:
     html = _LANDING_HTML.replace("{L_CANONICAL}", canonical)
+    for key, value in _ICONS.items():
+        html = html.replace("{" + key + "}", value)
     for key, value in _LANDING_COPY[lang].items():
         html = html.replace("{" + key + "}", value)
     return html
